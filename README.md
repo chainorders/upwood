@@ -62,94 +62,94 @@ It is TE’s job to check everything off-chain for an individual or organization
 
 ```mermaid
 sequenceDiagram
-actor MO as Marketplace Owner (MO)
-actor AO as RWA Owner (AO)
-actor MLP as Marketplace Legal Partner (MLP)
-participant CIS2 as Security Token Contract (STC) <br/> Represents a single token type
-participant TIR as Trusted Identity Registry (TIR)
+    actor MO as Marketplace Owner (MO)
+    actor AO as RWA Owner (AO)
+    actor MLP as Marketplace Legal Partner (MLP)
+    participant CIS2 as Security Token Contract (STC) <br/> Represents a single token type
+    participant TIR as Trusted Identity Registry (TIR)
 
-rect rgb(60, 60, 0)
-note right of MO: Token Holder Addition
-MO ->> CIS2 : Add Trusted Identity Registry
-MO ->> TIR : Add Trusted Entity (MLP), Role = Minter
-AO -->> +MO : Verify KYC & Documents
-MO -->> MO : Document Verification
-MO ->> -TIR : Add AO Role=Holder
-end 
+    rect rgb(60, 60, 0)
+    note right of MO: Token Holder Addition
+    MO ->> CIS2 : Add Trusted Identity Registry
+    MO ->> TIR : Add Trusted Entity (MLP), Role = Minter
+    AO -->> +MO : Verify KYC & Documents
+    MO -->> MO : Document Verification
+    MO ->> -TIR : Add AO Role=Holder
+    end 
 
-rect rgb(80, 60, 0)
-note right of AO: Token Minting Process
-AO -->> MLP : RWA custody for Car1
-MLP -->> MLP : Document Verification
-MLP ->> +CIS2 : Mint Token Car1 Owner = AO, Fractions = n
-CIS2 ->> +TIR : Is MLP Verified Minter?
-TIR ->> -CIS2 : Yes MLP is Verified Minter
-CIS2 ->> +TIR : Is AO Verified Holder ?
-TIR ->> -CIS2 : Yes AO is Verified Holder
-CIS2 ->> -CIS2 : Adds a new Token Car1 Owner=AO
-AO -->> CIS2 : `BalanceOf(AO, Car1) = 1`
-end
-
-rect rgb(60, 60, 0)
-note right of MO: Fractionalizer Setup
-create participant Frac as Fractionalized Token Contract (Frac)
-MO ->> Frac : Init
-MO ->> Frac : Add Trusted Token Contract STC
-MO ->> TIR : Add STC role=holder
-end
-
-rect rgb(60, 30, 0)
-note right of AO: Fractionalizing Process
-AO ->> +CIS2 : Add Frac as Operator
-AO ->> +Frac : Fractionalize Car1
-Frac ->> Frac : IS Trusted STC
-Frac ->> CIS2 : Transfer me Car1 from AO
-CIS2 ->> TIR : Is Frac Verified Holder
-TIR ->> CIS2 : Yes Frac is a Verified Holder
-CIS2 ->> CIS2 : Assigns Car1 to Frac
-CIS2 ->> -Frac : You now own all the n Fractions of Car1
-Frac ->> -Frac : Mints n Amount of Car1 tokens, owner=AO
-end 
-AO -->> Frac : `BalanceOf(AO, Car1) = n`
-alt P2P Transfer
-    rect rgb(60, 30, 60)
-    note right of AO: Token Transfer P2P
-    AO ->> +Frac : Transfer x Car1 tokens to AO1
-    Frac ->> CIS2 : Give me your TIR Address
-    CIS2 ->> Frac : Address of TIR
-    Frac ->> TIR : is AO2 verified holder?
-    TIR ->> Frac : Yes AO2 is verified
-    destroy Frac
-    Frac ->> -Frac : Transfers x Car1 tokens to AO1
+    rect rgb(80, 60, 0)
+    note right of AO: Token Minting Process
+    AO -->> MLP : RWA custody for Car1
+    MLP -->> MLP : Document Verification
+    MLP ->> +CIS2 : Mint Token Car1 Owner = AO, Fractions = n
+    CIS2 ->> +TIR : Is MLP Verified Minter?
+    TIR ->> -CIS2 : Yes MLP is Verified Minter
+    CIS2 ->> +TIR : Is AO Verified Holder ?
+    TIR ->> -CIS2 : Yes AO is Verified Holder
+    CIS2 ->> -CIS2 : Adds a new Token Car1 Owner=AO
+    AO -->> CIS2 : `BalanceOf(AO, Car1) = 1`
     end
-else Burning Fractions
-    rect rgb(60, 30, 60)
-    note right of AO: Burning Fractions
-    AO ->> +Frac : Burn n Car1 tokens
-    Frac ->> Frac : Burn Tokens
-    destroy Frac
-    Frac ->> -CIS2 : Transfer Car1 Token to AO
+
+    rect rgb(60, 60, 0)
+    note right of MO: Fractionalizer Setup
+    create participant Frac as Fractionalized Token Contract (Frac)
+    MO ->> Frac : Init
+    MO ->> Frac : Add Trusted Token Contract STC
+    MO ->> TIR : Add STC role=holder
     end
-end
 
-rect rgb(60, 60, 0)
-note right of MO: Marketplace Setup
-create participant Marketplace as Marketplace
-MO ->> Marketplace : Init
-MO ->> Marketplace : Add Trusted STC
-MO ->> TIR : Add Marketplace role=holder
-end
+    rect rgb(60, 30, 0)
+    note right of AO: Fractionalizing Process
+    AO ->> +CIS2 : Add Frac as Operator
+    AO ->> +Frac : Fractionalize Car1
+    Frac ->> Frac : IS Trusted STC
+    Frac ->> CIS2 : Transfer me Car1 from AO
+    CIS2 ->> TIR : Is Frac Verified Holder
+    TIR ->> CIS2 : Yes Frac is a Verified Holder
+    CIS2 ->> CIS2 : Assigns Car1 to Frac
+    CIS2 ->> -Frac : You now own all the n Fractions of Car1
+    Frac ->> -Frac : Mints n Amount of Car1 tokens, owner=AO
+    end 
+    AO -->> Frac : `BalanceOf(AO, Car1) = n`
+    alt P2P Transfer
+        rect rgb(60, 30, 60)
+        note right of AO: Token Transfer P2P
+        AO ->> +Frac : Transfer x Car1 tokens to AO1
+        Frac ->> CIS2 : Give me your TIR Address
+        CIS2 ->> Frac : Address of TIR
+        Frac ->> TIR : is AO2 verified holder?
+        TIR ->> Frac : Yes AO2 is verified
+        destroy Frac
+        Frac ->> -Frac : Transfers x Car1 tokens to AO1
+        end
+    else Burning Fractions
+        rect rgb(60, 30, 60)
+        note right of AO: Burning Fractions
+        AO ->> +Frac : Burn n Car1 tokens
+        Frac ->> Frac : Burn Tokens
+        destroy Frac
+        Frac ->> -CIS2 : Transfer Car1 Token to AO
+        end
+    end
 
-rect rgb(60, 30, 0)
-note right of AO: Selling Process (Listing)
-AO ->> +CIS2 : Add Marketplace as Operator
-AO ->> +Marketplace : Sell Token Car1 for x CCD
-Marketplace ->> Marketplace : Is Valid STC?
-Marketplace ->> CIS2 : Transfer Token Car1 to Me
-CIS2 ->> TIR : Is Marketplace a valid Holder
-TIR ->> CIS2 : Yes Marketplace is a valid holder
-CIS2 ->> CIS2 : Transfer Car1 to Marketplace
-CIS2 ->> Marketplace : You own Car1
-Marketplace ->> -Marketplace : List Car1 for x CCD
-end
+    rect rgb(60, 60, 0)
+    note right of MO: Marketplace Setup
+    create participant Marketplace as Marketplace
+    MO ->> Marketplace : Init
+    MO ->> Marketplace : Add Trusted STC
+    MO ->> TIR : Add Marketplace role=holder
+    end
+
+    rect rgb(60, 30, 0)
+    note right of AO: Selling Process (Listing)
+    AO ->> +CIS2 : Add Marketplace as Operator
+    AO ->> +Marketplace : Sell Token Car1 for x CCD
+    Marketplace ->> Marketplace : Is Valid STC?
+    Marketplace ->> CIS2 : Transfer Token Car1 to Me
+    CIS2 ->> TIR : Is Marketplace a valid Holder
+    TIR ->> CIS2 : Yes Marketplace is a valid holder
+    CIS2 ->> CIS2 : Transfer Car1 to Marketplace
+    CIS2 ->> Marketplace : You own Car1
+    Marketplace ->> -Marketplace : List Car1 for x CCD
+    end
 ```
