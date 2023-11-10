@@ -61,6 +61,13 @@ MO will have to assign trusted entities for the issuance of VCs for license-requ
 It is TE’s job to check everything off-chain for an individual or organization and if they are providing the required qualification, they will issue the VC.
 
 ```mermaid
+%%{ init: {
+        'logLevel': 'debug',
+        'theme': 'dark',
+        'mainBranchName': 'main',
+    }
+}%%
+
 sequenceDiagram;
     actor MO as Marketplace Owner (MO);
     actor AO as RWA Owner (AO);
@@ -119,7 +126,6 @@ sequenceDiagram;
         CIS2 ->> Frac : Address of TIR;
         Frac ->> TIR : is AO2 verified holder?;
         TIR ->> Frac : Yes AO2 is verified;
-        destroy Frac;
         Frac ->> -Frac : Transfers x Car1 tokens to AO1;
         end;
     else Burning Fractions;
@@ -127,10 +133,11 @@ sequenceDiagram;
         note right of AO: Burning Fractions;
         AO ->> +Frac : Burn n Car1 tokens;
         Frac ->> Frac : Burn Tokens;
-        destroy Frac;
         Frac ->> -CIS2 : Transfer Car1 Token to AO;
         end;
     end;
+    destroy Frac
+    AO --> Frac : Any other TXN
 
     rect rgb(60, 60, 0);
     note right of MO: Marketplace Setup;
@@ -152,4 +159,7 @@ sequenceDiagram;
     CIS2 ->> Marketplace : You own Car1;
     Marketplace ->> -Marketplace : List Car1 for x CCD;
     end;
+
+    destroy Marketplace
+    AO --> Marketplace : Any other TXN
 ```
