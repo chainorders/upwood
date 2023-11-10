@@ -61,13 +61,6 @@ MO will have to assign trusted entities for the issuance of VCs for license-requ
 It is TE’s job to check everything off-chain for an individual or organization and if they are providing the required qualification, they will issue the VC.
 
 ```mermaid
-%%{ init: {
-        'logLevel': 'debug',
-        'theme': 'dark',
-        'mainBranchName': 'main',
-    }
-}%%
-
 sequenceDiagram;
     actor MO as Marketplace Owner (MO);
     actor AO as RWA Owner (AO);
