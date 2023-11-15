@@ -1,158 +1,123 @@
 # Real World Asset (RWA) for Concordium
 
-## Terms
+## Accounts & Roles
 
-### Marketplace Owner (MO)
+### Admin
 
-We assume that MO should know the law, work with a legal entity, and follow the latest changes in that particular legislation. MO is responsible for
+Admin account is responsible for
 
-* providing technical infrastructure including the marketplace,
-* ID attributes verifier,
-* contract initiations for specific types,
-* adding compliance rules for specific countries,
-* or even tokens, etc.
-* and one of the biggest duties is following compliance rules of the asset type he is selling.
+1. Initializing the Security Token Contract (STC)
+2. Initializing Trusted Identity Registry (TIR) Contract
+3. Performing Off-Chain KYC and updating `KYCRole -> Address` Mapping in `TIR Contract`
+4. Adding `Trusted Agent TIR` to TIR
+5. Initializing Compliance Contract (ComC)
+6. Adding `Trusted Agent ComC (TaComC)` to Compliance Contract (ComC)
+7. Initializing Fractionalizer token Contract (FTC)
+8. Adding MLP Account to FTC to be able to set fractions for a particular Token
+9. Adding trusted STC to FTC. An STC will only accept token transfers from trusted STC
 
-### Marketplace Legal Partner (MLP)
+### MLP
 
-They have to follow the latest regulations for this type of asset,
-it is their responsibility to define compliance rules and
-they are the escrow that holds the custody of real-world assets.
-MLP should also provide an off-chain custody service, which will basically get the asset i.e. house, from the owner by signing some papers and in return will let him tokenize his asset,
-verify the asset status on chain (since it is minted unverified by default),
-and set the maximum fractions that can be created after it.
+MLP Account is responsible for
 
-### Asset Owner Person (AOP)
+1. Keeping off chain custody of the RWA
+2. Initializing Token Fractionalizer
+3. Adding Trusted STC to the Fractionalizer Contract
+4. Minting a token representing RWA on chain
+5. Minting a token representing Fractions of RWA and setting the maximum supply for the Fraction Tokens
 
-Any person or enterprise should be able to tokenize their assets. A person, who wants to tokenize his asset also should be fulfilling some criteria to hold that token type.
-He/She has to provide identity attributes and
-even should be able to show proof of having a license from a trusted entity if its required for the asset type.
+`Admin` should add MLP account in `Mint` KYCRole after initializing the `TIR Contract`
 
-Since any token can have any compliance rules applied,
+### Trusted Agent TIR (TaTir)
 
-* We first check the IP’s eligibility with his ID attributes and
-* Again if the token requires having a license, in a separate process we will have to wait a proof generated for AOP, that says they are eligible.
+Trusted Agent is responsible for
 
-In that sense, there could be 2 separate processes simultaneously to be able to verify an AOP’s eligibility to hold the token. If he is, then MO adds AOP’s public address to a smart contract instance in a whitelisting array.
+1. Updating `TERole -> TE` Mapping in `TIR Contract`
 
-### Asset Owner Enterprise (AOE)
+A TA should be added to the TIR by the Admin (Owner of the TIR Contract)
+A TA is responsible for following regulations and adding appropriate TE needed for a particular `TERole` in TIR
 
-An enterprise, by default, doesn’t hold ID credentials other than the LEI number in its ID object. Id requirements are not applicable, and we need to be able to differentiate them by simply asking to reveal their ID from UI. If AOE wants to tokenize the asset, they have to have a license in other words all of their legal permits should be controlled by a trusted entity, and a verifiable credential should be issued to their identity.
+### Trusted Entity Account
 
-### Investor Person (IP)
+Owner of the TE required. This account initializes needed TE which is a CIS4 contract and is responsible for issuing VC representing licenses whenever required for a particular role.
 
-Any investor can buy these tokens either from MO’s marketplace or directly from any user. We have to make sure that, they have certified to hold these assets. **That’s the biggest problem we need to solve.**
+### Trusted Agent Compliance Contract (TaComC)
 
-In order to get this token, we need to make sure this IP is in a special whitelist contract created for the token. To get that list, IP has to complete two paths that need to be checked for the token, first,
+Responsible for Adding and Removing Trusted Module to Compliance Contract
 
-* IP will share his ID attributes (the ones that are required for the specific token type and defined the MO)
-* and if the token requires a license contract will check if he has a VC issued by the trusted entity for this IP, and
+### RWA Receiver (RwaR)
 
-if both satisfied IP will get registered to whitelisted accounts list. From now on, he can hold this token.
+An account which can receive a RWA.
+RwaR represents a Account Address and Holder of VC's issued by Trusted TE's in TIR
+The Account should perform KYC with `Admin` to be added in the `KYCRole->Address` mapping by the admin
+The Account holder should also be able to provide signatures from keys required and added TE's to TIR
 
-### Investor Enterprise (IE)
+## Contracts
 
-If a company wants to hold an RWA token, there will be different verification requirements that possibly have to be applied. Could be a Crypto Asset Service Provider (CASP) license or something else. The trusted entity will issue a VC for the IE and if this exists, IE can invest.
+### Security Token Contract (CIS2)
 
-### Trusted Entity (TE)
+**Every CIS2 token contract can contract multiple tokens of the same type**. Which means they should have the same trust requirements for Minting, Receiving & Burning. Which means the same set of Addresses in the TIR Contract for a particular role should be able to execute that role over the tokens of the same type / contract.
 
-MO will have to assign trusted entities for the issuance of VCs for license-required occasions.
+Every Security Token Contract will have a corresponding Trusted Registry Contract defining the roles and their trust requirements (KYC and VC's) needed.
 
-It is TE’s job to check everything off-chain for an individual or organization and if they are providing the required qualification, they will issue the VC.
+* Who should be able to Mint?
+The custodian of the RWA should be able to Mint a token representing that an RWA has been Tokenized by the Minter. The Owner of the CIS2 token contract should follow regulations to add an appropriate minter
 
-```mermaid
-sequenceDiagram;
-    actor MO as Marketplace Owner (MO);
-    actor AO as RWA Owner (AO);
-    actor MLP as Marketplace Legal Partner (MLP);
-    participant CIS2 as Security Token Contract (STC) <br/> Represents a single token type;
-    participant TIR as Trusted Identity Registry (TIR);
+* Who should be able to Receive?
+* Who should be able to Burn?
 
-    rect rgb(60, 60, 0);
-    note right of MO: Token Holder Addition;
-    MO ->> CIS2 : Add Trusted Identity Registry;
-    MO ->> TIR : Add Trusted Entity (MLP), Role = Minter;
-    AO -->> +MO : Verify KYC & Documents;
-    MO -->> MO : Document Verification;
-    MO ->> -TIR : Add AO Role=Holder;
-    end;
+#### Functions
 
-    rect rgb(80, 60, 0);
-    note right of AO: Token Minting Process;
-    AO -->> MLP : RWA custody for Car1;
-    MLP -->> MLP : Document Verification;
-    MLP ->> +CIS2 : Mint Token Car1 Owner = AO, Fractions = n;
-    CIS2 ->> +TIR : Is MLP Verified Minter?;
-    TIR ->> -CIS2 : Yes MLP is Verified Minter;
-    CIS2 ->> +TIR : Is AO Verified Holder ?;
-    TIR ->> -CIS2 : Yes AO is Verified Holder;
-    CIS2 ->> -CIS2 : Adds a new Token Car1 Owner=AO;
-    AO -->> CIS2 : `BalanceOf(AO, Car1) = 1`;
-    end;
+Apart from the functions described in [CIS2 contract standard](https://proposals.concordium.software/CIS/cis-2.html#cis-2-concordium-token-standard-2)
 
-    rect rgb(60, 60, 0);
-    note right of MO: Fractionalizer Setup;
-    create participant Frac as Fractionalized Token Contract (Frac);
-    MO ->> Frac : Init;
-    MO ->> Frac : Add Trusted Token Contract STC;
-    MO ->> TIR : Add STC role=holder;
-    end;
+1. Receive : Executed by the receiver of the token. Only after a successful call to this function the `balanceOf` will be updated denoting complete transfer. This function is needed in addition to the transfer function because in the cases where a VC is required & a TE is specified for the `Receiver role`. Only the receiver of the token can send valid signatures to validate his identity against issued credentials.
+2. Burn : Removes the token balance from the Current Owner
 
-    rect rgb(60, 30, 0);
-    note right of AO: Fractionalizing Process;
-    AO ->> +CIS2 : Add Frac as Operator;
-    AO ->> +Frac : Fractionalize Car1;
-    Frac ->> Frac : IS Trusted STC;
-    Frac ->> CIS2 : Transfer me Car1 from AO;
-    CIS2 ->> TIR : Is Frac Verified Holder;
-    TIR ->> CIS2 : Yes Frac is a Verified Holder;
-    CIS2 ->> CIS2 : Assigns Car1 to Frac;
-    CIS2 ->> -Frac : You now own all the n Fractions of Car1;
-    Frac ->> -Frac : Mints n Amount of Car1 tokens, owner=AO;
-    end ;
-    AO -->> Frac : `BalanceOf(AO, Car1) = n`;
-    alt P2P Transfer;
-        rect rgb(60, 30, 60);
-        note right of AO: Token Transfer P2P;
-        AO ->> +Frac : Transfer x Car1 tokens to AO1;
-        Frac ->> CIS2 : Give me your TIR Address;
-        CIS2 ->> Frac : Address of TIR;
-        Frac ->> TIR : is AO2 verified holder?;
-        TIR ->> Frac : Yes AO2 is verified;
-        Frac ->> -Frac : Transfers x Car1 tokens to AO1;
-        end;
-    else Burning Fractions;
-        rect rgb(60, 30, 60);
-        note right of AO: Burning Fractions;
-        AO ->> +Frac : Burn n Car1 tokens;
-        Frac ->> Frac : Burn Tokens;
-        Frac ->> -CIS2 : Transfer Car1 Token to AO;
-        end;
-    end;
-    destroy Frac
-    AO --> Frac : Any other TXN
+### Trusted Identity Registry Contract (TIR)
 
-    rect rgb(60, 60, 0);
-    note right of MO: Marketplace Setup;
-    create participant Marketplace as Marketplace;
-    MO ->> Marketplace : Init;
-    MO ->> Marketplace : Add Trusted STC;
-    MO ->> TIR : Add Marketplace role=holder;
-    end;
+#### State
 
-    rect rgb(60, 30, 0);
-    note right of AO: Selling Process (Listing);
-    AO ->> +CIS2 : Add Marketplace as Operator;
-    AO ->> +Marketplace : Sell Token Car1 for x CCD;
-    Marketplace ->> Marketplace : Is Valid STC?;
-    Marketplace ->> CIS2 : Transfer Token Car1 to Me;
-    CIS2 ->> TIR : Is Marketplace a valid Holder;
-    TIR ->> CIS2 : Yes Marketplace is a valid holder;
-    CIS2 ->> CIS2 : Transfer Car1 to Marketplace;
-    CIS2 ->> Marketplace : You own Car1;
-    Marketplace ->> -Marketplace : List Car1 for x CCD;
-    end;
+* Mapping of `KYCRole -> Set<Address>`
+  * `Address is Account Address | Contract Address`
+  * `KYCRole` is an enum of `Mint`, `Receive`, `Burn` and is extendable.
+    * `KYCRole` can only be updated by the owner of the contract. Hence Owner of this contract needs to track the regulations and perform appropriate KYC
+* Mapping of `TERole -> Set<TE>`
+  * `TE is CIS4 Contract Address`
+  * `TERole` is an enum of `Mint`, `Receive`, `Burn` and is extendable
+    * `TERole` can only be updated by a `Trusted Agent`
+* `Set<TA>`
+  * TA is a Trusted Agent & Account address
+  * TA's should be part of the regulations body of the particular token and are responsible for adding TE's to a particular role
+  * Owner of the contract can make himself a TA
+* Mapping of `Address -> Set<Pair<Compliance Attribute, Attribute Value>>`
 
-    destroy Marketplace
-    AO --> Marketplace : Any other TXN
-```
+#### Logical Flow
+
+  Example flow During minting of a particular token the CIS2 contract will check if the `sender` of the transaction
+
+* **Has done KYC** by checking if the Mint KYCRole has the sender address mentioned
+* **Has Required License** by checking all the TE's in the Mint TERole for public keys of the attached signatures. at least 1 TE should have an unrevoked claim for the mentioned key with signatures
+
+and the transaction is
+
+### Trusted Agent Contract (TE)
+
+This is a CIS4 contract responsible for Issuing VC to Public Keys for a particular `TERole`. A TE contract is ony to be used when the regulations require a license (VC) to be needed for Minting, Holding etc for a particular token
+
+### Compliance Contract (ComC)
+
+A Compliance contract is only responsible for checking the global compliance of a particular transaction which involves transferring ownership of a particular token.
+
+Compliance contract makes the Compliance Mechanism dynamic by having the Ability to Add / Remove Compliance Modules dynamically. Each compliance module is responsible for checking individual global compliance required for transferring a particular token.
+
+### Compliance Contract Module (ComCM)
+
+Multiple Compliance Contract Modules can be added to a `Compliance Contract (ComC)`. Each Compliance Module Contract is created to check for an individual part of global compliance while transferring the ownership of a token
+
+### Marketplace Contract (MC)
+
+A MC should be added as a valid receiver of the Token in STC. Since MC holds the token in custody while allowing anyone to buy the token
+
+### Fractionalized Token Contract (FTC)
+
+A FTC should be added as a valid receiver of the token in STC. Since FTC holds the token in custody while providing the fractionalized tokens
