@@ -1,0 +1,35 @@
+{
+	"name": "concordium-rwa",
+	"version": "1.0.0",
+	"repository": "git@github.com:chainorders/concordium-rwa.git",
+	"author": "Parv Sharma <parv0888@gmail.com>",
+	"private": true,
+	"workspaces": [
+		"contracts/compliance",
+		"contracts/sponsor",
+		"contracts/identity-registry",
+		"contracts/security-nft",
+		"contracts/market",
+		"contracts/integration-tests",
+		"frontend",
+		"backend"
+	],
+	"scripts": {
+		"build:contracts": "yarn && yarn workspaces foreach -Ap --include 'contracts/*' run build",
+		"deploy:contracts": "yarn workspaces foreach -A --include 'contracts/*' run deploy",
+		"format:contracts": "yarn workspaces foreach -Ap --include 'contracts/*' run format",
+		"test:contracts": "yarn workspaces foreach -Ap --include 'contracts/*' run test",
+		"build:backend": "yarn workspace backend build",
+		"run:backend:contracts-api": "yarn workspace backend debug:contracts-api",
+		"run:backend:verifier-api": "yarn workspace backend debug:verifier-api",
+		"generate:backend:contracts-api-client": "yarn workspace backend generate:contracts-api-client",
+		"generate:backend:verifier-api-client": "yarn workspace backend generate:verifier-api-client",
+		"generate:backend:client": "yarn generate:backend:contracts-api-client && yarn generate:backend:verifier-api-client",
+		"run:frontend": "yarn workspace frontend dev"
+	},
+	"packageManager": "yarn@4.0.2",
+	"devDependencies": {
+		"@types/node": "^20.10.5",
+		"typescript": "^5.3.3"
+	}
+}
