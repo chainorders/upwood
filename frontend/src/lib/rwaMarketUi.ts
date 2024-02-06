@@ -12,8 +12,8 @@ export const initRequestJsonSchema: RJSFSchema = {
 			type: "object",
 			title: "Commission",
 			properties: {
-				numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-				denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+				numerator: { type: "integer", minimum: 0, title: "Numerator" },
+				denominator: { type: "integer", minimum: 0, title: "Denominator" },
 			},
 		},
 		token_contracts: {
@@ -1194,8 +1194,8 @@ export const calculateAmountsRequestJsonSchema: RJSFSchema = {
 											type: "object",
 											title: "",
 											properties: {
-												numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-												denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+												numerator: { type: "integer", minimum: 0, title: "Numerator" },
+												denominator: { type: "integer", minimum: 0, title: "Denominator" },
 											},
 										},
 									],
@@ -1230,8 +1230,8 @@ export const calculateAmountsRequestJsonSchema: RJSFSchema = {
 													type: "object",
 													title: "Second",
 													properties: {
-														numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-														denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+														numerator: { type: "integer", minimum: 0, title: "Numerator" },
+														denominator: { type: "integer", minimum: 0, title: "Denominator" },
 													},
 												},
 											],
@@ -2054,8 +2054,8 @@ export const exchangeRequestJsonSchema: RJSFSchema = {
 											type: "object",
 											title: "",
 											properties: {
-												numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-												denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+												numerator: { type: "integer", minimum: 0, title: "Numerator" },
+												denominator: { type: "integer", minimum: 0, title: "Denominator" },
 											},
 										},
 									],
@@ -2090,8 +2090,8 @@ export const exchangeRequestJsonSchema: RJSFSchema = {
 													type: "object",
 													title: "Second",
 													properties: {
-														numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-														denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+														numerator: { type: "integer", minimum: 0, title: "Numerator" },
+														denominator: { type: "integer", minimum: 0, title: "Denominator" },
 													},
 												},
 											],
@@ -2382,8 +2382,8 @@ export const getListedResponseJsonSchema: RJSFSchema = {
 												type: "object",
 												title: "",
 												properties: {
-													numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-													denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+													numerator: { type: "integer", minimum: 0, title: "Numerator" },
+													denominator: { type: "integer", minimum: 0, title: "Denominator" },
 												},
 											},
 										],
@@ -2418,8 +2418,8 @@ export const getListedResponseJsonSchema: RJSFSchema = {
 														type: "object",
 														title: "Second",
 														properties: {
-															numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-															denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+															numerator: { type: "integer", minimum: 0, title: "Numerator" },
+															denominator: { type: "integer", minimum: 0, title: "Denominator" },
 														},
 													},
 												],
@@ -2688,8 +2688,8 @@ export const listRequestJsonSchema: RJSFSchema = {
 												type: "object",
 												title: "",
 												properties: {
-													numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-													denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+													numerator: { type: "integer", minimum: 0, title: "Numerator" },
+													denominator: { type: "integer", minimum: 0, title: "Denominator" },
 												},
 											},
 										],
@@ -2724,8 +2724,8 @@ export const listRequestJsonSchema: RJSFSchema = {
 														type: "object",
 														title: "Second",
 														properties: {
-															numerator: { type: "integer", minimum: 0, maximum: 65535, title: "Numerator" },
-															denominator: { type: "integer", minimum: 0, maximum: 65535, title: "Denominator" },
+															numerator: { type: "integer", minimum: 0, title: "Numerator" },
+															denominator: { type: "integer", minimum: 0, title: "Denominator" },
 														},
 													},
 												],
