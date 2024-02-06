@@ -2,12 +2,15 @@ use anyhow::Ok;
 use async_trait::async_trait;
 use concordium_rust_sdk::{
     types::{
+        hashes::BlockHash,
         smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
-        BlockItemSummary, ContractAddress,
+        transactions::BlockItem,
+        AbsoluteBlockHeight, BlockItemSummary, ContractAddress,
     },
     v2::FinalizedBlockInfo,
 };
 use futures::StreamExt;
+use log::info;
 
 use crate::txn_listener::db::DatabaseClient;
 
@@ -94,8 +97,8 @@ impl TransactionsListener {
         processors: Vec<Box<dyn EventsProcessor>>,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            node:       concordium_client,
-            database:   DatabaseClient {
+            node: concordium_client,
+            database: DatabaseClient {
                 client: mongo_client,
             },
             processors,
@@ -107,13 +110,35 @@ impl TransactionsListener {
     /// # Returns
     ///
     /// * A Result indicating the success or failure of the operation.
-    pub async fn listen(&mut self) -> anyhow::Result<()> {
-        let mut finalized_block_stream = self.node.get_finalized_blocks().await?;
+    pub async fn listen(&mut self, starting_block_hash: Option<BlockHash>) -> anyhow::Result<()> {
+        let starting_block_height = match starting_block_hash {
+            Some(hash) => {
+                let block_info = self.node.get_block_info(hash).await?;
+                block_info.response.block_height
+            }
+            None => {
+                let consensus_info = self.node.get_consensus_info().await?;
+                consensus_info.best_block_height
+            }
+        };
+
+        let last_processed_block = self.database.get_last_processed_block().await?;
+        let next_block_height = match last_processed_block {
+            Some(block) => AbsoluteBlockHeight {
+                height: block.block_height,
+            }
+            .next(),
+            None => starting_block_height,
+        };
+
+        info!("Starting from block {}", next_block_height.height);
+
+        let mut finalized_block_stream =
+            self.node.get_finalized_blocks_from(next_block_height).await?;
         while let Some(block) = finalized_block_stream.next().await {
-            let block = &block?;
             log::info!("Processing block {}", block.height.height);
-            self.process_block(block).await?;
-            self.database.update_last_processed_block(block).await?;
+            self.process_block(&block).await?;
+            self.database.update_last_processed_block(&block).await?;
             log::trace!("Processed block {}", block.height.height)
         }
 
@@ -133,11 +158,17 @@ impl TransactionsListener {
         let mut block_items_stream = self.node.get_block_items(block.block_hash).await?;
         while let Some(block_item) = block_items_stream.response.next().await {
             let block_item = &block_item?;
-            let block_item_hash = block_item.hash();
-            let block_item_status = self.node.get_block_item_status(&block_item_hash).await?;
-            // Can unwrap because we know the block item exists and is finalized
-            let (_, summary) = block_item_status.is_finalized().unwrap();
-            self.process_block_item(summary).await?;
+            match block_item {
+                BlockItem::AccountTransaction(t) => {
+                    let block_item_hash = block_item.hash();
+                    let block_item_status =
+                        self.node.get_block_item_status(&block_item_hash).await?;
+                    // Can unwrap because we know the block item exists and is finalized
+                    let (_, summary) = block_item_status.is_finalized().unwrap();
+                    self.process_block_item(summary).await?;
+                }
+                _ => continue,
+            }
         }
 
         Ok(())
