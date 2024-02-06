@@ -159,7 +159,7 @@ impl TransactionsListener {
         while let Some(block_item) = block_items_stream.response.next().await {
             let block_item = &block_item?;
             match block_item {
-                BlockItem::AccountTransaction(t) => {
+                BlockItem::AccountTransaction(_) => {
                     let block_item_hash = block_item.hash();
                     let block_item_status =
                         self.node.get_block_item_status(&block_item_hash).await?;
