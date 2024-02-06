@@ -173,7 +173,7 @@ function ExchangeRequestForm(props: {
 		transfer: boolean
 	) => Promise<string>;
 }) {
-	const { contract, listed, onSendTransaction, currentAccount, grpcClient, walletApi } = props;
+	const { contract, listed, onSendTransaction, currentAccount, grpcClient } = props;
 	const navigate = useNavigate();
 	const exchangeRates = listed.exchange_rates
 		.map((r) => fromContractExchangeRate(r))
@@ -185,32 +185,8 @@ function ExchangeRequestForm(props: {
 	const [payAmount, setPayAmount] = useState<number>(0);
 	const [commissionAmount, setCommissionAmount] = useState<number>(0);
 	const [totalPayAmount, setTotalAmount] = useState<number>(0);
-	const [balanceAmount, setBalanceAmount] = useState<number>(0);
-	const [refreshBalance, setRefreshBalance] = useState<boolean>(false);
 
 	const [error, setError] = useState<string | undefined>(undefined);
-
-	useEffect(() => {
-		if (selectedPaymentToken?.type === "Cis2") {
-			rwaMarket.balanceOfUnlisted
-				.invoke(grpcClient, contract, {
-					owner: currentAccount.address,
-					token_id: {
-						id: selectedPaymentToken.id,
-						contract: {
-							index: Number(selectedPaymentToken.contract.index),
-							subindex: Number(selectedPaymentToken.contract.subindex),
-						},
-					},
-				})
-				.then((res) => rwaMarket.balanceOfUnlisted.parseReturnValue(res.returnValue!))
-				.then((res) => setBalanceAmount(Number(res)));
-		} else if (selectedPaymentToken?.type === "Ccd") {
-			grpcClient.getAccountInfo(currentAccount).then((accountInfo) => {
-				setBalanceAmount(Number(accountInfo.accountAmount));
-			});
-		}
-	}, [payAmount, selectedPaymentToken, grpcClient, contract, currentAccount, refreshBalance]);
 
 	useEffect(() => {
 		setPayAmount(0);
@@ -267,7 +243,7 @@ function ExchangeRequestForm(props: {
 
 	const buyViaCcd = (
 		listed: GetListedResponse,
-		rate: { numerator: number; denominator: number },
+		rate: { numerator: bigint; denominator: bigint },
 		payAmount: number,
 		buyAmount: number
 	) => {
@@ -306,27 +282,6 @@ function ExchangeRequestForm(props: {
 		};
 
 		return onSendTransaction(request, token, payAmount, viaTokenTransfer);
-	};
-
-	const depositTokens = async (token: Cis2PaymentToken, payAmount: number) => {
-		const cis2CLient = await CIS2Contract.create(grpcClient, token.contract);
-		const transfer = cis2CLient.createTransfer({ energy: Energy.create(rwaMarket.deposit.maxExecutionEnergy.value) }, {
-			from: currentAccount!,
-			to: {
-				address: contract,
-				hookName: EntrypointName.fromString("deposit"),
-			},
-			amount: BigInt(0),
-			tokenId: token.id,
-			tokenAmount: BigInt(payAmount),
-		} as CIS2.Transfer);
-		return walletApi!.sendTransaction(
-			currentAccount!,
-			transfer.type,
-			transfer.payload,
-			transfer.parameter.json,
-			transfer.schema
-		);
 	};
 
 	return (
@@ -426,28 +381,7 @@ function ExchangeRequestForm(props: {
 							{
 								Cis2: (
 									<>
-										{balanceAmount < totalPayAmount && (
-											<SendTransactionButton
-												disabled={!totalPayAmount}
-												onFinalizedSuccess={() => setRefreshBalance(!refreshBalance)}
-												onClick={() => depositTokens(selectedPaymentToken as Cis2PaymentToken, totalPayAmount)}>
-												Deposit Tokens&nbsp;${totalPayAmount}
-											</SendTransactionButton>
-										)}
 										<SendTransactionButton
-											disabled={!totalPayAmount || balanceAmount < totalPayAmount}
-											onClick={() =>
-												buyViaToken(
-													listed,
-													selectedPaymentToken as Cis2PaymentToken,
-													totalPayAmount,
-													actualBuyAmount,
-													false
-												)
-											}>
-											Pay By Token&nbsp;${totalPayAmount}
-										</SendTransactionButton>
-										{/* <SendTransactionButton
 											disabled={!totalPayAmount}
 											onClick={() =>
 												buyViaToken(
@@ -459,7 +393,7 @@ function ExchangeRequestForm(props: {
 												)
 											}>
 											Pay By Token Via Transfer&nbsp;${totalPayAmount}
-										</SendTransactionButton> */}
+										</SendTransactionButton>
 									</>
 								),
 								Ccd: (

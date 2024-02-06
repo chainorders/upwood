@@ -258,9 +258,9 @@ export default function ListRequestForm(props: Props) {
 							helperText="Exchange Rate"
 							type="number"
 							disabled={!selectedPaymentToken}
-							value={selectedPaymentToken?.rate?.numerator || 1}
+							value={(selectedPaymentToken?.rate?.numerator || 1).toString()}
 							onChange={(e) => {
-								const rate: Rate = { numerator: Number(e.target.value), denominator: 1 };
+								const rate: Rate = { numerator: BigInt(e.target.value), denominator: 1n };
 								setSelectedPaymentToken({
 									...selectedPaymentToken!,
 									rate,

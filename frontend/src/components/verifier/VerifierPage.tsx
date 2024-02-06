@@ -1,5 +1,5 @@
 import { Button, Stack, Step, StepLabel, Stepper, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useVerifierApi } from "../VerifierApiProvider";
 import { useWallet } from "../WalletProvider";
 import { IdStatement } from "@concordium/web-sdk";
@@ -14,6 +14,13 @@ export default function VerifierPage() {
 
 	const { provider: wallet, currentAccount } = useWallet();
 	const { provider: api } = useVerifierApi();
+
+	useEffect(() => { 
+		setError("");
+		setStatement([]);
+		setChallenge("");
+		setActiveStep(0);
+	}, [currentAccount])
 
 	const generateChallenge = () => {
 		api.default

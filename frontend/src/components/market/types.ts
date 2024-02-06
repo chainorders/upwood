@@ -4,20 +4,20 @@ import { ListRequest } from "../../lib/rwaMarket";
 export type Flatten<T> = T extends unknown[] ? T[number] : T;
 export type ContractExchangeRates = ListRequest["exchange_rates"];
 export type ContractExchangeRate = Flatten<ContractExchangeRates>;
-export const toContractRate = (rate: Rate): { numerator: number; denominator: number } => {
+export const toContractRate = (rate: Rate): { numerator: bigint; denominator: bigint } => {
 	return {
-		numerator: Number(rate.numerator),
-		denominator: Number(rate.denominator),
+		numerator: BigInt(rate.numerator),
+		denominator: BigInt(rate.denominator),
 	};
 };
 export const fromContractRate = (rate: { numerator: bigint | number; denominator: bigint | number }): Rate => {
 	return {
-		numerator: Number(rate.numerator),
-		denominator: Number(rate.denominator),
+		numerator: BigInt(rate.numerator),
+		denominator: BigInt(rate.denominator),
 	};
 };
 
-export type Rate = { numerator: number; denominator: number };
+export type Rate = { numerator: bigint; denominator: bigint };
 export type Cis2PaymentToken = { type: "Cis2"; id: string; contract: ContractAddress.Type; rate?: Rate };
 export type CcdPaymentToken = { type: "Ccd"; id?: undefined; contract?: undefined; rate?: Rate };
 export type PaymentToken = Cis2PaymentToken | CcdPaymentToken;

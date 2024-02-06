@@ -22,8 +22,19 @@ import { Delete } from "@mui/icons-material";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import ContractAddressField from "../common/concordium/ContractAddressField";
 import TokenUIdField, { TokenUId } from "../common/concordium/TokenUIdField";
+import { Rate } from "../market/types";
 
 type TokenContract = ContractAddress.Type;
+const toCommission = (value: string) => {
+	let commissionPercentage = parseInt(value);
+	if (isNaN(commissionPercentage)) {
+		commissionPercentage = 0;
+	}
+	return {
+		numerator: BigInt(commissionPercentage) * 100n,
+		denominator: 10000n,
+	} as Rate;
+};
 
 type Props = {
 	onSuccess: (contract: Contract) => void;
@@ -35,8 +46,8 @@ export default function RwaMarketInitialize(props: Props) {
 	const [form, setForm] = useState({
 		contractDisplayName: "",
 		commission: {
-			numerator: 0,
-			denominator: 1,
+			numerator: 0n,
+			denominator: 1n,
 		},
 	});
 	const [tokenContracts, setTokenContracts] = useState<TokenContract[]>([]);
@@ -104,7 +115,7 @@ export default function RwaMarketInitialize(props: Props) {
 		return form.contractDisplayName.length > 0 && tokenContracts.length > 0 && exchangeTokens.length > 0;
 	};
 
-	const setFormValue = (key: keyof typeof form, value: string) => {
+	const setFormValue = (key: keyof typeof form, value: unknown) => {
 		setForm((prev) => ({ ...prev, [key]: value }));
 	};
 
@@ -113,61 +124,74 @@ export default function RwaMarketInitialize(props: Props) {
 			<Stack spacing={2}>
 				<Typography variant="h5">Initialize Market / Exchange</Typography>
 				<Paper sx={{ padding: 2 }} variant="outlined">
-					<TextField
-						id="marketContractDisplayName"
-						name="marketContractDisplayName"
-						label="Contract Display Name"
-						variant="outlined"
-						fullWidth
-						required
-						type="text"
-						onChange={(e) => setFormValue("contractDisplayName", e.target.value)}
-					/>
-					<Typography variant="h6">Added Token Contracts</Typography>
-					<List>
-						{tokenContracts.map((tokenContract, index) => (
-							<ListItem
-								key={index}
-								secondaryAction={
-									<IconButton edge="end" aria-label="delete" onClick={() => removeTokenContract(tokenContract)}>
-										<Delete />
-									</IconButton>
-								}>
-								<ListItemText
-									primary={
-										<CCDScanContractLink
-											index={tokenContract.index.toString()}
-											subIndex={tokenContract.subindex.toString()}
-										/>
-									}
-									secondary="Token Contract"
-								/>
-							</ListItem>
-						))}
-					</List>
-					<Typography variant="h6">Added Exchange Tokens</Typography>
-					<List>
-						{exchangeTokens.map((exchangeToken, index) => (
-							<ListItem
-								key={index}
-								secondaryAction={
-									<IconButton edge="end" aria-label="delete" onClick={() => removeExchangeToken(exchangeToken)}>
-										<Delete />
-									</IconButton>
-								}>
-								<ListItemText
-									primary={
-										<CCDScanContractLink
-											index={exchangeToken.contract.index.toString()}
-											subIndex={exchangeToken.contract.subindex.toString()}
-											text={`Token Id: ${exchangeToken.id}, Contract: ${exchangeToken.contract.index}/${exchangeToken.contract.subindex}`}
-										/>
-									}
-									secondary="Exchange Token"
-								/>
-							</ListItem>
-						))}
-					</List>
+					<Stack spacing={2}>
+						<TextField
+							id="marketContractDisplayName"
+							name="marketContractDisplayName"
+							label="Contract Display Name"
+							variant="outlined"
+							fullWidth
+							required
+							type="text"
+							onChange={(e) => setFormValue("contractDisplayName", e.target.value)}
+						/>
+						<TextField
+							id="marketCommission"
+							name="marketCommission"
+							label="Market Commission %"
+							variant="outlined"
+							fullWidth
+							required
+							type="number"
+							onChange={(e) => setFormValue("commission", toCommission(e.target.value))}
+							helperText={`Commission ${form.commission.numerator}/${form.commission.denominator}`}
+						/>
+						<Typography variant="h6">Added Token Contracts</Typography>
+						<List>
+							{tokenContracts.map((tokenContract, index) => (
+								<ListItem
+									key={index}
+									secondaryAction={
+										<IconButton edge="end" aria-label="delete" onClick={() => removeTokenContract(tokenContract)}>
+											<Delete />
+										</IconButton>
+									}>
+									<ListItemText
+										primary={
+											<CCDScanContractLink
+												index={tokenContract.index.toString()}
+												subIndex={tokenContract.subindex.toString()}
+											/>
+										}
+										secondary="Token Contract"
+									/>
+								</ListItem>
+							))}
+						</List>
+						<Typography variant="h6">Added Exchange Tokens</Typography>
+						<List>
+							{exchangeTokens.map((exchangeToken, index) => (
+								<ListItem
+									key={index}
+									secondaryAction={
+										<IconButton edge="end" aria-label="delete" onClick={() => removeExchangeToken(exchangeToken)}>
+											<Delete />
+										</IconButton>
+									}>
+									<ListItemText
+										primary={
+											<CCDScanContractLink
+												index={exchangeToken.contract.index.toString()}
+												subIndex={exchangeToken.contract.subindex.toString()}
+												text={`Token Id: ${exchangeToken.id}, Contract: ${exchangeToken.contract.index}/${exchangeToken.contract.subindex}`}
+											/>
+										}
+										secondary="Exchange Token"
+									/>
+								</ListItem>
+							))}
+						</List>
+					</Stack>
 				</Paper>
 				<Paper sx={{ padding: 2 }} variant="outlined">
 					<Typography variant="h6">Existing Token Contracts</Typography>
@@ -215,7 +239,10 @@ export default function RwaMarketInitialize(props: Props) {
 								id: t.id,
 								contract: { index: Number(t.contract.index), subindex: Number(t.contract.subindex) },
 							})),
-							commission: form.commission,
+							commission: {
+								numerator: BigInt(form.commission.numerator),
+								denominator: BigInt(form.commission.denominator),
+							},
 						})
 					}
 					onFinalized={handleSuccess}

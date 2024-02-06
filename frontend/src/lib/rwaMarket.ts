@@ -2,12 +2,12 @@ import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@c
 import { InitMethod, ReceiveMethod } from "./GenericContract";
 export const CONTRACT_NAME = "rwa_market";
 export type initRequest = {
-	commission: { numerator: number; denominator: number };
+	commission: { numerator: bigint; denominator: bigint };
 	token_contracts: Array<{ index: number; subindex: number }>;
 	exchange_tokens: Array<{ contract: { index: number; subindex: number }; id: string }>;
 };
 export const initRequestSchemaBase64 =
-	"FAADAAAACgAAAGNvbW1pc3Npb24UAAIAAAAJAAAAbnVtZXJhdG9yAwsAAABkZW5vbWluYXRvcgMPAAAAdG9rZW5fY29udHJhY3RzEAIMDwAAAGV4Y2hhbmdlX3Rva2VucxACFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
+	"FAADAAAACgAAAGNvbW1pc3Npb24UAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUPAAAAdG9rZW5fY29udHJhY3RzEAIMDwAAAGV4Y2hhbmdlX3Rva2VucxACFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export type AddPaymentTokenError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -199,16 +199,16 @@ export type CalculateAmountsRequest = {
 	owner: string;
 	amount: string;
 	rate:
-		| { Ccd: [{ numerator: number; denominator: number }] }
+		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
 				];
 		  };
 	payer: string;
 };
 export const calculateAmountsRequestSchemaBase64 =
-	"FAAFAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCwYAAABhbW91bnQbJQAAAAQAAAByYXRlFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yAwsAAABkZW5vbWluYXRvcgMEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IDCwAAAGRlbm9taW5hdG9yAwUAAABwYXllcgs=";
+	"FAAFAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCwYAAABhbW91bnQbJQAAAAQAAAByYXRlFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQUAAABwYXllcgs=";
 export type CalculateAmountsResponse = {
 	buy: string;
 	pay: { Cis2: [string] } | { CCD: [string] };
@@ -310,16 +310,16 @@ export type ExchangeRequest = {
 	owner: string;
 	amount: string;
 	rate:
-		| { Ccd: [{ numerator: number; denominator: number }] }
+		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
 				];
 		  };
 	payer: string;
 };
 export const exchangeRequestSchemaBase64 =
-	"FAAFAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCwYAAABhbW91bnQbJQAAAAQAAAByYXRlFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yAwsAAABkZW5vbWluYXRvcgMEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IDCwAAAGRlbm9taW5hdG9yAwUAAABwYXllcgs=";
+	"FAAFAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCwYAAABhbW91bnQbJQAAAAQAAAByYXRlFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQUAAABwYXllcgs=";
 export type GetListedError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -356,17 +356,17 @@ export type GetListedResponse = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
 	exchange_rates: Array<
-		| { Ccd: [{ numerator: number; denominator: number }] }
+		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
 				];
 		  }
 	>;
 	supply: string;
 };
 export const getListedResponseSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw4AAABleGNoYW5nZV9yYXRlcxACFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yAwsAAABkZW5vbWluYXRvcgMEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IDCwAAAGRlbm9taW5hdG9yAwYAAABzdXBwbHkbJQAAAA==";
+	"FAAEAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw4AAABleGNoYW5nZV9yYXRlcxACFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQYAAABzdXBwbHkbJQAAAA==";
 export type ListError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -397,17 +397,17 @@ export type ListRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
 	exchange_rates: Array<
-		| { Ccd: [{ numerator: number; denominator: number }] }
+		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
 				];
 		  }
 	>;
 	supply: string;
 };
 export const listRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw4AAABleGNoYW5nZV9yYXRlcxACFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yAwsAAABkZW5vbWluYXRvcgMEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IDCwAAAGRlbm9taW5hdG9yAwYAAABzdXBwbHkbJQAAAA==";
+	"FAAEAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw4AAABleGNoYW5nZV9yYXRlcxACFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQYAAABzdXBwbHkbJQAAAA==";
 export type PaymentTokensResponse = Array<{ contract: { index: number; subindex: number }; id: string }>;
 export const paymentTokensResponseSchemaBase64 = "EAIUAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQA=";
 export type WithdrawError =
@@ -511,7 +511,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const rwaMarket = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("44eccd1b422df07929c124d8f1aa6cf3e2f169857a3b0e7c47d89d10da010ae2"),
+		ModuleReference.fromHexString("c734112c918be0c39520d79288e0479c2ffce633c5fc1c275b6437ebca6ac310"),
 		ContractName.fromString("rwa_market"),
 		initRequestSchemaBase64
 	),

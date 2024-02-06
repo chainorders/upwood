@@ -49,6 +49,8 @@ pub struct ContractsListenerAndApiConfig {
     pub rwa_security_nft_module_ref: String,
     #[clap(env)]
     pub rwa_market_module_ref: String,
+    #[clap(env, default_value = "")]
+    pub starting_block_hash: String,
     #[clap(env, default_value = "init_rwa_security_nft")]
     pub rwa_security_nft_contract_name: String,
     #[clap(env, default_value = "init_rwa_identity_registry")]
@@ -76,9 +78,14 @@ impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
 /// Runs the contracts API server & Contracts events processor
 pub async fn run_contracts_api_server(config: ContractsListenerAndApiConfig) -> anyhow::Result<()> {
     debug!("Starting contracts API server with config: {:?}", config);
-    
+
     let mut listener = create_listener(config.to_owned()).await?;
-    let listener_handle = spawn(async move { listener.listen().await });
+    let starting_block_hash = if config.starting_block_hash.is_empty() {
+        None
+    } else {
+        Some(config.starting_block_hash.parse()?)
+    };
+    let listener_handle = spawn(async move { listener.listen(starting_block_hash).await });
     info!("Listening for transactions...");
 
     let routes = create_server_routes(config.to_owned().into()).await?;

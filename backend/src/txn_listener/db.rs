@@ -8,7 +8,10 @@ use concordium_rust_sdk::{
     },
     v2::FinalizedBlockInfo,
 };
-use mongodb::{options::InsertOneOptions, results::InsertOneResult};
+use mongodb::{
+    options::{FindOneOptions, InsertOneOptions},
+    results::InsertOneResult,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -59,6 +62,15 @@ impl DatabaseClient {
 
     pub fn contracts(&self) -> mongodb::Collection<DbContract> {
         self.database().collection::<DbContract>("contracts")
+    }
+
+    pub async fn get_last_processed_block(&self) -> anyhow::Result<Option<DbProcessedBlock>> {
+        let collection = self.processed_blocks();
+        let result = collection
+            .find_one(None, FindOneOptions::builder().sort(doc! { "block_height": -1 }).build())
+            .await?;
+
+        Ok(result)
     }
 
     pub async fn update_last_processed_block(
