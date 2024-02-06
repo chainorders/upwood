@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"noEmit": false
+	},
+	"references": [
+		{
+			"path": "./frontend"
+		}
+	],
+	"exclude": ["**/node_modules"]
+}
