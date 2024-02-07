@@ -16,12 +16,6 @@ use super::{
 
 pub type DepositParams = OnReceivingCis2Params<TokenIdVec, Cis2TokenAmount>;
 
-#[derive(Serialize, SchemaType)]
-pub enum DepositData {
-    List(ListParams),
-    Exchange(ExchangeParams),
-}
-
 #[receive(
     contract = "rwa_market",
     name = "deposit",
@@ -151,7 +145,3 @@ pub fn balance_of_deposited(
     Ok(host.state().deposited_amount(&params.token_id, &params.address))
 }
 
-#[receive(contract = "rwa_market", name = "paymentTokens", return_value = "Vec<TokenUId>")]
-pub fn payment_tokens(_: &ReceiveContext, host: &Host<State>) -> ContractResult<Vec<TokenUId>> {
-    Ok(host.state().payment_tokens())
-}

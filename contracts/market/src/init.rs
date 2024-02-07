@@ -56,3 +56,16 @@ pub fn add_payment_token(ctx: &ReceiveContext, host: &mut Host<State>) -> Contra
     host.state_mut().add_payment_token(token);
     Ok(())
 }
+
+#[receive(contract = "rwa_market", name = "paymentTokens", return_value = "Vec<TokenUId>")]
+pub fn payment_tokens(_: &ReceiveContext, host: &Host<State>) -> ContractResult<Vec<TokenUId>> {
+    Ok(host.state().payment_tokens())
+}
+
+#[receive(contract = "rwa_market", name = "allowedToList", return_value = "Vec<ContractAddress>")]
+pub fn allowed_to_list(
+    _: &ReceiveContext,
+    host: &Host<State>,
+) -> ContractResult<Vec<ContractAddress>> {
+    Ok(host.state().sell_token_contracts())
+}

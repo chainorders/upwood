@@ -145,14 +145,6 @@ pub fn balance_of_unlisted(
     Ok(balance)
 }
 
-#[receive(contract = "rwa_market", name = "allowedToList", return_value = "Vec<ContractAddress>")]
-pub fn allowed_to_list(
-    _: &ReceiveContext,
-    host: &Host<State>,
-) -> ContractResult<Vec<ContractAddress>> {
-    Ok(host.state().sell_token_contracts())
-}
-
 #[derive(Serialize, SchemaType)]
 pub struct DeListParams {
     pub token_id: TokenUId,
