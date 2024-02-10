@@ -72,6 +72,7 @@ pub struct ContractsApiConfig {
     pub mongodb_uri:                    String,
     pub rwa_market_contract_name:       String,
     pub rwa_security_nft_contract_name: String,
+    pub rwa_security_sft_contract_name: String,
 }
 
 impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
@@ -80,6 +81,7 @@ impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
             mongodb_uri:                    config.mongodb_uri,
             rwa_market_contract_name:       config.rwa_market_contract_name,
             rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
+            rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
         }
     }
 }
@@ -176,6 +178,8 @@ pub struct ContractsApiSwaggerConfig {
     pub rwa_identity_registry_contract_name: String,
     #[clap(env, default_value = "init_rwa_security_nft")]
     pub rwa_security_nft_contract_name: String,
+    #[clap(env, default_value = "init_rwa_security_sft")]
+    pub rwa_security_sft_contract_name: String,
     #[clap(env, default_value = "init_rwa_market")]
     pub rwa_market_contract_name: String,
 }
@@ -186,6 +190,7 @@ impl From<ContractsApiSwaggerConfig> for ContractsApiConfig {
             mongodb_uri:                    config.mongodb_uri,
             rwa_market_contract_name:       config.rwa_market_contract_name,
             rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
+            rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
         }
     }
 }
@@ -232,7 +237,7 @@ async fn create_service(
                 db: ContractDb {
                     client:        mongo_client,
                     contract_name: OwnedContractName::new(
-                        config.rwa_security_nft_contract_name.to_owned(),
+                        config.rwa_security_sft_contract_name.to_owned(),
                     )?,
                 },
             },

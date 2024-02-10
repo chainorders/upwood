@@ -23,8 +23,8 @@ import {
 	ENTRYPOINT_DISPLAY_NAMES,
 } from "../../../lib/rwaSecuritySft";
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecuritySftUi";
-import TokenList from "../../common/TokensList";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
+import SftTokensList from "./SftTokensList";
 
 const entrypoints_ui_customizations: Record<
 	keyof typeof ENTRYPOINTS_UI,
@@ -47,7 +47,7 @@ export default function RwaSecuritySftContract() {
 						<Routes>
 							<Route
 								path="tokens"
-								element={<TokenList contract={contract} />}
+								element={<SftTokensList contract={contract} />}
 							/>
 							{Object.keys(ENTRYPOINTS).map((entrypoint) => (
 								<Route

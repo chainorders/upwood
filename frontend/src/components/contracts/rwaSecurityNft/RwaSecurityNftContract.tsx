@@ -23,7 +23,7 @@ import {
 	ENTRYPOINT_DISPLAY_NAMES,
 } from "../../../lib/rwaSecurityNft";
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecurityNftUi";
-import TokenList from "../../common/TokensList";
+import NftTokensList from "./NftTokensList";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
 
 const entrypoints_ui_customizations: Record<
@@ -47,7 +47,7 @@ export default function RwaSecurityNftContract() {
 						<Routes>
 							<Route
 								path="tokens"
-								element={<TokenList contract={contract} />}
+								element={<NftTokensList contract={contract} />}
 							/>
 							{Object.keys(ENTRYPOINTS).map((entrypoint) => (
 								<Route

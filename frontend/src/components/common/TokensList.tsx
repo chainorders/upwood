@@ -1,54 +1,38 @@
 import { ContractAddress } from "@concordium/web-sdk";
+import { NftToken, SftToken } from "../../lib/contracts-api-client";
 import { useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { NftToken } from "../../lib/contracts-api-client";
-import { useContractsApi } from "../ContractsApiProvider";
+import { PlayArrow, Pause, OpenInBrowser, Token } from "@mui/icons-material";
 import {
-	Box,
-	IconButton,
+	Paper,
+	Typography,
+	Stack,
 	List,
 	ListItem,
+	IconButton,
 	ListItemButton,
 	ListItemIcon,
 	ListItemText,
+	Box,
 	Pagination,
-	Paper,
-	Stack,
-	Typography,
+	Link,
+	Chip,
 } from "@mui/material";
 import ErrorDisplay from "./ErrorDisplay";
-import { OpenInBrowser, Pause, PlayArrow, Token } from "@mui/icons-material";
 import CCDCis2TokenLink from "./concordium/CCDCis2TokenLink";
+import { toHttpUrl } from "../../lib/cis2Utils";
 
-type Props = {
+type TokensListProps = {
 	contract: ContractAddress.Type;
+	tokens: NftToken[] | SftToken[];
+	pageCount: number;
+	page: number;
+	loading: boolean;
+	error: string;
 };
-export default function TokenList(props: Props) {
-	const { contract } = props;
-	const [searchParams, setSearchParams] = useSearchParams();
-	const [pageCount, setPageCount] = useState(0);
-	const [page, setPage] = useState(Number(searchParams.get("page") || "0"));
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState("");
-	const [tokens, setTokens] = useState<NftToken[]>([]);
-	const { provider: backendApi } = useContractsApi();
 
-	useEffect(() => {
-		setLoading(true);
-		backendApi.default
-			.getRwaSecurityNftTokens({
-				index: Number(contract.index),
-				subindex: Number(contract.subindex),
-				page,
-			})
-			.then((response) => {
-				setTokens(response.data);
-				setPageCount(response.page_count);
-				setPage(response.page);
-			})
-			.catch((error) => setError(error.message))
-			.finally(() => setLoading(false));
-	}, [contract, backendApi, page]);
+export default function TokensList(props: TokensListProps) {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const { contract, tokens, pageCount, page, loading, error } = props;
 
 	return (
 		<Paper variant="outlined">
@@ -61,6 +45,7 @@ export default function TokenList(props: Props) {
 								key={index}
 								secondaryAction={
 									<>
+										<Chip label={`Supply: ${token.supply}`} />
 										<IconButton edge="end" aria-label="playOrPause">
 											{token.is_paused ? <PlayArrow /> : <Pause />}
 										</IconButton>
@@ -80,8 +65,15 @@ export default function TokenList(props: Props) {
 										<Token />
 									</ListItemIcon>
 									<ListItemText
-										primary={token.token_id}
-										secondary={token.metadata_url}
+										primary={`${token.token_id} (${parseInt(token.token_id, 16)})`}
+										secondary={
+											<Link
+												href={toHttpUrl(token.metadata_url)}
+												target="_blank"
+											>
+												Metadata
+											</Link>
+										}
 									/>
 								</ListItemButton>
 							</ListItem>

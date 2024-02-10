@@ -5,7 +5,7 @@ use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
 use crate::txn_processor::{
     api::{ApiAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbTokenAmount, ICollection},
+    db::{DbAddress, DbTokenAmount, ICollection},
 };
 
 use super::db::{DbToken, IContractDb, TokenHolder};
@@ -73,6 +73,37 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
             }
         };
         let res = self.to_paged_token_response(query, contract, page).await?;
+        Ok(Json(res))
+    }
+
+    #[oai(path = "/rwa-security-nft/:index/:subindex/holders/:address/:page", method = "get")]
+    pub async fn holders(
+        &self,
+        Path(index): Path<u64>,
+        Path(subindex): Path<u64>,
+        Path(address): Path<String>,
+        Path(page): Path<u64>,
+    ) -> Result<Json<PagedResponse<NftHolder>>, Error> {
+        let contract = ContractAddress {
+            index,
+            subindex,
+        };
+        let address: DbAddress = DbAddress(address.parse()?);
+        let query = doc! {
+            "address": to_bson(&address)?,
+        };
+        let coll = self.db.holders(&contract);
+        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
+        let data: Vec<TokenHolder> = cursor.try_collect().await?;
+        let data: Vec<NftHolder> = data.into_iter().map(|holder| holder.into()).collect();
+        let total_count = coll.count(query).await?;
+        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
+        let res = PagedResponse {
+            page_count,
+            page: 0,
+            data,
+        };
+
         Ok(Json(res))
     }
 
