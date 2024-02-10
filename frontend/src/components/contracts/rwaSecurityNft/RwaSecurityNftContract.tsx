@@ -7,7 +7,6 @@ import {
 	ListItem,
 	ListItemButton,
 	ListItemText,
-	Typography,
 } from "@mui/material";
 import {
 	Navigate,
