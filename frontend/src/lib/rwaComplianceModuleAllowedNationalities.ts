@@ -1,8 +1,17 @@
-import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
+import {
+	ContractEvent,
+	ContractName,
+	EntrypointName,
+	ModuleReference,
+} from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "./GenericContract";
 export const CONTRACT_NAME = "rwa_compliance_module_allowed_nationalities";
-export type initRequest = { nationalities: Array<string>; identity_registry: { index: number; subindex: number } };
-export const initRequestSchemaBase64 = "FAACAAAADQAAAG5hdGlvbmFsaXRpZXMQAhYCEQAAAGlkZW50aXR5X3JlZ2lzdHJ5DA==";
+export type initRequest = {
+	nationalities: Array<string>;
+	identity_registry: { index: number; subindex: number };
+};
+export const initRequestSchemaBase64 =
+	"FAACAAAADQAAAG5hdGlvbmFsaXRpZXMQAhYCEQAAAGlkZW50aXR5X3JlZ2lzdHJ5DA==";
 export const initErrorSchemaBase64 =
 	"FQcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDQAAAEludmFsaWRNb2R1bGUCEQAAAENhbGxDb250cmFjdEVycm9yAgwAAABVbmF1dGhvcml6ZWQCEgAAAEFnZW50QWxyZWFkeUV4aXN0cwINAAAAQWdlbnROb3RGb3VuZAI=";
 export type BurnedError =
@@ -27,7 +36,9 @@ export const canTransferErrorSchemaBase64 =
 	"FQcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDQAAAEludmFsaWRNb2R1bGUCEQAAAENhbGxDb250cmFjdEVycm9yAgwAAABVbmF1dGhvcml6ZWQCEgAAAEFnZW50QWxyZWFkeUV4aXN0cwINAAAAQWdlbnROb3RGb3VuZAI=";
 export type CanTransferRequest = {
 	token_id: { token_id: string; contract: { index: number; subindex: number } };
-	to: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	to:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 	amount: string;
 };
 export const canTransferRequestSchemaBase64 =
@@ -68,40 +79,49 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const rwaComplianceModuleAllowedNationalities = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("6223e5711ebab31a853b6b957c7a0bf96e0e77fc1a0698e8bb80be8ec4cdf245"),
+		ModuleReference.fromHexString(
+			"5d83324127abfe14249534bea0ea76d5ba32c0c6007aa78410e54cd42e448b5f",
+		),
 		ContractName.fromString("rwa_compliance_module_allowed_nationalities"),
-		initRequestSchemaBase64
+		initRequestSchemaBase64,
 	),
 	burned: new ReceiveMethod<never, never, BurnedError>(
 		ContractName.fromString("rwa_compliance_module_allowed_nationalities"),
 		EntrypointName.fromString("burned"),
 		undefined,
 		undefined,
-		burnedErrorSchemaBase64
+		burnedErrorSchemaBase64,
 	),
-	canTransfer: new ReceiveMethod<CanTransferRequest, CanTransferResponse, CanTransferError>(
+	canTransfer: new ReceiveMethod<
+		CanTransferRequest,
+		CanTransferResponse,
+		CanTransferError
+	>(
 		ContractName.fromString("rwa_compliance_module_allowed_nationalities"),
 		EntrypointName.fromString("canTransfer"),
 		canTransferRequestSchemaBase64,
 		canTransferResponseSchemaBase64,
-		canTransferErrorSchemaBase64
+		canTransferErrorSchemaBase64,
 	),
 	minted: new ReceiveMethod<never, never, MintedError>(
 		ContractName.fromString("rwa_compliance_module_allowed_nationalities"),
 		EntrypointName.fromString("minted"),
 		undefined,
 		undefined,
-		mintedErrorSchemaBase64
+		mintedErrorSchemaBase64,
 	),
 	transferred: new ReceiveMethod<never, never, TransferredError>(
 		ContractName.fromString("rwa_compliance_module_allowed_nationalities"),
 		EntrypointName.fromString("transferred"),
 		undefined,
 		undefined,
-		transferredErrorSchemaBase64
+		transferredErrorSchemaBase64,
 	),
 	deserializeEvent: (event: ContractEvent.Type): event => {
-		return ContractEvent.parseWithSchemaTypeBase64(event, eventSchemaBase64) as event;
+		return ContractEvent.parseWithSchemaTypeBase64(
+			event,
+			eventSchemaBase64,
+		) as event;
 	},
 };
 export default rwaComplianceModuleAllowedNationalities;

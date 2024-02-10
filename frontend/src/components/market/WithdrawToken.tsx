@@ -33,21 +33,36 @@ export default function WithdrawToken(props: Props) {
 			},
 		};
 
-		return rwaMarket.withdraw.update(wallet!, currentAccount!, props.contract, request);
+		return rwaMarket.withdraw.update(
+			wallet!,
+			currentAccount!,
+			props.contract,
+			request,
+		);
 	};
 
 	return (
 		<Stack spacing={2} maxWidth="800px">
 			<Typography variant="h4">Withdraw</Typography>
 			<Typography paragraph>
-				Are you sure you want to withdraw Token: {token.token_id} from the market contract ({contract.index.toString()}/
+				Are you sure you want to withdraw Token: {token.token_id} from the
+				market contract ({contract.index.toString()}/
 				{contract.subindex.toString()}) ?
 			</Typography>
-			<Typography paragraph>The token will be sent to the owner: {token.owner}</Typography>
-			<SendTransactionButton onClick={() => withdrawRequest(token)} onDone={() => navigate(-1)}>
+			<Typography paragraph>
+				The token will be sent to the owner: {token.owner}
+			</Typography>
+			<SendTransactionButton
+				onClick={() => withdrawRequest(token)}
+				onDone={() => navigate(-1)}
+			>
 				Withdraw
 			</SendTransactionButton>
-			<Button variant="contained" color="secondary" onClick={() => navigate(-1)}>
+			<Button
+				variant="contained"
+				color="secondary"
+				onClick={() => navigate(-1)}
+			>
 				Cancel
 			</Button>
 		</Stack>

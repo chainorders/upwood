@@ -42,17 +42,22 @@ export interface SendTransactionButtonProps {
 	onClick: () => Promise<string>;
 	children: React.ReactNode;
 	disabled?: boolean;
-	onFinalized?: (outcome: BlockItemSummaryInBlock, txnHash: TransactionHash.Type) => void;
+	onFinalized?: (
+		outcome: BlockItemSummaryInBlock,
+		txnHash: TransactionHash.Type,
+	) => void;
 	onFinalizedError?: (reason: RejectedInit | RejectedReceive) => string;
 	/// This will only be called when the transaction is an update contract transaction
 	onFinalizedSuccess?: (
 		summary: BaseAccountTransactionSummary & UpdateContractSummary,
-		txnHash: TransactionHash.Type
+		txnHash: TransactionHash.Type,
 	) => void;
 	// Called after final click after transaction is finalized
 	onDone?: () => void;
 }
-export default function SendTransactionButton(props: SendTransactionButtonProps) {
+export default function SendTransactionButton(
+	props: SendTransactionButtonProps,
+) {
 	const nodeClient = useNodeClient();
 	const [state, setState] = useState<InitState | SentState | FinalizedState>({
 		type: "init",
@@ -61,7 +66,10 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 		txnHash: undefined,
 	});
 
-	const processFinalized = (txnHash: TransactionHash.Type, outcome: BlockItemSummaryInBlock) => {
+	const processFinalized = (
+		txnHash: TransactionHash.Type,
+		outcome: BlockItemSummaryInBlock,
+	) => {
 		let error = "";
 
 		switch (outcome.summary.type) {
@@ -83,7 +91,8 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 						break;
 					case TransactionKindString.Update: {
 						error = "";
-						props.onFinalizedSuccess && props.onFinalizedSuccess(outcome.summary, txnHash);
+						props.onFinalizedSuccess &&
+							props.onFinalizedSuccess(outcome.summary, txnHash);
 						break;
 					}
 					default:
@@ -112,7 +121,9 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 			case "sent": {
 				const interval = setInterval(async () => {
 					try {
-						const status = await nodeClient.provider.getBlockItemStatus(state.txnHash);
+						const status = await nodeClient.provider.getBlockItemStatus(
+							state.txnHash,
+						);
 						switch (status.status) {
 							case TransactionStatusEnum.Received:
 							case TransactionStatusEnum.Committed: {
@@ -132,7 +143,8 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 						}
 					} catch (error) {
 						console.error(error);
-						const errorString = error instanceof Error ? error.message : "Unknown error";
+						const errorString =
+							error instanceof Error ? error.message : "Unknown error";
 						setState({ ...state, error: errorString });
 						clearInterval(interval);
 						return;
@@ -155,7 +167,8 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 			});
 		} catch (error) {
 			console.error(error);
-			const errorString = error instanceof Error ? error.message : "Unknown error";
+			const errorString =
+				error instanceof Error ? error.message : "Unknown error";
 			setState({ ...state, error: errorString });
 		}
 	};
@@ -175,14 +188,19 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 			{
 				{
 					init: (
-						<Button variant="contained" onClick={onClick} disabled={props.disabled}>
+						<Button
+							variant="contained"
+							onClick={onClick}
+							disabled={props.disabled}
+						>
 							{props.children}
 						</Button>
 					),
 					sent: (
 						<Stack>
 							<Typography>
-								Transaction Hash: <CCDScanTransactionLink transactionHash={state.txnHash!} />
+								Transaction Hash:{" "}
+								<CCDScanTransactionLink transactionHash={state.txnHash!} />
 							</Typography>
 							<Button variant="contained" disabled>
 								<Typography pr={1}>Transaction {state.status!}</Typography>
@@ -194,9 +212,14 @@ export default function SendTransactionButton(props: SendTransactionButtonProps)
 					finalized: (
 						<Stack>
 							<Typography>
-								Transaction Hash: <CCDScanTransactionLink transactionHash={state.txnHash!} />
+								Transaction Hash:{" "}
+								<CCDScanTransactionLink transactionHash={state.txnHash!} />
 							</Typography>
-							<Button variant="contained" onClick={onDone} color={state.error ? "error" : undefined}>
+							<Button
+								variant="contained"
+								onClick={onDone}
+								color={state.error ? "error" : undefined}
+							>
 								<Typography pr={1}>Transaction {state.status!}</Typography>
 								{!state.error ? <CheckCircle /> : <ErrorIcon />}
 							</Button>

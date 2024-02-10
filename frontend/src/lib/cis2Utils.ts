@@ -22,7 +22,9 @@ export type TokenMetadata = {
 	attributes?: AttributeJson[];
 	localizations?: { [key: string]: UrlJson };
 };
-export const getTokenMetadata = (metadataUrl: CIS2.MetadataUrl): Promise<TokenMetadata> => {
+export const getTokenMetadata = (
+	metadataUrl: CIS2.MetadataUrl,
+): Promise<TokenMetadata> => {
 	const url = toHttpUrl(metadataUrl.url);
 	return fetch(url, {
 		cache: "force-cache",

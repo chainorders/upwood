@@ -1,8 +1,28 @@
-import { Stack, Grid, Paper, List, Divider, ListItem, ListItemButton, ListItemText, Typography } from "@mui/material";
-import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+	Stack,
+	Grid,
+	Paper,
+	List,
+	Divider,
+	ListItem,
+	ListItemButton,
+	ListItemText,
+	Typography,
+} from "@mui/material";
+import {
+	Navigate,
+	Route,
+	Routes,
+	useLocation,
+	useNavigate,
+	useParams,
+} from "react-router-dom";
 import { ContractAddress } from "@concordium/web-sdk";
 import EntrypointsList from "../../common/EntrypointsList";
-import { ENTRYPOINTS, ENTRYPOINT_DISPLAY_NAMES } from "../../../lib/rwaSecurityNft";
+import {
+	ENTRYPOINTS,
+	ENTRYPOINT_DISPLAY_NAMES,
+} from "../../../lib/rwaSecurityNft";
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecurityNftUi";
 import TokenList from "./TokensList";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
@@ -26,15 +46,20 @@ export default function RwaSecurityNftContract() {
 				<Grid item xs={12} md={9}>
 					<Paper variant="outlined" sx={{ border: 0 }}>
 						<Routes>
-							<Route path="tokens" element={<TokenList contract={contract} />} />
+							<Route
+								path="tokens"
+								element={<TokenList contract={contract} />}
+							/>
 							{Object.keys(ENTRYPOINTS).map((entrypoint) => (
 								<Route
 									key={entrypoint}
 									path={entrypoint}
 									element={ENTRYPOINTS_UI[entrypoint]({
 										contract,
-										uiSchema: entrypoints_ui_customizations[entrypoint]?.uiSchema,
-										uiWidgets: entrypoints_ui_customizations[entrypoint]?.uiWidgets,
+										uiSchema:
+											entrypoints_ui_customizations[entrypoint]?.uiSchema,
+										uiWidgets:
+											entrypoints_ui_customizations[entrypoint]?.uiWidgets,
 									})}
 								/>
 							))}
@@ -46,7 +71,10 @@ export default function RwaSecurityNftContract() {
 					<Paper>
 						<List>
 							<ListItem disablePadding>
-								<ListItemButton onClick={() => navigate("tokens")} selected={path === "tokens"}>
+								<ListItemButton
+									onClick={() => navigate("tokens")}
+									selected={path === "tokens"}
+								>
 									<ListItemText primary="Tokens" />
 								</ListItemButton>
 							</ListItem>

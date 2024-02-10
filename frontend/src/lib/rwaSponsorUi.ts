@@ -36,55 +36,95 @@ export const initErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["WrongContract"] },
-						WrongContract: { type: "object", title: "WrongContract", properties: {} },
+						WrongContract: {
+							type: "object",
+							title: "WrongContract",
+							properties: {},
+						},
 					},
 				},
-				{ properties: { tag: { enum: ["Expired"] }, Expired: { type: "object", title: "Expired", properties: {} } } },
+				{
+					properties: {
+						tag: { enum: ["Expired"] },
+						Expired: { type: "object", title: "Expired", properties: {} },
+					},
+				},
 				{
 					properties: {
 						tag: { enum: ["NonceMismatch"] },
-						NonceMismatch: { type: "object", title: "NonceMismatch", properties: {} },
+						NonceMismatch: {
+							type: "object",
+							title: "NonceMismatch",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["WrongSignature"] },
-						WrongSignature: { type: "object", title: "WrongSignature", properties: {} },
+						WrongSignature: {
+							type: "object",
+							title: "WrongSignature",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["SerializationError"] },
-						SerializationError: { type: "object", title: "SerializationError", properties: {} },
+						SerializationError: {
+							type: "object",
+							title: "SerializationError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AccountMissing"] },
-						AccountMissing: { type: "object", title: "AccountMissing", properties: {} },
+						AccountMissing: {
+							type: "object",
+							title: "AccountMissing",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CIS3NotImplemented"] },
-						CIS3NotImplemented: { type: "object", title: "CIS3NotImplemented", properties: {} },
+						CIS3NotImplemented: {
+							type: "object",
+							title: "CIS3NotImplemented",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CIS3CheckError"] },
-						CIS3CheckError: { type: "object", title: "CIS3CheckError", properties: {} },
+						CIS3CheckError: {
+							type: "object",
+							title: "CIS3CheckError",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -126,7 +166,10 @@ export const permitRequestJsonSchema: RJSFSchema = {
 										{
 											properties: {
 												tag: { enum: ["Ed25519"] },
-												Ed25519: { type: "array", items: [{ type: "string", title: "" }] },
+												Ed25519: {
+													type: "array",
+													items: [{ type: "string", title: "" }],
+												},
 											},
 										},
 									],
@@ -147,12 +190,19 @@ export const permitRequestJsonSchema: RJSFSchema = {
 				contract_address: {
 					type: "object",
 					title: "Contract Address",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				nonce: { type: "integer", minimum: 0, title: "Nonce" },
 				timestamp: { type: "string", title: "Timestamp" },
 				entry_point: { type: "string", title: "Entry Point" },
-				payload: { type: "array", items: { type: "integer", minimum: 0, maximum: 255, title: "" }, title: "Payload" },
+				payload: {
+					type: "array",
+					items: { type: "integer", minimum: 0, maximum: 255, title: "" },
+					title: "Payload",
+				},
 			},
 		},
 	},
@@ -200,55 +250,95 @@ export const permitErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["WrongContract"] },
-						WrongContract: { type: "object", title: "WrongContract", properties: {} },
+						WrongContract: {
+							type: "object",
+							title: "WrongContract",
+							properties: {},
+						},
 					},
 				},
-				{ properties: { tag: { enum: ["Expired"] }, Expired: { type: "object", title: "Expired", properties: {} } } },
+				{
+					properties: {
+						tag: { enum: ["Expired"] },
+						Expired: { type: "object", title: "Expired", properties: {} },
+					},
+				},
 				{
 					properties: {
 						tag: { enum: ["NonceMismatch"] },
-						NonceMismatch: { type: "object", title: "NonceMismatch", properties: {} },
+						NonceMismatch: {
+							type: "object",
+							title: "NonceMismatch",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["WrongSignature"] },
-						WrongSignature: { type: "object", title: "WrongSignature", properties: {} },
+						WrongSignature: {
+							type: "object",
+							title: "WrongSignature",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["SerializationError"] },
-						SerializationError: { type: "object", title: "SerializationError", properties: {} },
+						SerializationError: {
+							type: "object",
+							title: "SerializationError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AccountMissing"] },
-						AccountMissing: { type: "object", title: "AccountMissing", properties: {} },
+						AccountMissing: {
+							type: "object",
+							title: "AccountMissing",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CIS3NotImplemented"] },
-						CIS3NotImplemented: { type: "object", title: "CIS3NotImplemented", properties: {} },
+						CIS3NotImplemented: {
+							type: "object",
+							title: "CIS3NotImplemented",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CIS3CheckError"] },
-						CIS3CheckError: { type: "object", title: "CIS3CheckError", properties: {} },
+						CIS3CheckError: {
+							type: "object",
+							title: "CIS3CheckError",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -270,7 +360,13 @@ export type PermitErrorUi =
 export const supportsPermitRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Supports Permit Request",
-	properties: { queries: { type: "array", items: { type: "string", title: "" }, title: "Queries" } },
+	properties: {
+		queries: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Queries",
+		},
+	},
 };
 export type SupportsPermitRequestUi = { queries: string[] };
 export const supportsPermitResponseJsonSchema: RJSFSchema = {
@@ -311,55 +407,95 @@ export const supportsPermitErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["WrongContract"] },
-						WrongContract: { type: "object", title: "WrongContract", properties: {} },
+						WrongContract: {
+							type: "object",
+							title: "WrongContract",
+							properties: {},
+						},
 					},
 				},
-				{ properties: { tag: { enum: ["Expired"] }, Expired: { type: "object", title: "Expired", properties: {} } } },
+				{
+					properties: {
+						tag: { enum: ["Expired"] },
+						Expired: { type: "object", title: "Expired", properties: {} },
+					},
+				},
 				{
 					properties: {
 						tag: { enum: ["NonceMismatch"] },
-						NonceMismatch: { type: "object", title: "NonceMismatch", properties: {} },
+						NonceMismatch: {
+							type: "object",
+							title: "NonceMismatch",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["WrongSignature"] },
-						WrongSignature: { type: "object", title: "WrongSignature", properties: {} },
+						WrongSignature: {
+							type: "object",
+							title: "WrongSignature",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["SerializationError"] },
-						SerializationError: { type: "object", title: "SerializationError", properties: {} },
+						SerializationError: {
+							type: "object",
+							title: "SerializationError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AccountMissing"] },
-						AccountMissing: { type: "object", title: "AccountMissing", properties: {} },
+						AccountMissing: {
+							type: "object",
+							title: "AccountMissing",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CIS3NotImplemented"] },
-						CIS3NotImplemented: { type: "object", title: "CIS3NotImplemented", properties: {} },
+						CIS3NotImplemented: {
+							type: "object",
+							title: "CIS3NotImplemented",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CIS3CheckError"] },
-						CIS3CheckError: { type: "object", title: "CIS3CheckError", properties: {} },
+						CIS3CheckError: {
+							type: "object",
+							title: "CIS3CheckError",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -396,8 +532,17 @@ export const ENTRYPOINTS_UI: {
 		uiWidgets?: RegistryWidgetsType;
 	}) => React.JSX.Element;
 } = {
-	permit: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.PermitRequest, PermitRequestUi, types.PermitError, PermitErrorUi>({
+	permit: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.PermitRequest,
+			PermitRequestUi,
+			types.PermitError,
+			PermitErrorUi
+		>({
 			...props,
 			method: client.permit,
 			requestJsonSchema: permitRequestJsonSchema,
@@ -405,7 +550,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: permitErrorJsonSchema,
 			errorSchemaBase64: types.permitErrorSchemaBase64,
 		}),
-	supportsPermit: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	supportsPermit: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.SupportsPermitRequest,
 			SupportsPermitRequestUi,

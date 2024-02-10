@@ -12,7 +12,10 @@ import CCDScanAccountLink from "../common/concordium/CCDScanAccountLink";
 export default function ContractLayout(props: { contracts: Contract[] }) {
 	const { index, subIndex } = useParams();
 	const contract = props.contracts.find((contract) => {
-		return contract.address.index.toString() === index && contract.address.subindex.toString() === subIndex;
+		return (
+			contract.address.index.toString() === index &&
+			contract.address.subindex.toString() === subIndex
+		);
 	});
 
 	const [onChainInfo, setOncChainInfo] = useState<InstanceInfo>();
@@ -21,9 +24,13 @@ export default function ContractLayout(props: { contracts: Contract[] }) {
 			return;
 		}
 
-		concordiumNodeClient.getInstanceInfo(ContractAddress.create(BigInt(index!), BigInt(subIndex!))).then((info) => {
-			setOncChainInfo(info);
-		});
+		concordiumNodeClient
+			.getInstanceInfo(
+				ContractAddress.create(BigInt(index!), BigInt(subIndex!)),
+			)
+			.then((info) => {
+				setOncChainInfo(info);
+			});
 	});
 
 	if (!contract) {
@@ -69,9 +76,14 @@ export default function ContractLayout(props: { contracts: Contract[] }) {
 								</Typography>
 								{onChainInfo && (
 									<>
-										<Typography>Amount : {onChainInfo?.amount.toJSON()}</Typography>
 										<Typography>
-											Module Ref : <CCDScanModuleLink moduleRef={onChainInfo?.sourceModule.moduleRef} />
+											Amount : {onChainInfo?.amount.toJSON()}
+										</Typography>
+										<Typography>
+											Module Ref :{" "}
+											<CCDScanModuleLink
+												moduleRef={onChainInfo?.sourceModule.moduleRef}
+											/>
 										</Typography>
 										<Typography>
 											Name :{" "}
@@ -82,7 +94,10 @@ export default function ContractLayout(props: { contracts: Contract[] }) {
 											/>
 										</Typography>
 										<Typography>
-											Owner: <CCDScanAccountLink account={onChainInfo?.owner.address} />
+											Owner:{" "}
+											<CCDScanAccountLink
+												account={onChainInfo?.owner.address}
+											/>
 										</Typography>
 									</>
 								)}

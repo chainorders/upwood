@@ -47,14 +47,20 @@ export default function UnListedTokens(props: Props) {
 	return (
 		<Paper variant="outlined">
 			<Typography variant="h4">
-				UnListed Tokens ({props.contract.index.toString()}/{props.contract.subindex.toString()})
+				UnListed Tokens ({props.contract.index.toString()}/
+				{props.contract.subindex.toString()})
 			</Typography>
 			<Paper variant="outlined" sx={{ p: 2 }}>
 				<Stack spacing={2}>
 					<Grid container spacing={1}>
 						{data.map((token, index) => (
 							<Grid item xs={12} md={2} key={index}>
-								<TokenDisplay token={token} onWithdraw={onWithdraw} onList={onList} grpcClient={grpcClient} />
+								<TokenDisplay
+									token={token}
+									onWithdraw={onWithdraw}
+									onList={onList}
+									grpcClient={grpcClient}
+								/>
 							</Grid>
 						))}
 					</Grid>
@@ -64,7 +70,9 @@ export default function UnListedTokens(props: Props) {
 							page={page + 1}
 							variant="outlined"
 							shape="rounded"
-							onChange={(_e, v) => setSearchParams({ ...searchParams, page: v.toString() })}
+							onChange={(_e, v) =>
+								setSearchParams({ ...searchParams, page: v.toString() })
+							}
 						/>
 						{error && <ErrorDisplay text={error} />}
 						{loading && <Typography>Loading...</Typography>}

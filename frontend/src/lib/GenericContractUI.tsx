@@ -13,7 +13,14 @@ import {
 	RejectedInit,
 } from "@concordium/web-sdk";
 import { CheckCircle } from "@mui/icons-material";
-import { Stack, Typography, CircularProgress, Button, Icon, Alert } from "@mui/material";
+import {
+	Stack,
+	Typography,
+	CircularProgress,
+	Button,
+	Icon,
+	Alert,
+} from "@mui/material";
 import React, { useState } from "react";
 import { parseUiToContract, parseContractToUi } from "./genericParser";
 import { useNodeClient } from "../components/NodeClientProvider";
@@ -44,7 +51,10 @@ type UpdateFinalizedSuccessState = {
 	status: TransactionStatusEnum.Finalized;
 	txnHash: TransactionHash.Type;
 	error?: string;
-	response: { type: "success"; summary: BaseAccountTransactionSummary & UpdateContractSummary };
+	response: {
+		type: "success";
+		summary: BaseAccountTransactionSummary & UpdateContractSummary;
+	};
 };
 type UpdateFinalizedErrorState<E> = {
 	type: "finalized";
@@ -53,7 +63,9 @@ type UpdateFinalizedErrorState<E> = {
 	error?: string;
 	response: { type: "error"; error?: E; message?: string };
 };
-type UpdateFinalizedState<E> = UpdateFinalizedSuccessState | UpdateFinalizedErrorState<E>;
+type UpdateFinalizedState<E> =
+	| UpdateFinalizedSuccessState
+	| UpdateFinalizedErrorState<E>;
 
 type ParsedFinalizedUpdateSuccess = {
 	tag: "success";
@@ -65,8 +77,10 @@ type ParsedFinalizedContractUpdateTxnError = {
 };
 
 const parseFinalizedUpdate: (
-	txnSummary: BlockItemSummaryInBlock
-) => ParsedFinalizedUpdateSuccess | ParsedFinalizedContractUpdateTxnError = (txnSummary) => {
+	txnSummary: BlockItemSummaryInBlock,
+) => ParsedFinalizedUpdateSuccess | ParsedFinalizedContractUpdateTxnError = (
+	txnSummary,
+) => {
 	switch (txnSummary.summary.type) {
 		case TransactionSummaryType.AccountTransaction: {
 			switch (txnSummary.summary.transactionType) {
@@ -102,11 +116,15 @@ export interface GenericUpdateRequestProps<TReq, TError> {
 	errorSchemaBase64?: string;
 	errorJsonSchema?: RJSFSchema;
 }
-export function GenericUpdate<TReq, TReqUi, TError, TErrorUi>(props: GenericUpdateRequestProps<TReq, TError>) {
+export function GenericUpdate<TReq, TReqUi, TError, TErrorUi>(
+	props: GenericUpdateRequestProps<TReq, TError>,
+) {
 	const { provider } = useNodeClient();
 	const wallet = useWallet();
 
-	const [state, setState] = useState<UpdateInitState | UpdateSentState | UpdateFinalizedState<TErrorUi>>({
+	const [state, setState] = useState<
+		UpdateInitState | UpdateSentState | UpdateFinalizedState<TErrorUi>
+	>({
 		type: "init",
 		error: "",
 		status: undefined,
@@ -128,7 +146,12 @@ export function GenericUpdate<TReq, TReqUi, TError, TErrorUi>(props: GenericUpda
 				? parseUiToContract<TReqUi, TReq>(formData, props.requestSchemaBase64)
 				: undefined;
 			const txnHash = await props.method
-				.update(wallet.provider!, wallet.currentAccount!, props.contract, contractRequest)
+				.update(
+					wallet.provider!,
+					wallet.currentAccount!,
+					props.contract,
+					contractRequest,
+				)
 				.then(TransactionHash.fromHexString);
 			setState({
 				type: "sent",
@@ -201,14 +224,21 @@ export function GenericUpdate<TReq, TReqUi, TError, TErrorUi>(props: GenericUpda
 					finalized: (
 						<>
 							<Typography>
-								Transaction Hash: <CCDScanTransactionLink transactionHash={state.txnHash!} />
+								Transaction Hash:{" "}
+								<CCDScanTransactionLink transactionHash={state.txnHash!} />
 							</Typography>
 							{
 								{
 									success: (
 										<>
-											<Button variant="contained" onClick={resetState} color="success">
-												<Typography pr={1}>Transaction {state.status!}</Typography>
+											<Button
+												variant="contained"
+												onClick={resetState}
+												color="success"
+											>
+												<Typography pr={1}>
+													Transaction {state.status!}
+												</Typography>
 												<Icon sx={{ ml: "1em" }}>
 													<CheckCircle />
 												</Icon>
@@ -217,13 +247,23 @@ export function GenericUpdate<TReq, TReqUi, TError, TErrorUi>(props: GenericUpda
 									),
 									error: (
 										<>
-											{(state as UpdateFinalizedErrorState<TErrorUi>).response?.message && (
+											{(state as UpdateFinalizedErrorState<TErrorUi>).response
+												?.message && (
 												<Typography color="error">
-													{(state as UpdateFinalizedErrorState<TErrorUi>).response?.message}
+													{
+														(state as UpdateFinalizedErrorState<TErrorUi>)
+															.response?.message
+													}
 												</Typography>
 											)}
-											<Button variant="contained" onClick={resetState} color="error">
-												<Typography pr={1}>Transaction {state.status!}</Typography>
+											<Button
+												variant="contained"
+												onClick={resetState}
+												color="error"
+											>
+												<Typography pr={1}>
+													Transaction {state.status!}
+												</Typography>
 												<Icon sx={{ ml: "1em" }}>
 													<CheckCircle />
 												</Icon>
@@ -252,7 +292,9 @@ type InvokeSentState = {
 	error: string;
 };
 
-type InvokeResponseState<T, E> = InvokeResponseSuccessState<T> | InvokeResponseErrorState<E>;
+type InvokeResponseState<T, E> =
+	| InvokeResponseSuccessState<T>
+	| InvokeResponseErrorState<E>;
 
 type InvokeResponseSuccessState<T> = {
 	type: "response";
@@ -295,12 +337,14 @@ export interface GenericInvokeRequestProps<TReq, TRes, TError> {
 	uiWidgets?: RegistryWidgetsType;
 }
 export function GenericInvoke<TReq, TReqUi, TRes, TResUi, TError, TErrorUi>(
-	props: GenericInvokeRequestProps<TReq, TRes, TError>
+	props: GenericInvokeRequestProps<TReq, TRes, TError>,
 ) {
 	const { provider } = useNodeClient();
 	const wallet = useWallet();
 
-	const [state, setState] = useState<InvokeInitState | InvokeSentState | InvokeResponseState<TResUi, TErrorUi>>({
+	const [state, setState] = useState<
+		InvokeInitState | InvokeSentState | InvokeResponseState<TResUi, TErrorUi>
+	>({
 		type: "init",
 		error: "",
 	});
@@ -317,11 +361,18 @@ export function GenericInvoke<TReq, TReqUi, TRes, TResUi, TError, TErrorUi>(
 			const contractRequest = props.requestSchemaBase64
 				? parseUiToContract<TReqUi, TReq>(formData, props.requestSchemaBase64)
 				: undefined;
-			const result = await props.method.invoke(provider!, props.contract, contractRequest, wallet.currentAccount!);
+			const result = await props.method.invoke(
+				provider!,
+				props.contract,
+				contractRequest,
+				wallet.currentAccount!,
+			);
 			switch (result.tag) {
 				case "success": {
 					try {
-						const contractResult = result.returnValue ? props.method.parseReturnValue(result.returnValue) : undefined;
+						const contractResult = result.returnValue
+							? props.method.parseReturnValue(result.returnValue)
+							: undefined;
 						const uiResult: TResUi | undefined =
 							contractResult && props.responseSchemaBase64
 								? parseContractToUi(contractResult, props.responseSchemaBase64)
@@ -340,16 +391,16 @@ export function GenericInvoke<TReq, TReqUi, TRes, TResUi, TError, TErrorUi>(
 							value: {
 								type: "success",
 							},
-							error: error instanceof Error ? error.message : JSON.stringify(error),
+							error:
+								error instanceof Error ? error.message : JSON.stringify(error),
 						});
 					}
 					break;
 				}
 				case "failure": {
 					try {
-						const contractError: ParsedError<TError> | undefined = props.method.parseError?.(
-							parseInvokeError(result.reason)
-						);
+						const contractError: ParsedError<TError> | undefined =
+							props.method.parseError?.(parseInvokeError(result.reason));
 						setState({
 							type: "response",
 							value: {
@@ -364,7 +415,8 @@ export function GenericInvoke<TReq, TReqUi, TRes, TResUi, TError, TErrorUi>(
 							value: {
 								type: "error",
 							},
-							error: error instanceof Error ? error.message : JSON.stringify(error),
+							error:
+								error instanceof Error ? error.message : JSON.stringify(error),
 						});
 					}
 					break;
@@ -409,7 +461,10 @@ export function GenericInvoke<TReq, TReqUi, TRes, TResUi, TError, TErrorUi>(
 											<Form
 												schema={props.responseJsonSchema || {}}
 												validator={validator}
-												formData={(state as InvokeResponseSuccessState<TResUi>).value?.value}
+												formData={
+													(state as InvokeResponseSuccessState<TResUi>).value
+														?.value
+												}
 												readonly
 												onSubmit={resetState}
 											/>
@@ -418,21 +473,33 @@ export function GenericInvoke<TReq, TReqUi, TRes, TResUi, TError, TErrorUi>(
 									error: (
 										<>
 											<Alert severity="error">Invoke Request Error</Alert>
-											{(state as InvokeResponseErrorState<TErrorUi>).value?.value && (
+											{(state as InvokeResponseErrorState<TErrorUi>).value
+												?.value && (
 												<Form
 													schema={props.errorJsonSchema || {}}
 													validator={validator}
-													formData={(state as InvokeResponseErrorState<TErrorUi>).value?.value}
+													formData={
+														(state as InvokeResponseErrorState<TErrorUi>).value
+															?.value
+													}
 													readonly
 													onSubmit={resetState}
 												/>
 											)}
-											{(state as InvokeResponseErrorState<TErrorUi>).value?.message && (
+											{(state as InvokeResponseErrorState<TErrorUi>).value
+												?.message && (
 												<Typography color="error">
-													{(state as InvokeResponseErrorState<TErrorUi>).value?.message}
+													{
+														(state as InvokeResponseErrorState<TErrorUi>).value
+															?.message
+													}
 												</Typography>
 											)}
-											<Button variant="contained" onClick={resetState} color="error">
+											<Button
+												variant="contained"
+												onClick={resetState}
+												color="error"
+											>
 												<Typography pr={1}>Ok</Typography>
 												<Icon sx={{ ml: "1em" }}>
 													<CheckCircle />
@@ -473,13 +540,18 @@ type ParsedFinalizedContractInitTxnError = {
 };
 
 const parseFinalizedInit: (
-	txnSummary: BlockItemSummaryInBlock
-) => ParsedFinalizedInitSuccess | ParsedFinalizedContractInitTxnError = (txnSummary) => {
+	txnSummary: BlockItemSummaryInBlock,
+) => ParsedFinalizedInitSuccess | ParsedFinalizedContractInitTxnError = (
+	txnSummary,
+) => {
 	switch (txnSummary.summary.type) {
 		case TransactionSummaryType.AccountTransaction: {
 			switch (txnSummary.summary.transactionType) {
 				case TransactionKindString.InitContract: {
-					return { tag: "success", value: txnSummary.summary.contractInitialized.address };
+					return {
+						tag: "success",
+						value: txnSummary.summary.contractInitialized.address,
+					};
 				}
 				case TransactionKindString.Failed: {
 					switch (txnSummary.summary.rejectReason.tag) {
@@ -487,11 +559,15 @@ const parseFinalizedInit: (
 							return { tag: "error", value: txnSummary.summary.rejectReason };
 						}
 						default:
-							throw new Error(`Unknown reject reason ${txnSummary.summary.rejectReason.tag}`);
+							throw new Error(
+								`Unknown reject reason ${txnSummary.summary.rejectReason.tag}`,
+							);
 					}
 				}
 				default:
-					throw new Error(`"Unknown account transaction type: ${txnSummary.summary.transactionType}`);
+					throw new Error(
+						`"Unknown account transaction type: ${txnSummary.summary.transactionType}`,
+					);
 			}
 			break;
 		}
@@ -508,11 +584,15 @@ export interface GenericInitRequestProps<TReq> {
 	uiSchema?: UiSchema;
 	uiWidgets?: RegistryWidgetsType;
 }
-export function GenericInit<TReq, TReqUi>(props: GenericInitRequestProps<TReq>) {
+export function GenericInit<TReq, TReqUi>(
+	props: GenericInitRequestProps<TReq>,
+) {
 	const { provider } = useNodeClient();
 	const wallet = useWallet();
 
-	const [state, setState] = useState<InitInitState | InitSentState | InitFinalizedState>({
+	const [state, setState] = useState<
+		InitInitState | InitSentState | InitFinalizedState
+	>({
 		type: "init",
 		error: "",
 		status: undefined,
@@ -581,7 +661,8 @@ export function GenericInit<TReq, TReqUi>(props: GenericInitRequestProps<TReq>) 
 							response: {
 								type: "error",
 							},
-							error: error instanceof Error ? error.message : JSON.stringify(error),
+							error:
+								error instanceof Error ? error.message : JSON.stringify(error),
 						});
 					}
 					break;
@@ -621,14 +702,17 @@ export function GenericInit<TReq, TReqUi>(props: GenericInitRequestProps<TReq>) 
 					finalized: (
 						<>
 							<Typography>
-								Transaction Hash: <CCDScanTransactionLink transactionHash={state.txnHash!} />
+								Transaction Hash:{" "}
+								<CCDScanTransactionLink transactionHash={state.txnHash!} />
 							</Typography>
 							{
 								{
 									success: (
 										<>
 											<Button variant="contained" onClick={resetState}>
-												<Typography pr={1}>Transaction {state.status!}</Typography>
+												<Typography pr={1}>
+													Transaction {state.status!}
+												</Typography>
 												<Icon sx={{ ml: "1em" }}>
 													<CheckCircle />
 												</Icon>
@@ -637,7 +721,8 @@ export function GenericInit<TReq, TReqUi>(props: GenericInitRequestProps<TReq>) 
 									),
 									error: (
 										<Alert severity="error">
-											{(state as InitFinalizedErrorState).response?.message || "Unknown error"}
+											{(state as InitFinalizedErrorState).response?.message ||
+												"Unknown error"}
 										</Alert>
 									),
 								}[(state as InitFinalizedState).response?.type]

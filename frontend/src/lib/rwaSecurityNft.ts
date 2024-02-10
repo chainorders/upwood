@@ -1,4 +1,9 @@
-import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
+import {
+	ContractEvent,
+	ContractName,
+	EntrypointName,
+	ModuleReference,
+} from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "./GenericContract";
 export const CONTRACT_NAME = "rwa_security_nft";
 export type initRequest = {
@@ -27,8 +32,11 @@ export type AddAgentError =
 	| { AgentNotFound: Record<string, never> };
 export const addAgentErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
-export type AddAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-export const addAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type AddAgentRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const addAgentRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type AgentsError =
 	| { InvalidTokenId: Record<string, never> }
 	| { InsufficientFunds: Record<string, never> }
@@ -46,8 +54,11 @@ export type AgentsError =
 	| { AgentNotFound: Record<string, never> };
 export const agentsErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
-export type AgentsResponse = Array<{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }>;
-export const agentsResponseSchemaBase64 = "EAIVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
+export type AgentsResponse = Array<
+	{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }
+>;
+export const agentsResponseSchemaBase64 =
+	"EAIVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
 export type BalanceOfError =
 	| { InvalidTokenId: Record<string, never> }
 	| { InsufficientFunds: Record<string, never> }
@@ -67,7 +78,9 @@ export const balanceOfErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type BalanceOfRequest = Array<{
 	token_id: string;
-	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	address:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 }>;
 export const balanceOfRequestSchemaBase64 =
 	"EAEUAAIAAAAIAAAAdG9rZW5faWQdAAcAAABhZGRyZXNzFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
@@ -91,13 +104,16 @@ export type BalanceOfFrozenError =
 export const balanceOfFrozenErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type BalanceOfFrozenRequest = {
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 	tokens: Array<string>;
 };
 export const balanceOfFrozenRequestSchemaBase64 =
 	"FAACAAAABQAAAG93bmVyFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAYAAAB0b2tlbnMQAh0A";
 export type BalanceOfFrozenResponse = { tokens: Array<string> };
-export const balanceOfFrozenResponseSchemaBase64 = "FAABAAAABgAAAHRva2VucxACGyUAAAA=";
+export const balanceOfFrozenResponseSchemaBase64 =
+	"FAABAAAABgAAAHRva2VucxACGyUAAAA=";
 export type BalanceOfUnFrozenError =
 	| { InvalidTokenId: Record<string, never> }
 	| { InsufficientFunds: Record<string, never> }
@@ -116,13 +132,16 @@ export type BalanceOfUnFrozenError =
 export const balanceOfUnFrozenErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type BalanceOfUnFrozenRequest = {
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 	tokens: Array<string>;
 };
 export const balanceOfUnFrozenRequestSchemaBase64 =
 	"FAACAAAABQAAAG93bmVyFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAYAAAB0b2tlbnMQAh0A";
 export type BalanceOfUnFrozenResponse = { tokens: Array<string> };
-export const balanceOfUnFrozenResponseSchemaBase64 = "FAABAAAABgAAAHRva2VucxACGyUAAAA=";
+export const balanceOfUnFrozenResponseSchemaBase64 =
+	"FAABAAAABgAAAHRva2VucxACGyUAAAA=";
 export type BurnError =
 	| { InvalidTokenId: Record<string, never> }
 	| { InsufficientFunds: Record<string, never> }
@@ -143,7 +162,9 @@ export const burnErrorSchemaBase64 =
 export type BurnRequest = Array<{
 	token_id: string;
 	amount: string;
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 }>;
 export const burnRequestSchemaBase64 =
 	"EAEUAAMAAAAIAAAAdG9rZW5faWQdAAYAAABhbW91bnQbJQAAAAUAAABvd25lchUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAw=";
@@ -169,8 +190,12 @@ export const forcedTransferErrorSchemaBase64 =
 export type ForcedTransferRequest = Array<{
 	token_id: string;
 	amount: string;
-	from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-	to: { Account: [string] } | { Contract: [{ index: number; subindex: number }, string] };
+	from:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
+	to:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }, string] };
 	data: string;
 }>;
 export const forcedTransferRequestSchemaBase64 =
@@ -193,7 +218,9 @@ export type FreezeError =
 export const freezeErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type FreezeRequest = {
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 	tokens: Array<{ token_id: string; token_amount: string }>;
 };
 export const freezeRequestSchemaBase64 =
@@ -217,8 +244,11 @@ export type IsAgentError =
 	| { AgentNotFound: Record<string, never> };
 export const isAgentErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
-export type IsAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-export const isAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type IsAgentRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const isAgentRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type IsAgentResponse = boolean;
 export const isAgentResponseSchemaBase64 = "AQ==";
 export type IsPausedError =
@@ -260,8 +290,15 @@ export type MintError =
 export const mintErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type MintRequest = {
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }, string] };
-	tokens: Array<{ metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } } }>;
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }, string] };
+	tokens: Array<{
+		metadata_url: {
+			url: string;
+			hash: { None: Record<string, never> } | { Some: [string] };
+		};
+	}>;
 };
 export const mintRequestSchemaBase64 =
 	"FAACAAAABQAAAG93bmVyFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAECAAAADBYBBgAAAHRva2VucxACFAABAAAADAAAAG1ldGFkYXRhX3VybBQAAgAAAAMAAAB1cmwWAgQAAABoYXNoFQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFgI=";
@@ -283,8 +320,12 @@ export type OperatorOfError =
 export const operatorOfErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type OperatorOfRequest = Array<{
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
+	address:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 }>;
 export const operatorOfRequestSchemaBase64 =
 	"EAEUAAIAAAAFAAAAb3duZXIVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
@@ -327,8 +368,12 @@ export type RecoverError =
 export const recoverErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type RecoverRequest = {
-	lost_account: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-	new_account: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	lost_account:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
+	new_account:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 };
 export const recoverRequestSchemaBase64 =
 	"FAACAAAADAAAAGxvc3RfYWNjb3VudBUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwLAAAAbmV3X2FjY291bnQVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
@@ -349,11 +394,19 @@ export type RecoveryAddressError =
 	| { AgentNotFound: Record<string, never> };
 export const recoveryAddressErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
-export type RecoveryAddressRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-export const recoveryAddressRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type RecoveryAddressRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const recoveryAddressRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type RecoveryAddressResponse =
 	| { None: Record<string, never> }
-	| { Some: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] };
+	| {
+			Some: [
+				| { Account: [string] }
+				| { Contract: [{ index: number; subindex: number }] },
+			];
+	  };
 export const recoveryAddressResponseSchemaBase64 =
 	"FQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type RemoveAgentError =
@@ -373,8 +426,11 @@ export type RemoveAgentError =
 	| { AgentNotFound: Record<string, never> };
 export const removeAgentErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
-export type RemoveAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-export const removeAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type RemoveAgentRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const removeAgentRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type SetComplianceError =
 	| { InvalidTokenId: Record<string, never> }
 	| { InsufficientFunds: Record<string, never> }
@@ -437,7 +493,8 @@ export type SupportsResponse = Array<
 	| { Support: Record<string, never> }
 	| { SupportBy: [Array<{ index: number; subindex: number }>] }
 >;
-export const supportsResponseSchemaBase64 = "EAEVAwAAAAkAAABOb1N1cHBvcnQCBwAAAFN1cHBvcnQCCQAAAFN1cHBvcnRCeQEBAAAAEAAM";
+export const supportsResponseSchemaBase64 =
+	"EAEVAwAAAAkAAABOb1N1cHBvcnQCBwAAAFN1cHBvcnQCCQAAAFN1cHBvcnRCeQEBAAAAEAAM";
 export type TokenMetadataError =
 	| { InvalidTokenId: Record<string, never> }
 	| { InsufficientFunds: Record<string, never> }
@@ -457,7 +514,10 @@ export const tokenMetadataErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type TokenMetadataRequest = Array<string>;
 export const tokenMetadataRequestSchemaBase64 = "EAEdAA==";
-export type TokenMetadataResponse = Array<{ url: string; hash: { None: Record<string, never> } | { Some: [string] } }>;
+export type TokenMetadataResponse = Array<{
+	url: string;
+	hash: { None: Record<string, never> } | { Some: [string] };
+}>;
 export const tokenMetadataResponseSchemaBase64 =
 	"EAEUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAA";
 export type TransferError =
@@ -480,8 +540,12 @@ export const transferErrorSchemaBase64 =
 export type TransferRequest = Array<{
 	token_id: string;
 	amount: string;
-	from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-	to: { Account: [string] } | { Contract: [{ index: number; subindex: number }, string] };
+	from:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
+	to:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }, string] };
 	data: string;
 }>;
 export const transferRequestSchemaBase64 =
@@ -504,7 +568,9 @@ export type UnFreezeError =
 export const unFreezeErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type UnFreezeRequest = {
-	owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 	tokens: Array<{ token_id: string; token_amount: string }>;
 };
 export const unFreezeRequestSchemaBase64 =
@@ -547,7 +613,9 @@ export const updateOperatorErrorSchemaBase64 =
 	"FQ4AAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCCgAAAFBhcnNlRXJyb3ICCAAAAExvZ0Vycm9yAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAg==";
 export type UpdateOperatorRequest = Array<{
 	update: { Remove: Record<string, never> } | { Add: Record<string, never> };
-	operator: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	operator:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 }>;
 export const updateOperatorRequestSchemaBase64 =
 	"EAEUAAIAAAAGAAAAdXBkYXRlFQIAAAAGAAAAUmVtb3ZlAgMAAABBZGQCCAAAAG9wZXJhdG9yFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
@@ -555,8 +623,12 @@ export type event =
 	| {
 			Recovered: [
 				{
-					lost_account: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-					new_account: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+					lost_account:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
+					new_account:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
 				},
 			];
 	  }
@@ -569,7 +641,9 @@ export type event =
 				{
 					token_id: string;
 					amount: string;
-					address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+					address:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
 				},
 			];
 	  }
@@ -578,45 +652,80 @@ export type event =
 				{
 					token_id: string;
 					amount: string;
-					address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+					address:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
 				},
 			];
 	  }
-	| { AgentRemoved: [{ agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] }
-	| { AgentAdded: [{ agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] }
+	| {
+			AgentRemoved: [
+				{
+					agent:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
+				},
+			];
+	  }
+	| {
+			AgentAdded: [
+				{
+					agent:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
+				},
+			];
+	  }
 	| {
 			TokenMetadata: {
 				token_id: string;
-				metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
+				metadata_url: {
+					url: string;
+					hash: { None: Record<string, never> } | { Some: [string] };
+				};
 			};
 	  }
 	| {
 			UpdateOperator: {
-				update: { Remove: Record<string, never> } | { Add: Record<string, never> };
-				owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				operator: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+				update:
+					| { Remove: Record<string, never> }
+					| { Add: Record<string, never> };
+				owner:
+					| { Account: [string] }
+					| { Contract: [{ index: number; subindex: number }] };
+				operator:
+					| { Account: [string] }
+					| { Contract: [{ index: number; subindex: number }] };
 			};
 	  }
 	| {
 			Burn: {
 				token_id: string;
 				amount: string;
-				owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+				owner:
+					| { Account: [string] }
+					| { Contract: [{ index: number; subindex: number }] };
 			};
 	  }
 	| {
 			Mint: {
 				token_id: string;
 				amount: string;
-				owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+				owner:
+					| { Account: [string] }
+					| { Contract: [{ index: number; subindex: number }] };
 			};
 	  }
 	| {
 			Transfer: {
 				token_id: string;
 				amount: string;
-				from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				to: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+				from:
+					| { Account: [string] }
+					| { Contract: [{ index: number; subindex: number }] };
+				to:
+					| { Account: [string] }
+					| { Contract: [{ index: number; subindex: number }] };
 			};
 	  };
 export const eventSchemaBase64 =
@@ -679,192 +788,237 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const rwaSecurityNft = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("9b32c8001e72067f3c66cf1c38321f79c2c1941fd879404659a30d5b06feebe2"),
+		ModuleReference.fromHexString(
+			"4891e4463617bfa259f8a4c8f9835dd8e326491f0591f1ab89c09a9f8a836695",
+		),
 		ContractName.fromString("rwa_security_nft"),
-		initRequestSchemaBase64
+		initRequestSchemaBase64,
 	),
 	addAgent: new ReceiveMethod<AddAgentRequest, never, AddAgentError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("addAgent"),
 		addAgentRequestSchemaBase64,
 		undefined,
-		addAgentErrorSchemaBase64
+		addAgentErrorSchemaBase64,
 	),
 	agents: new ReceiveMethod<never, AgentsResponse, AgentsError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("agents"),
 		undefined,
 		agentsResponseSchemaBase64,
-		agentsErrorSchemaBase64
+		agentsErrorSchemaBase64,
 	),
-	balanceOf: new ReceiveMethod<BalanceOfRequest, BalanceOfResponse, BalanceOfError>(
+	balanceOf: new ReceiveMethod<
+		BalanceOfRequest,
+		BalanceOfResponse,
+		BalanceOfError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("balanceOf"),
 		balanceOfRequestSchemaBase64,
 		balanceOfResponseSchemaBase64,
-		balanceOfErrorSchemaBase64
+		balanceOfErrorSchemaBase64,
 	),
-	balanceOfFrozen: new ReceiveMethod<BalanceOfFrozenRequest, BalanceOfFrozenResponse, BalanceOfFrozenError>(
+	balanceOfFrozen: new ReceiveMethod<
+		BalanceOfFrozenRequest,
+		BalanceOfFrozenResponse,
+		BalanceOfFrozenError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("balanceOfFrozen"),
 		balanceOfFrozenRequestSchemaBase64,
 		balanceOfFrozenResponseSchemaBase64,
-		balanceOfFrozenErrorSchemaBase64
+		balanceOfFrozenErrorSchemaBase64,
 	),
-	balanceOfUnFrozen: new ReceiveMethod<BalanceOfUnFrozenRequest, BalanceOfUnFrozenResponse, BalanceOfUnFrozenError>(
+	balanceOfUnFrozen: new ReceiveMethod<
+		BalanceOfUnFrozenRequest,
+		BalanceOfUnFrozenResponse,
+		BalanceOfUnFrozenError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("balanceOfUnFrozen"),
 		balanceOfUnFrozenRequestSchemaBase64,
 		balanceOfUnFrozenResponseSchemaBase64,
-		balanceOfUnFrozenErrorSchemaBase64
+		balanceOfUnFrozenErrorSchemaBase64,
 	),
 	burn: new ReceiveMethod<BurnRequest, never, BurnError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("burn"),
 		burnRequestSchemaBase64,
 		undefined,
-		burnErrorSchemaBase64
+		burnErrorSchemaBase64,
 	),
 	compliance: new ReceiveMethod<void, ComplianceResponse>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("compliance"),
 		undefined,
-		complianceResponseSchemaBase64
+		complianceResponseSchemaBase64,
 	),
-	forcedTransfer: new ReceiveMethod<ForcedTransferRequest, never, ForcedTransferError>(
+	forcedTransfer: new ReceiveMethod<
+		ForcedTransferRequest,
+		never,
+		ForcedTransferError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("forcedTransfer"),
 		forcedTransferRequestSchemaBase64,
 		undefined,
-		forcedTransferErrorSchemaBase64
+		forcedTransferErrorSchemaBase64,
 	),
 	freeze: new ReceiveMethod<FreezeRequest, never, FreezeError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("freeze"),
 		freezeRequestSchemaBase64,
 		undefined,
-		freezeErrorSchemaBase64
+		freezeErrorSchemaBase64,
 	),
 	identityRegistry: new ReceiveMethod<void, IdentityRegistryResponse>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("identityRegistry"),
 		undefined,
-		identityRegistryResponseSchemaBase64
+		identityRegistryResponseSchemaBase64,
 	),
 	isAgent: new ReceiveMethod<IsAgentRequest, IsAgentResponse, IsAgentError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("isAgent"),
 		isAgentRequestSchemaBase64,
 		isAgentResponseSchemaBase64,
-		isAgentErrorSchemaBase64
+		isAgentErrorSchemaBase64,
 	),
 	isPaused: new ReceiveMethod<IsPausedRequest, IsPausedResponse, IsPausedError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("isPaused"),
 		isPausedRequestSchemaBase64,
 		isPausedResponseSchemaBase64,
-		isPausedErrorSchemaBase64
+		isPausedErrorSchemaBase64,
 	),
 	mint: new ReceiveMethod<MintRequest, never, MintError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("mint"),
 		mintRequestSchemaBase64,
 		undefined,
-		mintErrorSchemaBase64
+		mintErrorSchemaBase64,
 	),
-	operatorOf: new ReceiveMethod<OperatorOfRequest, OperatorOfResponse, OperatorOfError>(
+	operatorOf: new ReceiveMethod<
+		OperatorOfRequest,
+		OperatorOfResponse,
+		OperatorOfError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("operatorOf"),
 		operatorOfRequestSchemaBase64,
 		operatorOfResponseSchemaBase64,
-		operatorOfErrorSchemaBase64
+		operatorOfErrorSchemaBase64,
 	),
 	pause: new ReceiveMethod<PauseRequest, never, PauseError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("pause"),
 		pauseRequestSchemaBase64,
 		undefined,
-		pauseErrorSchemaBase64
+		pauseErrorSchemaBase64,
 	),
 	recover: new ReceiveMethod<RecoverRequest, never, RecoverError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("recover"),
 		recoverRequestSchemaBase64,
 		undefined,
-		recoverErrorSchemaBase64
+		recoverErrorSchemaBase64,
 	),
-	recoveryAddress: new ReceiveMethod<RecoveryAddressRequest, RecoveryAddressResponse, RecoveryAddressError>(
+	recoveryAddress: new ReceiveMethod<
+		RecoveryAddressRequest,
+		RecoveryAddressResponse,
+		RecoveryAddressError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("recoveryAddress"),
 		recoveryAddressRequestSchemaBase64,
 		recoveryAddressResponseSchemaBase64,
-		recoveryAddressErrorSchemaBase64
+		recoveryAddressErrorSchemaBase64,
 	),
 	removeAgent: new ReceiveMethod<RemoveAgentRequest, never, RemoveAgentError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("removeAgent"),
 		removeAgentRequestSchemaBase64,
 		undefined,
-		removeAgentErrorSchemaBase64
+		removeAgentErrorSchemaBase64,
 	),
-	setCompliance: new ReceiveMethod<SetComplianceRequest, never, SetComplianceError>(
+	setCompliance: new ReceiveMethod<
+		SetComplianceRequest,
+		never,
+		SetComplianceError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("setCompliance"),
 		setComplianceRequestSchemaBase64,
 		undefined,
-		setComplianceErrorSchemaBase64
+		setComplianceErrorSchemaBase64,
 	),
-	setIdentityRegistry: new ReceiveMethod<SetIdentityRegistryRequest, never, SetIdentityRegistryError>(
+	setIdentityRegistry: new ReceiveMethod<
+		SetIdentityRegistryRequest,
+		never,
+		SetIdentityRegistryError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("setIdentityRegistry"),
 		setIdentityRegistryRequestSchemaBase64,
 		undefined,
-		setIdentityRegistryErrorSchemaBase64
+		setIdentityRegistryErrorSchemaBase64,
 	),
 	supports: new ReceiveMethod<SupportsRequest, SupportsResponse, SupportsError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("supports"),
 		supportsRequestSchemaBase64,
 		supportsResponseSchemaBase64,
-		supportsErrorSchemaBase64
+		supportsErrorSchemaBase64,
 	),
-	tokenMetadata: new ReceiveMethod<TokenMetadataRequest, TokenMetadataResponse, TokenMetadataError>(
+	tokenMetadata: new ReceiveMethod<
+		TokenMetadataRequest,
+		TokenMetadataResponse,
+		TokenMetadataError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("tokenMetadata"),
 		tokenMetadataRequestSchemaBase64,
 		tokenMetadataResponseSchemaBase64,
-		tokenMetadataErrorSchemaBase64
+		tokenMetadataErrorSchemaBase64,
 	),
 	transfer: new ReceiveMethod<TransferRequest, never, TransferError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("transfer"),
 		transferRequestSchemaBase64,
 		undefined,
-		transferErrorSchemaBase64
+		transferErrorSchemaBase64,
 	),
 	unFreeze: new ReceiveMethod<UnFreezeRequest, never, UnFreezeError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("unFreeze"),
 		unFreezeRequestSchemaBase64,
 		undefined,
-		unFreezeErrorSchemaBase64
+		unFreezeErrorSchemaBase64,
 	),
 	unPause: new ReceiveMethod<UnPauseRequest, never, UnPauseError>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("unPause"),
 		unPauseRequestSchemaBase64,
 		undefined,
-		unPauseErrorSchemaBase64
+		unPauseErrorSchemaBase64,
 	),
-	updateOperator: new ReceiveMethod<UpdateOperatorRequest, never, UpdateOperatorError>(
+	updateOperator: new ReceiveMethod<
+		UpdateOperatorRequest,
+		never,
+		UpdateOperatorError
+	>(
 		ContractName.fromString("rwa_security_nft"),
 		EntrypointName.fromString("updateOperator"),
 		updateOperatorRequestSchemaBase64,
 		undefined,
-		updateOperatorErrorSchemaBase64
+		updateOperatorErrorSchemaBase64,
 	),
 	deserializeEvent: (event: ContractEvent.Type): event => {
-		return ContractEvent.parseWithSchemaTypeBase64(event, eventSchemaBase64) as event;
+		return ContractEvent.parseWithSchemaTypeBase64(
+			event,
+			eventSchemaBase64,
+		) as event;
 	},
 };
 export default rwaSecurityNft;

@@ -1,9 +1,11 @@
 import { TransactionHash } from "@concordium/web-sdk";
 
-export default function CCDScanTransactionLink(props: { transactionHash: TransactionHash.Type }) {
+export default function CCDScanTransactionLink(props: {
+	transactionHash: TransactionHash.Type;
+}) {
 	const ccdScanWebsite = import.meta.env.VITE_CCDSCAN_TRANSACTION_LINK!.replace(
 		"<transactionHash>",
-		TransactionHash.toHexString(props.transactionHash)
+		TransactionHash.toHexString(props.transactionHash),
 	);
 	return (
 		<a href={ccdScanWebsite} target="_blank" rel="noreferrer">

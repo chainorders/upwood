@@ -64,18 +64,25 @@ export default function TokenList(props: Props) {
 										<IconButton edge="end" aria-label="playOrPause">
 											{token.is_paused ? <PlayArrow /> : <Pause />}
 										</IconButton>
-										<CCDCis2TokenLink tokenId={token.token_id} contract={contract}>
+										<CCDCis2TokenLink
+											tokenId={token.token_id}
+											contract={contract}
+										>
 											<IconButton edge="end" aria-label="open market">
 												<OpenInBrowser />
 											</IconButton>
 										</CCDCis2TokenLink>
 									</>
-								}>
+								}
+							>
 								<ListItemButton>
 									<ListItemIcon>
 										<Token />
 									</ListItemIcon>
-									<ListItemText primary={token.token_id} secondary={token.metadata_url} />
+									<ListItemText
+										primary={token.token_id}
+										secondary={token.metadata_url}
+									/>
 								</ListItemButton>
 							</ListItem>
 						))}
@@ -86,7 +93,9 @@ export default function TokenList(props: Props) {
 							page={page + 1}
 							variant="outlined"
 							shape="rounded"
-							onChange={(_e, v) => setSearchParams({ ...searchParams, page: v.toString() })}
+							onChange={(_e, v) =>
+								setSearchParams({ ...searchParams, page: v.toString() })
+							}
 						/>
 						{error && <ErrorDisplay text={error} />}
 						{loading && <Typography>Loading...</Typography>}

@@ -1,7 +1,19 @@
 import { useState } from "react";
 import { useWallet } from "../WalletProvider";
-import { BlockItemSummaryInBlock, ContractAddress, RejectedInit } from "@concordium/web-sdk";
-import { List, ListItem, ListItemButton, ListItemText, Paper, Stack, TextField } from "@mui/material";
+import {
+	BlockItemSummaryInBlock,
+	ContractAddress,
+	RejectedInit,
+} from "@concordium/web-sdk";
+import {
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemText,
+	Paper,
+	Stack,
+	TextField,
+} from "@mui/material";
 import SendTransactionButton from "../common/SendTransactionButton";
 import ContractAddressField from "../common/concordium/ContractAddressField";
 import { parseContractAddress } from "../../lib/common/common";
@@ -28,7 +40,11 @@ export default function RwaComplianceModuleAllowedNationalitiesInitialize(props:
 		setForm((prev) => ({ ...prev, [key]: value }));
 	};
 	const isFormValid = () => {
-		return form.contractDisplayName.length > 0 && form.identityRegistry !== undefined && form.nationalities.length > 0;
+		return (
+			form.contractDisplayName.length > 0 &&
+			form.identityRegistry !== undefined &&
+			form.nationalities.length > 0
+		);
 	};
 	const setNationalities = (nationalities: string) => {
 		const trimmed = nationalities.trim();
@@ -72,8 +88,12 @@ export default function RwaComplianceModuleAllowedNationalitiesInitialize(props:
 				<Stack spacing={1}>
 					<List>
 						{props.identityRegistries.map((i) => (
-							<ListItem key={i.address.index.toString() + i.address.subindex.toString()}>
-								<ListItemButton onClick={() => setFormValue("identityRegistry", i.address)}>
+							<ListItem
+								key={i.address.index.toString() + i.address.subindex.toString()}
+							>
+								<ListItemButton
+									onClick={() => setFormValue("identityRegistry", i.address)}
+								>
 									<ListItemText
 										primary={i.name}
 										secondary={`${i.address.index.toString()}/${i.address.subindex.toString()}`}
@@ -103,19 +123,26 @@ export default function RwaComplianceModuleAllowedNationalitiesInitialize(props:
 			/>
 			<SendTransactionButton
 				onClick={() =>
-					rwaComplianceModuleAllowedNationalities.init.init(wallet.provider!, wallet.currentAccount!, {
-						identity_registry: {
-							index: Number(form.identityRegistry!.index),
-							subindex: Number(form.identityRegistry!.subindex),
+					rwaComplianceModuleAllowedNationalities.init.init(
+						wallet.provider!,
+						wallet.currentAccount!,
+						{
+							identity_registry: {
+								index: Number(form.identityRegistry!.index),
+								subindex: Number(form.identityRegistry!.subindex),
+							},
+							nationalities: form.nationalities,
 						},
-						nationalities: form.nationalities,
-					})
+					)
 				}
 				onFinalized={handleSuccess}
 				onFinalizedError={(r) =>
-					rwaComplianceModuleAllowedNationalities.init.parseError(r as RejectedInit) || "Unknown Error"
+					rwaComplianceModuleAllowedNationalities.init.parseError(
+						r as RejectedInit,
+					) || "Unknown Error"
 				}
-				disabled={!isFormValid()}>
+				disabled={!isFormValid()}
+			>
 				Initialize Compliance Module Allowed Nationalities
 			</SendTransactionButton>
 			{error && <ErrorDisplay text={error} />}

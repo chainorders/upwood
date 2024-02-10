@@ -19,12 +19,14 @@ type Props = {
 export default function TokenUIdField(props: Props) {
 	const [tokenIdSize, setTokenIdSize] = useState(0);
 	const [tokenId, setTokenId] = useState<CIS2.TokenId>("");
-	const [contract, setContract] = useState<ContractAddress.Type | undefined>(undefined);
+	const [contract, setContract] = useState<ContractAddress.Type | undefined>(
+		undefined,
+	);
 	const { onChange } = props;
 	const isValid =
 		(tokenIdSize === 0 && tokenId.length === 0 && contract !== undefined) ||
-        (tokenIdSize !== 0 && tokenId.length !== 0 && contract !== undefined);
-    
+		(tokenIdSize !== 0 && tokenId.length !== 0 && contract !== undefined);
+
 	useEffect(() => {
 		if (isValid) {
 			onChange({
@@ -39,10 +41,14 @@ export default function TokenUIdField(props: Props) {
 	return (
 		<Stack spacing={1}>
 			<Typography variant="caption">Token Id Size</Typography>
-			<Select onChange={(e) => { 
-				setTokenIdSize(Number(e.target.value));
-				setTokenId("");
-			}} value={tokenIdSize} fullWidth>
+			<Select
+				onChange={(e) => {
+					setTokenIdSize(Number(e.target.value));
+					setTokenId("");
+				}}
+				value={tokenIdSize}
+				fullWidth
+			>
 				<MenuItem value={0}>Unit</MenuItem>
 				<MenuItem value={1}>U8</MenuItem>
 				<MenuItem value={2}>U16</MenuItem>
@@ -51,13 +57,13 @@ export default function TokenUIdField(props: Props) {
 			</Select>
 			<Typography variant="caption">Token Id</Typography>
 			<TokenIdField
-                sizeByte={tokenIdSize}
-                onChange={setTokenId}
-                name="Token Id"
-                id="tokenId"
-                disabled={tokenIdSize === 0}
-                value={tokenId}
-                fullWidth
+				sizeByte={tokenIdSize}
+				onChange={setTokenId}
+				name="Token Id"
+				id="tokenId"
+				disabled={tokenIdSize === 0}
+				value={tokenId}
+				fullWidth
 			/>
 			<Typography variant="caption">Token Contract</Typography>
 			<ContractAddressField

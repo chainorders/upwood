@@ -14,12 +14,17 @@ export const useNodeClient = () => {
 	return useContext(NodeClientContext);
 };
 
-export default function ConcordiumNodeClientProvider({ children }: { children: React.ReactNode }): React.ReactNode {
+export default function ConcordiumNodeClientProvider({
+	children,
+}: {
+	children: React.ReactNode;
+}): React.ReactNode {
 	return (
 		<NodeClientContext.Provider
 			value={{
 				provider: defaultNodeClient,
-			}}>
+			}}
+		>
 			{children}
 		</NodeClientContext.Provider>
 	);

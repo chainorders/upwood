@@ -1,10 +1,18 @@
-import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
+import {
+	ContractEvent,
+	ContractName,
+	EntrypointName,
+	ModuleReference,
+} from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "./GenericContract";
 export const CONTRACT_NAME = "rwa_market";
 export type initRequest = {
 	commission: { numerator: bigint; denominator: bigint };
 	token_contracts: Array<{ index: number; subindex: number }>;
-	exchange_tokens: Array<{ contract: { index: number; subindex: number }; id: string }>;
+	exchange_tokens: Array<{
+		contract: { index: number; subindex: number };
+		id: string;
+	}>;
 };
 export const initRequestSchemaBase64 =
 	"FAADAAAACgAAAGNvbW1pc3Npb24UAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUPAAAAdG9rZW5fY29udHJhY3RzEAIMDwAAAGV4Y2hhbmdlX3Rva2VucxACFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
@@ -31,11 +39,16 @@ export type AddPaymentTokenError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const addPaymentTokenErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
-export type AddPaymentTokenRequest = { contract: { index: number; subindex: number }; id: string };
-export const addPaymentTokenRequestSchemaBase64 = "FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
+export type AddPaymentTokenRequest = {
+	contract: { index: number; subindex: number };
+	id: string;
+};
+export const addPaymentTokenRequestSchemaBase64 =
+	"FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export type AddSellTokenContractError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -59,9 +72,10 @@ export type AddSellTokenContractError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const addSellTokenContractErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type AddSellTokenContractRequest = { index: number; subindex: number };
 export const addSellTokenContractRequestSchemaBase64 = "DA==";
 export type AllowedToListResponse = Array<{ index: number; subindex: number }>;
@@ -89,9 +103,10 @@ export type BalanceOfDepositedError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const balanceOfDepositedErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type BalanceOfDepositedRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	address: string;
@@ -123,9 +138,10 @@ export type BalanceOfListedError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const balanceOfListedErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type BalanceOfListedRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -157,9 +173,10 @@ export type BalanceOfUnlistedError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const balanceOfUnlistedErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type BalanceOfUnlistedRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -191,9 +208,10 @@ export type CalculateAmountsError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const calculateAmountsErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type CalculateAmountsRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -202,7 +220,10 @@ export type CalculateAmountsRequest = {
 		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: bigint; denominator: bigint },
+					],
 				];
 		  };
 	payer: string;
@@ -212,7 +233,9 @@ export const calculateAmountsRequestSchemaBase64 =
 export type CalculateAmountsResponse = {
 	buy: string;
 	pay: { Cis2: [string] } | { CCD: [string] };
-	pay_token: { Cis2: [{ contract: { index: number; subindex: number }; id: string }] } | { CCD: Record<string, never> };
+	pay_token:
+		| { Cis2: [{ contract: { index: number; subindex: number }; id: string }] }
+		| { CCD: Record<string, never> };
 	commission: { Cis2: [string] } | { CCD: [string] };
 };
 export const calculateAmountsResponseSchemaBase64 =
@@ -240,11 +263,16 @@ export type DeListError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const deListErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
-export type DeListRequest = { token_id: { contract: { index: number; subindex: number }; id: string }; owner: string };
-export const deListRequestSchemaBase64 = "FAACAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw==";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
+export type DeListRequest = {
+	token_id: { contract: { index: number; subindex: number }; id: string };
+	owner: string;
+};
+export const deListRequestSchemaBase64 =
+	"FAACAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw==";
 export type DepositError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -268,13 +296,16 @@ export type DepositError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const depositErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type DepositRequest = {
 	token_id: string;
 	amount: string;
-	from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+	from:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
 	data: string;
 };
 export const depositRequestSchemaBase64 =
@@ -302,9 +333,10 @@ export type ExchangeError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const exchangeErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type ExchangeRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -313,7 +345,10 @@ export type ExchangeRequest = {
 		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: bigint; denominator: bigint },
+					],
 				];
 		  };
 	payer: string;
@@ -343,9 +378,10 @@ export type GetListedError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const getListedErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type GetListedRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -359,7 +395,10 @@ export type GetListedResponse = {
 		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: bigint; denominator: bigint },
+					],
 				];
 		  }
 	>;
@@ -390,9 +429,10 @@ export type ListError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const listErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type ListRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -400,7 +440,10 @@ export type ListRequest = {
 		| { Ccd: [{ numerator: bigint; denominator: bigint }] }
 		| {
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: bigint; denominator: bigint }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: bigint; denominator: bigint },
+					],
 				];
 		  }
 	>;
@@ -408,8 +451,12 @@ export type ListRequest = {
 };
 export const listRequestSchemaBase64 =
 	"FAAEAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAG93bmVyCw4AAABleGNoYW5nZV9yYXRlcxACFQIAAAADAAAAQ2NkAQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUEAAAAQ2lzMgEBAAAADxQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQYAAABzdXBwbHkbJQAAAA==";
-export type PaymentTokensResponse = Array<{ contract: { index: number; subindex: number }; id: string }>;
-export const paymentTokensResponseSchemaBase64 = "EAIUAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQA=";
+export type PaymentTokensResponse = Array<{
+	contract: { index: number; subindex: number };
+	id: string;
+}>;
+export const paymentTokensResponseSchemaBase64 =
+	"EAIUAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQA=";
 export type WithdrawError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -433,9 +480,10 @@ export type WithdrawError =
 	| { Cis2PaymentError: Record<string, never> }
 	| { Cis2CommissionPaymentError: Record<string, never> }
 	| { CCDPaymentError: Record<string, never> }
-	| { CCDCommissionPaymentError: Record<string, never> };
+	| { CCDCommissionPaymentError: Record<string, never> }
+	| { NotDeposited: Record<string, never> };
 export const withdrawErrorSchemaBase64 =
-	"FRcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3IC";
+	"FRgAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIPAAAASW52YWxpZEV4Y2hhbmdlAgsAAABPbmx5QWNjb3VudAISAAAASW5zdWZmaWNpZW50U3VwcGx5AgsAAABJbnZhbGlkUmF0ZQIJAAAATm90TGlzdGVkAhQAAABJbnN1ZmZpY2llbnREZXBvc2l0cwITAAAASW5zdWZmaWNpZW50UGF5bWVudAISAAAAUGF5bWVudE5vdFJlcXVpcmVkAhIAAABJbnZhbGlkRGVwb3NpdERhdGECEAAAAEludmFsaWRMaXN0VG9rZW4CEwAAAEludmFsaWRQYXltZW50VG9rZW4CEQAAAEludmFsaWRDb21taXNzaW9uAg0AAABJbnZhbGlkU3VwcGx5AhQAAABJbnZhbGlkRXhjaGFuZ2VSYXRlcwIRAAAAQ2lzMldpdGhkcmF3RXJyb3ICEwAAAENpczJTZXR0bGVtZW50RXJyb3ICEAAAAENpczJQYXltZW50RXJyb3ICGgAAAENpczJDb21taXNzaW9uUGF5bWVudEVycm9yAg8AAABDQ0RQYXltZW50RXJyb3ICGQAAAENDRENvbW1pc3Npb25QYXltZW50RXJyb3ICDAAAAE5vdERlcG9zaXRlZAI=";
 export type WithdrawRequest = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
@@ -446,28 +494,66 @@ export const withdrawRequestSchemaBase64 =
 export type event =
 	| {
 			Deposited: [
-				{ token_id: { contract: { index: number; subindex: number }; id: string }; owner: string; amount: string },
+				{
+					token_id: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					owner: string;
+					amount: string;
+				},
 			];
 	  }
 	| {
 			Withdraw: [
-				{ token_id: { contract: { index: number; subindex: number }; id: string }; owner: string; amount: string },
+				{
+					token_id: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					owner: string;
+					amount: string;
+				},
 			];
 	  }
 	| {
 			Listed: [
-				{ token_id: { contract: { index: number; subindex: number }; id: string }; owner: string; supply: string },
+				{
+					token_id: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					owner: string;
+					supply: string;
+				},
 			];
 	  }
-	| { DeListed: [{ token_id: { contract: { index: number; subindex: number }; id: string }; owner: string }] }
+	| {
+			DeListed: [
+				{
+					token_id: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					owner: string;
+				},
+			];
+	  }
 	| {
 			Exchanged: [
 				{
-					buy_token_id: { contract: { index: number; subindex: number }; id: string };
+					buy_token_id: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
 					buy_amount: string;
 					buy_token_owner: string;
 					pay_token_id:
-						| { Cis2: [{ contract: { index: number; subindex: number }; id: string }] }
+						| {
+								Cis2: [
+									{ contract: { index: number; subindex: number }; id: string },
+								];
+						  }
 						| { CCD: Record<string, never> };
 					pay_amount: { Cis2: [string] } | { CCD: [string] };
 					pay_token_owner: string;
@@ -511,108 +597,141 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const rwaMarket = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("c734112c918be0c39520d79288e0479c2ffce633c5fc1c275b6437ebca6ac310"),
+		ModuleReference.fromHexString(
+			"57b0d6edf75562d51c7cc7f2f5fb5eb18b8edb1c396065355ade552cbc28fa85",
+		),
 		ContractName.fromString("rwa_market"),
-		initRequestSchemaBase64
+		initRequestSchemaBase64,
 	),
-	addPaymentToken: new ReceiveMethod<AddPaymentTokenRequest, never, AddPaymentTokenError>(
+	addPaymentToken: new ReceiveMethod<
+		AddPaymentTokenRequest,
+		never,
+		AddPaymentTokenError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("addPaymentToken"),
 		addPaymentTokenRequestSchemaBase64,
 		undefined,
-		addPaymentTokenErrorSchemaBase64
+		addPaymentTokenErrorSchemaBase64,
 	),
-	addSellTokenContract: new ReceiveMethod<AddSellTokenContractRequest, never, AddSellTokenContractError>(
+	addSellTokenContract: new ReceiveMethod<
+		AddSellTokenContractRequest,
+		never,
+		AddSellTokenContractError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("addSellTokenContract"),
 		addSellTokenContractRequestSchemaBase64,
 		undefined,
-		addSellTokenContractErrorSchemaBase64
+		addSellTokenContractErrorSchemaBase64,
 	),
 	allowedToList: new ReceiveMethod<void, AllowedToListResponse>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("allowedToList"),
 		undefined,
-		allowedToListResponseSchemaBase64
+		allowedToListResponseSchemaBase64,
 	),
-	balanceOfDeposited: new ReceiveMethod<BalanceOfDepositedRequest, BalanceOfDepositedResponse, BalanceOfDepositedError>(
+	balanceOfDeposited: new ReceiveMethod<
+		BalanceOfDepositedRequest,
+		BalanceOfDepositedResponse,
+		BalanceOfDepositedError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("balanceOfDeposited"),
 		balanceOfDepositedRequestSchemaBase64,
 		balanceOfDepositedResponseSchemaBase64,
-		balanceOfDepositedErrorSchemaBase64
+		balanceOfDepositedErrorSchemaBase64,
 	),
-	balanceOfListed: new ReceiveMethod<BalanceOfListedRequest, BalanceOfListedResponse, BalanceOfListedError>(
+	balanceOfListed: new ReceiveMethod<
+		BalanceOfListedRequest,
+		BalanceOfListedResponse,
+		BalanceOfListedError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("balanceOfListed"),
 		balanceOfListedRequestSchemaBase64,
 		balanceOfListedResponseSchemaBase64,
-		balanceOfListedErrorSchemaBase64
+		balanceOfListedErrorSchemaBase64,
 	),
-	balanceOfUnlisted: new ReceiveMethod<BalanceOfUnlistedRequest, BalanceOfUnlistedResponse, BalanceOfUnlistedError>(
+	balanceOfUnlisted: new ReceiveMethod<
+		BalanceOfUnlistedRequest,
+		BalanceOfUnlistedResponse,
+		BalanceOfUnlistedError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("balanceOfUnlisted"),
 		balanceOfUnlistedRequestSchemaBase64,
 		balanceOfUnlistedResponseSchemaBase64,
-		balanceOfUnlistedErrorSchemaBase64
+		balanceOfUnlistedErrorSchemaBase64,
 	),
-	calculateAmounts: new ReceiveMethod<CalculateAmountsRequest, CalculateAmountsResponse, CalculateAmountsError>(
+	calculateAmounts: new ReceiveMethod<
+		CalculateAmountsRequest,
+		CalculateAmountsResponse,
+		CalculateAmountsError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("calculateAmounts"),
 		calculateAmountsRequestSchemaBase64,
 		calculateAmountsResponseSchemaBase64,
-		calculateAmountsErrorSchemaBase64
+		calculateAmountsErrorSchemaBase64,
 	),
 	deList: new ReceiveMethod<DeListRequest, never, DeListError>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("deList"),
 		deListRequestSchemaBase64,
 		undefined,
-		deListErrorSchemaBase64
+		deListErrorSchemaBase64,
 	),
 	deposit: new ReceiveMethod<DepositRequest, never, DepositError>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("deposit"),
 		depositRequestSchemaBase64,
 		undefined,
-		depositErrorSchemaBase64
+		depositErrorSchemaBase64,
 	),
 	exchange: new ReceiveMethod<ExchangeRequest, never, ExchangeError>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("exchange"),
 		exchangeRequestSchemaBase64,
 		undefined,
-		exchangeErrorSchemaBase64
+		exchangeErrorSchemaBase64,
 	),
-	getListed: new ReceiveMethod<GetListedRequest, GetListedResponse, GetListedError>(
+	getListed: new ReceiveMethod<
+		GetListedRequest,
+		GetListedResponse,
+		GetListedError
+	>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("getListed"),
 		getListedRequestSchemaBase64,
 		getListedResponseSchemaBase64,
-		getListedErrorSchemaBase64
+		getListedErrorSchemaBase64,
 	),
 	list: new ReceiveMethod<ListRequest, never, ListError>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("list"),
 		listRequestSchemaBase64,
 		undefined,
-		listErrorSchemaBase64
+		listErrorSchemaBase64,
 	),
 	paymentTokens: new ReceiveMethod<void, PaymentTokensResponse>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("paymentTokens"),
 		undefined,
-		paymentTokensResponseSchemaBase64
+		paymentTokensResponseSchemaBase64,
 	),
 	withdraw: new ReceiveMethod<WithdrawRequest, never, WithdrawError>(
 		ContractName.fromString("rwa_market"),
 		EntrypointName.fromString("withdraw"),
 		withdrawRequestSchemaBase64,
 		undefined,
-		withdrawErrorSchemaBase64
+		withdrawErrorSchemaBase64,
 	),
 	deserializeEvent: (event: ContractEvent.Type): event => {
-		return ContractEvent.parseWithSchemaTypeBase64(event, eventSchemaBase64) as event;
+		return ContractEvent.parseWithSchemaTypeBase64(
+			event,
+			eventSchemaBase64,
+		) as event;
 	},
 };
 export default rwaMarket;

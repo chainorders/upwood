@@ -6,7 +6,10 @@ import EntrypointsList from "../common/EntrypointsList";
 export default function ConcordiumContract(props: {
 	entrypoints: Record<string, EntrypointName.Type<string>>;
 	entrypointDisplayNames: Record<string, string>;
-	entrypointUi: Record<string, (props: { contract: ContractAddress.Type }) => JSX.Element>;
+	entrypointUi: Record<
+		string,
+		(props: { contract: ContractAddress.Type }) => JSX.Element
+	>;
 }) {
 	const { index, subIndex } = useParams();
 	const contract = ContractAddress.create(BigInt(index!), BigInt(subIndex!));
@@ -22,7 +25,11 @@ export default function ConcordiumContract(props: {
 					<Paper variant="outlined" sx={{ border: 0 }}>
 						<Routes>
 							{Object.keys(entrypoints).map((entrypoint) => (
-								<Route key={entrypoint} path={entrypoint} element={entrypointUi[entrypoint]({ contract })} />
+								<Route
+									key={entrypoint}
+									path={entrypoint}
+									element={entrypointUi[entrypoint]({ contract })}
+								/>
 							))}
 						</Routes>
 					</Paper>

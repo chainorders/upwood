@@ -2,7 +2,10 @@ import { SchemaType, deserializeSchemaType } from "@concordium/web-sdk";
 import { Buffer } from "buffer/";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const parseUiToContract = <TUi, TContract>(json: TUi, schemaBase64: string): TContract => {
+export const parseUiToContract = <TUi, TContract>(
+	json: TUi,
+	schemaBase64: string,
+): TContract => {
 	const schemaType = deserializeSchemaType(Buffer.from(schemaBase64, "base64"));
 	return parseContractRequest(json, schemaType);
 };
@@ -17,7 +20,10 @@ const parseContractRequest = (json: any, type: SchemaType): any => {
 				case "Named": {
 					const ret = {} as Record<string, unknown>;
 					for (const field of type.fields.fields) {
-						ret[field.name] = parseContractRequest((json as Record<string, unknown>)[field.name], field.field);
+						ret[field.name] = parseContractRequest(
+							(json as Record<string, unknown>)[field.name],
+							field.field,
+						);
 					}
 
 					return ret;
@@ -25,7 +31,9 @@ const parseContractRequest = (json: any, type: SchemaType): any => {
 				case "Unnamed": {
 					const ret = [] as unknown[];
 					for (const field of type.fields.fields) {
-						ret.push(parseContractRequest((json as unknown[])[ret.length], field));
+						ret.push(
+							parseContractRequest((json as unknown[])[ret.length], field),
+						);
 					}
 
 					return ret;
@@ -34,13 +42,23 @@ const parseContractRequest = (json: any, type: SchemaType): any => {
 			break;
 		}
 		case "Enum": {
-			const variantType = type.variants.find((variant) => variant.name === json.tag)!;
+			const variantType = type.variants.find(
+				(variant) => variant.name === json.tag,
+			)!;
 			const variantValue = json[json.tag];
-			const ret = { [json.tag]: parseContractRequest(variantValue, { type: "Struct", fields: variantType.fields }) };
+			const ret = {
+				[json.tag]: parseContractRequest(variantValue, {
+					type: "Struct",
+					fields: variantType.fields,
+				}),
+			};
 			return ret;
 		}
 		case "Pair": {
-			return [parseContractRequest(json[0], type.first), parseContractRequest(json[1], type.second)];
+			return [
+				parseContractRequest(json[0], type.first),
+				parseContractRequest(json[1], type.second),
+			];
 		}
 		case "List":
 		case "Set":
@@ -51,7 +69,10 @@ const parseContractRequest = (json: any, type: SchemaType): any => {
 			const value = json as [unknown, unknown][];
 			const ret = [];
 			for (const [key, val] of value) {
-				ret.push([parseContractRequest(key, type.key), parseContractRequest(val, type.value)]);
+				ret.push([
+					parseContractRequest(key, type.key),
+					parseContractRequest(val, type.value),
+				]);
 			}
 
 			return ret;
@@ -67,7 +88,10 @@ const parseContractRequest = (json: any, type: SchemaType): any => {
 
 // Parses Contract Response to UI friendly format
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const parseContractToUi = <TUi, TContract>(json: TContract, schemaBase64: string): TUi => {
+export const parseContractToUi = <TUi, TContract>(
+	json: TContract,
+	schemaBase64: string,
+): TUi => {
 	const schemaType = deserializeSchemaType(Buffer.from(schemaBase64, "base64"));
 	console.info("parseContractToUi", json, schemaType);
 	return parseContractResponse(json, schemaType) as TUi;
@@ -87,14 +111,19 @@ const parseContractResponse = (json: unknown, type: SchemaType): unknown => {
 				case "Named": {
 					const ret = {} as Record<string, unknown>;
 					for (const field of type.fields.fields) {
-						ret[field.name] = parseContractResponse((json as Record<string, unknown>)[field.name], field.field);
+						ret[field.name] = parseContractResponse(
+							(json as Record<string, unknown>)[field.name],
+							field.field,
+						);
 					}
 					return ret;
 				}
 				case "Unnamed": {
 					const ret = [] as unknown[];
 					for (const field of type.fields.fields) {
-						ret.push(parseContractResponse((json as unknown[])[ret.length], field));
+						ret.push(
+							parseContractResponse((json as unknown[])[ret.length], field),
+						);
 					}
 					return ret;
 				}
@@ -106,10 +135,13 @@ const parseContractResponse = (json: unknown, type: SchemaType): unknown => {
 				if (variant.name in (json as Record<string, unknown>)) {
 					return {
 						tag: variant.name,
-						[variant.name]: parseContractResponse((json as Record<string, unknown>)[variant.name], {
-							type: "Struct",
-							fields: variant.fields,
-						}),
+						[variant.name]: parseContractResponse(
+							(json as Record<string, unknown>)[variant.name],
+							{
+								type: "Struct",
+								fields: variant.fields,
+							},
+						),
 					};
 				}
 			}
@@ -125,13 +157,18 @@ const parseContractResponse = (json: unknown, type: SchemaType): unknown => {
 		case "List":
 		case "Set":
 		case "Array": {
-			return (json as unknown[]).map((item: unknown) => parseContractResponse(item, type.item));
+			return (json as unknown[]).map((item: unknown) =>
+				parseContractResponse(item, type.item),
+			);
 		}
 		case "Map": {
 			const value = json as [unknown, unknown][];
 			const ret = [];
 			for (const [key, val] of value) {
-				ret.push([parseContractResponse(key, type.key), parseContractResponse(val, type.value)]);
+				ret.push([
+					parseContractResponse(key, type.key),
+					parseContractResponse(val, type.value),
+				]);
 			}
 
 			return ret;

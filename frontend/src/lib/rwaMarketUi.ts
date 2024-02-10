@@ -21,7 +21,10 @@ export const initRequestJsonSchema: RJSFSchema = {
 			items: {
 				type: "object",
 				title: "",
-				properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+				properties: {
+					index: { type: "integer", minimum: 0 },
+					subindex: { type: "integer", minimum: 0 },
+				},
 			},
 			title: "Token Contracts",
 		},
@@ -34,7 +37,10 @@ export const initRequestJsonSchema: RJSFSchema = {
 					contract: {
 						type: "object",
 						title: "Contract",
-						properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+						properties: {
+							index: { type: "integer", minimum: 0 },
+							subindex: { type: "integer", minimum: 0 },
+						},
 					},
 					id: { type: "string", title: "Id" },
 				},
@@ -46,7 +52,10 @@ export const initRequestJsonSchema: RJSFSchema = {
 export type initRequestUi = {
 	commission: { numerator: number; denominator: number };
 	token_contracts: { index: number; subindex: number }[];
-	exchange_tokens: { contract: { index: number; subindex: number }; id: string }[];
+	exchange_tokens: {
+		contract: { index: number; subindex: number };
+		id: string;
+	}[];
 };
 export const addPaymentTokenRequestJsonSchema: RJSFSchema = {
 	type: "object",
@@ -55,12 +64,18 @@ export const addPaymentTokenRequestJsonSchema: RJSFSchema = {
 		contract: {
 			type: "object",
 			title: "Contract",
-			properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+			properties: {
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
+			},
 		},
 		id: { type: "string", title: "Id" },
 	},
 };
-export type AddPaymentTokenRequestUi = { contract: { index: number; subindex: number }; id: string };
+export type AddPaymentTokenRequestUi = {
+	contract: { index: number; subindex: number };
+	id: string;
+};
 export const addPaymentTokenErrorJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Payment Token Error",
@@ -91,6 +106,7 @@ export const addPaymentTokenErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -105,36 +121,59 @@ export const addPaymentTokenErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -146,91 +185,161 @@ export const addPaymentTokenErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -260,11 +369,15 @@ export type AddPaymentTokenErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const addSellTokenContractRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Sell Token Contract Request",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type AddSellTokenContractRequestUi = { index: number; subindex: number };
 export const addSellTokenContractErrorJsonSchema: RJSFSchema = {
@@ -297,6 +410,7 @@ export const addSellTokenContractErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -311,36 +425,59 @@ export const addSellTokenContractErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -352,91 +489,161 @@ export const addSellTokenContractErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -466,13 +673,17 @@ export type AddSellTokenContractErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const allowedToListResponseJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
 		type: "object",
 		title: "",
-		properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+		properties: {
+			index: { type: "integer", minimum: 0 },
+			subindex: { type: "integer", minimum: 0 },
+		},
 	},
 	title: "Allowed To List Response",
 };
@@ -488,7 +699,10 @@ export const balanceOfDepositedRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -535,6 +749,7 @@ export const balanceOfDepositedErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -549,36 +764,59 @@ export const balanceOfDepositedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -590,91 +828,161 @@ export const balanceOfDepositedErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -704,7 +1012,8 @@ export type BalanceOfDepositedErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const balanceOfListedRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Balance Of Listed Request",
@@ -716,7 +1025,10 @@ export const balanceOfListedRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -728,7 +1040,10 @@ export type BalanceOfListedRequestUi = {
 	token_id: { contract: { index: number; subindex: number }; id: string };
 	owner: string;
 };
-export const balanceOfListedResponseJsonSchema: RJSFSchema = { type: "string", title: "Balance Of Listed Response" };
+export const balanceOfListedResponseJsonSchema: RJSFSchema = {
+	type: "string",
+	title: "Balance Of Listed Response",
+};
 export type BalanceOfListedResponseUi = string;
 export const balanceOfListedErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -760,6 +1075,7 @@ export const balanceOfListedErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -774,36 +1090,59 @@ export const balanceOfListedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -815,91 +1154,161 @@ export const balanceOfListedErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -929,7 +1338,8 @@ export type BalanceOfListedErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const balanceOfUnlistedRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Balance Of Unlisted Request",
@@ -941,7 +1351,10 @@ export const balanceOfUnlistedRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -988,6 +1401,7 @@ export const balanceOfUnlistedErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -1002,36 +1416,59 @@ export const balanceOfUnlistedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1043,91 +1480,161 @@ export const balanceOfUnlistedErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1157,7 +1664,8 @@ export type BalanceOfUnlistedErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const calculateAmountsRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Calculate Amounts Request",
@@ -1169,7 +1677,10 @@ export const calculateAmountsRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -1194,8 +1705,16 @@ export const calculateAmountsRequestJsonSchema: RJSFSchema = {
 											type: "object",
 											title: "",
 											properties: {
-												numerator: { type: "integer", minimum: 0, title: "Numerator" },
-												denominator: { type: "integer", minimum: 0, title: "Denominator" },
+												numerator: {
+													type: "integer",
+													minimum: 0,
+													title: "Numerator",
+												},
+												denominator: {
+													type: "integer",
+													minimum: 0,
+													title: "Denominator",
+												},
 											},
 										},
 									],
@@ -1230,8 +1749,16 @@ export const calculateAmountsRequestJsonSchema: RJSFSchema = {
 													type: "object",
 													title: "Second",
 													properties: {
-														numerator: { type: "integer", minimum: 0, title: "Numerator" },
-														denominator: { type: "integer", minimum: 0, title: "Denominator" },
+														numerator: {
+															type: "integer",
+															minimum: 0,
+															title: "Numerator",
+														},
+														denominator: {
+															type: "integer",
+															minimum: 0,
+															title: "Denominator",
+														},
 													},
 												},
 											],
@@ -1257,7 +1784,10 @@ export type CalculateAmountsRequestUi = {
 		| {
 				tag: "Cis2";
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: number; denominator: number },
+					],
 				];
 		  };
 	payer: string;
@@ -1276,9 +1806,17 @@ export const calculateAmountsResponseJsonSchema: RJSFSchema = {
 				tag: {
 					oneOf: [
 						{
-							properties: { tag: { enum: ["Cis2"] }, Cis2: { type: "array", items: [{ type: "string", title: "" }] } },
+							properties: {
+								tag: { enum: ["Cis2"] },
+								Cis2: { type: "array", items: [{ type: "string", title: "" }] },
+							},
 						},
-						{ properties: { tag: { enum: ["CCD"] }, CCD: { type: "array", items: [{ type: "string", title: "" }] } } },
+						{
+							properties: {
+								tag: { enum: ["CCD"] },
+								CCD: { type: "array", items: [{ type: "string", title: "" }] },
+							},
+						},
 					],
 				},
 			},
@@ -1316,7 +1854,12 @@ export const calculateAmountsResponseJsonSchema: RJSFSchema = {
 								},
 							},
 						},
-						{ properties: { tag: { enum: ["CCD"] }, CCD: { type: "object", title: "CCD", properties: {} } } },
+						{
+							properties: {
+								tag: { enum: ["CCD"] },
+								CCD: { type: "object", title: "CCD", properties: {} },
+							},
+						},
 					],
 				},
 			},
@@ -1330,9 +1873,17 @@ export const calculateAmountsResponseJsonSchema: RJSFSchema = {
 				tag: {
 					oneOf: [
 						{
-							properties: { tag: { enum: ["Cis2"] }, Cis2: { type: "array", items: [{ type: "string", title: "" }] } },
+							properties: {
+								tag: { enum: ["Cis2"] },
+								Cis2: { type: "array", items: [{ type: "string", title: "" }] },
+							},
 						},
-						{ properties: { tag: { enum: ["CCD"] }, CCD: { type: "array", items: [{ type: "string", title: "" }] } } },
+						{
+							properties: {
+								tag: { enum: ["CCD"] },
+								CCD: { type: "array", items: [{ type: "string", title: "" }] },
+							},
+						},
 					],
 				},
 			},
@@ -1343,7 +1894,10 @@ export type CalculateAmountsResponseUi = {
 	buy: string;
 	pay: { tag: "Cis2"; Cis2: [string] } | { tag: "CCD"; CCD: [string] };
 	pay_token:
-		| { tag: "Cis2"; Cis2: [{ contract: { index: number; subindex: number }; id: string }] }
+		| {
+				tag: "Cis2";
+				Cis2: [{ contract: { index: number; subindex: number }; id: string }];
+		  }
 		| { tag: "CCD"; CCD: never };
 	commission: { tag: "Cis2"; Cis2: [string] } | { tag: "CCD"; CCD: [string] };
 };
@@ -1377,6 +1931,7 @@ export const calculateAmountsErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -1391,36 +1946,59 @@ export const calculateAmountsErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1432,91 +2010,161 @@ export const calculateAmountsErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1546,7 +2194,8 @@ export type CalculateAmountsErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const deListRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "De List Request",
@@ -1558,7 +2207,10 @@ export const deListRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -1600,6 +2252,7 @@ export const deListErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -1614,36 +2267,59 @@ export const deListErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1655,91 +2331,161 @@ export const deListErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1769,7 +2515,8 @@ export type DeListErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const depositRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Deposit Request",
@@ -1787,7 +2534,10 @@ export const depositRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -1799,7 +2549,10 @@ export const depositRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -1815,7 +2568,9 @@ export const depositRequestJsonSchema: RJSFSchema = {
 export type DepositRequestUi = {
 	token_id: string;
 	amount: string;
-	from: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	from:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	data: string;
 };
 export const depositErrorJsonSchema: RJSFSchema = {
@@ -1848,6 +2603,7 @@ export const depositErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -1862,36 +2618,59 @@ export const depositErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1903,91 +2682,161 @@ export const depositErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2017,7 +2866,8 @@ export type DepositErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const exchangeRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Exchange Request",
@@ -2029,7 +2879,10 @@ export const exchangeRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -2054,8 +2907,16 @@ export const exchangeRequestJsonSchema: RJSFSchema = {
 											type: "object",
 											title: "",
 											properties: {
-												numerator: { type: "integer", minimum: 0, title: "Numerator" },
-												denominator: { type: "integer", minimum: 0, title: "Denominator" },
+												numerator: {
+													type: "integer",
+													minimum: 0,
+													title: "Numerator",
+												},
+												denominator: {
+													type: "integer",
+													minimum: 0,
+													title: "Denominator",
+												},
 											},
 										},
 									],
@@ -2090,8 +2951,16 @@ export const exchangeRequestJsonSchema: RJSFSchema = {
 													type: "object",
 													title: "Second",
 													properties: {
-														numerator: { type: "integer", minimum: 0, title: "Numerator" },
-														denominator: { type: "integer", minimum: 0, title: "Denominator" },
+														numerator: {
+															type: "integer",
+															minimum: 0,
+															title: "Numerator",
+														},
+														denominator: {
+															type: "integer",
+															minimum: 0,
+															title: "Denominator",
+														},
 													},
 												},
 											],
@@ -2117,7 +2986,10 @@ export type ExchangeRequestUi = {
 		| {
 				tag: "Cis2";
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: number; denominator: number },
+					],
 				];
 		  };
 	payer: string;
@@ -2152,6 +3024,7 @@ export const exchangeErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -2166,36 +3039,59 @@ export const exchangeErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2207,91 +3103,161 @@ export const exchangeErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2321,7 +3287,8 @@ export type ExchangeErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const getListedRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Get Listed Request",
@@ -2333,7 +3300,10 @@ export const getListedRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -2356,7 +3326,10 @@ export const getListedResponseJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -2382,8 +3355,16 @@ export const getListedResponseJsonSchema: RJSFSchema = {
 												type: "object",
 												title: "",
 												properties: {
-													numerator: { type: "integer", minimum: 0, title: "Numerator" },
-													denominator: { type: "integer", minimum: 0, title: "Denominator" },
+													numerator: {
+														type: "integer",
+														minimum: 0,
+														title: "Numerator",
+													},
+													denominator: {
+														type: "integer",
+														minimum: 0,
+														title: "Denominator",
+													},
 												},
 											},
 										],
@@ -2418,8 +3399,16 @@ export const getListedResponseJsonSchema: RJSFSchema = {
 														type: "object",
 														title: "Second",
 														properties: {
-															numerator: { type: "integer", minimum: 0, title: "Numerator" },
-															denominator: { type: "integer", minimum: 0, title: "Denominator" },
+															numerator: {
+																type: "integer",
+																minimum: 0,
+																title: "Numerator",
+															},
+															denominator: {
+																type: "integer",
+																minimum: 0,
+																title: "Denominator",
+															},
 														},
 													},
 												],
@@ -2446,7 +3435,10 @@ export type GetListedResponseUi = {
 		| {
 				tag: "Cis2";
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: number; denominator: number },
+					],
 				];
 		  }[];
 	supply: string;
@@ -2481,6 +3473,7 @@ export const getListedErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -2495,36 +3488,59 @@ export const getListedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2536,91 +3552,161 @@ export const getListedErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2650,7 +3736,8 @@ export type GetListedErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const listRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "List Request",
@@ -2662,7 +3749,10 @@ export const listRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -2688,8 +3778,16 @@ export const listRequestJsonSchema: RJSFSchema = {
 												type: "object",
 												title: "",
 												properties: {
-													numerator: { type: "integer", minimum: 0, title: "Numerator" },
-													denominator: { type: "integer", minimum: 0, title: "Denominator" },
+													numerator: {
+														type: "integer",
+														minimum: 0,
+														title: "Numerator",
+													},
+													denominator: {
+														type: "integer",
+														minimum: 0,
+														title: "Denominator",
+													},
 												},
 											},
 										],
@@ -2724,8 +3822,16 @@ export const listRequestJsonSchema: RJSFSchema = {
 														type: "object",
 														title: "Second",
 														properties: {
-															numerator: { type: "integer", minimum: 0, title: "Numerator" },
-															denominator: { type: "integer", minimum: 0, title: "Denominator" },
+															numerator: {
+																type: "integer",
+																minimum: 0,
+																title: "Numerator",
+															},
+															denominator: {
+																type: "integer",
+																minimum: 0,
+																title: "Denominator",
+															},
 														},
 													},
 												],
@@ -2752,7 +3858,10 @@ export type ListRequestUi = {
 		| {
 				tag: "Cis2";
 				Cis2: [
-					[{ contract: { index: number; subindex: number }; id: string }, { numerator: number; denominator: number }],
+					[
+						{ contract: { index: number; subindex: number }; id: string },
+						{ numerator: number; denominator: number },
+					],
 				];
 		  }[];
 	supply: string;
@@ -2787,6 +3896,7 @@ export const listErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -2801,36 +3911,59 @@ export const listErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2842,91 +3975,161 @@ export const listErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2956,7 +4159,8 @@ export type ListErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const paymentTokensResponseJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -2966,14 +4170,20 @@ export const paymentTokensResponseJsonSchema: RJSFSchema = {
 			contract: {
 				type: "object",
 				title: "Contract",
-				properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+				properties: {
+					index: { type: "integer", minimum: 0 },
+					subindex: { type: "integer", minimum: 0 },
+				},
 			},
 			id: { type: "string", title: "Id" },
 		},
 	},
 	title: "Payment Tokens Response",
 };
-export type PaymentTokensResponseUi = { contract: { index: number; subindex: number }; id: string }[];
+export type PaymentTokensResponseUi = {
+	contract: { index: number; subindex: number };
+	id: string;
+}[];
 export const withdrawRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Withdraw Request",
@@ -2985,7 +4195,10 @@ export const withdrawRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 				id: { type: "string", title: "Id" },
 			},
@@ -3029,6 +4242,7 @@ export const withdrawErrorJsonSchema: RJSFSchema = {
 				"Cis2CommissionPaymentError",
 				"CCDPaymentError",
 				"CCDCommissionPaymentError",
+				"NotDeposited",
 			],
 		},
 	},
@@ -3043,36 +4257,59 @@ export const withdrawErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchange"] },
-						InvalidExchange: { type: "object", title: "InvalidExchange", properties: {} },
+						InvalidExchange: {
+							type: "object",
+							title: "InvalidExchange",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: { type: "object", title: "OnlyAccount", properties: {} },
+						OnlyAccount: {
+							type: "object",
+							title: "OnlyAccount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientSupply"] },
-						InsufficientSupply: { type: "object", title: "InsufficientSupply", properties: {} },
+						InsufficientSupply: {
+							type: "object",
+							title: "InsufficientSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidRate"] },
-						InvalidRate: { type: "object", title: "InvalidRate", properties: {} },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3084,91 +4321,161 @@ export const withdrawErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: { type: "object", title: "InsufficientDeposits", properties: {} },
+						InsufficientDeposits: {
+							type: "object",
+							title: "InsufficientDeposits",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientPayment"] },
-						InsufficientPayment: { type: "object", title: "InsufficientPayment", properties: {} },
+						InsufficientPayment: {
+							type: "object",
+							title: "InsufficientPayment",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PaymentNotRequired"] },
-						PaymentNotRequired: { type: "object", title: "PaymentNotRequired", properties: {} },
+						PaymentNotRequired: {
+							type: "object",
+							title: "PaymentNotRequired",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: { type: "object", title: "InvalidDepositData", properties: {} },
+						InvalidDepositData: {
+							type: "object",
+							title: "InvalidDepositData",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidListToken"] },
-						InvalidListToken: { type: "object", title: "InvalidListToken", properties: {} },
+						InvalidListToken: {
+							type: "object",
+							title: "InvalidListToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidPaymentToken"] },
-						InvalidPaymentToken: { type: "object", title: "InvalidPaymentToken", properties: {} },
+						InvalidPaymentToken: {
+							type: "object",
+							title: "InvalidPaymentToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidCommission"] },
-						InvalidCommission: { type: "object", title: "InvalidCommission", properties: {} },
+						InvalidCommission: {
+							type: "object",
+							title: "InvalidCommission",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidSupply"] },
-						InvalidSupply: { type: "object", title: "InvalidSupply", properties: {} },
+						InvalidSupply: {
+							type: "object",
+							title: "InvalidSupply",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidExchangeRates"] },
-						InvalidExchangeRates: { type: "object", title: "InvalidExchangeRates", properties: {} },
+						InvalidExchangeRates: {
+							type: "object",
+							title: "InvalidExchangeRates",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: { type: "object", title: "Cis2WithdrawError", properties: {} },
+						Cis2WithdrawError: {
+							type: "object",
+							title: "Cis2WithdrawError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2SettlementError"] },
-						Cis2SettlementError: { type: "object", title: "Cis2SettlementError", properties: {} },
+						Cis2SettlementError: {
+							type: "object",
+							title: "Cis2SettlementError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2PaymentError"] },
-						Cis2PaymentError: { type: "object", title: "Cis2PaymentError", properties: {} },
+						Cis2PaymentError: {
+							type: "object",
+							title: "Cis2PaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Cis2CommissionPaymentError"] },
-						Cis2CommissionPaymentError: { type: "object", title: "Cis2CommissionPaymentError", properties: {} },
+						Cis2CommissionPaymentError: {
+							type: "object",
+							title: "Cis2CommissionPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDPaymentError"] },
-						CCDPaymentError: { type: "object", title: "CCDPaymentError", properties: {} },
+						CCDPaymentError: {
+							type: "object",
+							title: "CCDPaymentError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CCDCommissionPaymentError"] },
-						CCDCommissionPaymentError: { type: "object", title: "CCDCommissionPaymentError", properties: {} },
+						CCDCommissionPaymentError: {
+							type: "object",
+							title: "CCDCommissionPaymentError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NotDeposited"] },
+						NotDeposited: {
+							type: "object",
+							title: "NotDeposited",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3198,7 +4505,8 @@ export type WithdrawErrorUi =
 	| { tag: "Cis2PaymentError"; Cis2PaymentError: never }
 	| { tag: "Cis2CommissionPaymentError"; Cis2CommissionPaymentError: never }
 	| { tag: "CCDPaymentError"; CCDPaymentError: never }
-	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never };
+	| { tag: "CCDCommissionPaymentError"; CCDCommissionPaymentError: never }
+	| { tag: "NotDeposited"; NotDeposited: never };
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
 	uiSchema?: UiSchema;
@@ -3219,7 +4527,11 @@ export const ENTRYPOINTS_UI: {
 		uiWidgets?: RegistryWidgetsType;
 	}) => React.JSX.Element;
 } = {
-	addPaymentToken: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	addPaymentToken: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericUpdate<
 			types.AddPaymentTokenRequest,
 			AddPaymentTokenRequestUi,
@@ -3251,8 +4563,19 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: addSellTokenContractErrorJsonSchema,
 			errorSchemaBase64: types.addSellTokenContractErrorSchemaBase64,
 		}),
-	allowedToList: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.AllowedToListResponse, AllowedToListResponseUi, never, never>({
+	allowedToList: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.AllowedToListResponse,
+			AllowedToListResponseUi,
+			never,
+			never
+		>({
 			...props,
 			method: client.allowedToList,
 			responseJsonSchema: allowedToListResponseJsonSchema,
@@ -3280,7 +4603,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: balanceOfDepositedErrorJsonSchema,
 			errorSchemaBase64: types.balanceOfDepositedErrorSchemaBase64,
 		}),
-	balanceOfListed: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	balanceOfListed: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.BalanceOfListedRequest,
 			BalanceOfListedRequestUi,
@@ -3320,7 +4647,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: balanceOfUnlistedErrorJsonSchema,
 			errorSchemaBase64: types.balanceOfUnlistedErrorSchemaBase64,
 		}),
-	calculateAmounts: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	calculateAmounts: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.CalculateAmountsRequest,
 			CalculateAmountsRequestUi,
@@ -3338,8 +4669,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: calculateAmountsErrorJsonSchema,
 			errorSchemaBase64: types.calculateAmountsErrorSchemaBase64,
 		}),
-	deList: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.DeListRequest, DeListRequestUi, types.DeListError, DeListErrorUi>({
+	deList: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.DeListRequest,
+			DeListRequestUi,
+			types.DeListError,
+			DeListErrorUi
+		>({
 			...props,
 			method: client.deList,
 			requestJsonSchema: deListRequestJsonSchema,
@@ -3347,8 +4687,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: deListErrorJsonSchema,
 			errorSchemaBase64: types.deListErrorSchemaBase64,
 		}),
-	deposit: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.DepositRequest, DepositRequestUi, types.DepositError, DepositErrorUi>({
+	deposit: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.DepositRequest,
+			DepositRequestUi,
+			types.DepositError,
+			DepositErrorUi
+		>({
 			...props,
 			method: client.deposit,
 			requestJsonSchema: depositRequestJsonSchema,
@@ -3356,8 +4705,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: depositErrorJsonSchema,
 			errorSchemaBase64: types.depositErrorSchemaBase64,
 		}),
-	exchange: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.ExchangeRequest, ExchangeRequestUi, types.ExchangeError, ExchangeErrorUi>({
+	exchange: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.ExchangeRequest,
+			ExchangeRequestUi,
+			types.ExchangeError,
+			ExchangeErrorUi
+		>({
 			...props,
 			method: client.exchange,
 			requestJsonSchema: exchangeRequestJsonSchema,
@@ -3365,7 +4723,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: exchangeErrorJsonSchema,
 			errorSchemaBase64: types.exchangeErrorSchemaBase64,
 		}),
-	getListed: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	getListed: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.GetListedRequest,
 			GetListedRequestUi,
@@ -3383,8 +4745,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: getListedErrorJsonSchema,
 			errorSchemaBase64: types.getListedErrorSchemaBase64,
 		}),
-	list: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.ListRequest, ListRequestUi, types.ListError, ListErrorUi>({
+	list: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.ListRequest,
+			ListRequestUi,
+			types.ListError,
+			ListErrorUi
+		>({
 			...props,
 			method: client.list,
 			requestJsonSchema: listRequestJsonSchema,
@@ -3392,15 +4763,35 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: listErrorJsonSchema,
 			errorSchemaBase64: types.listErrorSchemaBase64,
 		}),
-	paymentTokens: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.PaymentTokensResponse, PaymentTokensResponseUi, never, never>({
+	paymentTokens: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.PaymentTokensResponse,
+			PaymentTokensResponseUi,
+			never,
+			never
+		>({
 			...props,
 			method: client.paymentTokens,
 			responseJsonSchema: paymentTokensResponseJsonSchema,
 			responseSchemaBase64: types.paymentTokensResponseSchemaBase64,
 		}),
-	withdraw: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.WithdrawRequest, WithdrawRequestUi, types.WithdrawError, WithdrawErrorUi>({
+	withdraw: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.WithdrawRequest,
+			WithdrawRequestUi,
+			types.WithdrawError,
+			WithdrawErrorUi
+		>({
 			...props,
 			method: client.withdraw,
 			requestJsonSchema: withdrawRequestJsonSchema,

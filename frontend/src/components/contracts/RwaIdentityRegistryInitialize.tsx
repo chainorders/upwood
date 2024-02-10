@@ -8,7 +8,9 @@ import { parseContractAddress } from "../../lib/common/common";
 import ErrorDisplay from "../common/ErrorDisplay";
 import rwaIdentityRegistry from "../../lib/rwaIdentityRegistry";
 
-export default function RwaIdentityRegistryInitialize(props: { onSuccess: (contract: Contract) => void }) {
+export default function RwaIdentityRegistryInitialize(props: {
+	onSuccess: (contract: Contract) => void;
+}) {
 	const wallet = useWallet();
 	const [form, setForm] = useState({
 		contractDisplayName: "",
@@ -51,10 +53,19 @@ export default function RwaIdentityRegistryInitialize(props: { onSuccess: (contr
 					onChange={(e) => setFormValue("contractDisplayName", e.target.value)}
 				/>
 				<SendTransactionButton
-					onClick={() => rwaIdentityRegistry.init.init(wallet.provider!, wallet.currentAccount!)}
+					onClick={() =>
+						rwaIdentityRegistry.init.init(
+							wallet.provider!,
+							wallet.currentAccount!,
+						)
+					}
 					onFinalized={handleSuccess}
-					onFinalizedError={(r) => rwaIdentityRegistry.init.parseError(r as RejectedInit) || "Unknown Error"}
-					disabled={!isFormValid()}>
+					onFinalizedError={(r) =>
+						rwaIdentityRegistry.init.parseError(r as RejectedInit) ||
+						"Unknown Error"
+					}
+					disabled={!isFormValid()}
+				>
 					Initialize Identity Registry
 				</SendTransactionButton>
 				{error && <ErrorDisplay text={error} />}

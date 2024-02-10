@@ -31,14 +31,14 @@ export class InitMethod<TIn> {
 		public moduleRef: ModuleReference.Type,
 		public contractName: ContractName.Type,
 		public paramsSchemaBase64?: string,
-		public maxExecutionEnergy: Energy.Type = Energy.create(30000)
+		public maxExecutionEnergy: Energy.Type = Energy.create(30000),
 	) {}
 
 	async init(
 		provider: WalletApi,
 		account: AccountAddress.Type,
 		params?: TIn,
-		amount: CcdAmount.Type = CcdAmount.fromCcd(0)
+		amount: CcdAmount.Type = CcdAmount.fromCcd(0),
 	) {
 		const schema: SchemaSource | undefined = this.paramsSchemaBase64
 			? {
@@ -57,7 +57,7 @@ export class InitMethod<TIn> {
 				maxContractExecutionEnergy: this.maxExecutionEnergy,
 			} as SendTransactionInitContractPayload,
 			params as SmartContractParameters,
-			schema
+			schema,
 		);
 	}
 
@@ -73,14 +73,14 @@ export class ReceiveMethod<TIn, TOut = never, TErr = never> {
 		public paramsSchemaBase64?: string,
 		public outSchemaBase64?: string,
 		public errorSchemaBase64?: string,
-		public maxExecutionEnergy: Energy.Type = Energy.create(60000)
+		public maxExecutionEnergy: Energy.Type = Energy.create(60000),
 	) {}
 	async update(
 		provider: WalletApi,
 		account: AccountAddress.Type,
 		address: ContractAddress.Type,
 		params?: TIn,
-		amount: CcdAmount.Type = CcdAmount.fromCcd(0)
+		amount: CcdAmount.Type = CcdAmount.fromCcd(0),
 	): Promise<string> {
 		const schema: SchemaSource | undefined = this.paramsSchemaBase64
 			? {
@@ -100,7 +100,7 @@ export class ReceiveMethod<TIn, TOut = never, TErr = never> {
 				receiveName: ReceiveName.create(this.contractName, this.entrypoint),
 			} as SendTransactionUpdateContractPayload,
 			params as SmartContractParameters,
-			schema
+			schema,
 		);
 	}
 
@@ -109,9 +109,14 @@ export class ReceiveMethod<TIn, TOut = never, TErr = never> {
 		contract: ContractAddress.Type,
 		params?: TIn,
 		invoker?: AccountAddress.Type,
-		amount: CcdAmount.Type = CcdAmount.fromCcd(0)
+		amount: CcdAmount.Type = CcdAmount.fromCcd(0),
 	): Promise<InvokeContractResult> {
-		const parameter = params && serializeTypeValue(params, Buffer.from(this.paramsSchemaBase64!, "base64"));
+		const parameter =
+			params &&
+			serializeTypeValue(
+				params,
+				Buffer.from(this.paramsSchemaBase64!, "base64"),
+			);
 
 		return await provider.invokeContract({
 			contract,
@@ -123,7 +128,9 @@ export class ReceiveMethod<TIn, TOut = never, TErr = never> {
 		});
 	}
 
-	parseError: (value: RejectedReceive) => ParsedError<TErr> | undefined = (value) => {
+	parseError: (value: RejectedReceive) => ParsedError<TErr> | undefined = (
+		value,
+	) => {
 		return {
 			message: `Error Code: ${value.rejectReason}`,
 			error: undefined,
@@ -135,6 +142,9 @@ export class ReceiveMethod<TIn, TOut = never, TErr = never> {
 			return undefined;
 		}
 
-		return deserializeTypeValue(value.buffer, Buffer.from(this.outSchemaBase64!, "base64")) as TOut;
+		return deserializeTypeValue(
+			value.buffer,
+			Buffer.from(this.outSchemaBase64!, "base64"),
+		) as TOut;
 	};
 }

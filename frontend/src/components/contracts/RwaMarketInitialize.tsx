@@ -1,4 +1,8 @@
-import { BlockItemSummaryInBlock, ContractAddress, RejectedInit } from "@concordium/web-sdk";
+import {
+	BlockItemSummaryInBlock,
+	ContractAddress,
+	RejectedInit,
+} from "@concordium/web-sdk";
 import { useWallet } from "../WalletProvider";
 import SendTransactionButton from "../common/SendTransactionButton";
 import { Contract, ContractType } from "./ContractTypes";
@@ -52,11 +56,19 @@ export default function RwaMarketInitialize(props: Props) {
 	});
 	const [tokenContracts, setTokenContracts] = useState<TokenContract[]>([]);
 	const [exchangeTokens, setExchangeTokens] = useState<TokenUId[]>([]);
-	const [newTokenContract, setNewTokenContract] = useState<TokenContract | undefined>(undefined);
-	const [newExchangeToken, setNewExchangeToken] = useState<TokenUId | undefined>(undefined);
+	const [newTokenContract, setNewTokenContract] = useState<
+		TokenContract | undefined
+	>(undefined);
+	const [newExchangeToken, setNewExchangeToken] = useState<
+		TokenUId | undefined
+	>(undefined);
 
 	const addTokenContract = (contract: TokenContract) => {
-		if (tokenContracts.find((c) => c.index === contract.index && c.subindex === contract.subindex)) {
+		if (
+			tokenContracts.find(
+				(c) => c.index === contract.index && c.subindex === contract.subindex,
+			)
+		) {
 			return;
 		}
 		setTokenContracts([...tokenContracts, contract]);
@@ -70,7 +82,7 @@ export default function RwaMarketInitialize(props: Props) {
 				(t) =>
 					t.id === token.id &&
 					t.contract.index === token.contract.index &&
-					t.contract.subindex === token.contract.subindex
+					t.contract.subindex === token.contract.subindex,
 			)
 		) {
 			return;
@@ -112,7 +124,11 @@ export default function RwaMarketInitialize(props: Props) {
 	};
 
 	const isFormValid = () => {
-		return form.contractDisplayName.length > 0 && tokenContracts.length > 0 && exchangeTokens.length > 0;
+		return (
+			form.contractDisplayName.length > 0 &&
+			tokenContracts.length > 0 &&
+			exchangeTokens.length > 0
+		);
 	};
 
 	const setFormValue = (key: keyof typeof form, value: unknown) => {
@@ -133,7 +149,9 @@ export default function RwaMarketInitialize(props: Props) {
 							fullWidth
 							required
 							type="text"
-							onChange={(e) => setFormValue("contractDisplayName", e.target.value)}
+							onChange={(e) =>
+								setFormValue("contractDisplayName", e.target.value)
+							}
 						/>
 						<TextField
 							id="marketCommission"
@@ -143,7 +161,9 @@ export default function RwaMarketInitialize(props: Props) {
 							fullWidth
 							required
 							type="number"
-							onChange={(e) => setFormValue("commission", toCommission(e.target.value))}
+							onChange={(e) =>
+								setFormValue("commission", toCommission(e.target.value))
+							}
 							helperText={`Commission ${form.commission.numerator}/${form.commission.denominator}`}
 						/>
 						<Typography variant="h6">Added Token Contracts</Typography>
@@ -152,10 +172,15 @@ export default function RwaMarketInitialize(props: Props) {
 								<ListItem
 									key={index}
 									secondaryAction={
-										<IconButton edge="end" aria-label="delete" onClick={() => removeTokenContract(tokenContract)}>
+										<IconButton
+											edge="end"
+											aria-label="delete"
+											onClick={() => removeTokenContract(tokenContract)}
+										>
 											<Delete />
 										</IconButton>
-									}>
+									}
+								>
 									<ListItemText
 										primary={
 											<CCDScanContractLink
@@ -174,10 +199,15 @@ export default function RwaMarketInitialize(props: Props) {
 								<ListItem
 									key={index}
 									secondaryAction={
-										<IconButton edge="end" aria-label="delete" onClick={() => removeExchangeToken(exchangeToken)}>
+										<IconButton
+											edge="end"
+											aria-label="delete"
+											onClick={() => removeExchangeToken(exchangeToken)}
+										>
 											<Delete />
 										</IconButton>
-									}>
+									}
+								>
 									<ListItemText
 										primary={
 											<CCDScanContractLink
@@ -198,7 +228,9 @@ export default function RwaMarketInitialize(props: Props) {
 					<List dense>
 						{props.existingTokenContracts.map((tokenContract, index) => (
 							<ListItem key={index} disablePadding disableGutters>
-								<ListItemButton onClick={() => addTokenContract(tokenContract.address)}>
+								<ListItemButton
+									onClick={() => addTokenContract(tokenContract.address)}
+								>
 									<ListItemText
 										primary={tokenContract.name}
 										secondary={
@@ -220,24 +252,41 @@ export default function RwaMarketInitialize(props: Props) {
 						indexHelperText="The index of the Token Contract."
 						subIndexHelperText="The sub-index of the Token Contract."
 					/>
-					<Button disabled={!newTokenContract} onClick={addNewTokenContract} fullWidth>
+					<Button
+						disabled={!newTokenContract}
+						onClick={addNewTokenContract}
+						fullWidth
+					>
 						Add Token Contract
 					</Button>
 				</Paper>
 				<Paper sx={{ padding: 2 }} variant="outlined">
 					<Typography variant="h6">Exchange Token</Typography>
-					<TokenUIdField value={newExchangeToken} onChange={setNewExchangeToken} />
-					<Button disabled={!newExchangeToken} onClick={addNewExchangeToken} fullWidth>
+					<TokenUIdField
+						value={newExchangeToken}
+						onChange={setNewExchangeToken}
+					/>
+					<Button
+						disabled={!newExchangeToken}
+						onClick={addNewExchangeToken}
+						fullWidth
+					>
 						Add Exchange Token
 					</Button>
 				</Paper>
 				<SendTransactionButton
 					onClick={() =>
 						rwaMarket.init.init(wallet.provider!, wallet.currentAccount!, {
-							token_contracts: tokenContracts.map((c) => ({ index: Number(c.index), subindex: Number(c.subindex) })),
+							token_contracts: tokenContracts.map((c) => ({
+								index: Number(c.index),
+								subindex: Number(c.subindex),
+							})),
 							exchange_tokens: exchangeTokens.map((t) => ({
 								id: t.id,
-								contract: { index: Number(t.contract.index), subindex: Number(t.contract.subindex) },
+								contract: {
+									index: Number(t.contract.index),
+									subindex: Number(t.contract.subindex),
+								},
 							})),
 							commission: {
 								numerator: BigInt(form.commission.numerator),
@@ -246,8 +295,11 @@ export default function RwaMarketInitialize(props: Props) {
 						})
 					}
 					onFinalized={handleSuccess}
-					onFinalizedError={(r) => rwaMarket.init.parseError(r as RejectedInit) || "Unknown Error"}
-					disabled={!isFormValid()}>
+					onFinalizedError={(r) =>
+						rwaMarket.init.parseError(r as RejectedInit) || "Unknown Error"
+					}
+					disabled={!isFormValid()}
+				>
 					Initialize Market
 				</SendTransactionButton>
 				{error && <ErrorDisplay text={error} />}

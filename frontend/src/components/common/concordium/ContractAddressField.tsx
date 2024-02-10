@@ -9,7 +9,10 @@ export interface ContractAddressFieldProps {
 	subIndexName?: string;
 	indexHelperText?: string;
 	subIndexHelperText?: string;
-	textFieldCommonProps?: Omit<TextFieldProps, "onChange" | "value" | "name" | "helperText">;
+	textFieldCommonProps?: Omit<
+		TextFieldProps,
+		"onChange" | "value" | "name" | "helperText"
+	>;
 	disabled?: boolean;
 	readonly?: boolean;
 }
@@ -27,7 +30,10 @@ export default function ContractAddressField(props: ContractAddressFieldProps) {
 
 		if (newValues.index && newValues.subIndex) {
 			try {
-				const contract = ContractAddress.create(BigInt(newValues.index), BigInt(newValues.subIndex));
+				const contract = ContractAddress.create(
+					BigInt(newValues.index),
+					BigInt(newValues.subIndex),
+				);
 				props.onChange(contract);
 				setError("");
 			} catch (e: unknown) {

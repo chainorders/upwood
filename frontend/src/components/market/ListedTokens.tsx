@@ -1,5 +1,14 @@
 import { AccountAddress, ContractAddress } from "@concordium/web-sdk";
-import { AppBar, Box, Grid, Pagination, Paper, Stack, Toolbar, Typography } from "@mui/material";
+import {
+	AppBar,
+	Box,
+	Grid,
+	Pagination,
+	Paper,
+	Stack,
+	Toolbar,
+	Typography,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MarketToken } from "../../lib/contracts-api-client";
@@ -61,9 +70,19 @@ export default function ListedTokens(props: Props) {
 								<TokenDisplay
 									grpcClient={grpcClient}
 									token={token}
-									onDeList={token.owner === currentAccount.address ? onDeList : undefined}
-									onList={token.owner === currentAccount.address ? onList : undefined}
-									onExchange={token.owner !== currentAccount.address ? onExchange : undefined}
+									onDeList={
+										token.owner === currentAccount.address
+											? onDeList
+											: undefined
+									}
+									onList={
+										token.owner === currentAccount.address ? onList : undefined
+									}
+									onExchange={
+										token.owner !== currentAccount.address
+											? onExchange
+											: undefined
+									}
 								/>
 							</Grid>
 						))}
@@ -74,7 +93,9 @@ export default function ListedTokens(props: Props) {
 							page={page + 1}
 							variant="outlined"
 							shape="rounded"
-							onChange={(_e, v) => setSearchParams({ ...searchParams, page: v.toString() })}
+							onChange={(_e, v) =>
+								setSearchParams({ ...searchParams, page: v.toString() })
+							}
 						/>
 						{error && <ErrorDisplay text={error} />}
 						{loading && <Typography>Loading...</Typography>}

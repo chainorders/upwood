@@ -11,7 +11,10 @@ import VerifierPage from "./components/verifier/VerifierPage";
 // Header component
 function Header() {
 	return (
-		<AppBar position="static" sx={{ marginBottom: 2, zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+		<AppBar
+			position="static"
+			sx={{ marginBottom: 2, zIndex: (theme) => theme.zIndex.drawer + 1 }}
+		>
 			<Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
 				<Typography variant="h6">Concordium RWA</Typography>
 			</Toolbar>
@@ -34,7 +37,8 @@ function Footer() {
 				justifyContent: "center", // center content horizontally
 				padding: "0 16px", // horizontal padding
 				zIndex: (theme) => theme.zIndex.drawer + 1,
-			}}>
+			}}
+		>
 			{/* Footer content goes here */}
 		</Box>
 	);
@@ -47,12 +51,22 @@ function Layout() {
 			<ConcordiumWalletProvider>
 				<ContractsApiProvider>
 					<Router>
-						<Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", width: "100%" }}>
+						<Box
+							sx={{
+								display: "flex",
+								flexDirection: "column",
+								minHeight: "100vh",
+								width: "100%",
+							}}
+						>
 							<Header />
 							<Box pb="70px">
 								<Routes>
 									<Route path="contracts/*" Component={ContractsPage} />
-									<Route path="market/:index/:subIndex/*" Component={MarketPage} />
+									<Route
+										path="market/:index/:subIndex/*"
+										Component={MarketPage}
+									/>
 									<Route path="verifier" Component={VerifierPage} />
 									<Route path="*" element={<ErrorDisplay text="Not Found" />} />
 								</Routes>
