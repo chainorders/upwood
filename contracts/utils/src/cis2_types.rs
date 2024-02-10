@@ -1,5 +1,7 @@
-use concordium_cis2::{TokenAmountU8 as Cis2TokenAmountU8, TokenIdU8};
-use concordium_std::*;
+use concordium_cis2::{
+    TokenAmountU32 as Cis2TokenAmountU32, TokenAmountU64 as Cis2TokenAmountU64,
+    TokenAmountU8 as Cis2TokenAmountU8, TokenIdU32, TokenIdU8, TokenIdVec,
+};
 
 use super::{holders_state::IsTokenId, tokens_state::IsTokenAmount};
 
@@ -13,31 +15,22 @@ impl IsTokenAmount for NftTokenAmount {
     fn max_value() -> Self { Cis2TokenAmountU8(1) }
 }
 
-#[derive(Serialize, SchemaType, Copy, Clone, PartialEq, PartialOrd)]
-#[repr(transparent)]
-#[concordium(transparent)]
-pub struct SftTokenAmount(pub Cis2TokenAmountU8);
-impl concordium_cis2::IsTokenAmount for SftTokenAmount {}
+pub type SftTokenId = TokenIdU32;
+pub type SftTokenAmount = Cis2TokenAmountU32;
 
 /// Trait implementation for a SFT token amount.
 impl IsTokenAmount for SftTokenAmount {
-    fn zero() -> Self { SftTokenAmount(Cis2TokenAmountU8(0)) }
+    fn zero() -> Self { Cis2TokenAmountU32(0) }
 
-    fn max_value() -> Self { SftTokenAmount(Cis2TokenAmountU8(u8::MAX)) }
+    fn max_value() -> Self { Cis2TokenAmountU32(1000000) }
 }
 
-impl ops::SubAssign for SftTokenAmount {
-    fn sub_assign(&mut self, rhs: Self) { self.0 -= rhs.0; }
-}
+impl IsTokenAmount for Cis2TokenAmountU64 {
+    fn zero() -> Self { Cis2TokenAmountU64(0) }
 
-impl ops::AddAssign for SftTokenAmount {
-    fn add_assign(&mut self, rhs: Self) { self.0 += rhs.0; }
-}
-
-impl ops::Sub for SftTokenAmount {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output { SftTokenAmount(self.0 - rhs.0) }
+    fn max_value() -> Self { Cis2TokenAmountU64(u64::MAX) }
 }
 
 impl IsTokenId for TokenId {}
+impl IsTokenId for SftTokenId {}
+impl IsTokenId for TokenIdVec {}

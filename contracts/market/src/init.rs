@@ -1,11 +1,9 @@
 use concordium_std::*;
 
-use crate::types::ContractResult;
-
 use super::{
     error::Error,
     state::State,
-    types::{Rate, TokenUId},
+    types::{ContractResult, Rate, TokenUId},
 };
 
 #[derive(Serialize, SchemaType)]

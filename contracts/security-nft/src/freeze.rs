@@ -74,7 +74,7 @@ pub fn freeze(
             &token.token_amount,
         )?;
 
-        state.freeze(owner, token.token_id, token.token_amount, state_builder)?;
+        state.freeze(owner, &token.token_id, token.token_amount, state_builder)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,

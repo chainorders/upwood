@@ -9,7 +9,7 @@ use futures::TryStreamExt;
 use poem::Result;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
-use super::db::{DbToken, IContractDb};
+use super::db::{DbDepositedToken, IContractDb};
 
 #[derive(Object)]
 pub struct MarketToken {
@@ -21,8 +21,8 @@ pub struct MarketToken {
     pub unlisted_amount:  String,
 }
 
-impl From<DbToken> for MarketToken {
-    fn from(db_deposited_token: DbToken) -> Self {
+impl From<DbDepositedToken> for MarketToken {
+    fn from(db_deposited_token: DbDepositedToken) -> Self {
         Self {
             token_contract:   db_deposited_token.token_contract.into(),
             token_id:         db_deposited_token.token_id.0.into(),
@@ -110,9 +110,9 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         contract: ContractAddress,
         page: u64,
     ) -> anyhow::Result<PagedResponse<MarketToken>> {
-        let coll = self.db.tokens(&contract);
+        let coll = self.db.deposited_tokens(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<DbToken> = cursor.try_collect().await?;
+        let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
         let data: Vec<MarketToken> = data.into_iter().map(|token| token.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;

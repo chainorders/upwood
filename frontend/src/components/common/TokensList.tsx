@@ -1,8 +1,8 @@
 import { ContractAddress } from "@concordium/web-sdk";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { NftToken } from "../../../lib/contracts-api-client";
-import { useContractsApi } from "../../ContractsApiProvider";
+import { NftToken } from "../../lib/contracts-api-client";
+import { useContractsApi } from "../ContractsApiProvider";
 import {
 	Box,
 	IconButton,
@@ -16,9 +16,9 @@ import {
 	Stack,
 	Typography,
 } from "@mui/material";
-import ErrorDisplay from "../../common/ErrorDisplay";
+import ErrorDisplay from "./ErrorDisplay";
 import { OpenInBrowser, Pause, PlayArrow, Token } from "@mui/icons-material";
-import CCDCis2TokenLink from "../../common/concordium/CCDCis2TokenLink";
+import CCDCis2TokenLink from "./concordium/CCDCis2TokenLink";
 
 type Props = {
 	contract: ContractAddress.Type;

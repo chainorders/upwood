@@ -1,41 +1,10 @@
 use concordium_cis2::*;
 use concordium_std::{ops, *};
 
-/// `TokenState` is a struct that holds the state of a token.
-#[derive(Serial, Deserial)]
-pub struct TokenState {
-    /// The metadata URL of the token.
-    metadata_url: MetadataUrl,
-}
-
-impl TokenState {
-    /// Creates a new `TokenState` with the given metadata URL.
-    ///
-    /// # Arguments
-    ///
-    /// * `metadata_url` - The metadata URL of the token.
-    ///
-    /// # Returns
-    ///
-    /// Returns a new `TokenState` with the given metadata URL.
-    pub fn new(metadata_url: MetadataUrl) -> Self {
-        Self {
-            metadata_url,
-        }
-    }
-
-    /// Returns the metadata URL of the token.
-    ///
-    /// # Returns
-    ///
-    /// Returns a reference to the metadata URL of the token.
-    pub fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
-}
-
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
-pub struct TokensState<T, S> {
-    tokens: StateMap<T, TokenState, S>,
+pub struct TokensState<T, TTokenState, S> {
+    tokens: StateMap<T, TTokenState, S>,
 }
 
 /// Trait representing a token amount.
@@ -91,6 +60,9 @@ pub trait IsTokenAmount:
             None
         }
     }
+
+    /// Returns true if the amount is zero.
+    fn is_zero(&self) -> bool { self.eq(&Self::zero()) }
 }
 
 pub enum TokenStateError {
@@ -100,9 +72,9 @@ pub enum TokenStateError {
 
 pub type TokenStateResult<T> = Result<T, TokenStateError>;
 
-pub trait ITokensState<T: IsTokenId, S: HasStateApi> {
-    fn tokens(&self) -> &StateMap<T, TokenState, S>;
-    fn tokens_mut(&mut self) -> &mut StateMap<T, TokenState, S>;
+pub trait ITokensState<T: IsTokenId, TTokenState: Serialize + Clone, S: HasStateApi> {
+    fn tokens(&self) -> &StateMap<T, TTokenState, S>;
+    fn tokens_mut(&mut self) -> &mut StateMap<T, TTokenState, S>;
 
     /// Checks if the token with the given ID exists.
     ///
@@ -119,20 +91,10 @@ pub trait ITokensState<T: IsTokenId, S: HasStateApi> {
         Ok(())
     }
 
-    /// Returns the metadata URL of the token with the given ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `token_id` - The ID of the token to get the metadata URL for.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(MetadataUrl)` if the token exists,
-    /// `Err(TokenStateError::TokenDoesNotExist)` otherwise.
-    fn token_metadata_url(&self, token_id: &T) -> TokenStateResult<MetadataUrl> {
+    fn token(&self, token_id: &T) -> TokenStateResult<TTokenState> {
         self.tokens()
             .get(token_id)
-            .map(|token| token.metadata_url().to_owned())
+            .map(|token| token.clone())
             .ok_or(TokenStateError::TokenDoesNotExist)
     }
 
@@ -147,12 +109,16 @@ pub trait ITokensState<T: IsTokenId, S: HasStateApi> {
     ///
     /// Returns `Ok(())` if the token was added successfully,
     /// `Err(TokenStateError::TokenAlreadyExists)` if the token already exists.
-    fn add_token(&mut self, token_id: T, metadata_url: MetadataUrl) -> TokenStateResult<()> {
+    fn add_token(&mut self, token_id: T, state: TTokenState) -> TokenStateResult<()> {
         self.tokens_mut()
             .entry(token_id)
             .vacant_or(TokenStateError::TokenAlreadyExists)?
-            .insert(TokenState::new(metadata_url));
+            .insert(state);
 
         Ok(())
+    }
+
+    fn add_or_replace_token(&mut self, token_id: T, state: TTokenState) -> Option<TTokenState> {
+        self.tokens_mut().insert(token_id, state)
     }
 }

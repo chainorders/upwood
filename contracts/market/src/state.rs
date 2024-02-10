@@ -1,76 +1,9 @@
-use std::ops::Sub;
-
 use super::types::{ExchangeRate, *};
-use concordium_std::{
-    ops::{AddAssign, SubAssign},
-    *,
+use concordium_rwa_utils::{
+    token_deposits_state::{DepositedStateError, DepositedTokenState, IDepositedTokensState},
+    tokens_state::IsTokenAmount,
 };
-
-#[derive(Serialize)]
-pub struct DepositedTokenInfo {
-    balance: Cis2TokenAmount,
-}
-
-impl DepositedTokenInfo {
-    pub fn new(balance: Cis2TokenAmount) -> Self {
-        Self {
-            balance,
-        }
-    }
-
-    pub fn add_balance(&mut self, amount: Cis2TokenAmount) { self.balance.add_assign(amount); }
-
-    pub fn decrease_balance(&mut self, amount: &Cis2TokenAmount) -> Cis2TokenAmount {
-        self.balance.sub_assign(*amount);
-        self.balance
-    }
-}
-
-#[derive(Serialize)]
-pub struct TokenOwnerUId {
-    pub token_id: TokenUId,
-    pub owner:    AccountAddress,
-}
-
-impl TokenOwnerUId {
-    pub fn new(token_id: TokenUId, owner: AccountAddress) -> Self {
-        Self {
-            token_id,
-            owner,
-        }
-    }
-}
-
-#[derive(Serial, DeserialWithState, Deletable)]
-#[concordium(state_parameter = "S")]
-pub struct ListedTokenInfo<S> {
-    supply:         Cis2TokenAmount,
-    exchange_rates: StateSet<ExchangeRate, S>,
-}
-
-impl ListedTokenInfo<StateApi> {
-    pub fn new(supply: Cis2TokenAmount, state_builder: &mut StateBuilder) -> Self {
-        Self {
-            supply,
-            exchange_rates: state_builder.new_set(),
-        }
-    }
-
-    pub fn add_exchange_rate(&mut self, rate: ExchangeRate) { self.exchange_rates.insert(rate); }
-
-    pub fn decrease_supply(&mut self, amount: &Cis2TokenAmount) -> Cis2TokenAmount {
-        self.supply.sub_assign(*amount);
-        self.supply
-    }
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct ListedToken {
-    pub token_id:       TokenUId,
-    pub owner:          AccountAddress,
-    pub exchange_rates: Vec<ExchangeRate>,
-    pub supply:         Cis2TokenAmount,
-}
+use concordium_std::*;
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
@@ -78,10 +11,10 @@ pub struct ListedToken {
 pub struct State<S = StateApi> {
     /// Tokens which can be received by the market contract and kept in custody
     /// of the contract / deposited with the contract.
-    deposited_tokens:     StateMap<TokenOwnerUId, DepositedTokenInfo, S>,
+    deposited_tokens:     StateMap<TokenOwnerUId, DepositedTokenState<Cis2TokenAmount>, S>,
     /// Tokens which are listed for sale.
-    listed_tokens:        StateMap<TokenOwnerUId, ListedTokenInfo<S>, S>,
-    commission:           Rate,
+    listed_tokens:        StateMap<TokenOwnerUId, Vec<ExchangeRate>, S>,
+    pub commission:       Rate,
     /// Tokens which can be used to pay for the commission & listed tokens.
     payment_tokens:       StateSet<TokenUId, S>,
     /// Contracts whose tokens can be exchanged for payment tokens.
@@ -114,8 +47,6 @@ impl State<StateApi> {
         state
     }
 
-    pub fn commission(&self) -> Rate { self.commission.to_owned() }
-
     pub fn sell_token_contracts(&self) -> Vec<ContractAddress> {
         self.sell_token_contracts.iter().map(|r| r.to_owned()).collect()
     }
@@ -138,120 +69,63 @@ impl State<StateApi> {
         self.sell_token_contracts.contains(&token_uid.contract)
     }
 
-    pub fn add_or_increase_deposits(
-        &mut self,
-        token_uid: TokenUId,
-        amount: Cis2TokenAmount,
-        owner: AccountAddress,
-    ) {
-        self.deposited_tokens
-            .entry(TokenOwnerUId::new(token_uid, owner))
-            .and_modify(|r| r.add_balance(amount))
-            .or_insert_with(|| DepositedTokenInfo::new(amount));
-    }
-
-    pub fn decrease_deposit(&mut self, id: &TokenOwnerUId, amount: &Cis2TokenAmount) {
-        let remaining = {
-            let entry = self.deposited_tokens.get_mut(id);
-            match entry {
-                Some(mut entry) => entry.decrease_balance(amount),
-                None => return,
-            }
-        };
-
-        if remaining.0.eq(&0u64) {
-            self.deposited_tokens.remove(id)
-        }
-    }
-
-    pub fn deposited_amount(
-        &self,
-        token_uid: &TokenUId,
-        address: &AccountAddress,
-    ) -> Cis2TokenAmount {
-        self.deposited_tokens
-            .get(&TokenOwnerUId::new(token_uid.to_owned(), *address))
-            .map(|r| r.balance.to_owned())
-            .unwrap_or(0.into())
-    }
-
-    pub fn unlisted_amount(
-        &self,
-        token_uid: &TokenUId,
-        address: &AccountAddress,
-    ) -> Cis2TokenAmount {
-        self.deposited_amount(token_uid, address)
-            .sub(self.listed_amount(&TokenOwnerUId::new(token_uid.to_owned(), *address)))
+    pub fn unlisted_amount(&self, id: &TokenOwnerUId) -> Cis2TokenAmount {
+        self.balance_of_unlocked(id)
     }
 
     pub fn add_or_replace_listed(
         &mut self,
-        token_uid: TokenUId,
-        owner: AccountAddress,
+        token_id: TokenOwnerUId,
         supply: Cis2TokenAmount,
         exchange_rates: Vec<ExchangeRate>,
-        state_builder: &mut StateBuilder,
-    ) {
-        let mut listed_token_info = ListedTokenInfo::new(supply, state_builder);
-        for rate in exchange_rates {
-            listed_token_info.add_exchange_rate(rate);
-        }
-        self.listed_tokens.insert(
-            TokenOwnerUId {
-                token_id: token_uid,
-                owner,
-            },
-            listed_token_info,
-        );
+    ) -> Result<(), DepositedStateError> {
+        self.set_locked_deposits(&token_id, supply)?;
+        self.listed_tokens.insert(token_id, exchange_rates);
+
+        Ok(())
     }
 
-    pub fn remove_listed(&mut self, token_uid: TokenUId, owner: AccountAddress) {
-        self.listed_tokens.remove(&TokenOwnerUId {
-            token_id: token_uid,
-            owner,
-        });
+    pub fn remove_listed(&mut self, id: &TokenOwnerUId) -> Result<(), DepositedStateError> {
+        self.set_locked_deposits(id, Cis2TokenAmount::zero())?;
+        self.listed_tokens.remove(id);
+        Ok(())
     }
 
     pub fn listed_amount(&self, id: &TokenOwnerUId) -> Cis2TokenAmount {
-        self.listed_tokens.get(id).map(|t| t.supply).unwrap_or(0.into())
+        self.balance_of_locked(id)
     }
 
-    /// Decreases the supply of the listed token by the given amount.
-    /// Returns true if the token was removed from the listed tokens.
-    pub fn decrease_listed_amount(&mut self, id: &TokenOwnerUId, amount: &Cis2TokenAmount) -> bool {
-        let remaining = {
-            let entry = self.listed_tokens.get_mut(id);
-            match entry {
-                Some(mut entry) => entry.decrease_supply(amount),
-                None => return false,
-            }
-        };
-
-        if remaining.0.eq(&0u64) {
-            self.listed_tokens.remove(id);
-            true
-        } else {
-            false
-        }
+    pub fn consume_listed(
+        &mut self,
+        id: &TokenOwnerUId,
+        amount: Cis2TokenAmount,
+    ) -> Result<bool, DepositedStateError> {
+        let is_removed = self
+            .burn_locked_deposits(id, amount)?
+            .eq(&Cis2TokenAmount::zero())
+            .then(|| self.listed_tokens.remove(id))
+            .is_some();
+        Ok(is_removed)
     }
 
-    pub fn is_listed(&self, token_uid: &TokenUId, owner: &AccountAddress) -> bool {
-        self.listed_tokens
-            .get(&TokenOwnerUId::new(token_uid.to_owned(), owner.to_owned()))
-            .is_some()
+    pub fn is_listed(&self, id: &TokenOwnerUId) -> bool { self.listed_tokens.get(id).is_some() }
+
+    pub fn get_listed(&self, id: &TokenOwnerUId) -> Option<(Cis2TokenAmount, Vec<ExchangeRate>)> {
+        let balance = self.balance_of_locked(id);
+        let rates = self.listed_tokens.get(id);
+
+        rates.map(|rates| (balance, rates.to_owned()))
+    }
+}
+
+impl IDepositedTokensState<TokenOwnerUId, Cis2TokenAmount, StateApi> for State {
+    fn tokens(&self) -> &StateMap<TokenOwnerUId, DepositedTokenState<Cis2TokenAmount>, StateApi> {
+        &self.deposited_tokens
     }
 
-    pub fn get_listed(&self, token_uid: &TokenUId, owner: &AccountAddress) -> Option<ListedToken> {
-        self.listed_tokens
-            .get(&TokenOwnerUId {
-                token_id: token_uid.to_owned(),
-                owner:    owner.to_owned(),
-            })
-            .map(|r| ListedToken {
-                token_id:       token_uid.to_owned(),
-                owner:          owner.to_owned(),
-                exchange_rates: r.exchange_rates.iter().map(|r| r.to_owned()).collect(),
-                supply:         r.supply.to_owned(),
-            })
+    fn tokens_mut(
+        &mut self,
+    ) -> &mut StateMap<TokenOwnerUId, DepositedTokenState<Cis2TokenAmount>, StateApi> {
+        &mut self.deposited_tokens
     }
 }

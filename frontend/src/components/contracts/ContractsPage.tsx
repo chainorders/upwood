@@ -43,12 +43,15 @@ import {
 import { ENTRYPOINTS_UI as rwaMarketEntrypointsUI } from "../../lib/rwaMarketUi";
 import RwaMarketInitialize from "./RwaMarketInitialize";
 import RwaSecurityNftContract from "./rwaSecurityNft/RwaSecurityNftContract";
+import RwaSecuritySftContract from "./rwaSecuritySft/RwaSecuritySftContract";
+import RwaSecuritySftInitialize from "./RwaSecuritySftInitialize";
 
 const contractTypes: Record<string, ContractType> = {
 	rwaIdentityRegistry: ContractType.RwaIdentityRegistry,
 	complianceModule: ContractType.RwaComplianceModule,
 	compliance: ContractType.RwaCompliance,
 	rwaSecurityNft: ContractType.RwaSecurityNft,
+	rwaSecuritySft: ContractType.RwaSecuritySft,
 	sponsor: ContractType.RwaSponsor,
 	market: ContractType.RwaMarket,
 };
@@ -79,8 +82,8 @@ export default function ContractsPage() {
 											onClick={() => navigate(`${contractType}/init`)}
 										>
 											<ListItemText
-												primary="Initialize"
-												secondary={capitalCase(contractType)}
+												primary={capitalCase(contractType)}
+												secondary="Initialize"
 											/>
 										</ListItemButton>
 									</ListItem>
@@ -181,6 +184,30 @@ export default function ContractsPage() {
 								<Route path="*" Component={RwaSecurityNftContract} />
 							</Route>
 						</Route>
+						<Route path={ContractType.RwaSecuritySft}>
+							<Route
+								path="init"
+								element={
+									<RwaSecuritySftInitialize
+										onSuccess={onContractInitialized}
+										identityRegistries={state.contracts.filter(
+											(contract) =>
+												contract.type === ContractType.RwaIdentityRegistry,
+										)}
+										complianceContracts={state.contracts.filter(
+											(contract) =>
+												contract.type === ContractType.RwaCompliance,
+										)}
+									/>
+								}
+							/>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
+								<Route path="*" Component={RwaSecuritySftContract} />
+							</Route>
+						</Route>
 						<Route path={ContractType.RwaComplianceModule}>
 							<Route
 								path="init"
@@ -220,7 +247,8 @@ export default function ContractsPage() {
 										onSuccess={onContractInitialized}
 										existingTokenContracts={state.contracts.filter(
 											(contract) =>
-												contract.type === ContractType.RwaSecurityNft,
+												contract.type === ContractType.RwaSecurityNft ||
+												contract.type === ContractType.RwaSecuritySft,
 										)}
 									/>
 								}

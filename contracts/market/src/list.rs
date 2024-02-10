@@ -1,15 +1,11 @@
+use concordium_rwa_utils::token_deposits_state::IDepositedTokensState;
 use concordium_std::*;
-
-use crate::{
-    state::TokenOwnerUId,
-    types::{ExchangeRate, TokenUId},
-};
 
 use super::{
     error::Error,
     event::{Event, TokenDeListed, TokenListed},
-    state::{ListedToken, State},
-    types::{Cis2TokenAmount, ContractResult},
+    state::State,
+    types::{Cis2TokenAmount, ContractResult, ExchangeRate, TokenOwnerUId, TokenUId},
 };
 
 #[derive(Serialize, SchemaType)]
@@ -63,19 +59,9 @@ pub fn list_internal(
     );
     // Checking deposited amount because listing of a token is replaced by a new
     // listing request
-    ensure!(
-        state.deposited_amount(&params.token_id, &params.owner).ge(&params.supply),
-        Error::InsufficientDeposits
-    );
-
-    let (state, state_builder) = host.state_and_builder();
-    state.add_or_replace_listed(
-        params.token_id.to_owned(),
-        params.owner,
-        params.supply,
-        params.exchange_rates,
-        state_builder,
-    );
+    let token_id = TokenOwnerUId::new(params.token_id.to_owned(), params.owner.into());
+    ensure!(state.balance_of_deposited(&token_id).ge(&params.supply), Error::InsufficientDeposits);
+    host.state_mut().add_or_replace_listed(token_id, params.supply, params.exchange_rates)?;
     logger.log(&Event::Listed(TokenListed {
         token_id: params.token_id,
         owner:    params.owner,
@@ -91,6 +77,14 @@ pub struct GetListedParam {
     pub owner:    AccountAddress,
 }
 
+#[derive(Serialize, SchemaType)]
+pub struct ListedToken {
+    pub token_id:       TokenUId,
+    pub owner:          AccountAddress,
+    pub exchange_rates: Vec<ExchangeRate>,
+    pub supply:         Cis2TokenAmount,
+}
+
 #[receive(
     contract = "rwa_market",
     name = "getListed",
@@ -101,7 +95,15 @@ pub struct GetListedParam {
 pub fn get_listed(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<ListedToken> {
     let params: GetListedParam = ctx.parameter_cursor().get()?;
     let state = host.state();
-    let listed_token = state.get_listed(&params.token_id, &params.owner).ok_or(Error::NotListed)?;
+    let listed_token = state
+        .get_listed(&TokenOwnerUId::new(params.token_id.to_owned(), params.owner.into()))
+        .map(|(supply, exchange_rates)| ListedToken {
+            token_id: params.token_id,
+            owner: params.owner,
+            exchange_rates,
+            supply,
+        })
+        .ok_or(Error::NotListed)?;
 
     Ok(listed_token)
 }
@@ -121,7 +123,7 @@ pub fn balance_of_listed(
     let state = host.state();
     let balance = state.listed_amount(&TokenOwnerUId {
         token_id: params.token_id,
-        owner:    params.owner,
+        owner:    params.owner.into(),
     });
 
     Ok(balance)
@@ -140,7 +142,7 @@ pub fn balance_of_unlisted(
 ) -> ContractResult<Cis2TokenAmount> {
     let params: GetListedParam = ctx.parameter_cursor().get()?;
     let state = host.state();
-    let balance = state.unlisted_amount(&params.token_id, &params.owner);
+    let balance = state.unlisted_amount(&TokenOwnerUId::new(params.token_id, params.owner.into()));
 
     Ok(balance)
 }
@@ -166,12 +168,12 @@ pub fn de_list(
 ) -> ContractResult<()> {
     let params: DeListParams = ctx.parameter_cursor().get()?;
     ensure!(ctx.sender().matches_account(&params.owner), Error::Unauthorized);
-    ensure!(host.state().is_listed(&params.token_id, &params.owner), Error::NotListed);
+    let token_id = TokenOwnerUId::new(params.token_id, params.owner.into());
 
     let state = host.state_mut();
-    state.remove_listed(params.token_id.to_owned(), params.owner);
+    state.remove_listed(&token_id)?;
     logger.log(&Event::DeListed(TokenDeListed {
-        token_id: params.token_id,
+        token_id: token_id.token_id,
         owner:    params.owner,
     }))?;
 

@@ -30,7 +30,8 @@ pub enum TokenSecurityError {
 
 /// The `ITokensSecurityState` trait defines the interface for managing the
 /// security state of tokens.
-pub trait ITokensSecurityState<T: IsTokenId, S: HasStateApi>: ITokensState<T, S> {
+pub trait ITokensSecurityState<T: IsTokenId, TTokenState: Serialize + Clone, S: HasStateApi>:
+    ITokensState<T, TTokenState, S> {
     /// Returns a reference to the map of security states for tokens.
     fn security_tokens(&self) -> &StateMap<T, TokenSecurityState, S>;
 

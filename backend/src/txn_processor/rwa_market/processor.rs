@@ -6,7 +6,7 @@ use concordium_rust_sdk::types::{
 };
 use concordium_rwa_market::event::{Event, PaymentAmount, PaymentTokenUId};
 
-use super::db::{DbToken, IContractDb};
+use super::db::{DbDepositedToken, IContractDb};
 use crate::{
     txn_listener::EventsProcessor,
     txn_processor::db::{
@@ -66,11 +66,11 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     let token_amount = DbTokenAmount(e.amount.0.into());
 
                     self.db
-                        .tokens(contract)
-                        .upsert_one(DbToken::key(&token_contract, &token_id, &owner)?, |t| {
+                        .deposited_tokens(contract)
+                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
                             let mut t = match t {
                                 Some(t) => t,
-                                None => DbToken::default(
+                                None => DbDepositedToken::default(
                                     token_contract.clone(),
                                     token_id.clone(),
                                     owner.clone(),
@@ -89,11 +89,11 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     let token_amount = DbTokenAmount(e.amount.0.into());
 
                     self.db
-                        .tokens(contract)
-                        .upsert_one(DbToken::key(&token_contract, &token_id, &owner)?, |t| {
+                        .deposited_tokens(contract)
+                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
                             let mut t = match t {
                                 Some(t) => t,
-                                None => DbToken::default(
+                                None => DbDepositedToken::default(
                                     token_contract.clone(),
                                     token_id.clone(),
                                     owner.clone(),
@@ -111,11 +111,11 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     let token_id = DbTokenId(e.token_id.id.to_string().parse()?);
                     let token_amount = DbTokenAmount(e.supply.0.into());
                     self.db
-                        .tokens(contract)
-                        .upsert_one(DbToken::key(&token_contract, &token_id, &owner)?, |t| {
+                        .deposited_tokens(contract)
+                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
                             let mut t = match t {
                                 Some(t) => t,
-                                None => DbToken::default(
+                                None => DbDepositedToken::default(
                                     token_contract.clone(),
                                     token_id.clone(),
                                     owner.clone(),
@@ -133,11 +133,11 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     let token_id = DbTokenId(e.token_id.id.to_string().parse()?);
 
                     self.db
-                        .tokens(contract)
-                        .upsert_one(DbToken::key(&token_contract, &token_id, &owner)?, |t| {
+                        .deposited_tokens(contract)
+                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
                             let mut t = match t {
                                 Some(t) => t,
-                                None => DbToken::default(
+                                None => DbDepositedToken::default(
                                     token_contract.clone(),
                                     token_id.clone(),
                                     owner.clone(),
@@ -156,13 +156,13 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     let buy_token_amount = DbTokenAmount(e.buy_amount.0.into());
 
                     self.db
-                        .tokens(contract)
+                        .deposited_tokens(contract)
                         .upsert_one(
-                            DbToken::key(&buy_token_contract, &buy_token_id, &bought_from)?,
+                            DbDepositedToken::key(&buy_token_contract, &buy_token_id, &bought_from)?,
                             |t| {
                                 let mut t = match t {
                                     Some(t) => t,
-                                    None => DbToken::default(
+                                    None => DbDepositedToken::default(
                                         buy_token_contract.clone(),
                                         buy_token_id.clone(),
                                         bought_from.clone(),
@@ -182,11 +182,11 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                         let owner = DbAccountAddress(e.pay_token_owner);
                         let token_amount = DbTokenAmount(amount.0.into());
                         self.db
-                            .tokens(contract)
-                            .upsert_one(DbToken::key(&token_contract, &token_id, &owner)?, |t| {
+                            .deposited_tokens(contract)
+                            .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
                                 let mut t = match t {
                                     Some(t) => t,
-                                    None => DbToken::default(
+                                    None => DbDepositedToken::default(
                                         token_contract.clone(),
                                         token_id.clone(),
                                         owner.clone(),

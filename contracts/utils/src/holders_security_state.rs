@@ -179,7 +179,7 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     fn freeze(
         &mut self,
         address: Address,
-        token_id: T,
+        token_id: &T,
         amount: A,
         state_builder: &mut StateBuilder<S>,
     ) -> HolderSecurityStateResult<()> {

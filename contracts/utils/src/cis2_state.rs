@@ -15,8 +15,8 @@ pub enum Cis2StateError {
     InvalidAmount,
 }
 
-pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
-    IContractState + IHoldersState<T, A, S> + ITokensState<T, S> {
+pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize + Clone, S: HasStateApi>:
+    IContractState + IHoldersState<T, A, S> + ITokensState<T, TTokenState, S> {
     /// Mints a token.
     ///
     /// This function mints a new token with the specified `token_id` and
@@ -41,13 +41,13 @@ pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     fn mint_token(
         &mut self,
         token_id: T,
-        metadata_url: MetadataUrl,
+        state: TTokenState,
         balances: Vec<(Address, A)>,
         state_builder: &mut StateBuilder<S>,
     ) -> Cis2Result<()> {
-        self.add_token(token_id, metadata_url)?;
+        self.add_token(token_id.to_owned(), state)?;
         for (address, amount) in balances {
-            self.add_balance(address, token_id, amount, state_builder)?;
+            self.add_balance(address, &token_id, amount, state_builder)?;
         }
 
         Ok(())

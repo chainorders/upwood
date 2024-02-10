@@ -7,7 +7,7 @@ use crate::txn_processor::db::{
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DbToken {
+pub struct DbDepositedToken {
     pub token_contract:   DbContractAddress,
     pub token_id:         DbTokenId,
     pub owner:            DbAccountAddress,
@@ -16,7 +16,7 @@ pub struct DbToken {
     pub unlisted_amount:  DbTokenAmount,
 }
 
-impl DbToken {
+impl DbDepositedToken {
     pub fn key(
         token_contract: &DbContractAddress,
         token_id: &DbTokenId,
@@ -47,7 +47,7 @@ impl DbToken {
 }
 
 pub trait IContractDb: IDb {
-    fn tokens(&self, contract: &ContractAddress) -> Collection<DbToken> {
-        self.database(contract).collection::<DbToken>("tokens").into()
+    fn deposited_tokens(&self, contract: &ContractAddress) -> Collection<DbDepositedToken> {
+        self.database(contract).collection::<DbDepositedToken>("deposited_tokens").into()
     }
 }

@@ -23,7 +23,7 @@ import {
 	ENTRYPOINT_DISPLAY_NAMES,
 } from "../../../lib/rwaSecurityNft";
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecurityNftUi";
-import TokenList from "./TokensList";
+import TokenList from "../../common/TokensList";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
 
 const entrypoints_ui_customizations: Record<

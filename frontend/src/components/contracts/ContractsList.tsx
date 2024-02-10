@@ -51,6 +51,9 @@ export default function ContractsList(props: Props) {
 	const nftContracts = props.contracts.filter(
 		(c) => c.type == ContractType.RwaSecurityNft,
 	);
+	const sftContracts = props.contracts.filter(
+		(c) => c.type == ContractType.RwaSecuritySft,
+	);
 
 	return (
 		<Stack spacing={1}>
@@ -159,6 +162,39 @@ export default function ContractsList(props: Props) {
 				</Typography>
 				<List>
 					{nftContracts.map((contract) => {
+						return (
+							<ListItem
+								disablePadding
+								key={contract.address.index.toString()}
+								secondaryAction={
+									<IconButton
+										edge="end"
+										aria-label="delete"
+										onClick={() => props.onDelete(contract)}
+									>
+										<Delete />
+									</IconButton>
+								}
+							>
+								<ListItemButton>
+									<ListItemIcon>
+										<Token />
+									</ListItemIcon>
+									<ListItemText
+										primary={<ContractLink contract={contract} />}
+									/>
+								</ListItemButton>
+							</ListItem>
+						);
+					})}
+				</List>
+			</Paper>
+			<Paper sx={{ padding: 2 }} variant="outlined">
+				<Typography variant="h2" fontSize={20}>
+					Security SFT Contracts
+				</Typography>
+				<List>
+					{sftContracts.map((contract) => {
 						return (
 							<ListItem
 								disablePadding
