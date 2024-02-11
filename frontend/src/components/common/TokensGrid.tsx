@@ -31,8 +31,8 @@ export default function TokensGrid(props: Props) {
 				<Grid container spacing={1}>
 					{tokens.map((token, index) => (
 						<Grid item xs={12} md={2} key={index}>
-                            <TokenCardDisplay
-                                key={index}
+							<TokenCardDisplay
+								key={index}
 								grpcClient={grpcClient}
 								token={token}
 								actions={actions.map((props) => ({ token, ...props }))}

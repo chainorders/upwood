@@ -3,6 +3,12 @@ import {
 	AccountAddress,
 	ContractAddress,
 	ConcordiumGRPCClient,
+	CIS2Contract,
+	EntrypointName,
+	Energy,
+	CIS2,
+	serializeTypeValue,
+	toBuffer,
 } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { useContractsApi } from "../ContractsApiProvider";
@@ -11,6 +17,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ActionButtonProps, Token } from "../common/TokenCardDisplay";
 import TokensGrid from "../common/TokensGrid";
 import { LensBlur, Sell } from "@mui/icons-material";
+import { Buffer } from "buffer/";
+
+import rwaSecuritySft, { MintRequest } from "../../lib/rwaSecuritySft";
 
 type Props = {
 	currentAccount: AccountAddress.Type;
@@ -57,12 +66,61 @@ export default function TokensList(props: Props) {
 			.finally(() => setLoading(false));
 	}, [currentAccount, walletApi, contract, page, backendApi]);
 
+	const onFractionalize = async (
+		token: Token,
+		sftContract: ContractAddress.Type,
+	) => {
+		const fracRequest: MintRequest = {
+			deposited_token_id: {
+				id: token.id,
+				contract: {
+					index: Number(contract.index),
+					subindex: Number(contract.subindex),
+				},
+			},
+			deposited_amount: token.amount,
+			deposited_token_owner: currentAccount.address,
+			owner: { Account: [currentAccount.address] },
+		};
+		const listRequestSerialized = serializeTypeValue(
+			fracRequest,
+			toBuffer(rwaSecuritySft.mint.paramsSchemaBase64!, "base64"),
+		);
+		const cis2CLient = await CIS2Contract.create(grpcClient, token.contract);
+		const transfer = cis2CLient.createTransfer(
+			{
+				energy: Energy.create(
+					rwaSecuritySft.mint.maxExecutionEnergy.value * BigInt(2),
+				),
+			},
+			{
+				from: currentAccount!,
+				to: {
+					address: sftContract,
+					hookName: EntrypointName.fromString("deposit"),
+				},
+				amount: BigInt(0),
+				tokenId: token.id,
+				tokenAmount: BigInt(token.amount),
+				data: Buffer.from(listRequestSerialized.buffer).toString("hex"),
+			} as CIS2.Transfer,
+		);
+
+		return walletApi!.sendTransaction(
+			currentAccount!,
+			transfer.type,
+			transfer.payload,
+			transfer.parameter.json,
+			transfer.schema,
+		);
+	};
+
 	const uiTokens = tokens.map(
 		(token) =>
 			({
 				id: token.token_id,
 				contract,
-				amount: token.balance
+				amount: token.balance,
 			}) as Token,
 	);
 
@@ -90,9 +148,8 @@ export default function TokensList(props: Props) {
 			variant: "outlined",
 			title: "Fractionalize",
 			disabled: false,
-			onClick: (token: Token) => {
-				console.log("Fractionalize", token);
-			},
+			sendTransaction: (token) => onFractionalize(token, sftContract),
+			onClick: (token: Token) => console.log("Fractionalize", token),
 		});
 	}
 

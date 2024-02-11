@@ -28,7 +28,8 @@ export default function NftPage() {
 	const market_contract_index = import.meta.env.VITE_NFT_MARKET_CONTRACT_INDEX;
 	const market_contract_subindex = import.meta.env
 		.VITE_NFT_MARKET_CONTRACT_SUBINDEX;
-	const sft_contract_index: string = import.meta.env.VITE_NFT_SFT_CONTRACT_INDEX;
+	const sft_contract_index: string = import.meta.env
+		.VITE_NFT_SFT_CONTRACT_INDEX;
 	const sft_contract_subindex: string = import.meta.env
 		.VITE_NFT_SFT_CONTRACT_SUBINDEX;
 	let marketContract: ContractAddress.Type | undefined;

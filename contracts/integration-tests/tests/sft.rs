@@ -76,7 +76,7 @@ fn sft_fractionalize_via_transfer() {
             url:  "ipfs:url2".to_string(),
             hash: None,
         },
-        fractions_rate:   Rate::new(1, 100).expect_report("Rate"),
+        fractions_rate:   Rate::new(1, 10).expect_report("Rate"),
     })
     .expect_report("SFT: Add token");
 

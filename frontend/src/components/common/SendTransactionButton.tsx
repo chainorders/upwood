@@ -12,10 +12,15 @@ import {
 } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { useNodeClient } from "../NodeClientProvider";
-import { Button, CircularProgress, Stack, Typography } from "@mui/material";
+import {
+	Button,
+	ButtonGroup,
+	CircularProgress,
+	IconButton,
+	Typography,
+} from "@mui/material";
 import { CheckCircle, Error as ErrorIcon } from "@mui/icons-material";
 import CCDScanTransactionLink from "./concordium/CCDScanTransactionLink";
-import ErrorDisplay from "./ErrorDisplay";
 
 type InitState = {
 	type: "init";
@@ -39,6 +44,7 @@ type FinalizedState = {
 };
 
 export interface SendTransactionButtonProps {
+	smallSize?: boolean;
 	onClick: () => Promise<string>;
 	children: React.ReactNode;
 	disabled?: boolean;
@@ -183,6 +189,72 @@ export default function SendTransactionButton(
 		props.onDone?.();
 	};
 
+	const SentLarge = () => {
+		return (
+			<ButtonGroup fullWidth>
+				<Button variant="contained" disabled>
+					<Typography pr={1}>Transaction {state.status!}</Typography>
+				</Button>
+				<CCDScanTransactionLink transactionHash={state.txnHash!} />
+				{state.error && (
+					<IconButton color="error" size="small" title={state.error} disabled>
+						<ErrorIcon />
+					</IconButton>
+				)}
+				{!state.error && (
+					<IconButton disabled>
+						<CircularProgress size={10} />
+					</IconButton>
+				)}
+			</ButtonGroup>
+		);
+	};
+
+	const SentSmall = () => {
+		return (
+			<ButtonGroup fullWidth>
+				<CCDScanTransactionLink
+					color={state.error ? "error" : "success"}
+					transactionHash={state.txnHash!}
+					children={!state.error && <CircularProgress size={10} />}
+				/>
+			</ButtonGroup>
+		);
+	};
+
+	const FinalizedLarge = () => {
+		return (
+			<ButtonGroup fullWidth color={state.error ? "error" : "success"}>
+				<Button variant="contained" color="success" onClick={onDone}>
+					<Typography pr={1}>Transaction {state.status!}</Typography>
+				</Button>
+				<CCDScanTransactionLink transactionHash={state.txnHash!} />
+				{state.error && (
+					<IconButton color="error" size="small" title={state.error}>
+						<ErrorIcon />
+					</IconButton>
+				)}
+				{!state.error && (
+					<IconButton color="success" title="Transaction successful" disabled>
+						<CheckCircle />
+					</IconButton>
+				)}
+			</ButtonGroup>
+		);
+	};
+
+	const FinalizedSmall = () => {
+		return (
+			<ButtonGroup fullWidth>
+				<CCDScanTransactionLink
+					color={state.error ? "error" : "success"}
+					transactionHash={state.txnHash!}
+					onClick={onDone}
+				/>
+			</ButtonGroup>
+		);
+	};
+
 	return (
 		<>
 			{
@@ -196,36 +268,8 @@ export default function SendTransactionButton(
 							{props.children}
 						</Button>
 					),
-					sent: (
-						<Stack>
-							<Typography>
-								Transaction Hash:{" "}
-								<CCDScanTransactionLink transactionHash={state.txnHash!} />
-							</Typography>
-							<Button variant="contained" disabled>
-								<Typography pr={1}>Transaction {state.status!}</Typography>
-								<CircularProgress size={10} />
-							</Button>
-							{state.error && <ErrorDisplay text={state.error} />}
-						</Stack>
-					),
-					finalized: (
-						<Stack>
-							<Typography>
-								Transaction Hash:{" "}
-								<CCDScanTransactionLink transactionHash={state.txnHash!} />
-							</Typography>
-							<Button
-								variant="contained"
-								onClick={onDone}
-								color={state.error ? "error" : undefined}
-							>
-								<Typography pr={1}>Transaction {state.status!}</Typography>
-								{!state.error ? <CheckCircle /> : <ErrorIcon />}
-							</Button>
-							{state.error && <ErrorDisplay text={state.error} />}
-						</Stack>
-					),
+					sent: props.smallSize ? <SentSmall /> : <SentLarge />,
+					finalized: props.smallSize ? <FinalizedSmall /> : <FinalizedLarge />,
 				}[state.type]
 			}
 		</>

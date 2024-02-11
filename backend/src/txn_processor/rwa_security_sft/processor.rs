@@ -13,7 +13,12 @@ use tokio::try_join;
 
 use crate::{
     txn_listener::EventsProcessor,
-    txn_processor::{db::{DbAccountAddress, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection}, rwa_security_sft::db::DbDepositedToken},
+    txn_processor::{
+        db::{
+            DbAccountAddress, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection,
+        },
+        rwa_security_sft::db::DbDepositedToken,
+    },
 };
 
 use super::db::{
@@ -73,19 +78,22 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
 
                     self.db
                         .deposited_tokens(contract)
-                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                            let mut t = match t {
-                                Some(t) => t,
-                                None => DbDepositedToken::default(
-                                    token_contract.clone(),
-                                    token_id.clone(),
-                                    owner.clone(),
-                                ),
-                            };
-                            t.deposited_amount.add_assign(token_amount.clone());
-                            t.un_locked_amount.add_assign(token_amount.clone());
-                            t
-                        })
+                        .upsert_one(
+                            DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                            |t| {
+                                let mut t = match t {
+                                    Some(t) => t,
+                                    None => DbDepositedToken::default(
+                                        token_contract.clone(),
+                                        token_id.clone(),
+                                        owner.clone(),
+                                    ),
+                                };
+                                t.deposited_amount.add_assign(token_amount.clone());
+                                t.un_locked_amount.add_assign(token_amount.clone());
+                                t
+                            },
+                        )
                         .await?
                 }
                 Event::Withdraw(e) => {
@@ -96,19 +104,22 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
 
                     self.db
                         .deposited_tokens(contract)
-                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                            let mut t = match t {
-                                Some(t) => t,
-                                None => DbDepositedToken::default(
-                                    token_contract.clone(),
-                                    token_id.clone(),
-                                    owner.clone(),
-                                ),
-                            };
-                            t.deposited_amount.sub_assign(token_amount.clone());
-                            t.un_locked_amount.sub_assign(token_amount.clone());
-                            t
-                        })
+                        .upsert_one(
+                            DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                            |t| {
+                                let mut t = match t {
+                                    Some(t) => t,
+                                    None => DbDepositedToken::default(
+                                        token_contract.clone(),
+                                        token_id.clone(),
+                                        owner.clone(),
+                                    ),
+                                };
+                                t.deposited_amount.sub_assign(token_amount.clone());
+                                t.un_locked_amount.sub_assign(token_amount.clone());
+                                t
+                            },
+                        )
                         .await?
                 }
                 Event::AgentAdded(e) => {
@@ -239,17 +250,12 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
                         let token_id = DbTokenId(e.token_id.to_string().parse()?);
                         let token_amount = DbTokenAmount(e.amount.0.into());
                         let token_holders = self.db.holders(contract);
-                        let tokens = self.db.tokens(contract);
-                        try_join!(
-                            tokens.insert_one(DbToken {
-                                supply: token_amount.clone(),
-                                ..DbToken::default(token_id.clone())
-                            }),
-                            token_holders.insert_one(TokenHolder {
+                        token_holders
+                            .insert_one(TokenHolder {
                                 balance: token_amount.clone(),
                                 ..TokenHolder::default(token_id, DbAddress(e.owner))
-                            },)
-                        )?;
+                            })
+                            .await?;
                     }
                     Cis2Event::TokenMetadata(e) => {
                         let token_id = DbTokenId(e.token_id.to_string().parse()?);

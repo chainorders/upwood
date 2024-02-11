@@ -91,6 +91,9 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         let address: DbAddress = DbAddress(address.parse()?);
         let query = doc! {
             "address": to_bson(&address)?,
+            "balance": {
+                "$ne": "0",
+            }
         };
         let coll = self.db.holders(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;

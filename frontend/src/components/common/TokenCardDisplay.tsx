@@ -29,6 +29,7 @@ import {
 	getTokenMetadata,
 	toDataUrl,
 } from "../../lib/cis2Utils";
+import SendTransactionButton from "./SendTransactionButton";
 
 interface ExpandMoreProps extends IconButtonProps {
 	expand: boolean;
@@ -60,8 +61,22 @@ export type ActionButtonProps = {
 	onClick: (token: Token) => void;
 	children: React.ReactNode;
 	key?: string;
+	sendTransaction?: (token: Token) => Promise<string>;
 };
 export function ActionButton(props: ActionButtonProps) {
+	if (props.sendTransaction) {
+		return (
+			<SendTransactionButton
+				smallSize
+				key={props.key}
+				onClick={() => props.sendTransaction!(props.token)}
+				onDone={() => props.onClick(props.token)}
+			>
+				{props.children}
+			</SendTransactionButton>
+		);
+	}
+
 	return (
 		<Button
 			key={props.key}
