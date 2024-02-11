@@ -38,6 +38,10 @@ const BUYER_ACC_NON_COMPLIANT: AccountAddress = AccountAddress([4; 32]);
 fn market_buy_via_transfer_of_cis2() {
     let mut chain = Chain::new();
     chain.create_account(Account::new_with_balance(
+        DEFAULT_INVOKER,
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+    ));
+    chain.create_account(Account::new_with_balance(
         ADMIN,
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
     ));
