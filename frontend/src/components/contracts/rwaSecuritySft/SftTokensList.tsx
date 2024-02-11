@@ -15,8 +15,8 @@ export default function SftTokensList(props: Props) {
 	const [page, setPage] = useState(Number(searchParams.get("page") || "0"));
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
-	const [tokens, setTokens] = useState<NftToken[]>([]);
 	const { provider: backendApi } = useContractsApi();
+	const [tokens, setTokens] = useState<NftToken[]>([]);
 
 	useEffect(() => {
 		setLoading(true);

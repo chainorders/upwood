@@ -11,7 +11,8 @@ import { Buffer } from "buffer/";
 import rwaMarket, { ListRequest } from "../../lib/rwaMarket";
 import { useNodeClient } from "../NodeClientProvider";
 import { useWallet } from "../WalletProvider";
-import ListRequestForm from "./ListRequest";
+import ListRequestForm, { NonListedToken } from "./ListRequest";
+import { useParams } from "react-router-dom";
 
 type Props = {
 	contract: ContractAddress.Type;
@@ -20,6 +21,8 @@ export default function TransferList(props: Props) {
 	const { contract } = props;
 	const { currentAccount, provider: walletApi } = useWallet();
 	const { provider: grpcClient } = useNodeClient();
+	const { listContractIndex, listContractSubIndex, listTokenId, listAmount } =
+		useParams();
 
 	const sendTransaction = async (request: ListRequest) => {
 		const listRequestSerialized = serializeTypeValue(
@@ -60,11 +63,24 @@ export default function TransferList(props: Props) {
 		);
 	};
 
+	const nonListed: NonListedToken | undefined = (listContractIndex &&
+		listContractSubIndex &&
+		listTokenId &&
+		listAmount &&
+		({
+			id: listTokenId,
+			contract: ContractAddress.create(
+				BigInt(listContractIndex),
+				BigInt(listContractSubIndex),
+			),
+			amount: Number(listAmount),
+		} as NonListedToken)) as NonListedToken | undefined;
 	return (
 		<ListRequestForm
 			contract={contract}
 			currentAccount={currentAccount!}
 			onSendTransaction={(req) => sendTransaction(req)}
+			nonListed={nonListed}
 		/>
 	);
 }

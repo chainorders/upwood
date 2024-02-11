@@ -27,7 +27,7 @@ import ListedTokens from "./ListedTokens";
 import Exchange from "./Exchange";
 import TransferList from "./TransferList";
 import rwaMarket from "../../lib/rwaMarket";
-const drawerWidth = 240;
+import { DRAWER_WIDTH } from "../common/consts";
 
 export default function MarketPage() {
 	const { pathname } = useLocation();
@@ -46,10 +46,10 @@ export default function MarketPage() {
 				variant="permanent"
 				anchor="left"
 				sx={{
-					width: drawerWidth,
+					width: DRAWER_WIDTH,
 					flexShrink: 0,
 					[`& .MuiDrawer-paper`]: {
-						width: drawerWidth,
+						width: DRAWER_WIDTH,
 						boxSizing: "border-box",
 					},
 				}}
@@ -142,6 +142,10 @@ export default function MarketPage() {
 					<Route path="list" element={<ListToken contract={contract} />} />
 					<Route
 						path="transferList"
+						element={<TransferList contract={contract} />}
+					/>
+					<Route
+						path="transferList/:listContractIndex/:listContractSubIndex/:listTokenId/:listAmount"
 						element={<TransferList contract={contract} />}
 					/>
 					<Route path="de-list" element={<div>De List</div>} />

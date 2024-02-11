@@ -27,14 +27,22 @@ import {
 } from "./types";
 import SendTransactionButton from "../common/SendTransactionButton";
 
+export type NonListedToken = {
+	id: string;
+	contract: ContractAddress.Type;
+	amount: number;
+};
+
 type Props = {
 	contract: ContractAddress.Type;
 	listed?: GetListedResponse;
+	nonListed?: NonListedToken;
 	onSendTransaction: (request: ListRequest) => Promise<string>;
 	currentAccount: AccountAddress.Type;
 };
 export default function ListRequestForm(props: Props) {
-	const { contract, listed, onSendTransaction, currentAccount } = props;
+	const { contract, listed, onSendTransaction, currentAccount, nonListed } =
+		props;
 	const { provider: grpcClient } = useNodeClient();
 	const navigate = useNavigate();
 
@@ -46,14 +54,20 @@ export default function ListRequestForm(props: Props) {
 	const [listTokenContract, setListTokenContract] = useState<
 		ContractAddress.Type | undefined
 	>(
-		listed &&
+		(listed &&
 			ContractAddress.create(
 				listed.token_id.contract.index,
 				listed.token_id.contract.subindex,
-			),
+			)) ||
+			nonListed?.contract ||
+			undefined,
 	);
-	const [listTokenId, setListTokenId] = useState(listed?.token_id.id || "");
-	const [listAmount, setListAmount] = useState(Number(listed?.supply) || 0);
+	const [listTokenId, setListTokenId] = useState(
+		listed?.token_id.id || nonListed?.id || "",
+	);
+	const [listAmount, setListAmount] = useState(
+		Number(listed?.supply || nonListed?.amount) || 0,
+	);
 
 	const [loadingPaymentTokens, setLoadingPaymentTokens] = useState(false);
 	const [errorPaymentTokens, setErrorPaymentTokens] = useState("");

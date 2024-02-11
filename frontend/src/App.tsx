@@ -7,6 +7,8 @@ import ErrorDisplay from "./components/common/ErrorDisplay";
 import MarketPage from "./components/market/MarketPage";
 import ContractsApiProvider from "./components/ContractsApiProvider";
 import VerifierPage from "./components/verifier/VerifierPage";
+import NftPage from "./components/nft/NftPage";
+import SftPage from "./components/sft/SftPage";
 
 // Header component
 function Header() {
@@ -68,6 +70,8 @@ function Layout() {
 										Component={MarketPage}
 									/>
 									<Route path="verifier" Component={VerifierPage} />
+									<Route path="nft/:index/:subIndex/*" Component={NftPage} />
+									<Route path="sft/:index/:subIndex/*" Component={SftPage} />
 									<Route path="*" element={<ErrorDisplay text="Not Found" />} />
 								</Routes>
 							</Box>

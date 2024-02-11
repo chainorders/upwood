@@ -167,13 +167,23 @@ export default function ContractsList(props: Props) {
 								disablePadding
 								key={contract.address.index.toString()}
 								secondaryAction={
-									<IconButton
-										edge="end"
-										aria-label="delete"
-										onClick={() => props.onDelete(contract)}
-									>
-										<Delete />
-									</IconButton>
+									<>
+										<Link
+											to={`/nft/${contract.address.index.toString()}/${contract.address.subindex.toString()}`}
+											target="_blank"
+										>
+											<IconButton edge="end" aria-label="open nft contract">
+												<OpenInBrowser />
+											</IconButton>
+										</Link>
+										<IconButton
+											edge="end"
+											aria-label="delete"
+											onClick={() => props.onDelete(contract)}
+										>
+											<Delete />
+										</IconButton>
+									</>
 								}
 							>
 								<ListItemButton>
@@ -200,13 +210,24 @@ export default function ContractsList(props: Props) {
 								disablePadding
 								key={contract.address.index.toString()}
 								secondaryAction={
-									<IconButton
-										edge="end"
-										aria-label="delete"
-										onClick={() => props.onDelete(contract)}
-									>
-										<Delete />
-									</IconButton>
+									<>
+										<Link
+											to={`/sft/${contract.address.index.toString()}/${contract.address.subindex.toString()}`}
+											target="_blank"
+										>
+											<IconButton edge="end" aria-label="open sft contract">
+												<OpenInBrowser />
+											</IconButton>
+										</Link>
+
+										<IconButton
+											edge="end"
+											aria-label="delete"
+											onClick={() => props.onDelete(contract)}
+										>
+											<Delete />
+										</IconButton>
+									</>
 								}
 							>
 								<ListItemButton>
