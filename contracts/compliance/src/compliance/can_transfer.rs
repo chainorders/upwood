@@ -25,7 +25,7 @@ fn can_transfer(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<bool
     for module in state.modules.iter() {
         let can_transfer = ComplianceContract(module.to_owned()).can_transfer(
             host,
-            params.token_id,
+            params.token_id.clone(),
             params.to,
             params.amount,
         )?;

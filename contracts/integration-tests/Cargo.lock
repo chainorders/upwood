@@ -499,6 +499,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "concordium-rwa-security-sft"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-rwa-utils",
+ "concordium-std",
+ "hex",
+]
+
+[[package]]
 name = "concordium-rwa-utils"
 version = "0.1.0"
 dependencies = [
@@ -1246,6 +1256,7 @@ dependencies = [
  "concordium-rwa-identity-registry",
  "concordium-rwa-market",
  "concordium-rwa-security-nft",
+ "concordium-rwa-security-sft",
  "concordium-rwa-utils",
  "concordium-smart-contract-testing",
  "concordium-std",

@@ -98,7 +98,6 @@ pub fn transfer(
             to: to.address(),
         })))?;
 
-        // host.commit_state();
         if let Receiver::Contract(to_contract, entrypoint) = to {
             let parameter = OnReceivingCis2Params {
                 token_id,

@@ -35,7 +35,7 @@ pub struct AddParam {
 
 #[derive(Serialize, SchemaType)]
 pub struct AddParams {
-    tokens: Vec<AddParam>,
+    pub tokens: Vec<AddParam>,
 }
 
 /// Add a new token to the contract.

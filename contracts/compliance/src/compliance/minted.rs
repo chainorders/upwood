@@ -25,13 +25,13 @@ use concordium_rwa_utils::{
 fn minted(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<()> {
     let params: MintedParam<TokenId, TokenAmount> = ctx.parameter_cursor().get()?;
     let state = host.state();
-
+    let token_id = params.token_id;
     for module in state.modules.iter() {
-        ensure!(ctx.sender().matches_contract(&params.token_id.contract), Error::Unauthorized);
+        ensure!(ctx.sender().matches_contract(&token_id.contract), Error::Unauthorized);
 
         ComplianceContract(module.to_owned()).minted(
             host,
-            params.token_id,
+            token_id.clone(),
             params.owner,
             params.amount,
         )?;

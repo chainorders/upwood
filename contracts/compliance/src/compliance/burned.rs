@@ -32,7 +32,7 @@ fn burned(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<()> {
     for module in state.modules.iter() {
         ComplianceContract(module.to_owned()).burned(
             host,
-            params.token_id,
+            params.token_id.clone(),
             params.owner,
             params.amount,
         )?;
