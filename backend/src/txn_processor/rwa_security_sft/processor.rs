@@ -251,9 +251,15 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
                         let token_amount = DbTokenAmount(e.amount.0.into());
                         let token_holders = self.db.holders(contract);
                         token_holders
-                            .insert_one(TokenHolder {
-                                balance: token_amount.clone(),
-                                ..TokenHolder::default(token_id, DbAddress(e.owner))
+                            .upsert_one(TokenHolder::key(&token_id, &DbAddress(e.owner)), |h| {
+                                let mut token_holder = match h {
+                                    None => {
+                                        TokenHolder::default(token_id.clone(), DbAddress(e.owner))
+                                    }
+                                    Some(h) => h,
+                                };
+                                token_holder.balance.add_assign(token_amount.clone());
+                                token_holder
                             })
                             .await?;
                     }
