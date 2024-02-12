@@ -11,19 +11,28 @@ export const initRequestJsonSchema: RJSFSchema = {
 		identity_registry: {
 			type: "object",
 			title: "Identity Registry",
-			properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+			properties: {
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
+			},
 		},
 		compliance: {
 			type: "object",
 			title: "Compliance",
-			properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+			properties: {
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
+			},
 		},
 		sponsors: {
 			type: "array",
 			items: {
 				type: "object",
 				title: "",
-				properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+				properties: {
+					index: { type: "integer", minimum: 0 },
+					subindex: { type: "integer", minimum: 0 },
+				},
 			},
 			title: "Sponsors",
 		},
@@ -65,19 +74,31 @@ export const initErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -87,60 +108,99 @@ export const initErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -185,7 +245,10 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -229,19 +292,31 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -251,60 +326,99 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -339,7 +453,10 @@ export const agentsResponseJsonSchema: RJSFSchema = {
 					{
 						properties: {
 							tag: { enum: ["Account"] },
-							Account: { type: "array", items: [{ type: "string", title: "" }] },
+							Account: {
+								type: "array",
+								items: [{ type: "string", title: "" }],
+							},
 						},
 					},
 					{
@@ -351,7 +468,10 @@ export const agentsResponseJsonSchema: RJSFSchema = {
 									{
 										type: "object",
 										title: "",
-										properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+										properties: {
+											index: { type: "integer", minimum: 0 },
+											subindex: { type: "integer", minimum: 0 },
+										},
 									},
 								],
 							},
@@ -397,19 +517,31 @@ export const agentsErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -419,60 +551,99 @@ export const agentsErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -512,7 +683,10 @@ export const balanceOfRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -543,7 +717,9 @@ export const balanceOfRequestJsonSchema: RJSFSchema = {
 };
 export type BalanceOfRequestUi = {
 	token_id: string;
-	address: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	address:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 }[];
 export const balanceOfResponseJsonSchema: RJSFSchema = {
 	type: "array",
@@ -582,19 +758,31 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -604,60 +792,99 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -694,7 +921,10 @@ export const balanceOfFrozenRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -706,7 +936,10 @@ export const balanceOfFrozenRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -716,17 +949,29 @@ export const balanceOfFrozenRequestJsonSchema: RJSFSchema = {
 				},
 			},
 		},
-		tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" },
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
 	},
 };
 export type BalanceOfFrozenRequestUi = {
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	tokens: string[];
 };
 export const balanceOfFrozenResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Balance Of Frozen Response",
-	properties: { tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" } },
+	properties: {
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
+	},
 };
 export type BalanceOfFrozenResponseUi = { tokens: string[] };
 export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
@@ -760,19 +1005,31 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -782,60 +1039,99 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -872,7 +1168,10 @@ export const balanceOfUnFrozenRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -884,7 +1183,10 @@ export const balanceOfUnFrozenRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -894,17 +1196,29 @@ export const balanceOfUnFrozenRequestJsonSchema: RJSFSchema = {
 				},
 			},
 		},
-		tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" },
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
 	},
 };
 export type BalanceOfUnFrozenRequestUi = {
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	tokens: string[];
 };
 export const balanceOfUnFrozenResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Balance Of Un Frozen Response",
-	properties: { tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" } },
+	properties: {
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
+	},
 };
 export type BalanceOfUnFrozenResponseUi = { tokens: string[] };
 export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
@@ -938,19 +1252,31 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -960,60 +1286,99 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1054,7 +1419,10 @@ export const burnRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -1086,7 +1454,9 @@ export const burnRequestJsonSchema: RJSFSchema = {
 export type BurnRequestUi = {
 	token_id: string;
 	amount: string;
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 }[];
 export const burnErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -1119,19 +1489,31 @@ export const burnErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1141,60 +1523,99 @@ export const burnErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1219,7 +1640,10 @@ export type BurnErrorUi =
 export const complianceResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Compliance Response",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type ComplianceResponseUi = { index: number; subindex: number };
 export const forcedTransferRequestJsonSchema: RJSFSchema = {
@@ -1241,7 +1665,10 @@ export const forcedTransferRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -1277,7 +1704,10 @@ export const forcedTransferRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -1311,10 +1741,15 @@ export const forcedTransferRequestJsonSchema: RJSFSchema = {
 export type ForcedTransferRequestUi = {
 	token_id: string;
 	amount: string;
-	from: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	from:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	to:
 		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }, string] };
+		| {
+				tag: "Contract";
+				Contract: [{ index: number; subindex: number }, string];
+		  };
 	data: string;
 }[];
 export const forcedTransferErrorJsonSchema: RJSFSchema = {
@@ -1348,19 +1783,31 @@ export const forcedTransferErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1370,60 +1817,99 @@ export const forcedTransferErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1460,7 +1946,10 @@ export const freezeRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -1472,7 +1961,10 @@ export const freezeRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -1497,7 +1989,9 @@ export const freezeRequestJsonSchema: RJSFSchema = {
 	},
 };
 export type FreezeRequestUi = {
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	tokens: { token_id: string; token_amount: string }[];
 };
 export const freezeErrorJsonSchema: RJSFSchema = {
@@ -1531,19 +2025,31 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1553,60 +2059,99 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1631,7 +2176,10 @@ export type FreezeErrorUi =
 export const identityRegistryResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Identity Registry Response",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type IdentityRegistryResponseUi = { index: number; subindex: number };
 export const isAgentRequestJsonSchema: RJSFSchema = {
@@ -1657,7 +2205,10 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -1670,7 +2221,10 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 export type IsAgentRequestUi =
 	| { tag: "Account"; Account: [string] }
 	| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-export const isAgentResponseJsonSchema: RJSFSchema = { type: "boolean", title: "Is Agent Response" };
+export const isAgentResponseJsonSchema: RJSFSchema = {
+	type: "boolean",
+	title: "Is Agent Response",
+};
 export type IsAgentResponseUi = boolean;
 export const isAgentErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -1703,19 +2257,31 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1725,60 +2291,99 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1803,13 +2408,25 @@ export type IsAgentErrorUi =
 export const isPausedRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Is Paused Request",
-	properties: { tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" } },
+	properties: {
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
+	},
 };
 export type IsPausedRequestUi = { tokens: string[] };
 export const isPausedResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Is Paused Response",
-	properties: { tokens: { type: "array", items: { type: "boolean", title: "" }, title: "Tokens" } },
+	properties: {
+		tokens: {
+			type: "array",
+			items: { type: "boolean", title: "" },
+			title: "Tokens",
+		},
+	},
 };
 export type IsPausedResponseUi = { tokens: boolean[] };
 export const isPausedErrorJsonSchema: RJSFSchema = {
@@ -1843,19 +2460,31 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -1865,60 +2494,99 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1955,7 +2623,10 @@ export const mintRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -1967,7 +2638,10 @@ export const mintRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 										{ type: "string", title: "" },
 									],
@@ -2000,13 +2674,20 @@ export const mintRequestJsonSchema: RJSFSchema = {
 											{
 												properties: {
 													tag: { enum: ["None"] },
-													None: { type: "object", title: "None", properties: {} },
+													None: {
+														type: "object",
+														title: "None",
+														properties: {},
+													},
 												},
 											},
 											{
 												properties: {
 													tag: { enum: ["Some"] },
-													Some: { type: "array", items: [{ type: "string", title: "" }] },
+													Some: {
+														type: "array",
+														items: [{ type: "string", title: "" }],
+													},
 												},
 											},
 										],
@@ -2024,8 +2705,16 @@ export const mintRequestJsonSchema: RJSFSchema = {
 export type MintRequestUi = {
 	owner:
 		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }, string] };
-	tokens: { metadata_url: { url: string; hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] } } }[];
+		| {
+				tag: "Contract";
+				Contract: [{ index: number; subindex: number }, string];
+		  };
+	tokens: {
+		metadata_url: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+	}[];
 };
 export const mintErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -2058,19 +2747,31 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2080,60 +2781,99 @@ export const mintErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2172,7 +2912,10 @@ export const operatorOfRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -2208,7 +2951,10 @@ export const operatorOfRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -2238,8 +2984,12 @@ export const operatorOfRequestJsonSchema: RJSFSchema = {
 	title: "Operator Of Request",
 };
 export type OperatorOfRequestUi = {
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	address: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	address:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 }[];
 export const operatorOfResponseJsonSchema: RJSFSchema = {
 	type: "array",
@@ -2278,19 +3028,31 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2300,60 +3062,99 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2378,7 +3179,13 @@ export type OperatorOfErrorUi =
 export const pauseRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Pause Request",
-	properties: { tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" } },
+	properties: {
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
+	},
 };
 export type PauseRequestUi = { tokens: string[] };
 export const pauseErrorJsonSchema: RJSFSchema = {
@@ -2412,19 +3219,31 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2434,60 +3253,99 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2524,7 +3382,10 @@ export const recoverRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -2536,7 +3397,10 @@ export const recoverRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -2557,7 +3421,10 @@ export const recoverRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -2569,7 +3436,10 @@ export const recoverRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -2620,19 +3490,31 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2642,60 +3524,99 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2740,7 +3661,10 @@ export const recoveryAddressRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -2761,7 +3685,12 @@ export const recoveryAddressResponseJsonSchema: RJSFSchema = {
 	dependencies: {
 		tag: {
 			oneOf: [
-				{ properties: { tag: { enum: ["None"] }, None: { type: "object", title: "None", properties: {} } } },
+				{
+					properties: {
+						tag: { enum: ["None"] },
+						None: { type: "object", title: "None", properties: {} },
+					},
+				},
 				{
 					properties: {
 						tag: { enum: ["Some"] },
@@ -2771,7 +3700,9 @@ export const recoveryAddressResponseJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
+									properties: {
+										tag: { type: "string", enum: ["Account", "Contract"] },
+									},
 									required: ["tag"],
 									dependencies: {
 										tag: {
@@ -2779,7 +3710,10 @@ export const recoveryAddressResponseJsonSchema: RJSFSchema = {
 												{
 													properties: {
 														tag: { enum: ["Account"] },
-														Account: { type: "array", items: [{ type: "string", title: "" }] },
+														Account: {
+															type: "array",
+															items: [{ type: "string", title: "" }],
+														},
 													},
 												},
 												{
@@ -2817,7 +3751,8 @@ export type RecoveryAddressResponseUi =
 	| {
 			tag: "Some";
 			Some: [
-				{ tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] },
+				| { tag: "Account"; Account: [string] }
+				| { tag: "Contract"; Contract: [{ index: number; subindex: number }] },
 			];
 	  };
 export const recoveryAddressErrorJsonSchema: RJSFSchema = {
@@ -2851,19 +3786,31 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -2873,60 +3820,99 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -2971,7 +3957,10 @@ export const removeAgentRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -3015,19 +4004,31 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3037,60 +4038,99 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3115,7 +4155,10 @@ export type RemoveAgentErrorUi =
 export const setComplianceRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Set Compliance Request",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type SetComplianceRequestUi = { index: number; subindex: number };
 export const setComplianceErrorJsonSchema: RJSFSchema = {
@@ -3149,19 +4192,31 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3171,60 +4226,99 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3249,7 +4343,10 @@ export type SetComplianceErrorUi =
 export const setIdentityRegistryRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Set Identity Registry Request",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type SetIdentityRegistryRequestUi = { index: number; subindex: number };
 export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
@@ -3283,19 +4380,31 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3305,60 +4414,99 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3391,7 +4539,9 @@ export const supportsResponseJsonSchema: RJSFSchema = {
 	items: {
 		type: "object",
 		title: "",
-		properties: { tag: { type: "string", enum: ["NoSupport", "Support", "SupportBy"] } },
+		properties: {
+			tag: { type: "string", enum: ["NoSupport", "Support", "SupportBy"] },
+		},
 		required: ["tag"],
 		dependencies: {
 			tag: {
@@ -3402,7 +4552,12 @@ export const supportsResponseJsonSchema: RJSFSchema = {
 							NoSupport: { type: "object", title: "NoSupport", properties: {} },
 						},
 					},
-					{ properties: { tag: { enum: ["Support"] }, Support: { type: "object", title: "Support", properties: {} } } },
+					{
+						properties: {
+							tag: { enum: ["Support"] },
+							Support: { type: "object", title: "Support", properties: {} },
+						},
+					},
 					{
 						properties: {
 							tag: { enum: ["SupportBy"] },
@@ -3414,7 +4569,10 @@ export const supportsResponseJsonSchema: RJSFSchema = {
 										items: {
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 										title: "",
 									},
@@ -3463,19 +4621,31 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3485,60 +4655,99 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3581,11 +4790,19 @@ export const tokenMetadataResponseJsonSchema: RJSFSchema = {
 				dependencies: {
 					tag: {
 						oneOf: [
-							{ properties: { tag: { enum: ["None"] }, None: { type: "object", title: "None", properties: {} } } },
+							{
+								properties: {
+									tag: { enum: ["None"] },
+									None: { type: "object", title: "None", properties: {} },
+								},
+							},
 							{
 								properties: {
 									tag: { enum: ["Some"] },
-									Some: { type: "array", items: [{ type: "string", title: "" }] },
+									Some: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 						],
@@ -3631,19 +4848,31 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3653,60 +4882,99 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3747,7 +5015,10 @@ export const transferRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -3783,7 +5054,10 @@ export const transferRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -3817,10 +5091,15 @@ export const transferRequestJsonSchema: RJSFSchema = {
 export type TransferRequestUi = {
 	token_id: string;
 	amount: string;
-	from: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	from:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	to:
 		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }, string] };
+		| {
+				tag: "Contract";
+				Contract: [{ index: number; subindex: number }, string];
+		  };
 	data: string;
 }[];
 export const transferErrorJsonSchema: RJSFSchema = {
@@ -3854,19 +5133,31 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -3876,60 +5167,99 @@ export const transferErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -3966,7 +5296,10 @@ export const unFreezeRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -3978,7 +5311,10 @@ export const unFreezeRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -4003,7 +5339,9 @@ export const unFreezeRequestJsonSchema: RJSFSchema = {
 	},
 };
 export type UnFreezeRequestUi = {
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	tokens: { token_id: string; token_amount: string }[];
 };
 export const unFreezeErrorJsonSchema: RJSFSchema = {
@@ -4037,19 +5375,31 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -4059,60 +5409,99 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -4137,7 +5526,13 @@ export type UnFreezeErrorUi =
 export const unPauseRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Un Pause Request",
-	properties: { tokens: { type: "array", items: { type: "string", title: "" }, title: "Tokens" } },
+	properties: {
+		tokens: {
+			type: "array",
+			items: { type: "string", title: "" },
+			title: "Tokens",
+		},
+	},
 };
 export type UnPauseRequestUi = { tokens: string[] };
 export const unPauseErrorJsonSchema: RJSFSchema = {
@@ -4171,19 +5566,31 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -4193,60 +5600,99 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -4283,9 +5729,17 @@ export const updateOperatorRequestJsonSchema: RJSFSchema = {
 					tag: {
 						oneOf: [
 							{
-								properties: { tag: { enum: ["Remove"] }, Remove: { type: "object", title: "Remove", properties: {} } },
+								properties: {
+									tag: { enum: ["Remove"] },
+									Remove: { type: "object", title: "Remove", properties: {} },
+								},
 							},
-							{ properties: { tag: { enum: ["Add"] }, Add: { type: "object", title: "Add", properties: {} } } },
+							{
+								properties: {
+									tag: { enum: ["Add"] },
+									Add: { type: "object", title: "Add", properties: {} },
+								},
+							},
 						],
 					},
 				},
@@ -4301,7 +5755,10 @@ export const updateOperatorRequestJsonSchema: RJSFSchema = {
 							{
 								properties: {
 									tag: { enum: ["Account"] },
-									Account: { type: "array", items: [{ type: "string", title: "" }] },
+									Account: {
+										type: "array",
+										items: [{ type: "string", title: "" }],
+									},
 								},
 							},
 							{
@@ -4367,19 +5824,31 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				{
 					properties: {
 						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: { type: "object", title: "InvalidTokenId", properties: {} },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: { type: "object", title: "InsufficientFunds", properties: {} },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
@@ -4389,60 +5858,99 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: { type: "object", title: "UnVerifiedIdentity", properties: {} },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: { type: "object", title: "InCompliantTransfer", properties: {} },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["ComplianceError"] },
-						ComplianceError: { type: "object", title: "ComplianceError", properties: {} },
+						ComplianceError: {
+							type: "object",
+							title: "ComplianceError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["PausedToken"] },
-						PausedToken: { type: "object", title: "PausedToken", properties: {} },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: { type: "object", title: "InvalidAmount", properties: {} },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: { type: "object", title: "InvalidAddress", properties: {} },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -4484,8 +5992,17 @@ export const ENTRYPOINTS_UI: {
 		uiWidgets?: RegistryWidgetsType;
 	}) => React.JSX.Element;
 } = {
-	addAgent: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.AddAgentRequest, AddAgentRequestUi, types.AddAgentError, AddAgentErrorUi>({
+	addAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.AddAgentRequest,
+			AddAgentRequestUi,
+			types.AddAgentError,
+			AddAgentErrorUi
+		>({
 			...props,
 			method: client.addAgent,
 			requestJsonSchema: addAgentRequestJsonSchema,
@@ -4493,8 +6010,19 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: addAgentErrorJsonSchema,
 			errorSchemaBase64: types.addAgentErrorSchemaBase64,
 		}),
-	agents: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.AgentsResponse, AgentsResponseUi, types.AgentsError, AgentsErrorUi>({
+	agents: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.AgentsResponse,
+			AgentsResponseUi,
+			types.AgentsError,
+			AgentsErrorUi
+		>({
 			...props,
 			method: client.agents,
 			responseJsonSchema: agentsResponseJsonSchema,
@@ -4502,7 +6030,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: agentsErrorJsonSchema,
 			errorSchemaBase64: types.agentsErrorSchemaBase64,
 		}),
-	balanceOf: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	balanceOf: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.BalanceOfRequest,
 			BalanceOfRequestUi,
@@ -4520,7 +6052,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: balanceOfErrorJsonSchema,
 			errorSchemaBase64: types.balanceOfErrorSchemaBase64,
 		}),
-	balanceOfFrozen: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	balanceOfFrozen: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.BalanceOfFrozenRequest,
 			BalanceOfFrozenRequestUi,
@@ -4560,8 +6096,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: balanceOfUnFrozenErrorJsonSchema,
 			errorSchemaBase64: types.balanceOfUnFrozenErrorSchemaBase64,
 		}),
-	burn: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.BurnRequest, BurnRequestUi, types.BurnError, BurnErrorUi>({
+	burn: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.BurnRequest,
+			BurnRequestUi,
+			types.BurnError,
+			BurnErrorUi
+		>({
 			...props,
 			method: client.burn,
 			requestJsonSchema: burnRequestJsonSchema,
@@ -4569,14 +6114,29 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: burnErrorJsonSchema,
 			errorSchemaBase64: types.burnErrorSchemaBase64,
 		}),
-	compliance: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.ComplianceResponse, ComplianceResponseUi, never, never>({
+	compliance: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.ComplianceResponse,
+			ComplianceResponseUi,
+			never,
+			never
+		>({
 			...props,
 			method: client.compliance,
 			responseJsonSchema: complianceResponseJsonSchema,
 			responseSchemaBase64: types.complianceResponseSchemaBase64,
 		}),
-	forcedTransfer: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	forcedTransfer: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericUpdate<
 			types.ForcedTransferRequest,
 			ForcedTransferRequestUi,
@@ -4590,8 +6150,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: forcedTransferErrorJsonSchema,
 			errorSchemaBase64: types.forcedTransferErrorSchemaBase64,
 		}),
-	freeze: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.FreezeRequest, FreezeRequestUi, types.FreezeError, FreezeErrorUi>({
+	freeze: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.FreezeRequest,
+			FreezeRequestUi,
+			types.FreezeError,
+			FreezeErrorUi
+		>({
 			...props,
 			method: client.freeze,
 			requestJsonSchema: freezeRequestJsonSchema,
@@ -4599,14 +6168,29 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: freezeErrorJsonSchema,
 			errorSchemaBase64: types.freezeErrorSchemaBase64,
 		}),
-	identityRegistry: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.IdentityRegistryResponse, IdentityRegistryResponseUi, never, never>({
+	identityRegistry: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.IdentityRegistryResponse,
+			IdentityRegistryResponseUi,
+			never,
+			never
+		>({
 			...props,
 			method: client.identityRegistry,
 			responseJsonSchema: identityRegistryResponseJsonSchema,
 			responseSchemaBase64: types.identityRegistryResponseSchemaBase64,
 		}),
-	isAgent: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	isAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.IsAgentRequest,
 			IsAgentRequestUi,
@@ -4624,7 +6208,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: isAgentErrorJsonSchema,
 			errorSchemaBase64: types.isAgentErrorSchemaBase64,
 		}),
-	isPaused: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	isPaused: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.IsPausedRequest,
 			IsPausedRequestUi,
@@ -4642,8 +6230,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: isPausedErrorJsonSchema,
 			errorSchemaBase64: types.isPausedErrorSchemaBase64,
 		}),
-	mint: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.MintRequest, MintRequestUi, types.MintError, MintErrorUi>({
+	mint: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.MintRequest,
+			MintRequestUi,
+			types.MintError,
+			MintErrorUi
+		>({
 			...props,
 			method: client.mint,
 			requestJsonSchema: mintRequestJsonSchema,
@@ -4651,7 +6248,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: mintErrorJsonSchema,
 			errorSchemaBase64: types.mintErrorSchemaBase64,
 		}),
-	operatorOf: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	operatorOf: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.OperatorOfRequest,
 			OperatorOfRequestUi,
@@ -4669,8 +6270,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: operatorOfErrorJsonSchema,
 			errorSchemaBase64: types.operatorOfErrorSchemaBase64,
 		}),
-	pause: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.PauseRequest, PauseRequestUi, types.PauseError, PauseErrorUi>({
+	pause: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.PauseRequest,
+			PauseRequestUi,
+			types.PauseError,
+			PauseErrorUi
+		>({
 			...props,
 			method: client.pause,
 			requestJsonSchema: pauseRequestJsonSchema,
@@ -4678,8 +6288,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: pauseErrorJsonSchema,
 			errorSchemaBase64: types.pauseErrorSchemaBase64,
 		}),
-	recover: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.RecoverRequest, RecoverRequestUi, types.RecoverError, RecoverErrorUi>({
+	recover: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.RecoverRequest,
+			RecoverRequestUi,
+			types.RecoverError,
+			RecoverErrorUi
+		>({
 			...props,
 			method: client.recover,
 			requestJsonSchema: recoverRequestJsonSchema,
@@ -4687,7 +6306,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: recoverErrorJsonSchema,
 			errorSchemaBase64: types.recoverErrorSchemaBase64,
 		}),
-	recoveryAddress: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	recoveryAddress: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.RecoveryAddressRequest,
 			RecoveryAddressRequestUi,
@@ -4705,8 +6328,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: recoveryAddressErrorJsonSchema,
 			errorSchemaBase64: types.recoveryAddressErrorSchemaBase64,
 		}),
-	removeAgent: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.RemoveAgentRequest, RemoveAgentRequestUi, types.RemoveAgentError, RemoveAgentErrorUi>({
+	removeAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.RemoveAgentRequest,
+			RemoveAgentRequestUi,
+			types.RemoveAgentError,
+			RemoveAgentErrorUi
+		>({
 			...props,
 			method: client.removeAgent,
 			requestJsonSchema: removeAgentRequestJsonSchema,
@@ -4714,8 +6346,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: removeAgentErrorJsonSchema,
 			errorSchemaBase64: types.removeAgentErrorSchemaBase64,
 		}),
-	setCompliance: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.SetComplianceRequest, SetComplianceRequestUi, types.SetComplianceError, SetComplianceErrorUi>({
+	setCompliance: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.SetComplianceRequest,
+			SetComplianceRequestUi,
+			types.SetComplianceError,
+			SetComplianceErrorUi
+		>({
 			...props,
 			method: client.setCompliance,
 			requestJsonSchema: setComplianceRequestJsonSchema,
@@ -4741,7 +6382,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: setIdentityRegistryErrorJsonSchema,
 			errorSchemaBase64: types.setIdentityRegistryErrorSchemaBase64,
 		}),
-	supports: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	supports: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.SupportsRequest,
 			SupportsRequestUi,
@@ -4759,7 +6404,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: supportsErrorJsonSchema,
 			errorSchemaBase64: types.supportsErrorSchemaBase64,
 		}),
-	tokenMetadata: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	tokenMetadata: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.TokenMetadataRequest,
 			TokenMetadataRequestUi,
@@ -4777,8 +6426,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: tokenMetadataErrorJsonSchema,
 			errorSchemaBase64: types.tokenMetadataErrorSchemaBase64,
 		}),
-	transfer: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.TransferRequest, TransferRequestUi, types.TransferError, TransferErrorUi>({
+	transfer: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.TransferRequest,
+			TransferRequestUi,
+			types.TransferError,
+			TransferErrorUi
+		>({
 			...props,
 			method: client.transfer,
 			requestJsonSchema: transferRequestJsonSchema,
@@ -4786,8 +6444,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: transferErrorJsonSchema,
 			errorSchemaBase64: types.transferErrorSchemaBase64,
 		}),
-	unFreeze: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.UnFreezeRequest, UnFreezeRequestUi, types.UnFreezeError, UnFreezeErrorUi>({
+	unFreeze: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.UnFreezeRequest,
+			UnFreezeRequestUi,
+			types.UnFreezeError,
+			UnFreezeErrorUi
+		>({
 			...props,
 			method: client.unFreeze,
 			requestJsonSchema: unFreezeRequestJsonSchema,
@@ -4795,8 +6462,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: unFreezeErrorJsonSchema,
 			errorSchemaBase64: types.unFreezeErrorSchemaBase64,
 		}),
-	unPause: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.UnPauseRequest, UnPauseRequestUi, types.UnPauseError, UnPauseErrorUi>({
+	unPause: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.UnPauseRequest,
+			UnPauseRequestUi,
+			types.UnPauseError,
+			UnPauseErrorUi
+		>({
 			...props,
 			method: client.unPause,
 			requestJsonSchema: unPauseRequestJsonSchema,
@@ -4804,7 +6480,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: unPauseErrorJsonSchema,
 			errorSchemaBase64: types.unPauseErrorSchemaBase64,
 		}),
-	updateOperator: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	updateOperator: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericUpdate<
 			types.UpdateOperatorRequest,
 			UpdateOperatorRequestUi,

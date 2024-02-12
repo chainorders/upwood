@@ -1,5 +1,6 @@
 import { ContractAddress } from "@concordium/web-sdk";
 import { CONTRACT_NAME as rwaSecurityNftContractName } from "../../lib/rwaSecurityNft";
+import { CONTRACT_NAME as rwaSecuritySftContractName } from "../../lib/rwaSecuritySft";
 import { CONTRACT_NAME as rwaComplianceContractName } from "../../lib/rwaCompliance";
 import { CONTRACT_NAME as rwaComplianceModuleContractName } from "../../lib/rwaComplianceModuleAllowedNationalities";
 import { CONTRACT_NAME as rwaIdentityRegistryContractName } from "../../lib/rwaIdentityRegistry";
@@ -11,6 +12,7 @@ export const enum ContractType {
 	RwaCompliance = rwaComplianceContractName,
 	RwaComplianceModule = rwaComplianceModuleContractName,
 	RwaSecurityNft = rwaSecurityNftContractName,
+	RwaSecuritySft = rwaSecuritySftContractName,
 	RwaSponsor = rwaSponsorContractName,
 	RwaMarket = rwaMarketContractName,
 }

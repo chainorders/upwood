@@ -17,10 +17,24 @@ import {
 } from "@mui/material";
 import { MarketToken } from "../../lib/contracts-api-client";
 import { red } from "@mui/material/colors";
-import { ArrowBack, CurrencyExchange, ExpandCircleDown, SellSharp } from "@mui/icons-material";
-import { CIS2, CIS2Contract, ConcordiumGRPCClient, ContractAddress } from "@concordium/web-sdk";
+import {
+	ArrowBack,
+	CurrencyExchange,
+	ExpandCircleDown,
+	SellSharp,
+} from "@mui/icons-material";
+import {
+	CIS2,
+	CIS2Contract,
+	ConcordiumGRPCClient,
+	ContractAddress,
+} from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
-import { TokenMetadata, getTokenMetadata, toDataUrl } from "../../lib/cis2Utils";
+import {
+	TokenMetadata,
+	getTokenMetadata,
+	toDataUrl,
+} from "../../lib/cis2Utils";
 
 type Props = {
 	token: MarketToken;
@@ -46,10 +60,22 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 	}),
 }));
 export default function TokenDisplay(props: Props) {
-	const { grpcClient, token, disabled, onList, onWithdraw, onDeList, onExchange } = props;
-	const [metadataUrl, setMetadataUrl] = useState<CIS2.MetadataUrl | undefined>(undefined);
+	const {
+		grpcClient,
+		token,
+		disabled,
+		onList,
+		onWithdraw,
+		onDeList,
+		onExchange,
+	} = props;
+	const [metadataUrl, setMetadataUrl] = useState<CIS2.MetadataUrl | undefined>(
+		undefined,
+	);
 	const [loadingMetadataUrl, setLoadingMetadataUrl] = useState(false);
-	const [metadata, setMetadata] = useState<TokenMetadata | undefined>(undefined);
+	const [metadata, setMetadata] = useState<TokenMetadata | undefined>(
+		undefined,
+	);
 	const [loadingMetadata, setLoadingMetadata] = useState(false);
 	const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 	const [expanded, setExpanded] = useState(false);
@@ -66,7 +92,13 @@ export default function TokenDisplay(props: Props) {
 		setMetadata(undefined);
 		setImageUrl(undefined);
 		setLoadingMetadataUrl(true);
-		CIS2Contract.create(grpcClient, ContractAddress.create(token.token_contract.index, token.token_contract.subindex))
+		CIS2Contract.create(
+			grpcClient,
+			ContractAddress.create(
+				token.token_contract.index,
+				token.token_contract.subindex,
+			),
+		)
 			.then((client) => client.tokenMetadata(token.token_id))
 			.then((metadata) => setMetadataUrl(metadata))
 			.catch((error) => setError(error.message))
@@ -110,17 +142,33 @@ export default function TokenDisplay(props: Props) {
 					</Avatar>
 				}
 			/>
-			{imageUrl && <CardMedia component="img" alt={`token: ${token.token_id} Image`} image={imageUrl} />}
-			{loadingMetadata || loadingMetadataUrl ? <Skeleton variant="rectangular" width="100%" height={118} /> : <></>}
+			{imageUrl && (
+				<CardMedia
+					component="img"
+					alt={`token: ${token.token_id} Image`}
+					image={imageUrl}
+				/>
+			)}
+			{loadingMetadata || loadingMetadataUrl ? (
+				<Skeleton variant="rectangular" width="100%" height={118} />
+			) : (
+				<></>
+			)}
 
 			<Collapse in={expanded} timeout="auto" unmountOnExit>
 				<CardContent>
 					<Stack spacing={0}>
-						{metadata?.description && <Typography paragraph>{metadata.description}</Typography>}
+						{metadata?.description && (
+							<Typography paragraph>{metadata.description}</Typography>
+						)}
 						{metadata?.attributes && metadata?.attributes.length > 0 && (
 							<>
 								{metadata.attributes.map((attribute, index) => (
-									<Chip key={index} label={`${attribute.name}:${attribute.value}`} variant="outlined" />
+									<Chip
+										key={index}
+										label={`${attribute.name}:${attribute.value}`}
+										variant="outlined"
+									/>
 								))}
 							</>
 						)}
@@ -135,7 +183,8 @@ export default function TokenDisplay(props: Props) {
 						variant="text"
 						title="Withdraw"
 						disabled={disabled}
-						onClick={() => onWithdraw!(token)}>
+						onClick={() => onWithdraw!(token)}
+					>
 						<ArrowBack sx={{ pr: 1 }} /> Return
 					</Button>
 				)}
@@ -146,7 +195,8 @@ export default function TokenDisplay(props: Props) {
 						title="List"
 						color="primary"
 						disabled={disabled}
-						onClick={() => onList!(token)}>
+						onClick={() => onList!(token)}
+					>
 						<SellSharp sx={{ pr: 1 }} /> List
 					</Button>
 				)}
@@ -157,7 +207,8 @@ export default function TokenDisplay(props: Props) {
 						variant="text"
 						title="De List"
 						disabled={disabled}
-						onClick={() => onDeList!(token)}>
+						onClick={() => onDeList!(token)}
+					>
 						<ArrowBack sx={{ pr: 1 }} /> De List
 					</Button>
 				)}
@@ -170,11 +221,17 @@ export default function TokenDisplay(props: Props) {
 						title="Exchange"
 						hidden={!onExchange}
 						disabled={disabled}
-						onClick={() => onExchange!(token)}>
+						onClick={() => onExchange!(token)}
+					>
 						<CurrencyExchange sx={{ pr: 1 }} /> Buy
 					</Button>
 				)}
-				<ExpandMore expand={expanded} onClick={handleExpandClick} aria-expanded={expanded} aria-label="show more">
+				<ExpandMore
+					expand={expanded}
+					onClick={handleExpandClick}
+					aria-expanded={expanded}
+					aria-label="show more"
+				>
 					<ExpandCircleDown />
 				</ExpandMore>
 			</CardActions>

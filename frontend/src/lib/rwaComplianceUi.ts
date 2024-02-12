@@ -13,7 +13,10 @@ export const initRequestJsonSchema: RJSFSchema = {
 			items: {
 				type: "object",
 				title: "",
-				properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+				properties: {
+					index: { type: "integer", minimum: 0 },
+					subindex: { type: "integer", minimum: 0 },
+				},
 			},
 			title: "Modules",
 		},
@@ -48,36 +51,59 @@ export const initErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -115,7 +141,10 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -156,36 +185,59 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -203,7 +255,10 @@ export type AddAgentErrorUi =
 export const addModuleRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Module Request",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type AddModuleRequestUi = { index: number; subindex: number };
 export const addModuleErrorJsonSchema: RJSFSchema = {
@@ -234,36 +289,59 @@ export const addModuleErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -291,7 +369,10 @@ export const agentsResponseJsonSchema: RJSFSchema = {
 					{
 						properties: {
 							tag: { enum: ["Account"] },
-							Account: { type: "array", items: [{ type: "string", title: "" }] },
+							Account: {
+								type: "array",
+								items: [{ type: "string", title: "" }],
+							},
 						},
 					},
 					{
@@ -303,7 +384,10 @@ export const agentsResponseJsonSchema: RJSFSchema = {
 									{
 										type: "object",
 										title: "",
-										properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+										properties: {
+											index: { type: "integer", minimum: 0 },
+											subindex: { type: "integer", minimum: 0 },
+										},
 									},
 								],
 							},
@@ -346,36 +430,59 @@ export const agentsErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -402,7 +509,10 @@ export const burnedRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 			},
 		},
@@ -417,7 +527,10 @@ export const burnedRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -429,7 +542,10 @@ export const burnedRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -444,7 +560,9 @@ export const burnedRequestJsonSchema: RJSFSchema = {
 };
 export type BurnedRequestUi = {
 	token_id: { token_id: string; contract: { index: number; subindex: number } };
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	amount: string;
 };
 export const burnedErrorJsonSchema: RJSFSchema = {
@@ -475,36 +593,59 @@ export const burnedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -531,7 +672,10 @@ export const canTransferRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 			},
 		},
@@ -546,7 +690,10 @@ export const canTransferRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -558,7 +705,10 @@ export const canTransferRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -573,10 +723,15 @@ export const canTransferRequestJsonSchema: RJSFSchema = {
 };
 export type CanTransferRequestUi = {
 	token_id: { token_id: string; contract: { index: number; subindex: number } };
-	to: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	to:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	amount: string;
 };
-export const canTransferResponseJsonSchema: RJSFSchema = { type: "boolean", title: "Can Transfer Response" };
+export const canTransferResponseJsonSchema: RJSFSchema = {
+	type: "boolean",
+	title: "Can Transfer Response",
+};
 export type CanTransferResponseUi = boolean;
 export const canTransferErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -606,36 +761,59 @@ export const canTransferErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -673,7 +851,10 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -686,7 +867,10 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 export type IsAgentRequestUi =
 	| { tag: "Account"; Account: [string] }
 	| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-export const isAgentResponseJsonSchema: RJSFSchema = { type: "boolean", title: "Is Agent Response" };
+export const isAgentResponseJsonSchema: RJSFSchema = {
+	type: "boolean",
+	title: "Is Agent Response",
+};
 export type IsAgentResponseUi = boolean;
 export const isAgentErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -716,36 +900,59 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -772,7 +979,10 @@ export const mintedRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 			},
 		},
@@ -787,7 +997,10 @@ export const mintedRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -799,7 +1012,10 @@ export const mintedRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -814,7 +1030,9 @@ export const mintedRequestJsonSchema: RJSFSchema = {
 };
 export type MintedRequestUi = {
 	token_id: { token_id: string; contract: { index: number; subindex: number } };
-	owner: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	owner:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	amount: string;
 };
 export const mintedErrorJsonSchema: RJSFSchema = {
@@ -845,36 +1063,59 @@ export const mintedErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -894,7 +1135,10 @@ export const modulesResponseJsonSchema: RJSFSchema = {
 	items: {
 		type: "object",
 		title: "",
-		properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+		properties: {
+			index: { type: "integer", minimum: 0 },
+			subindex: { type: "integer", minimum: 0 },
+		},
 	},
 	title: "Modules Response",
 };
@@ -922,7 +1166,10 @@ export const removeAgentRequestJsonSchema: RJSFSchema = {
 								{
 									type: "object",
 									title: "",
-									properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+									properties: {
+										index: { type: "integer", minimum: 0 },
+										subindex: { type: "integer", minimum: 0 },
+									},
 								},
 							],
 						},
@@ -963,36 +1210,59 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1010,7 +1280,10 @@ export type RemoveAgentErrorUi =
 export const removeModuleRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Remove Module Request",
-	properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
 };
 export type RemoveModuleRequestUi = { index: number; subindex: number };
 export const removeModuleErrorJsonSchema: RJSFSchema = {
@@ -1041,36 +1314,59 @@ export const removeModuleErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1096,7 +1392,9 @@ export const supportsResponseJsonSchema: RJSFSchema = {
 	items: {
 		type: "object",
 		title: "",
-		properties: { tag: { type: "string", enum: ["NoSupport", "Support", "SupportBy"] } },
+		properties: {
+			tag: { type: "string", enum: ["NoSupport", "Support", "SupportBy"] },
+		},
 		required: ["tag"],
 		dependencies: {
 			tag: {
@@ -1107,7 +1405,12 @@ export const supportsResponseJsonSchema: RJSFSchema = {
 							NoSupport: { type: "object", title: "NoSupport", properties: {} },
 						},
 					},
-					{ properties: { tag: { enum: ["Support"] }, Support: { type: "object", title: "Support", properties: {} } } },
+					{
+						properties: {
+							tag: { enum: ["Support"] },
+							Support: { type: "object", title: "Support", properties: {} },
+						},
+					},
 					{
 						properties: {
 							tag: { enum: ["SupportBy"] },
@@ -1119,7 +1422,10 @@ export const supportsResponseJsonSchema: RJSFSchema = {
 										items: {
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 										title: "",
 									},
@@ -1165,36 +1471,59 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1221,7 +1550,10 @@ export const transferredRequestJsonSchema: RJSFSchema = {
 				contract: {
 					type: "object",
 					title: "Contract",
-					properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
 				},
 			},
 		},
@@ -1236,7 +1568,10 @@ export const transferredRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -1248,7 +1583,10 @@ export const transferredRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -1269,7 +1607,10 @@ export const transferredRequestJsonSchema: RJSFSchema = {
 						{
 							properties: {
 								tag: { enum: ["Account"] },
-								Account: { type: "array", items: [{ type: "string", title: "" }] },
+								Account: {
+									type: "array",
+									items: [{ type: "string", title: "" }],
+								},
 							},
 						},
 						{
@@ -1281,7 +1622,10 @@ export const transferredRequestJsonSchema: RJSFSchema = {
 										{
 											type: "object",
 											title: "",
-											properties: { index: { type: "integer", minimum: 0 }, subindex: { type: "integer", minimum: 0 } },
+											properties: {
+												index: { type: "integer", minimum: 0 },
+												subindex: { type: "integer", minimum: 0 },
+											},
 										},
 									],
 								},
@@ -1296,8 +1640,12 @@ export const transferredRequestJsonSchema: RJSFSchema = {
 };
 export type TransferredRequestUi = {
 	token_id: { token_id: string; contract: { index: number; subindex: number } };
-	from: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	to: { tag: "Account"; Account: [string] } | { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	from:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	to:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 	amount: string;
 };
 export const transferredErrorJsonSchema: RJSFSchema = {
@@ -1328,36 +1676,59 @@ export const transferredErrorJsonSchema: RJSFSchema = {
 					},
 				},
 				{
-					properties: { tag: { enum: ["LogError"] }, LogError: { type: "object", title: "LogError", properties: {} } },
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
 				},
 				{
 					properties: {
 						tag: { enum: ["InvalidModule"] },
-						InvalidModule: { type: "object", title: "InvalidModule", properties: {} },
+						InvalidModule: {
+							type: "object",
+							title: "InvalidModule",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["CallContractError"] },
-						CallContractError: { type: "object", title: "CallContractError", properties: {} },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["Unauthorized"] },
-						Unauthorized: { type: "object", title: "Unauthorized", properties: {} },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentAlreadyExists"] },
-						AgentAlreadyExists: { type: "object", title: "AgentAlreadyExists", properties: {} },
+						AgentAlreadyExists: {
+							type: "object",
+							title: "AgentAlreadyExists",
+							properties: {},
+						},
 					},
 				},
 				{
 					properties: {
 						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: { type: "object", title: "AgentNotFound", properties: {} },
+						AgentNotFound: {
+							type: "object",
+							title: "AgentNotFound",
+							properties: {},
+						},
 					},
 				},
 			],
@@ -1392,8 +1763,17 @@ export const ENTRYPOINTS_UI: {
 		uiWidgets?: RegistryWidgetsType;
 	}) => React.JSX.Element;
 } = {
-	addAgent: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.AddAgentRequest, AddAgentRequestUi, types.AddAgentError, AddAgentErrorUi>({
+	addAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.AddAgentRequest,
+			AddAgentRequestUi,
+			types.AddAgentError,
+			AddAgentErrorUi
+		>({
 			...props,
 			method: client.addAgent,
 			requestJsonSchema: addAgentRequestJsonSchema,
@@ -1401,8 +1781,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: addAgentErrorJsonSchema,
 			errorSchemaBase64: types.addAgentErrorSchemaBase64,
 		}),
-	addModule: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.AddModuleRequest, AddModuleRequestUi, types.AddModuleError, AddModuleErrorUi>({
+	addModule: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.AddModuleRequest,
+			AddModuleRequestUi,
+			types.AddModuleError,
+			AddModuleErrorUi
+		>({
 			...props,
 			method: client.addModule,
 			requestJsonSchema: addModuleRequestJsonSchema,
@@ -1410,8 +1799,19 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: addModuleErrorJsonSchema,
 			errorSchemaBase64: types.addModuleErrorSchemaBase64,
 		}),
-	agents: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.AgentsResponse, AgentsResponseUi, types.AgentsError, AgentsErrorUi>({
+	agents: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.AgentsResponse,
+			AgentsResponseUi,
+			types.AgentsError,
+			AgentsErrorUi
+		>({
 			...props,
 			method: client.agents,
 			responseJsonSchema: agentsResponseJsonSchema,
@@ -1419,8 +1819,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: agentsErrorJsonSchema,
 			errorSchemaBase64: types.agentsErrorSchemaBase64,
 		}),
-	burned: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.BurnedRequest, BurnedRequestUi, types.BurnedError, BurnedErrorUi>({
+	burned: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.BurnedRequest,
+			BurnedRequestUi,
+			types.BurnedError,
+			BurnedErrorUi
+		>({
 			...props,
 			method: client.burned,
 			requestJsonSchema: burnedRequestJsonSchema,
@@ -1428,7 +1837,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: burnedErrorJsonSchema,
 			errorSchemaBase64: types.burnedErrorSchemaBase64,
 		}),
-	canTransfer: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	canTransfer: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.CanTransferRequest,
 			CanTransferRequestUi,
@@ -1446,7 +1859,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: canTransferErrorJsonSchema,
 			errorSchemaBase64: types.canTransferErrorSchemaBase64,
 		}),
-	isAgent: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	isAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.IsAgentRequest,
 			IsAgentRequestUi,
@@ -1464,8 +1881,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: isAgentErrorJsonSchema,
 			errorSchemaBase64: types.isAgentErrorSchemaBase64,
 		}),
-	minted: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.MintedRequest, MintedRequestUi, types.MintedError, MintedErrorUi>({
+	minted: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.MintedRequest,
+			MintedRequestUi,
+			types.MintedError,
+			MintedErrorUi
+		>({
 			...props,
 			method: client.minted,
 			requestJsonSchema: mintedRequestJsonSchema,
@@ -1473,15 +1899,35 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: mintedErrorJsonSchema,
 			errorSchemaBase64: types.mintedErrorSchemaBase64,
 		}),
-	modules: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericInvoke<never, never, types.ModulesResponse, ModulesResponseUi, never, never>({
+	modules: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			never,
+			never,
+			types.ModulesResponse,
+			ModulesResponseUi,
+			never,
+			never
+		>({
 			...props,
 			method: client.modules,
 			responseJsonSchema: modulesResponseJsonSchema,
 			responseSchemaBase64: types.modulesResponseSchemaBase64,
 		}),
-	removeAgent: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.RemoveAgentRequest, RemoveAgentRequestUi, types.RemoveAgentError, RemoveAgentErrorUi>({
+	removeAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.RemoveAgentRequest,
+			RemoveAgentRequestUi,
+			types.RemoveAgentError,
+			RemoveAgentErrorUi
+		>({
 			...props,
 			method: client.removeAgent,
 			requestJsonSchema: removeAgentRequestJsonSchema,
@@ -1489,8 +1935,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: removeAgentErrorJsonSchema,
 			errorSchemaBase64: types.removeAgentErrorSchemaBase64,
 		}),
-	removeModule: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.RemoveModuleRequest, RemoveModuleRequestUi, types.RemoveModuleError, RemoveModuleErrorUi>({
+	removeModule: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.RemoveModuleRequest,
+			RemoveModuleRequestUi,
+			types.RemoveModuleError,
+			RemoveModuleErrorUi
+		>({
 			...props,
 			method: client.removeModule,
 			requestJsonSchema: removeModuleRequestJsonSchema,
@@ -1498,7 +1953,11 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: removeModuleErrorJsonSchema,
 			errorSchemaBase64: types.removeModuleErrorSchemaBase64,
 		}),
-	supports: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
+	supports: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
 		GenericInvoke<
 			types.SupportsRequest,
 			SupportsRequestUi,
@@ -1516,8 +1975,17 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: supportsErrorJsonSchema,
 			errorSchemaBase64: types.supportsErrorSchemaBase64,
 		}),
-	transferred: (props: { contract: ContractAddress.Type; uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }) =>
-		GenericUpdate<types.TransferredRequest, TransferredRequestUi, types.TransferredError, TransferredErrorUi>({
+	transferred: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.TransferredRequest,
+			TransferredRequestUi,
+			types.TransferredError,
+			TransferredErrorUi
+		>({
 			...props,
 			method: client.transferred,
 			requestJsonSchema: transferredRequestJsonSchema,

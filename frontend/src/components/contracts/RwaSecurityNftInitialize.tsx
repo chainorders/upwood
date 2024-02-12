@@ -1,8 +1,21 @@
-import { BlockItemSummaryInBlock, ContractAddress, RejectedInit } from "@concordium/web-sdk";
+import {
+	BlockItemSummaryInBlock,
+	ContractAddress,
+	RejectedInit,
+} from "@concordium/web-sdk";
 import { Contract, ContractType } from "./ContractTypes";
 import { useState } from "react";
 import { parseContractAddress } from "../../lib/common/common";
-import { List, ListItem, ListItemButton, ListItemText, Paper, Stack, TextField, Typography } from "@mui/material";
+import {
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemText,
+	Paper,
+	Stack,
+	TextField,
+	Typography,
+} from "@mui/material";
 import { useWallet } from "../WalletProvider";
 import ErrorDisplay from "../common/ErrorDisplay";
 import SendTransactionButton from "../common/SendTransactionButton";
@@ -68,7 +81,11 @@ export default function RwaSecurityNftInitialize(props: {
 				<List>
 					{props.identityRegistries.map((contract, i) => (
 						<ListItem key={i}>
-							<ListItemButton onClick={() => setFormValue("identityRegistry", contract.address)}>
+							<ListItemButton
+								onClick={() =>
+									setFormValue("identityRegistry", contract.address)
+								}
+							>
 								<ListItemText
 									primary={contract.name}
 									secondary={CCDScanContractLink({
@@ -92,7 +109,11 @@ export default function RwaSecurityNftInitialize(props: {
 				<List>
 					{props.complianceContracts.map((contract, i) => (
 						<ListItem key={i}>
-							<ListItemButton onClick={() => setFormValue("complianceContract", contract.address)}>
+							<ListItemButton
+								onClick={() =>
+									setFormValue("complianceContract", contract.address)
+								}
+							>
 								<ListItemText
 									primary={contract.name}
 									secondary={CCDScanContractLink({
@@ -126,8 +147,12 @@ export default function RwaSecurityNftInitialize(props: {
 					})
 				}
 				onFinalized={handleSuccess}
-				onFinalizedError={(r) => rwaSecurityNft.init.parseError(r as RejectedInit) || "Unknown Finalized error"}
-				disabled={!isFormValid()}>
+				onFinalizedError={(r) =>
+					rwaSecurityNft.init.parseError(r as RejectedInit) ||
+					"Unknown Finalized error"
+				}
+				disabled={!isFormValid()}
+			>
 				Initialize Security NFT
 			</SendTransactionButton>
 			<ErrorDisplay text={error} />

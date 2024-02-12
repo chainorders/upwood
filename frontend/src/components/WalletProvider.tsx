@@ -1,4 +1,8 @@
-import { EventType, WalletApi, detectConcordiumProvider } from "@concordium/browser-wallet-api-helpers";
+import {
+	EventType,
+	WalletApi,
+	detectConcordiumProvider,
+} from "@concordium/browser-wallet-api-helpers";
 import { AccountAddress } from "@concordium/web-sdk";
 import { Paper, Typography } from "@mui/material";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -21,7 +25,11 @@ const createWalletContext = async (): Promise<WalletContext> => {
 		throw new Error("No account selected");
 	}
 
-	return { provider, currentAccount: AccountAddress.fromBase58(currentAccount), accounts };
+	return {
+		provider,
+		currentAccount: AccountAddress.fromBase58(currentAccount),
+		accounts,
+	};
 };
 const defaultWalletContext: WalletContext = {};
 const WalletContext = createContext<WalletContext>(defaultWalletContext);
@@ -29,7 +37,11 @@ export const useWallet = () => {
 	return useContext(WalletContext);
 };
 
-export default function ConcordiumWalletProvider({ children }: { children: React.ReactNode }): React.ReactNode {
+export default function ConcordiumWalletProvider({
+	children,
+}: {
+	children: React.ReactNode;
+}): React.ReactNode {
 	const [wallet, setWallet] = useState<WalletContext>(defaultWalletContext);
 	const [error, setError] = useState<Error | undefined>();
 	const [loading, setLoading] = useState<boolean>(true);
@@ -43,19 +55,29 @@ export default function ConcordiumWalletProvider({ children }: { children: React
 
 				context.provider?.addListener(EventType.AccountChanged, (account) => {
 					setWallet((wallet) => {
-						return { ...wallet, currentAccount: AccountAddress.fromBase58(account), account };
-					});
-				});
-
-				context.provider?.addListener(EventType.AccountDisconnected, (account) => {
-					setWallet((wallet) => {
 						return {
 							...wallet,
-							currentAccount: wallet.currentAccount?.address === account ? undefined : wallet.currentAccount,
-							accounts: wallet.accounts?.filter((a) => a !== account),
+							currentAccount: AccountAddress.fromBase58(account),
+							account,
 						};
 					});
 				});
+
+				context.provider?.addListener(
+					EventType.AccountDisconnected,
+					(account) => {
+						setWallet((wallet) => {
+							return {
+								...wallet,
+								currentAccount:
+									wallet.currentAccount?.address === account
+										? undefined
+										: wallet.currentAccount,
+								accounts: wallet.accounts?.filter((a) => a !== account),
+							};
+						});
+					},
+				);
 			})
 			.catch(setError)
 			.finally(() => setLoading(false));
@@ -73,7 +95,9 @@ export default function ConcordiumWalletProvider({ children }: { children: React
 		console.error(error);
 		return (
 			<Paper>
-				<Typography variant="h2">Error connecting to Concordium Wallet</Typography>
+				<Typography variant="h2">
+					Error connecting to Concordium Wallet
+				</Typography>
 				<Typography variant="body1" color="error">
 					{error.message}
 				</Typography>
@@ -97,5 +121,7 @@ export default function ConcordiumWalletProvider({ children }: { children: React
 		);
 	}
 
-	return <WalletContext.Provider value={wallet}>{children}</WalletContext.Provider>;
+	return (
+		<WalletContext.Provider value={wallet}>{children}</WalletContext.Provider>
+	);
 }

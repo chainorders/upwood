@@ -9,6 +9,7 @@
 		"contracts/sponsor",
 		"contracts/identity-registry",
 		"contracts/security-nft",
+		"contracts/security-sft",
 		"contracts/market",
 		"contracts/integration-tests",
 		"frontend",

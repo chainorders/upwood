@@ -7,30 +7,18 @@ use concordium_rwa_utils::{
     holders_state::{HolderState, IHoldersState},
     sponsors_state::ISponsorsState,
     tokens_security_state::{ITokensSecurityState, TokenSecurityState},
-    tokens_state::{ITokensState, TokenState},
+    tokens_state::{ITokensState, TokenStateResult},
 };
 use concordium_std::*;
 
 use super::types::{TokenAmount, TokenId};
-
-// pub enum StateError {
-//     TokenStateError(TokenStateError),
-//     HolderStateError(HolderStateError),
-// }
-// impl From<TokenStateError> for StateError {
-//     fn from(e: TokenStateError) -> Self { StateError::TokenStateError(e) }
-// }
-
-// impl From<HolderStateError> for StateError {
-//     fn from(e: HolderStateError) -> Self { StateError::HolderStateError(e) }
-// }
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 /// Represents the state of the security NFT contract.
 pub struct State<S = StateApi> {
     /// A map that stores the state of each token in the contract.
-    tokens:                 StateMap<TokenId, TokenState, S>,
+    tokens:                 StateMap<TokenId, MetadataUrl, S>,
     /// A map that stores the security state of each token in the contract.
     tokens_security_state:  StateMap<TokenId, TokenSecurityState, S>,
     /// The security state of each holder's address for each token.
@@ -91,23 +79,25 @@ impl State {
         state
     }
 
-    /// Returns the token ID.
-    ///
-    /// # Returns
-    ///
-    /// Returns the `TokenId`.
-    pub fn get_token_id(&self) -> TokenId { self.token_id }
+    pub fn generate_add_token(&mut self, metadata_url: MetadataUrl) -> TokenStateResult<TokenId> {
+        let token_id = self.get_and_increment_token_id();
+        self.add_token(token_id, metadata_url)?;
+        Ok(token_id)
+    }
 
-    /// Increments the token ID.
-    pub fn increment_token_id(&mut self) { self.token_id.0 += 1; }
+    fn get_and_increment_token_id(&mut self) -> TokenId {
+        let token_id = self.token_id;
+        self.token_id.0 += 1;
+        token_id
+    }
 }
 
 pub type HolderStateT = HolderState<TokenId, TokenAmount, StateApi>;
 
-impl ITokensState<TokenId, StateApi> for State {
-    fn tokens(&self) -> &StateMap<TokenId, TokenState, StateApi> { &self.tokens }
+impl ITokensState<TokenId, MetadataUrl, StateApi> for State {
+    fn tokens(&self) -> &StateMap<TokenId, MetadataUrl, StateApi> { &self.tokens }
 
-    fn tokens_mut(&mut self) -> &mut StateMap<TokenId, TokenState, StateApi> { &mut self.tokens }
+    fn tokens_mut(&mut self) -> &mut StateMap<TokenId, MetadataUrl, StateApi> { &mut self.tokens }
 }
 impl IHoldersState<TokenId, TokenAmount, StateApi> for State {
     fn holders(&self) -> &StateMap<Address, HolderStateT, StateApi> { &self.holders }
@@ -127,7 +117,7 @@ impl IHoldersSecurityState<TokenId, TokenAmount, StateApi> for State {
         &mut self.holders_security_state
     }
 }
-impl ITokensSecurityState<TokenId, StateApi> for State {
+impl ITokensSecurityState<TokenId, MetadataUrl, StateApi> for State {
     fn security_tokens(&self) -> &StateMap<TokenId, TokenSecurityState, StateApi> {
         &self.tokens_security_state
     }
@@ -136,8 +126,8 @@ impl ITokensSecurityState<TokenId, StateApi> for State {
         &mut self.tokens_security_state
     }
 }
-impl ICis2State<TokenId, TokenAmount, StateApi> for State {}
-impl ICis2SecurityState<TokenId, TokenAmount, StateApi> for State {}
+impl ICis2State<TokenId, TokenAmount, MetadataUrl, StateApi> for State {}
+impl ICis2SecurityState<TokenId, TokenAmount, MetadataUrl, StateApi> for State {}
 impl ISponsorsState<StateApi> for State {
     fn sponsors(&self) -> &StateSet<ContractAddress, StateApi> { &self.sponsors }
 

@@ -4,13 +4,18 @@ import { ListRequest } from "../../lib/rwaMarket";
 export type Flatten<T> = T extends unknown[] ? T[number] : T;
 export type ContractExchangeRates = ListRequest["exchange_rates"];
 export type ContractExchangeRate = Flatten<ContractExchangeRates>;
-export const toContractRate = (rate: Rate): { numerator: bigint; denominator: bigint } => {
+export const toContractRate = (
+	rate: Rate,
+): { numerator: bigint; denominator: bigint } => {
 	return {
 		numerator: BigInt(rate.numerator),
 		denominator: BigInt(rate.denominator),
 	};
 };
-export const fromContractRate = (rate: { numerator: bigint | number; denominator: bigint | number }): Rate => {
+export const fromContractRate = (rate: {
+	numerator: bigint | number;
+	denominator: bigint | number;
+}): Rate => {
 	return {
 		numerator: BigInt(rate.numerator),
 		denominator: BigInt(rate.denominator),
@@ -18,8 +23,18 @@ export const fromContractRate = (rate: { numerator: bigint | number; denominator
 };
 
 export type Rate = { numerator: bigint; denominator: bigint };
-export type Cis2PaymentToken = { type: "Cis2"; id: string; contract: ContractAddress.Type; rate?: Rate };
-export type CcdPaymentToken = { type: "Ccd"; id?: undefined; contract?: undefined; rate?: Rate };
+export type Cis2PaymentToken = {
+	type: "Cis2";
+	id: string;
+	contract: ContractAddress.Type;
+	rate?: Rate;
+};
+export type CcdPaymentToken = {
+	type: "Ccd";
+	id?: undefined;
+	contract?: undefined;
+	rate?: Rate;
+};
 export type PaymentToken = Cis2PaymentToken | CcdPaymentToken;
 
 export const arePaymentTokensEqual = (a: PaymentToken, b?: PaymentToken) => {
@@ -56,7 +71,9 @@ export const arePaymentTokensEqual = (a: PaymentToken, b?: PaymentToken) => {
 		);
 	}
 };
-export const toContractExchangeRate = (token: PaymentToken): ContractExchangeRate | undefined => {
+export const toContractExchangeRate = (
+	token: PaymentToken,
+): ContractExchangeRate | undefined => {
 	if (!token.rate) {
 		return undefined;
 	}
@@ -69,7 +86,10 @@ export const toContractExchangeRate = (token: PaymentToken): ContractExchangeRat
 				Cis2: [
 					[
 						{
-							contract: { index: Number(token.contract.index), subindex: Number(token.contract.subindex) },
+							contract: {
+								index: Number(token.contract.index),
+								subindex: Number(token.contract.subindex),
+							},
 							id: token.id,
 						},
 						toContractRate(token.rate),
@@ -78,7 +98,9 @@ export const toContractExchangeRate = (token: PaymentToken): ContractExchangeRat
 			};
 	}
 };
-export const fromContractExchangeRate = (token: ContractExchangeRate): PaymentToken | undefined => {
+export const fromContractExchangeRate = (
+	token: ContractExchangeRate,
+): PaymentToken | undefined => {
 	if ("Ccd" in token) {
 		return { type: "Ccd", rate: fromContractRate(token.Ccd[0]) };
 	} else if ("Cis2" in token) {
@@ -86,7 +108,10 @@ export const fromContractExchangeRate = (token: ContractExchangeRate): PaymentTo
 			type: "Cis2",
 			rate: fromContractRate(token.Cis2[0][1]),
 			id: token.Cis2[0][0].id,
-			contract: ContractAddress.create(token.Cis2[0][0].contract.index, token.Cis2[0][0].contract.subindex),
+			contract: ContractAddress.create(
+				token.Cis2[0][0].contract.index,
+				token.Cis2[0][0].contract.subindex,
+			),
 		};
 	}
 };

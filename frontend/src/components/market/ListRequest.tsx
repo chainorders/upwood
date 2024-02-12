@@ -19,33 +19,62 @@ import { useNodeClient } from "../NodeClientProvider";
 import { Cancel, CheckCircle, Token } from "@mui/icons-material";
 import ErrorDisplay from "../common/ErrorDisplay";
 import { useNavigate } from "react-router-dom";
-import { PaymentToken, Rate, fromContractExchangeRate, toContractExchangeRate } from "./types";
+import {
+	PaymentToken,
+	Rate,
+	fromContractExchangeRate,
+	toContractExchangeRate,
+} from "./types";
 import SendTransactionButton from "../common/SendTransactionButton";
+
+export type NonListedToken = {
+	id: string;
+	contract: ContractAddress.Type;
+	amount: number;
+};
 
 type Props = {
 	contract: ContractAddress.Type;
 	listed?: GetListedResponse;
+	nonListed?: NonListedToken;
 	onSendTransaction: (request: ListRequest) => Promise<string>;
 	currentAccount: AccountAddress.Type;
 };
 export default function ListRequestForm(props: Props) {
-	const { contract, listed, onSendTransaction, currentAccount } = props;
+	const { contract, listed, onSendTransaction, currentAccount, nonListed } =
+		props;
 	const { provider: grpcClient } = useNodeClient();
 	const navigate = useNavigate();
 
 	const [loadingAllowedToList, setLoadingAllowedToList] = useState(false);
 	const [errorAllowedToList, setErrorAllowedToList] = useState("");
-	const [allowedToListContracts, setAllowedToListContracts] = useState<ContractAddress.Type[]>([]);
-	const [listTokenContract, setListTokenContract] = useState<ContractAddress.Type | undefined>(
-		listed && ContractAddress.create(listed.token_id.contract.index, listed.token_id.contract.subindex)
+	const [allowedToListContracts, setAllowedToListContracts] = useState<
+		ContractAddress.Type[]
+	>([]);
+	const [listTokenContract, setListTokenContract] = useState<
+		ContractAddress.Type | undefined
+	>(
+		(listed &&
+			ContractAddress.create(
+				listed.token_id.contract.index,
+				listed.token_id.contract.subindex,
+			)) ||
+			nonListed?.contract ||
+			undefined,
 	);
-	const [listTokenId, setListTokenId] = useState(listed?.token_id.id || "");
-	const [listAmount, setListAmount] = useState(Number(listed?.supply) || 0);
+	const [listTokenId, setListTokenId] = useState(
+		listed?.token_id.id || nonListed?.id || "",
+	);
+	const [listAmount, setListAmount] = useState(
+		Number(listed?.supply || nonListed?.amount) || 0,
+	);
 
 	const [loadingPaymentTokens, setLoadingPaymentTokens] = useState(false);
 	const [errorPaymentTokens, setErrorPaymentTokens] = useState("");
 	const [paymentTokens, setPaymentTokens] = useState<Array<PaymentToken>>([]);
-	const [selectedPaymentToken, setSelectedPaymentToken] = useState<PaymentToken | undefined>(undefined);
+	const [selectedPaymentToken, setSelectedPaymentToken] = useState<
+		PaymentToken | undefined
+	>(undefined);
 
 	const updatePaymentTokenRate = (token: PaymentToken, rate?: Rate) => {
 		const paymentTokenIndex = paymentTokens.findIndex(
@@ -53,7 +82,7 @@ export default function ListRequestForm(props: Props) {
 				t.type === token.type &&
 				t.id === token.id &&
 				t.contract?.index === token.contract?.index &&
-				t.contract?.subindex === token.contract?.subindex
+				t.contract?.subindex === token.contract?.subindex,
 		);
 
 		if (paymentTokenIndex > -1) {
@@ -75,7 +104,9 @@ export default function ListRequestForm(props: Props) {
 				return rwaMarket.allowedToList.parseReturnValue(response.returnValue!)!;
 			})
 			.then((contracts) => {
-				const parsedContracts = contracts.map((c) => ContractAddress.create(c.index, c.subindex));
+				const parsedContracts = contracts.map((c) =>
+					ContractAddress.create(c.index, c.subindex),
+				);
 				setAllowedToListContracts(parsedContracts);
 				if (parsedContracts.length > 0) {
 					setListTokenContract(parsedContracts[0]);
@@ -103,9 +134,12 @@ export default function ListRequestForm(props: Props) {
 						({
 							type: "Cis2",
 							id: t.id,
-							contract: ContractAddress.create(t.contract.index, t.contract.subindex),
-						}) as PaymentToken
-				)
+							contract: ContractAddress.create(
+								t.contract.index,
+								t.contract.subindex,
+							),
+						}) as PaymentToken,
+				),
 			)
 			.then((tokens) => {
 				if (!listed) {
@@ -125,7 +159,7 @@ export default function ListRequestForm(props: Props) {
 							r.type === token.type &&
 							r.id === token.id &&
 							r.contract?.index === token.contract?.index &&
-							r.contract?.subindex === token.contract?.subindex
+							r.contract?.subindex === token.contract?.subindex,
 					);
 					if (exchangeRate) {
 						token.rate = exchangeRate.rate;
@@ -146,7 +180,9 @@ export default function ListRequestForm(props: Props) {
 
 	const isValid = () => {
 		return (
-			listTokenContract !== undefined && listTokenId !== undefined && paymentTokens.filter((t) => !!t.rate).length > 0
+			listTokenContract !== undefined &&
+			listTokenId !== undefined &&
+			paymentTokens.filter((t) => !!t.rate).length > 0
 		);
 	};
 
@@ -155,7 +191,10 @@ export default function ListRequestForm(props: Props) {
 			owner: currentAccount!.address,
 			token_id: {
 				id: listTokenId,
-				contract: { index: Number(listTokenContract!.index), subindex: Number(listTokenContract!.subindex) },
+				contract: {
+					index: Number(listTokenContract!.index),
+					subindex: Number(listTokenContract!.subindex),
+				},
 			},
 			supply: listAmount.toString(),
 			exchange_rates: paymentTokens
@@ -172,8 +211,12 @@ export default function ListRequestForm(props: Props) {
 			<Grid container spacing={2}>
 				<Grid item xs={12} md={2}>
 					<Stack p={1} spacing={2}>
-						<Typography variant="caption">Token Contract to Sell / List</Typography>
-						{loadingAllowedToList && <Typography variant="caption">Loading...</Typography>}
+						<Typography variant="caption">
+							Token Contract to Sell / List
+						</Typography>
+						{loadingAllowedToList && (
+							<Typography variant="caption">Loading...</Typography>
+						)}
 						{errorAllowedToList && <ErrorDisplay text={errorAllowedToList} />}
 						<List>
 							{allowedToListContracts.map((contract, index) => (
@@ -181,11 +224,18 @@ export default function ListRequestForm(props: Props) {
 									<ListItemButton
 										disabled={!!listed}
 										selected={contract.index === listTokenContract?.index}
-										onClick={() => setListTokenContract(contract)}>
+										onClick={() => setListTokenContract(contract)}
+									>
 										<ListItemIcon>
 											<Token />
 										</ListItemIcon>
-										<ListItemText primary={contract.index.toString() + "/" + contract.subindex.toString()} />
+										<ListItemText
+											primary={
+												contract.index.toString() +
+												"/" +
+												contract.subindex.toString()
+											}
+										/>
 									</ListItemButton>
 								</ListItem>
 							))}
@@ -213,7 +263,9 @@ export default function ListRequestForm(props: Props) {
 				<Grid item xs={12} md={2}>
 					<Stack p={1} spacing={2}>
 						<Typography variant="caption">Exchange Tokens</Typography>
-						{loadingPaymentTokens && <Typography variant="caption">Loading...</Typography>}
+						{loadingPaymentTokens && (
+							<Typography variant="caption">Loading...</Typography>
+						)}
 						{errorPaymentTokens && <ErrorDisplay text={errorPaymentTokens} />}
 						<List>
 							{paymentTokens.map((token, index) => (
@@ -221,17 +273,29 @@ export default function ListRequestForm(props: Props) {
 									<ListItemButton
 										selected={
 											token.type === selectedPaymentToken?.type &&
-											token.contract?.index === selectedPaymentToken?.contract?.index &&
+											token.contract?.index ===
+												selectedPaymentToken?.contract?.index &&
 											token.id === selectedPaymentToken?.id
 										}
-										onClick={() => setSelectedPaymentToken(token)}>
-										<ListItemIcon>{token.rate ? <CheckCircle color="success" /> : <Cancel />}</ListItemIcon>
+										onClick={() => setSelectedPaymentToken(token)}
+									>
+										<ListItemIcon>
+											{token.rate ? (
+												<CheckCircle color="success" />
+											) : (
+												<Cancel />
+											)}
+										</ListItemIcon>
 										{
 											{
 												Ccd: (
 													<ListItemText
 														primary="CCD"
-														secondary={token.rate ? `${token.rate.denominator} for ${token.rate.numerator}` : ""}
+														secondary={
+															token.rate
+																? `${token.rate.denominator} for ${token.rate.numerator}`
+																: ""
+														}
 													/>
 												),
 												Cis2: (
@@ -239,7 +303,11 @@ export default function ListRequestForm(props: Props) {
 														primary={`${
 															token.id
 														} ${token.contract?.index.toString()}/${token.contract?.subindex.toString()}`}
-														secondary={token.rate ? `${token.rate.denominator} for ${token.rate.numerator}` : ""}
+														secondary={
+															token.rate
+																? `${token.rate.denominator} for ${token.rate.numerator}`
+																: ""
+														}
 													/>
 												),
 											}[token.type]
@@ -260,7 +328,10 @@ export default function ListRequestForm(props: Props) {
 							disabled={!selectedPaymentToken}
 							value={(selectedPaymentToken?.rate?.numerator || 1).toString()}
 							onChange={(e) => {
-								const rate: Rate = { numerator: BigInt(e.target.value), denominator: 1n };
+								const rate: Rate = {
+									numerator: BigInt(e.target.value),
+									denominator: 1n,
+								};
 								setSelectedPaymentToken({
 									...selectedPaymentToken!,
 									rate,
@@ -273,9 +344,13 @@ export default function ListRequestForm(props: Props) {
 								disabled={!selectedPaymentToken}
 								variant="text"
 								onClick={() => {
-									setSelectedPaymentToken({ ...selectedPaymentToken!, rate: undefined });
+									setSelectedPaymentToken({
+										...selectedPaymentToken!,
+										rate: undefined,
+									});
 									updatePaymentTokenRate(selectedPaymentToken!, undefined);
-								}}>
+								}}
+							>
 								Remove Rate
 							</Button>
 						</ButtonGroup>
@@ -284,7 +359,10 @@ export default function ListRequestForm(props: Props) {
 				<Grid item xs={12} md={2}></Grid>
 				<Grid item xs={12} md={10}>
 					<Button onClick={() => navigate(-1)}>Cancel</Button>
-					<SendTransactionButton disabled={!isValid()} onClick={() => sendTransaction()}>
+					<SendTransactionButton
+						disabled={!isValid()}
+						onClick={() => sendTransaction()}
+					>
 						List
 					</SendTransactionButton>
 				</Grid>

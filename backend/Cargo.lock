@@ -259,6 +259,7 @@ dependencies = [
  "concordium-rwa-identity-registry",
  "concordium-rwa-market",
  "concordium-rwa-security-nft",
+ "concordium-rwa-security-sft",
  "concordium-rwa-utils",
  "dotenv",
  "env_logger",
@@ -666,6 +667,16 @@ dependencies = [
 
 [[package]]
 name = "concordium-rwa-security-nft"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-rwa-utils",
+ "concordium-std",
+ "hex",
+]
+
+[[package]]
+name = "concordium-rwa-security-sft"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",

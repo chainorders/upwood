@@ -7,6 +7,7 @@ edition = "2021"
 concordium-cis2 = { version = "5.1.0", default-features = false }
 concordium-rwa-identity-registry = { path = "../contracts/identity-registry" }
 concordium-rwa-security-nft = { path = "../contracts/security-nft" }
+concordium-rwa-security-sft = { path = "../contracts/security-sft" }
 concordium-rwa-compliance = { path = "../contracts/compliance" }
 concordium-rwa-market ={ path = "../contracts/market" }
 concordium-rwa-utils = { path = "../contracts/utils" }

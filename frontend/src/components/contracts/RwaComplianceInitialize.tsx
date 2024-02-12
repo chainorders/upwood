@@ -18,7 +18,11 @@ import { Contract, ContractType } from "./ContractTypes";
 import ErrorDisplay from "../common/ErrorDisplay";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import { Delete } from "@mui/icons-material";
-import { BlockItemSummaryInBlock, ContractAddress, RejectedInit } from "@concordium/web-sdk";
+import {
+	BlockItemSummaryInBlock,
+	ContractAddress,
+	RejectedInit,
+} from "@concordium/web-sdk";
 import { parseContractAddress } from "../../lib/common/common";
 import rwaCompliance from "../../lib/rwaCompliance";
 
@@ -31,11 +35,17 @@ export default function RwaComplianceInitialize(props: {
 	const wallet = useWallet();
 	const [modules, setModules] = useState<ComplianceModule[]>([]);
 	const [name, setName] = useState<string>("");
-	const [newModule, setNewModule] = useState<ComplianceModule | undefined>(undefined);
+	const [newModule, setNewModule] = useState<ComplianceModule | undefined>(
+		undefined,
+	);
 	const [error, setError] = useState("");
 
 	const addExistingModule = (module: ComplianceModule) => {
-		if (modules.find((m) => m.index === module.index && m.subindex === module.subindex)) {
+		if (
+			modules.find(
+				(m) => m.index === module.index && m.subindex === module.subindex,
+			)
+		) {
 			return;
 		}
 		setModules([...modules, module]);
@@ -44,7 +54,11 @@ export default function RwaComplianceInitialize(props: {
 		if (!newModule) {
 			return;
 		}
-		if (modules.find((m) => m.index === newModule.index && m.subindex === newModule.subindex)) {
+		if (
+			modules.find(
+				(m) => m.index === newModule.index && m.subindex === newModule.subindex,
+			)
+		) {
 			return;
 		}
 
@@ -101,13 +115,21 @@ export default function RwaComplianceInitialize(props: {
 							<ListItem
 								key={index}
 								secondaryAction={
-									<IconButton edge="end" aria-label="delete" onClick={() => removeModule(module)}>
+									<IconButton
+										edge="end"
+										aria-label="delete"
+										onClick={() => removeModule(module)}
+									>
 										<Delete />
 									</IconButton>
-								}>
+								}
+							>
 								<ListItemText
 									primary={
-										<CCDScanContractLink index={module.index.toString()} subIndex={module.subindex.toString()} />
+										<CCDScanContractLink
+											index={module.index.toString()}
+											subIndex={module.subindex.toString()}
+										/>
 									}
 									secondary="Compliance Module"
 								/>
@@ -150,12 +172,18 @@ export default function RwaComplianceInitialize(props: {
 			<SendTransactionButton
 				onClick={() =>
 					rwaCompliance.init.init(wallet.provider!, wallet.currentAccount!, {
-						modules: modules.map((m) => ({ index: Number(m.index), subindex: Number(m.subindex) })),
+						modules: modules.map((m) => ({
+							index: Number(m.index),
+							subindex: Number(m.subindex),
+						})),
 					})
 				}
 				onFinalized={handleSuccess}
-				onFinalizedError={(r) => rwaCompliance.init.parseError(r as RejectedInit) || "Unknown Error"}
-				disabled={!isValid}>
+				onFinalizedError={(r) =>
+					rwaCompliance.init.parseError(r as RejectedInit) || "Unknown Error"
+				}
+				disabled={!isValid}
+			>
 				Initialize Compliance Contract
 			</SendTransactionButton>
 			{error && <ErrorDisplay text={error} />}

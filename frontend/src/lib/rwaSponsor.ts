@@ -1,4 +1,9 @@
-import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
+import {
+	ContractEvent,
+	ContractName,
+	EntrypointName,
+	ModuleReference,
+} from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "./GenericContract";
 export const CONTRACT_NAME = "rwa_sponsor";
 export const initErrorSchemaBase64 =
@@ -49,33 +54,46 @@ export const supportsPermitRequestSchemaBase64 = "FAABAAAABwAAAHF1ZXJpZXMQARYB";
 export type SupportsPermitResponse = Array<boolean>;
 export const supportsPermitResponseSchemaBase64 = "EAEB";
 export type event = { Nonce: [{ account: string; nonce: bigint }] };
-export const eventSchemaBase64 = "FQEAAAAFAAAATm9uY2UBAQAAABQAAgAAAAcAAABhY2NvdW50CwUAAABub25jZQU=";
+export const eventSchemaBase64 =
+	"FQEAAAAFAAAATm9uY2UBAQAAABQAAgAAAAcAAABhY2NvdW50CwUAAABub25jZQU=";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
 	permit: EntrypointName.fromString("permit"),
 	supportsPermit: EntrypointName.fromString("supportsPermit"),
 };
-export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = { permit: "Permit", supportsPermit: "Supports Permit" };
+export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
+	permit: "Permit",
+	supportsPermit: "Supports Permit",
+};
 export const rwaSponsor = {
 	init: new InitMethod<void>(
-		ModuleReference.fromHexString("e0a6627a8be6686c06a18aa981567cef48ae0c60849d6d08a1335082e09525e8"),
-		ContractName.fromString("rwa_sponsor")
+		ModuleReference.fromHexString(
+			"e0a6627a8be6686c06a18aa981567cef48ae0c60849d6d08a1335082e09525e8",
+		),
+		ContractName.fromString("rwa_sponsor"),
 	),
 	permit: new ReceiveMethod<PermitRequest, never, PermitError>(
 		ContractName.fromString("rwa_sponsor"),
 		EntrypointName.fromString("permit"),
 		permitRequestSchemaBase64,
 		undefined,
-		permitErrorSchemaBase64
+		permitErrorSchemaBase64,
 	),
-	supportsPermit: new ReceiveMethod<SupportsPermitRequest, SupportsPermitResponse, SupportsPermitError>(
+	supportsPermit: new ReceiveMethod<
+		SupportsPermitRequest,
+		SupportsPermitResponse,
+		SupportsPermitError
+	>(
 		ContractName.fromString("rwa_sponsor"),
 		EntrypointName.fromString("supportsPermit"),
 		supportsPermitRequestSchemaBase64,
 		supportsPermitResponseSchemaBase64,
-		supportsPermitErrorSchemaBase64
+		supportsPermitErrorSchemaBase64,
 	),
 	deserializeEvent: (event: ContractEvent.Type): event => {
-		return ContractEvent.parseWithSchemaTypeBase64(event, eventSchemaBase64) as event;
+		return ContractEvent.parseWithSchemaTypeBase64(
+			event,
+			eventSchemaBase64,
+		) as event;
 	},
 };
 export default rwaSponsor;

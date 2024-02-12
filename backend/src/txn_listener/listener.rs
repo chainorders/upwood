@@ -10,7 +10,7 @@ use concordium_rust_sdk::{
     v2::FinalizedBlockInfo,
 };
 use futures::StreamExt;
-use log::info;
+use log::{info, warn};
 
 use crate::txn_listener::db::DatabaseClient;
 
@@ -114,27 +114,51 @@ impl TransactionsListener {
         let starting_block_height = match starting_block_hash {
             Some(hash) => {
                 let block_info = self.node.get_block_info(hash).await?;
-                block_info.response.block_height
+                Some(block_info.response.block_height)
             }
-            None => {
+            None => None,
+        };
+        let db_block_height = self.database.get_last_processed_block().await?.map(|b| {
+            AbsoluteBlockHeight {
+                height: b.block_height,
+            }
+            .next()
+        });
+
+        let block_height: AbsoluteBlockHeight = match (starting_block_height, db_block_height) {
+            (Some(_), Some(db_block_height)) => {
+                warn!(
+                    "Both starting block height and db block height are set. Using the db block \
+                     height: {}",
+                    db_block_height.height
+                );
+                db_block_height
+            }
+            (Some(starting_block_height), None) => {
+                info!(
+                    "Starting from config start block height block height: {}",
+                    starting_block_height.height
+                );
+                starting_block_height
+            }
+            (None, Some(db_block_height)) => {
+                info!(
+                    "Starting block height not set. Using the db block height: {}",
+                    db_block_height.height
+                );
+                db_block_height
+            }
+            (None, None) => {
                 let consensus_info = self.node.get_consensus_info().await?;
+                info!(
+                    "Starting from best block height: {:?}",
+                    consensus_info.best_block_height.height
+                );
                 consensus_info.best_block_height
             }
         };
 
-        let last_processed_block = self.database.get_last_processed_block().await?;
-        let next_block_height = match last_processed_block {
-            Some(block) => AbsoluteBlockHeight {
-                height: block.block_height,
-            }
-            .next(),
-            None => starting_block_height,
-        };
-
-        info!("Starting from block {}", next_block_height.height);
-
-        let mut finalized_block_stream =
-            self.node.get_finalized_blocks_from(next_block_height).await?;
+        let mut finalized_block_stream = self.node.get_finalized_blocks_from(block_height).await?;
         while let Some(block) = finalized_block_stream.next().await {
             log::info!("Processing block {}", block.height.height);
             self.process_block(&block).await?;

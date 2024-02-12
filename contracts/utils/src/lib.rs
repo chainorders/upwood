@@ -11,3 +11,6 @@ pub mod tokens_state;
 pub mod cis2_types;
 pub mod common_types;
 pub mod compliance_types;
+pub mod token_deposits_state;
+pub mod cis2_schema_types;
+pub mod cis2_conversions;

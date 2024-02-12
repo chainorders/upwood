@@ -17,8 +17,12 @@ export default function EntrypointsList(props: {
 						<ListItemButton
 							onClick={() => navigation(key)}
 							disabled={props.disabled}
-							selected={props.selectedPath === key}>
-							<ListItemText primary={props.entrypointDisplayNames[key]} secondary={key} />
+							selected={props.selectedPath === key}
+						>
+							<ListItemText
+								primary={props.entrypointDisplayNames[key]}
+								secondary={key}
+							/>
 						</ListItemButton>
 					</ListItem>
 				);

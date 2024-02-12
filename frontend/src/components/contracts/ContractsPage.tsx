@@ -1,4 +1,13 @@
-import { Grid, List, ListItem, ListItemButton, ListItemText, Paper, Stack, Typography } from "@mui/material";
+import {
+	Grid,
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemText,
+	Paper,
+	Stack,
+	Typography,
+} from "@mui/material";
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 import { Contract, ContractType } from "./ContractTypes";
 import { capitalCase } from "change-case";
@@ -34,12 +43,15 @@ import {
 import { ENTRYPOINTS_UI as rwaMarketEntrypointsUI } from "../../lib/rwaMarketUi";
 import RwaMarketInitialize from "./RwaMarketInitialize";
 import RwaSecurityNftContract from "./rwaSecurityNft/RwaSecurityNftContract";
+import RwaSecuritySftContract from "./rwaSecuritySft/RwaSecuritySftContract";
+import RwaSecuritySftInitialize from "./RwaSecuritySftInitialize";
 
 const contractTypes: Record<string, ContractType> = {
 	rwaIdentityRegistry: ContractType.RwaIdentityRegistry,
 	complianceModule: ContractType.RwaComplianceModule,
 	compliance: ContractType.RwaCompliance,
 	rwaSecurityNft: ContractType.RwaSecurityNft,
+	rwaSecuritySft: ContractType.RwaSecuritySft,
 	sponsor: ContractType.RwaSponsor,
 	market: ContractType.RwaMarket,
 };
@@ -66,8 +78,13 @@ export default function ContractsPage() {
 								const contractType = contractTypes[key];
 								return (
 									<ListItem disablePadding disableGutters key={contractType}>
-										<ListItemButton onClick={() => navigate(`${contractType}/init`)}>
-											<ListItemText primary="Initialize" secondary={capitalCase(contractType)} />
+										<ListItemButton
+											onClick={() => navigate(`${contractType}/init`)}
+										>
+											<ListItemText
+												primary={capitalCase(contractType)}
+												secondary="Initialize"
+											/>
 										</ListItemButton>
 									</ListItem>
 								);
@@ -79,16 +96,36 @@ export default function ContractsPage() {
 			<Grid item xs={10} md={10}>
 				<Paper variant="outlined" sx={{ p: 2, m: 1 }}>
 					<Routes>
-						<Route path="" element={<ContractsList contracts={state.contracts} onDelete={onDeleteContract} />} />
+						<Route
+							path=""
+							element={
+								<ContractsList
+									contracts={state.contracts}
+									onDelete={onDeleteContract}
+								/>
+							}
+						/>
 						<Route path={ContractType.RwaIdentityRegistry}>
-							<Route path="init" element={<IdentityRegistryInitialize onSuccess={onContractInitialized} />} />
-							<Route path=":index/:subIndex/*" element={<ContractLayout contracts={state.contracts} />}>
+							<Route
+								path="init"
+								element={
+									<IdentityRegistryInitialize
+										onSuccess={onContractInitialized}
+									/>
+								}
+							/>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
 								<Route
 									path="*"
 									element={
 										<ConcordiumContract
 											entrypoints={rwaIdentityRegistryEntrypoints}
-											entrypointDisplayNames={rwaIdentityRegistryEntrypointNames}
+											entrypointDisplayNames={
+												rwaIdentityRegistryEntrypointNames
+											}
 											entrypointUi={rwaIdentityRegistryEntrypointsUI}
 										/>
 									}
@@ -101,11 +138,16 @@ export default function ContractsPage() {
 								element={
 									<ComplianceInitialize
 										onSuccess={onContractInitialized}
-										complianceModules={state.contracts.filter((c) => c.type == ContractType.RwaComplianceModule)}
+										complianceModules={state.contracts.filter(
+											(c) => c.type == ContractType.RwaComplianceModule,
+										)}
 									/>
 								}
 							/>
-							<Route path=":index/:subIndex/*" element={<ContractLayout contracts={state.contracts} />}>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
 								<Route
 									path="*"
 									element={
@@ -125,16 +167,45 @@ export default function ContractsPage() {
 									<RwaSecurityNftInitialize
 										onSuccess={onContractInitialized}
 										identityRegistries={state.contracts.filter(
-											(contract) => contract.type === ContractType.RwaIdentityRegistry
+											(contract) =>
+												contract.type === ContractType.RwaIdentityRegistry,
 										)}
 										complianceContracts={state.contracts.filter(
-											(contract) => contract.type === ContractType.RwaCompliance
+											(contract) =>
+												contract.type === ContractType.RwaCompliance,
 										)}
 									/>
 								}
 							/>
-							<Route path=":index/:subIndex/*" element={<ContractLayout contracts={state.contracts} />}>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
 								<Route path="*" Component={RwaSecurityNftContract} />
+							</Route>
+						</Route>
+						<Route path={ContractType.RwaSecuritySft}>
+							<Route
+								path="init"
+								element={
+									<RwaSecuritySftInitialize
+										onSuccess={onContractInitialized}
+										identityRegistries={state.contracts.filter(
+											(contract) =>
+												contract.type === ContractType.RwaIdentityRegistry,
+										)}
+										complianceContracts={state.contracts.filter(
+											(contract) =>
+												contract.type === ContractType.RwaCompliance,
+										)}
+									/>
+								}
+							/>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
+								<Route path="*" Component={RwaSecuritySftContract} />
 							</Route>
 						</Route>
 						<Route path={ContractType.RwaComplianceModule}>
@@ -144,18 +215,24 @@ export default function ContractsPage() {
 									<RWAComplianceModuleInitialize
 										onSuccess={onContractInitialized}
 										identityRegistries={state.contracts.filter(
-											(contract) => contract.type === ContractType.RwaIdentityRegistry
+											(contract) =>
+												contract.type === ContractType.RwaIdentityRegistry,
 										)}
 									/>
 								}
 							/>
-							<Route path=":index/:subIndex/*" element={<ContractLayout contracts={state.contracts} />}>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
 								<Route
 									path="*"
 									element={
 										<ConcordiumContract
 											entrypoints={rwaComplianceModuleEntrypoints}
-											entrypointDisplayNames={rwaComplianceModuleEntrypointNames}
+											entrypointDisplayNames={
+												rwaComplianceModuleEntrypointNames
+											}
 											entrypointUi={rwaComplianceModuleEntrypointsUI}
 										/>
 									}
@@ -169,12 +246,17 @@ export default function ContractsPage() {
 									<RwaMarketInitialize
 										onSuccess={onContractInitialized}
 										existingTokenContracts={state.contracts.filter(
-											(contract) => contract.type === ContractType.RwaSecurityNft
+											(contract) =>
+												contract.type === ContractType.RwaSecurityNft ||
+												contract.type === ContractType.RwaSecuritySft,
 										)}
 									/>
 								}
 							/>
-							<Route path=":index/:subIndex/*" element={<ContractLayout contracts={state.contracts} />}>
+							<Route
+								path=":index/:subIndex/*"
+								element={<ContractLayout contracts={state.contracts} />}
+							>
 								<Route
 									path="*"
 									element={

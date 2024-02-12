@@ -1,7 +1,11 @@
 /* eslint-disable no-mixed-spaces-and-tabs */
 import { MenuItem, Select, Stack, TextField } from "@mui/material";
 import AccountAddressField from "./AccountAddressField";
-import { AccountAddress, ContractAddress, EntrypointName } from "@concordium/web-sdk";
+import {
+	AccountAddress,
+	ContractAddress,
+	EntrypointName,
+} from "@concordium/web-sdk";
 import ContractAddressField from "./ContractAddressField";
 import { useState } from "react";
 
@@ -31,7 +35,8 @@ export default function ReceiverField(props: {
 	}>({
 		type: value?.type || defaultType,
 		address: value?.address,
-		entrypoint: value?.type === "AddressContract" ? value?.entrypoint.value : "",
+		entrypoint:
+			value?.type === "AddressContract" ? value?.entrypoint.value : "",
 	});
 
 	const setType = (type: string) => {
@@ -42,7 +47,11 @@ export default function ReceiverField(props: {
 		const newForm = { ...form, [key]: value };
 		setForm(newForm);
 
-		if (newForm.type === "AddressContract" && newForm.address && newForm.entrypoint) {
+		if (
+			newForm.type === "AddressContract" &&
+			newForm.address &&
+			newForm.entrypoint
+		) {
 			props.onChange({
 				type: "AddressContract",
 				address: newForm.address as ContractAddress.Type,
@@ -78,8 +87,14 @@ export default function ReceiverField(props: {
 						<>
 							<ContractAddressField
 								onChange={(address) => setFormValue("address", address)}
-								indexHelperText={(props.helperText ? props.helperText + " " : "") + "Contract Index"}
-								subIndexHelperText={(props.helperText ? props.helperText + " " : "") + "Contract SubIndex"}
+								indexHelperText={
+									(props.helperText ? props.helperText + " " : "") +
+									"Contract Index"
+								}
+								subIndexHelperText={
+									(props.helperText ? props.helperText + " " : "") +
+									"Contract SubIndex"
+								}
 								indexName={props.name?.concat("index")}
 								subIndexName={props.name?.concat("subIndex")}
 								value={form.address as ContractAddress.Type}

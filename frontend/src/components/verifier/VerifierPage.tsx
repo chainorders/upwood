@@ -1,4 +1,11 @@
-import { Button, Stack, Step, StepLabel, Stepper, Typography } from "@mui/material";
+import {
+	Button,
+	Stack,
+	Step,
+	StepLabel,
+	Stepper,
+	Typography,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import { useVerifierApi } from "../VerifierApiProvider";
 import { useWallet } from "../WalletProvider";
@@ -15,12 +22,12 @@ export default function VerifierPage() {
 	const { provider: wallet, currentAccount } = useWallet();
 	const { provider: api } = useVerifierApi();
 
-	useEffect(() => { 
+	useEffect(() => {
 		setError("");
 		setStatement([]);
 		setChallenge("");
 		setActiveStep(0);
-	}, [currentAccount])
+	}, [currentAccount]);
 
 	const generateChallenge = () => {
 		api.default
@@ -51,7 +58,7 @@ export default function VerifierPage() {
 							proof: JSON.stringify(proof?.proof),
 						},
 					},
-				})
+				}),
 			)
 			.then((res) => res.txn_hash);
 	};
@@ -72,7 +79,8 @@ export default function VerifierPage() {
 				<SendTransactionButton
 					disabled={!challenge || !statement}
 					onClick={registerIdentity}
-					onDone={() => setActiveStep(0)}>
+					onDone={() => setActiveStep(0)}
+				>
 					Register Identity
 				</SendTransactionButton>
 			</>

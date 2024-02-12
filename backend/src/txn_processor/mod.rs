@@ -3,6 +3,7 @@ pub mod db;
 mod rwa_identity_registry;
 mod rwa_market;
 mod rwa_security_nft;
+mod rwa_security_sft;
 
 use clap::Parser;
 use concordium_rust_sdk::{types::smart_contracts::OwnedContractName, v2::Endpoint};
@@ -16,6 +17,7 @@ use poem_openapi::OpenApiService;
 use std::{io::Write, str::FromStr};
 use tokio::{spawn, try_join};
 
+use crate::txn_listener::{EventsProcessor, TransactionsListener};
 use rwa_identity_registry::{
     db::IContractDb as IRwaIdentityRegistryDb, processor::Processor as RwaIdentityRegistryProcessor,
 };
@@ -27,12 +29,15 @@ use rwa_security_nft::{
     api::Api as RwaSecurityNftApi, db::IContractDb as IRwaSecurityNftDb,
     processor::Processor as RwaSecurityNftProcessor,
 };
-
-use crate::txn_listener::{EventsProcessor, TransactionsListener};
+use rwa_security_sft::{
+    api::Api as RwaSecuritySftApi, db::IContractDb as IRwaSecuritySftDb,
+    processor::Processor as RwaSecuritySftProcessor,
+};
 
 use self::db::ContractDb;
 impl IRwaIdentityRegistryDb for ContractDb {}
 impl IRwaSecurityNftDb for ContractDb {}
+impl IRwaSecuritySftDb for ContractDb {}
 impl IRwaMarketDb for ContractDb {}
 
 #[derive(Parser, Debug, Clone)]
@@ -48,11 +53,15 @@ pub struct ContractsListenerAndApiConfig {
     #[clap(env)]
     pub rwa_security_nft_module_ref: String,
     #[clap(env)]
+    pub rwa_security_sft_module_ref: String,
+    #[clap(env)]
     pub rwa_market_module_ref: String,
     #[clap(env, default_value = "")]
     pub starting_block_hash: String,
     #[clap(env, default_value = "init_rwa_security_nft")]
     pub rwa_security_nft_contract_name: String,
+    #[clap(env, default_value = "init_rwa_security_sft")]
+    pub rwa_security_sft_contract_name: String,
     #[clap(env, default_value = "init_rwa_identity_registry")]
     pub rwa_identity_registry_contract_name: String,
     #[clap(env, default_value = "init_rwa_market")]
@@ -63,6 +72,7 @@ pub struct ContractsApiConfig {
     pub mongodb_uri:                    String,
     pub rwa_market_contract_name:       String,
     pub rwa_security_nft_contract_name: String,
+    pub rwa_security_sft_contract_name: String,
 }
 
 impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
@@ -71,6 +81,7 @@ impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
             mongodb_uri:                    config.mongodb_uri,
             rwa_market_contract_name:       config.rwa_market_contract_name,
             rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
+            rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
         }
     }
 }
@@ -128,6 +139,13 @@ async fn create_listener(
             },
             module_ref: config.rwa_security_nft_module_ref.parse()?,
         }),
+        Box::new(RwaSecuritySftProcessor {
+            db:         ContractDb {
+                client:        client.to_owned(),
+                contract_name: config.rwa_security_sft_contract_name.try_into()?,
+            },
+            module_ref: config.rwa_security_sft_module_ref.parse()?,
+        }),
         Box::new(RwaMarketProcessor {
             db:         ContractDb {
                 client:        client.to_owned(),
@@ -160,6 +178,8 @@ pub struct ContractsApiSwaggerConfig {
     pub rwa_identity_registry_contract_name: String,
     #[clap(env, default_value = "init_rwa_security_nft")]
     pub rwa_security_nft_contract_name: String,
+    #[clap(env, default_value = "init_rwa_security_sft")]
+    pub rwa_security_sft_contract_name: String,
     #[clap(env, default_value = "init_rwa_market")]
     pub rwa_market_contract_name: String,
 }
@@ -170,6 +190,7 @@ impl From<ContractsApiSwaggerConfig> for ContractsApiConfig {
             mongodb_uri:                    config.mongodb_uri,
             rwa_market_contract_name:       config.rwa_market_contract_name,
             rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
+            rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
         }
     }
 }
@@ -187,7 +208,10 @@ pub async fn generate_contracts_api_frontend_client(
 async fn create_service(
     config: ContractsApiConfig,
 ) -> Result<
-    OpenApiService<(RwaMarketApi<ContractDb>, RwaSecurityNftApi<ContractDb>), ()>,
+    OpenApiService<
+        (RwaMarketApi<ContractDb>, RwaSecurityNftApi<ContractDb>, RwaSecuritySftApi<ContractDb>),
+        (),
+    >,
     anyhow::Error,
 > {
     let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
@@ -203,9 +227,17 @@ async fn create_service(
             },
             RwaSecurityNftApi {
                 db: ContractDb {
-                    client:        mongo_client,
+                    client:        mongo_client.to_owned(),
                     contract_name: OwnedContractName::new(
                         config.rwa_security_nft_contract_name.to_owned(),
+                    )?,
+                },
+            },
+            RwaSecuritySftApi {
+                db: ContractDb {
+                    client:        mongo_client,
+                    contract_name: OwnedContractName::new(
+                        config.rwa_security_sft_contract_name.to_owned(),
                     )?,
                 },
             },

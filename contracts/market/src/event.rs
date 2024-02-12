@@ -21,13 +21,13 @@ pub struct TokenDeListed {
     pub owner:    AccountAddress,
 }
 
-#[derive(Serialize, SchemaType, Debug, Eq, PartialEq)]
+#[derive(Serialize, SchemaType, Debug, Eq, PartialEq, Clone)]
 pub enum PaymentTokenUId {
     Cis2(TokenUId),
     CCD,
 }
 
-#[derive(Serialize, SchemaType, Debug, Eq, PartialEq)]
+#[derive(Serialize, SchemaType, Debug, Eq, PartialEq, Clone, Copy)]
 pub enum PaymentAmount {
     Cis2(Cis2TokenAmount),
     CCD(Amount),

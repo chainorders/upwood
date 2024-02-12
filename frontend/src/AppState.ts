@@ -24,14 +24,22 @@ export enum ActionTypes {
 	RemoveContract = "RemoveContract",
 }
 
-export type Action = { type: ActionTypes.AddContract | ActionTypes.RemoveContract; contract: Contract };
+export type Action = {
+	type: ActionTypes.AddContract | ActionTypes.RemoveContract;
+	contract: Contract;
+};
 
 export function reducer(state: AppState, action: Action): AppState {
 	let updatedState: AppState = state;
 	switch (action.type) {
 		case ActionTypes.AddContract:
 			{
-				if (state.contracts.find((contract) => contract.address.index === action.contract.address.index)) {
+				if (
+					state.contracts.find(
+						(contract) =>
+							contract.address.index === action.contract.address.index,
+					)
+				) {
 					return state;
 				}
 
@@ -45,7 +53,9 @@ export function reducer(state: AppState, action: Action): AppState {
 			{
 				updatedState = {
 					...state,
-					contracts: state.contracts.filter((contract) => contract.address !== action.contract.address),
+					contracts: state.contracts.filter(
+						(contract) => contract.address !== action.contract.address,
+					),
 				};
 			}
 			break;

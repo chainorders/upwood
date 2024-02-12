@@ -1,9 +1,6 @@
-use concordium_cis2::{
-    AdditionalData, Cis2Client, OnReceivingCis2Params, Receiver, TokenIdVec, Transfer,
-};
+use concordium_cis2::{AdditionalData, Cis2Client, OnReceivingCis2Params, Receiver, Transfer};
+use concordium_rwa_utils::token_deposits_state::IDepositedTokensState;
 use concordium_std::*;
-
-use crate::state::TokenOwnerUId;
 
 use super::{
     error::*,
@@ -11,16 +8,10 @@ use super::{
     exchange::{exchange_internal, ExchangeParams},
     list::{list_internal, ListParams},
     state::State,
-    types::{Cis2TokenAmount, ContractResult, TokenUId},
+    types::{Cis2TokenAmount, ContractResult, TokenId, TokenOwnerUId, TokenUId},
 };
 
-pub type DepositParams = OnReceivingCis2Params<TokenIdVec, Cis2TokenAmount>;
-
-#[derive(Serialize, SchemaType)]
-pub enum DepositData {
-    List(ListParams),
-    Exchange(ExchangeParams),
-}
+pub type DepositParams = OnReceivingCis2Params<TokenId, Cis2TokenAmount>;
 
 #[receive(
     contract = "rwa_market",
@@ -46,10 +37,16 @@ pub fn deposit(
         Address::Contract(_) => bail!(Error::OnlyAccount),
     };
 
-    let deposit_token_uid = TokenUId::new(sender, params.token_id.to_owned());
-    host.state_mut().add_or_increase_deposits(deposit_token_uid.to_owned(), params.amount, from);
+    let deposited_token_uid = TokenOwnerUId {
+        token_id: TokenUId {
+            contract: sender,
+            id:       params.token_id,
+        },
+        owner:    Receiver::Account(from),
+    };
+    host.state_mut().inc_deposits(deposited_token_uid.clone(), params.amount);
     logger.log(&Event::Deposited(TokenDeposited {
-        token_id: deposit_token_uid.to_owned(),
+        token_id: deposited_token_uid.clone().token_id,
         owner:    from,
         amount:   params.amount,
     }))?;
@@ -59,14 +56,17 @@ pub fn deposit(
         let data: Result<ListParams, ParseError> = ListParams::deserial(&mut cursor);
         if let Ok(data) = data {
             ensure!(params.from.matches_account(&data.owner), Error::Unauthorized);
-            ensure!(deposit_token_uid.eq(&data.token_id), Error::InvalidDepositData);
+            ensure!(deposited_token_uid.matches(&data.token_id), Error::InvalidDepositData);
             list_internal(data, host, logger)?
         } else {
             cursor.offset = 0;
             let data = ExchangeParams::deserial(&mut cursor);
             if let Ok(data) = data {
                 ensure!(params.from.matches_account(&data.payer), Error::Unauthorized);
-                ensure!(host.state().can_be_paid_by(&deposit_token_uid), Error::InvalidDepositData);
+                ensure!(
+                    host.state().can_be_paid_by(&deposited_token_uid.token_id),
+                    Error::InvalidDepositData
+                );
                 exchange_internal(
                     ctx.self_address(),
                     ctx.owner(),
@@ -82,7 +82,7 @@ pub fn deposit(
     Ok(())
 }
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Clone)]
 pub struct WithdrawParams {
     pub token_id: TokenUId,
     pub owner:    AccountAddress,
@@ -104,20 +104,15 @@ pub fn withdraw(
 ) -> ContractResult<()> {
     let params: WithdrawParams = ctx.parameter_cursor().get()?;
     ensure!(ctx.sender().matches_account(&params.owner), Error::Unauthorized);
-    ensure!(
-        host.state().unlisted_amount(&params.token_id, &params.owner).ge(&params.amount),
-        Error::InsufficientDeposits
-    );
-    host.state_mut().decrease_deposit(
-        &TokenOwnerUId::new(params.token_id.to_owned(), params.owner),
-        &params.amount,
-    );
+    let token_owner_uid = params.token_id.to_token_owner_uid(params.owner.into());
+
+    host.state_mut().dec_deposits(&token_owner_uid, params.amount)?;
     Cis2Client::new(params.token_id.contract)
         .transfer::<_, _, _, ()>(host, Transfer {
             amount:   params.amount,
             from:     Address::Contract(ctx.self_address()),
-            to:       Receiver::Account(params.owner),
-            token_id: params.token_id.id.to_owned(),
+            to:       token_owner_uid.owner,
+            token_id: token_owner_uid.token_id.id.to_owned(),
             data:     AdditionalData::empty(),
         })
         .map_err(|_| Error::Cis2WithdrawError)?;
@@ -148,10 +143,7 @@ pub fn balance_of_deposited(
     host: &Host<State>,
 ) -> ContractResult<Cis2TokenAmount> {
     let params: BalanceOfDepositParams = ctx.parameter_cursor().get()?;
-    Ok(host.state().deposited_amount(&params.token_id, &params.address))
-}
-
-#[receive(contract = "rwa_market", name = "paymentTokens", return_value = "Vec<TokenUId>")]
-pub fn payment_tokens(_: &ReceiveContext, host: &Host<State>) -> ContractResult<Vec<TokenUId>> {
-    Ok(host.state().payment_tokens())
+    Ok(host
+        .state()
+        .balance_of_deposited(&params.token_id.to_token_owner_uid(params.address.into())))
 }

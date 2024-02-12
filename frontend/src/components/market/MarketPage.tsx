@@ -11,7 +11,14 @@ import {
 	ListItemText,
 	Toolbar,
 } from "@mui/material";
-import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+	Navigate,
+	Route,
+	Routes,
+	useLocation,
+	useNavigate,
+	useParams,
+} from "react-router-dom";
 import { useWallet } from "../WalletProvider";
 import WithdrawToken from "./WithdrawToken";
 import UnListedTokens from "./UnListedTokens";
@@ -20,7 +27,7 @@ import ListedTokens from "./ListedTokens";
 import Exchange from "./Exchange";
 import TransferList from "./TransferList";
 import rwaMarket from "../../lib/rwaMarket";
-const drawerWidth = 240;
+import { DRAWER_WIDTH } from "../common/consts";
 
 export default function MarketPage() {
 	const { pathname } = useLocation();
@@ -39,21 +46,34 @@ export default function MarketPage() {
 				variant="permanent"
 				anchor="left"
 				sx={{
-					width: drawerWidth,
+					width: DRAWER_WIDTH,
 					flexShrink: 0,
-					[`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
-				}}>
+					[`& .MuiDrawer-paper`]: {
+						width: DRAWER_WIDTH,
+						boxSizing: "border-box",
+					},
+				}}
+			>
 				<Toolbar />
 				<Divider />
 				<Box sx={{ overflow: "auto" }}>
 					<List>
-						<ListItemButton selected={path === "listed-tokens"} onClick={() => navigate("listed-tokens")}>
+						<ListItemButton
+							selected={path === "listed-tokens"}
+							onClick={() => navigate("listed-tokens")}
+						>
 							<ListItemIcon>
 								<ShopRounded />
 							</ListItemIcon>
-							<ListItemText primary="Listed Tokens" secondary="Tokens availed to be bought / exchanged" />
+							<ListItemText
+								primary="Listed Tokens"
+								secondary="Tokens availed to be bought / exchanged"
+							/>
 						</ListItemButton>
-						<ListItemButton selected={path === "un-listed-tokens"} onClick={() => navigate("un-listed-tokens")}>
+						<ListItemButton
+							selected={path === "un-listed-tokens"}
+							onClick={() => navigate("un-listed-tokens")}
+						>
 							<ListItemIcon>
 								<SellRounded />
 							</ListItemIcon>
@@ -62,7 +82,10 @@ export default function MarketPage() {
 								secondary="Tokens which have been deposited to Market Contract but not listed to sell"
 							/>
 						</ListItemButton>
-						<ListItemButton selected={path === "transferList"} onClick={() => navigate("transferList")}>
+						<ListItemButton
+							selected={path === "transferList"}
+							onClick={() => navigate("transferList")}
+						>
 							<ListItemIcon>
 								<SendRounded />
 							</ListItemIcon>
@@ -83,13 +106,18 @@ export default function MarketPage() {
 								contract={contract}
 								currentAccount={currentAccount!}
 								onDeList={(token) =>
-									rwaMarket.deList.update(walletApi!, currentAccount!, contract, {
-										owner: token.owner,
-										token_id: {
-											id: token.token_id,
-											contract: token.token_contract,
+									rwaMarket.deList.update(
+										walletApi!,
+										currentAccount!,
+										contract,
+										{
+											owner: token.owner,
+											token_id: {
+												id: token.token_id,
+												contract: token.token_contract,
+											},
 										},
-									})
+									)
 								}
 								onExchange={(token) => navigate("exchange", { state: token })}
 								onList={(token) => navigate("list", { state: token })}
@@ -107,13 +135,29 @@ export default function MarketPage() {
 							/>
 						}
 					/>
-					<Route path="withdraw" element={<WithdrawToken contract={contract} />} />
+					<Route
+						path="withdraw"
+						element={<WithdrawToken contract={contract} />}
+					/>
 					<Route path="list" element={<ListToken contract={contract} />} />
-					<Route path="transferList" element={<TransferList contract={contract} />} />
+					<Route
+						path="transferList"
+						element={<TransferList contract={contract} />}
+					/>
+					<Route
+						path="transferList/:listContractIndex/:listContractSubIndex/:listTokenId/:listAmount"
+						element={<TransferList contract={contract} />}
+					/>
 					<Route path="de-list" element={<div>De List</div>} />
 					<Route
 						path="exchange"
-						element={<Exchange contract={contract} walletApi={walletApi!} currentAccount={currentAccount!} />}
+						element={
+							<Exchange
+								contract={contract}
+								walletApi={walletApi!}
+								currentAccount={currentAccount!}
+							/>
+						}
 					/>
 					<Route path="" element={<Navigate to="listed-tokens" replace />} />
 				</Routes>

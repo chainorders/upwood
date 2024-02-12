@@ -14,7 +14,7 @@ pub struct HolderBalances<T, A, S> {
     balances: StateMap<T, A, S>,
 }
 
-pub trait IsTokenId: concordium_cis2::IsTokenId + Copy {}
+pub trait IsTokenId: concordium_cis2::IsTokenId + Clone {}
 
 impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderBalances<T, A, S> {
     pub fn new(state_builder: &mut StateBuilder<S>) -> Self {
@@ -44,9 +44,9 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderBalances<T, A, S> {
         Ok(())
     }
 
-    pub fn add(&mut self, token_id: T, amount: A) -> HolderStateResult<()> {
+    pub fn add(&mut self, token_id: &T, amount: A) -> HolderStateResult<()> {
         self.balances
-            .entry(token_id)
+            .entry(token_id.to_owned())
             .or_insert_with(|| A::zero())
             .try_modify(|e| e.checked_add_assign(amount).ok_or(HolderStateError::AmountOverflow))
     }
@@ -129,7 +129,7 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderState<T, A, S> {
     ///
     /// Returns `HolderStateError::AmountOverflow` if the amount to add and the
     /// current balance exceed the maximum value of `A`.
-    pub fn add(&mut self, token_id: T, amount: A) -> HolderStateResult<()> {
+    pub fn add(&mut self, token_id: &T, amount: A) -> HolderStateResult<()> {
         self.balances.add(token_id, amount)
     }
 }
@@ -235,7 +235,7 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     fn add_balance(
         &mut self,
         address: Address,
-        token_id: T,
+        token_id: &T,
         amount: A,
         state_builder: &mut StateBuilder<S>,
     ) -> HolderStateResult<()> {
@@ -294,7 +294,7 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
         &mut self,
         from: Address,
         to: Address,
-        token_id: T,
+        token_id: &T,
         amount: A,
         state_builder: &mut StateBuilder<S>,
     ) -> HolderStateResult<()> {

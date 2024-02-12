@@ -9,6 +9,7 @@ edition = "2021"
 concordium-rwa-identity-registry = { path = "../identity-registry" }
 concordium-rwa-compliance = { path = "../compliance" }
 concordium-rwa-security-nft = { path = "../security-nft" }
+concordium-rwa-security-sft = { path = "../security-sft" }
 concordium-rwa-market = { path = "../market" }
 euroe_stablecoin = { path = "../euroe" }
 concordium-std = { version = "8.1.0", default-features = false }

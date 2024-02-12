@@ -16,7 +16,10 @@ import { useNodeClient } from "../NodeClientProvider";
 import { useEffect, useState } from "react";
 import { Buffer } from "buffer/";
 
-import rwaMarket, { ExchangeRequest, GetListedResponse } from "../../lib/rwaMarket";
+import rwaMarket, {
+	ExchangeRequest,
+	GetListedResponse,
+} from "../../lib/rwaMarket";
 import {
 	Button,
 	Grid,
@@ -56,7 +59,9 @@ export default function Exchange(props: Props) {
 	const { provider: grpcClient } = useNodeClient();
 	const [error, setError] = useState<string | undefined>(undefined);
 	const [loading, setLoading] = useState(false);
-	const [listedToken, setListedToken] = useState<GetListedResponse | undefined>(undefined);
+	const [listedToken, setListedToken] = useState<GetListedResponse | undefined>(
+		undefined,
+	);
 
 	if (!token) {
 		navigate(-1);
@@ -75,7 +80,9 @@ export default function Exchange(props: Props) {
 					},
 				},
 			})
-			.then((result) => rwaMarket.getListed.parseReturnValue(result.returnValue!))
+			.then((result) =>
+				rwaMarket.getListed.parseReturnValue(result.returnValue!),
+			)
 			.then((listedToken) => {
 				if (!listedToken) {
 					throw new Error("Token is not listed, got undefined from getListed");
@@ -96,17 +103,24 @@ export default function Exchange(props: Props) {
 		request: ExchangeRequest,
 		paymentToken: PaymentToken,
 		paymentAmount: number,
-		transfer: boolean
+		transfer: boolean,
 	) => {
 		if (paymentToken.type === "Cis2") {
 			if (transfer) {
 				const exchangeRequestSerialized = serializeTypeValue(
 					request,
-					toBuffer(rwaMarket.exchange.paramsSchemaBase64!, "base64")
+					toBuffer(rwaMarket.exchange.paramsSchemaBase64!, "base64"),
 				);
-				const cis2CLient = await CIS2Contract.create(grpcClient, paymentToken.contract);
+				const cis2CLient = await CIS2Contract.create(
+					grpcClient,
+					paymentToken.contract,
+				);
 				const transfer = cis2CLient.createTransfer(
-					{ energy: Energy.create(rwaMarket.exchange.maxExecutionEnergy.value * BigInt(2)) },
+					{
+						energy: Energy.create(
+							rwaMarket.exchange.maxExecutionEnergy.value * BigInt(2),
+						),
+					},
 					{
 						from: currentAccount!,
 						to: {
@@ -117,17 +131,22 @@ export default function Exchange(props: Props) {
 						tokenId: paymentToken.id,
 						tokenAmount: BigInt(paymentAmount),
 						data: Buffer.from(exchangeRequestSerialized.buffer).toString("hex"),
-					} as CIS2.Transfer
+					} as CIS2.Transfer,
 				);
 				return walletApi!.sendTransaction(
 					currentAccount!,
 					transfer.type,
 					transfer.payload,
 					transfer.parameter.json,
-					transfer.schema
+					transfer.schema,
 				);
 			} else {
-				return rwaMarket.exchange.update(walletApi!, currentAccount!, props.contract, request);
+				return rwaMarket.exchange.update(
+					walletApi!,
+					currentAccount!,
+					props.contract,
+					request,
+				);
 			}
 		} else if (paymentToken.type === "Ccd") {
 			return rwaMarket.exchange.update(
@@ -135,7 +154,7 @@ export default function Exchange(props: Props) {
 				currentAccount!,
 				props.contract,
 				request,
-				CcdAmount.fromCcd(paymentAmount)
+				CcdAmount.fromCcd(paymentAmount),
 			);
 		} else {
 			throw new Error("Unknown payment token");
@@ -170,16 +189,19 @@ function ExchangeRequestForm(props: {
 		request: ExchangeRequest,
 		paymentToken: PaymentToken,
 		paymentAmount: number,
-		transfer: boolean
+		transfer: boolean,
 	) => Promise<string>;
 }) {
-	const { contract, listed, onSendTransaction, currentAccount, grpcClient } = props;
+	const { contract, listed, onSendTransaction, currentAccount, grpcClient } =
+		props;
 	const navigate = useNavigate();
 	const exchangeRates = listed.exchange_rates
 		.map((r) => fromContractExchangeRate(r))
 		.filter((r) => !!r)
 		.map((r) => r!);
-	const [selectedPaymentToken, setSelectedPaymentToken] = useState<PaymentToken | undefined>(undefined);
+	const [selectedPaymentToken, setSelectedPaymentToken] = useState<
+		PaymentToken | undefined
+	>(undefined);
 	const [buyAmount, setBuyAmount] = useState(0);
 	const [actualBuyAmount, setActualBuyAmount] = useState(0);
 	const [payAmount, setPayAmount] = useState<number>(0);
@@ -208,7 +230,9 @@ function ExchangeRequestForm(props: {
 					contract: listed.token_id.contract,
 				},
 			})
-			.then((result) => rwaMarket.calculateAmounts.parseReturnValue(result.returnValue!))
+			.then((result) =>
+				rwaMarket.calculateAmounts.parseReturnValue(result.returnValue!),
+			)
 			.then((amounts) => {
 				if (!amounts) {
 					throw new Error("Amounts is undefined");
@@ -222,14 +246,18 @@ function ExchangeRequestForm(props: {
 				if ("Cis2" in amounts.pay) {
 					payAmount = Number(amounts.pay.Cis2[0]);
 				} else if ("CCD" in amounts.pay) {
-					payAmount = Number(CcdAmount.microCcdToCcd(BigInt(amounts.pay.CCD[0])));
+					payAmount = Number(
+						CcdAmount.microCcdToCcd(BigInt(amounts.pay.CCD[0])),
+					);
 				}
 				setPayAmount(payAmount);
 
 				if ("Cis2" in amounts.commission) {
 					commissionAmount = Number(amounts.commission.Cis2[0]);
 				} else if ("CCD" in amounts.commission) {
-					commissionAmount = Number(CcdAmount.microCcdToCcd(BigInt(amounts.commission.CCD[0])));
+					commissionAmount = Number(
+						CcdAmount.microCcdToCcd(BigInt(amounts.commission.CCD[0])),
+					);
 				}
 				setCommissionAmount(commissionAmount);
 				setTotalAmount(payAmount + commissionAmount);
@@ -239,13 +267,20 @@ function ExchangeRequestForm(props: {
 				console.log("calculate amounts", error);
 				setError(error.message);
 			});
-	}, [buyAmount, selectedPaymentToken, contract, listed, grpcClient, currentAccount]);
+	}, [
+		buyAmount,
+		selectedPaymentToken,
+		contract,
+		listed,
+		grpcClient,
+		currentAccount,
+	]);
 
 	const buyViaCcd = (
 		listed: GetListedResponse,
 		rate: { numerator: bigint; denominator: bigint },
 		payAmount: number,
-		buyAmount: number
+		buyAmount: number,
 	) => {
 		const request: ExchangeRequest = {
 			amount: buyAmount.toString(),
@@ -268,7 +303,7 @@ function ExchangeRequestForm(props: {
 		token: Cis2PaymentToken,
 		payAmount: number,
 		buyAmount: number,
-		viaTokenTransfer: boolean
+		viaTokenTransfer: boolean,
 	) => {
 		const request: ExchangeRequest = {
 			amount: buyAmount.toString(),
@@ -294,8 +329,12 @@ function ExchangeRequestForm(props: {
 							{exchangeRates.map((token, index) => (
 								<ListItem key={index}>
 									<ListItemButton
-										selected={arePaymentTokensEqual(token, selectedPaymentToken)}
-										onClick={() => setSelectedPaymentToken(token)}>
+										selected={arePaymentTokensEqual(
+											token,
+											selectedPaymentToken,
+										)}
+										onClick={() => setSelectedPaymentToken(token)}
+									>
 										<ListItemIcon>
 											{arePaymentTokensEqual(token, selectedPaymentToken) ? (
 												<CheckCircle color="success" />
@@ -308,7 +347,11 @@ function ExchangeRequestForm(props: {
 												Ccd: (
 													<ListItemText
 														primary="CCD"
-														secondary={token.rate ? `${token.rate.numerator} for ${token.rate.denominator}` : ""}
+														secondary={
+															token.rate
+																? `${token.rate.numerator} for ${token.rate.denominator}`
+																: ""
+														}
 													/>
 												),
 												Cis2: (
@@ -316,7 +359,11 @@ function ExchangeRequestForm(props: {
 														primary={`${
 															token.id
 														} ${token.contract?.index.toString()}/${token.contract?.subindex.toString()}`}
-														secondary={token.rate ? `${token.rate.numerator} for ${token.rate.denominator}` : ""}
+														secondary={
+															token.rate
+																? `${token.rate.numerator} for ${token.rate.denominator}`
+																: ""
+														}
 													/>
 												),
 											}[token.type]
@@ -329,7 +376,12 @@ function ExchangeRequestForm(props: {
 				</Grid>
 				<Grid item xs={12} md={10}>
 					<Stack spacing={2} p={2}>
-						<TextField name="buyTokenId" label="Buy Token Id" value={listed.token_id.id} disabled />
+						<TextField
+							name="buyTokenId"
+							label="Buy Token Id"
+							value={listed.token_id.id}
+							disabled
+						/>
 						<TextField
 							name="buyTokenContract"
 							label="Buy Token Contract"
@@ -354,7 +406,11 @@ function ExchangeRequestForm(props: {
 							type="number"
 							value={payAmount}
 							disabled
-							helperText={selectedPaymentToken ? `In ${selectedPaymentToken.type}` : undefined}
+							helperText={
+								selectedPaymentToken
+									? `In ${selectedPaymentToken.type}`
+									: undefined
+							}
 						/>
 						<TextField
 							name="commissionAmount"
@@ -362,7 +418,11 @@ function ExchangeRequestForm(props: {
 							type="number"
 							value={commissionAmount}
 							disabled
-							helperText={selectedPaymentToken ? `In ${selectedPaymentToken.type}` : undefined}
+							helperText={
+								selectedPaymentToken
+									? `In ${selectedPaymentToken.type}`
+									: undefined
+							}
 						/>
 						<TextField
 							name="payAmount"
@@ -370,7 +430,11 @@ function ExchangeRequestForm(props: {
 							type="number"
 							value={totalPayAmount}
 							disabled
-							helperText={selectedPaymentToken ? `In ${selectedPaymentToken.type}` : undefined}
+							helperText={
+								selectedPaymentToken
+									? `In ${selectedPaymentToken.type}`
+									: undefined
+							}
 						/>
 					</Stack>
 				</Grid>
@@ -389,9 +453,10 @@ function ExchangeRequestForm(props: {
 													selectedPaymentToken as Cis2PaymentToken,
 													totalPayAmount,
 													actualBuyAmount,
-													true
+													true,
 												)
-											}>
+											}
+										>
 											Pay By Token Via Transfer&nbsp;${totalPayAmount}
 										</SendTransactionButton>
 									</>
@@ -399,7 +464,15 @@ function ExchangeRequestForm(props: {
 								Ccd: (
 									<SendTransactionButton
 										disabled={!totalPayAmount}
-										onClick={() => buyViaCcd(listed, selectedPaymentToken.rate!, totalPayAmount, actualBuyAmount)}>
+										onClick={() =>
+											buyViaCcd(
+												listed,
+												selectedPaymentToken.rate!,
+												totalPayAmount,
+												actualBuyAmount,
+											)
+										}
+									>
 										Pay By CCD&nbsp;${totalPayAmount}
 									</SendTransactionButton>
 								),

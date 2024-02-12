@@ -1,5 +1,5 @@
 use concordium_rust_sdk::{
-    smart_contracts::common::AccountAddressParseError,
+    smart_contracts::common::{AccountAddressParseError, AddressParseError},
     types::{Address, ContractAddress},
 };
 use poem_openapi::{
@@ -29,6 +29,9 @@ impl From<AccountAddressParseError> for Error {
 }
 impl From<bson::ser::Error> for Error {
     fn from(_: bson::ser::Error) -> Self { Self::ParseError }
+}
+impl From<AddressParseError> for Error {
+    fn from(_: AddressParseError) -> Self { Self::ParseError }
 }
 
 #[derive(Object)]

@@ -20,7 +20,9 @@ export default function ListToken(props: Props) {
 	const { provider: grpcClient } = useNodeClient();
 	const [error, setError] = useState<string | undefined>(undefined);
 	const [loading, setLoading] = useState(false);
-	const [listedToken, setListedToken] = useState<GetListedResponse | undefined>(undefined);
+	const [listedToken, setListedToken] = useState<GetListedResponse | undefined>(
+		undefined,
+	);
 
 	if (!token) {
 		navigate(-1);
@@ -39,7 +41,9 @@ export default function ListToken(props: Props) {
 					},
 				},
 			})
-			.then((result) => rwaMarket.getListed.parseReturnValue(result.returnValue!))
+			.then((result) =>
+				rwaMarket.getListed.parseReturnValue(result.returnValue!),
+			)
 			.then((listedToken) => {
 				if (!listedToken) {
 					throw new Error("Token is not listed, got undefined from getListed");
@@ -57,7 +61,12 @@ export default function ListToken(props: Props) {
 	}, [contract, token, grpcClient]);
 
 	const sendTransaction = (request: ListRequest) => {
-		return rwaMarket.list.update(wallet!, currentAccount!, props.contract, request);
+		return rwaMarket.list.update(
+			wallet!,
+			currentAccount!,
+			props.contract,
+			request,
+		);
 	};
 
 	return (

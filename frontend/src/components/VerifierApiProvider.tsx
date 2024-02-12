@@ -13,12 +13,17 @@ export const useVerifierApi = () => {
 	return useContext(VerifierApiContext);
 };
 
-export default function VerifierApiProvider({ children }: { children: React.ReactNode }): React.ReactNode {
+export default function VerifierApiProvider({
+	children,
+}: {
+	children: React.ReactNode;
+}): React.ReactNode {
 	return (
 		<VerifierApiContext.Provider
 			value={{
 				provider: verifierApi,
-			}}>
+			}}
+		>
 			{children}
 		</VerifierApiContext.Provider>
 	);

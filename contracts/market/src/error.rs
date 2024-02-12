@@ -1,6 +1,7 @@
+use concordium_rwa_utils::{
+    cis2_conversions::ExchangeError, token_deposits_state::DepositedStateError,
+};
 use concordium_std::*;
-
-use super::types::ExchangeError;
 
 #[derive(Serial, Reject, SchemaType, Debug)]
 pub enum Error {
@@ -28,6 +29,7 @@ pub enum Error {
     Cis2CommissionPaymentError,
     CCDPaymentError,
     CCDCommissionPaymentError,
+    NotDeposited,
 }
 
 impl From<ParseError> for Error {
@@ -41,9 +43,17 @@ impl From<LogError> for Error {
 impl From<ExchangeError> for Error {
     fn from(value: ExchangeError) -> Self {
         match value {
-            ExchangeError::InsufficientSupply => Error::InsufficientSupply,
             ExchangeError::InvalidRate => Error::InvalidRate,
-            ExchangeError::TokenNotListed => Error::NotListed,
+        }
+    }
+}
+
+impl From<DepositedStateError> for Error {
+    fn from(value: DepositedStateError) -> Self {
+        match value {
+            DepositedStateError::TokenNotFound => Error::NotDeposited,
+            DepositedStateError::InsufficientDeposits => Error::InsufficientDeposits,
+            DepositedStateError::InsufficientLocked => Error::InsufficientSupply,
         }
     }
 }

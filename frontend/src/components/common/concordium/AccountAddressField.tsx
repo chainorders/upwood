@@ -2,7 +2,8 @@ import { AccountAddress } from "@concordium/web-sdk";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useState } from "react";
 
-export interface AccountAddressFieldProps extends Omit<TextFieldProps, "onChange" | "value"> {
+export interface AccountAddressFieldProps
+	extends Omit<TextFieldProps, "onChange" | "value"> {
 	onChange: (address: AccountAddress.Type) => void;
 	value?: AccountAddress.Type;
 }
@@ -29,7 +30,9 @@ export default function AccountAddressField(props: AccountAddressFieldProps) {
 			error={!!error}
 			value={props.value?.address || ""}
 			onChange={handleChange}
-			helperText={(props.helperText ? props.helperText + " " : "") + "Account Address"}
+			helperText={
+				(props.helperText ? props.helperText + " " : "") + "Account Address"
+			}
 		/>
 	);
 }

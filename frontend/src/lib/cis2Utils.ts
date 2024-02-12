@@ -22,7 +22,9 @@ export type TokenMetadata = {
 	attributes?: AttributeJson[];
 	localizations?: { [key: string]: UrlJson };
 };
-export const getTokenMetadata = (metadataUrl: CIS2.MetadataUrl): Promise<TokenMetadata> => {
+export const getTokenMetadata = (
+	metadataUrl: CIS2.MetadataUrl,
+): Promise<TokenMetadata> => {
 	const url = toHttpUrl(metadataUrl.url);
 	return fetch(url, {
 		cache: "force-cache",
@@ -34,11 +36,11 @@ export const toHttpUrl = (url: string): string => {
 		return `https://ipfs.io/ipfs/${url.slice(7)}`;
 	} else if (url.startsWith("ipfs:")) {
 		return `https://ipfs.io/ipfs/${url.slice(5)}`;
-	} else if (url.startsWith("https://")) {
+	} else if (url.startsWith("https://") || url.startsWith("http://")) {
 		return url;
 	}
 
-	throw new Error(`Unsupported url: ${url}`);
+	return url;
 };
 
 export const toDataUrl = async (url: string): Promise<string> => {

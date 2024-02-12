@@ -88,7 +88,7 @@ pub fn transfer(
         ensure!(from.eq(&sender) || state.is_operator(&from, &sender), Error::Unauthorized);
 
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(from, to.address(), token_id, amount, state_builder)?;
+        state.transfer(from, to.address(), &token_id, amount, state_builder)?;
         compliance.transferred(host, compliance_token, from, to.address(), amount)?;
 
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
@@ -98,7 +98,6 @@ pub fn transfer(
             to: to.address(),
         })))?;
 
-        // host.commit_state();
         if let Receiver::Contract(to_contract, entrypoint) = to {
             let parameter = OnReceivingCis2Params {
                 token_id,
@@ -180,7 +179,7 @@ pub fn forced_transfer(
         );
 
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(from, to.address(), token_id, amount, state_builder)?;
+        state.transfer(from, to.address(), &token_id, amount, state_builder)?;
         // Adjust the frozen balance of the sender.
         state.adjust_frozen_balance(from, token_id)?;
         ComplianceContract(host.state().compliance()).transferred(
