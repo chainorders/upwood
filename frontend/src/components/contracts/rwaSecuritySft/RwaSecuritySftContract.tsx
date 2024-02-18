@@ -25,11 +25,28 @@ import {
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecuritySftUi";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
 import SftTokensList from "./SftTokensList";
+import MetadataUrlUi from "./MetadataUrlUi";
+import FractionsRateUi from "./FractionsRateUi";
 
 const entrypoints_ui_customizations: Record<
 	keyof typeof ENTRYPOINTS_UI,
 	{ uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }
-> = {};
+> = {
+	addTokens: {
+		uiSchema: {
+			tokens: {
+				items: {
+					metadata_url: {
+						"ui:field": MetadataUrlUi,
+					},
+					fractions_rate: {
+						"ui:field": FractionsRateUi,
+					},
+				},
+			},
+		},
+	},
+};
 
 export default function RwaSecuritySftContract() {
 	const { index, subIndex } = useParams();

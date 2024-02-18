@@ -11,10 +11,10 @@ import {
 	Icon,
 } from "@mui/material";
 import { useState } from "react";
-import { TokenMetadata } from "../../../../lib/cis2Utils";
-import GetOrUploadFile from "./GetOrUploadFile";
-import SetAttributes, { Attributes } from "./SetAttributes";
-import UploadMetadata from "./UploadMetadata";
+import { TokenMetadata } from "../../../lib/cis2Utils";
+import GetOrUploadFile from "./PrepSteps/GetOrUploadFile";
+import SetAttributes, { Attributes } from "./PrepSteps/SetAttributes";
+import UploadMetadata from "./PrepSteps/UploadMetadata";
 
 enum PrepMetadataStep {
 	GetOrUploadImage,

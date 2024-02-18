@@ -25,7 +25,7 @@ import {
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecurityNftUi";
 import NftTokensList from "./NftTokensList";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
-import MintTokens from "./MintTokens";
+import MetadataUrlUi from "./MetadataUrlUi";
 
 const entrypoints_ui_customizations: Record<
 	keyof typeof ENTRYPOINTS_UI,
@@ -34,11 +34,12 @@ const entrypoints_ui_customizations: Record<
 	mint: {
 		uiSchema: {
 			tokens: {
-				"ui:widget": "mintTokenUi",
+				items: {
+					metadata_url: {
+						"ui:field": MetadataUrlUi,
+					},
+				},
 			},
-		},
-		uiWidgets: {
-			mintTokenUi: MintTokens,
 		},
 	},
 };
