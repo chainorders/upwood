@@ -54,54 +54,43 @@ export default function ListedTokens(props: Props) {
 	}, [page, contract, backendApi]);
 
 	return (
-		<>
-			<AppBar position="static" color="transparent">
-				<Toolbar>
-					<Typography variant="h3" component="div" sx={{ flexGrow: 1 }}>
-						Marketplace
-					</Typography>
-				</Toolbar>
-			</AppBar>
-			<Paper variant="outlined" sx={{ p: 2 }}>
-				<Stack spacing={2}>
-					<Grid container spacing={1}>
-						{data.map((token, index) => (
-							<Grid item xs={12} md={2} key={index}>
-								<TokenDisplay
-									grpcClient={grpcClient}
-									token={token}
-									onDeList={
-										token.owner === currentAccount.address
-											? onDeList
-											: undefined
-									}
-									onList={
-										token.owner === currentAccount.address ? onList : undefined
-									}
-									onExchange={
-										token.owner !== currentAccount.address
-											? onExchange
-											: undefined
-									}
-								/>
-							</Grid>
-						))}
-					</Grid>
-					<Box sx={{ display: "flex", justifyContent: "center" }}>
-						<Pagination
-							count={pageCount}
-							page={page + 1}
-							variant="outlined"
-							shape="rounded"
-							onChange={(_e, v) =>
-								setSearchParams({ ...searchParams, page: v.toString() })
-							}
-						/>
-						{error && <ErrorDisplay text={error} />}
-						{loading && <Typography>Loading...</Typography>}
-					</Box>
-				</Stack>
-			</Paper>
-		</>
+		<Paper variant="outlined" sx={{ p: 2 }}>
+			<Stack spacing={2}>
+				<Grid container spacing={1}>
+					{data.map((token, index) => (
+						<Grid item xs={12} md={2} key={index}>
+							<TokenDisplay
+								grpcClient={grpcClient}
+								token={token}
+								onDeList={
+									token.owner === currentAccount.address ? onDeList : undefined
+								}
+								onList={
+									token.owner === currentAccount.address ? onList : undefined
+								}
+								onExchange={
+									token.owner !== currentAccount.address
+										? onExchange
+										: undefined
+								}
+							/>
+						</Grid>
+					))}
+				</Grid>
+				<Box sx={{ display: "flex", justifyContent: "center" }}>
+					<Pagination
+						count={pageCount}
+						page={page + 1}
+						variant="outlined"
+						shape="rounded"
+						onChange={(_e, v) =>
+							setSearchParams({ ...searchParams, page: v.toString() })
+						}
+					/>
+					{error && <ErrorDisplay text={error} />}
+					{loading && <Typography>Loading...</Typography>}
+				</Box>
+			</Stack>
+		</Paper>
 	);
 }

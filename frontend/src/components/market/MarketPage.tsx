@@ -1,16 +1,5 @@
 import { ContractAddress } from "@concordium/web-sdk";
-import { SellRounded, SendRounded, ShopRounded } from "@mui/icons-material";
-import {
-	Box,
-	CssBaseline,
-	Divider,
-	Drawer,
-	List,
-	ListItemButton,
-	ListItemIcon,
-	ListItemText,
-	Toolbar,
-} from "@mui/material";
+import { AppBar, Icon, IconButton, Toolbar, Typography } from "@mui/material";
 import {
 	Navigate,
 	Route,
@@ -27,7 +16,8 @@ import ListedTokens from "./ListedTokens";
 import Exchange from "./Exchange";
 import TransferList from "./TransferList";
 import rwaMarket from "../../lib/rwaMarket";
-import { DRAWER_WIDTH } from "../common/consts";
+import { HomeRounded, SellRounded, ShopRounded } from "@mui/icons-material";
+import { grey } from "@mui/material/colors";
 
 export default function MarketPage() {
 	const { pathname } = useLocation();
@@ -40,128 +30,95 @@ export default function MarketPage() {
 	const { currentAccount, provider: walletApi } = useWallet();
 
 	return (
-		<Box sx={{ display: "flex" }}>
-			<CssBaseline />
-			<Drawer
-				variant="permanent"
-				anchor="left"
-				sx={{
-					width: DRAWER_WIDTH,
-					flexShrink: 0,
-					[`& .MuiDrawer-paper`]: {
-						width: DRAWER_WIDTH,
-						boxSizing: "border-box",
-					},
-				}}
-			>
-				<Toolbar />
-				<Divider />
-				<Box sx={{ overflow: "auto" }}>
-					<List>
-						<ListItemButton
-							selected={path === "listed-tokens"}
-							onClick={() => navigate("listed-tokens")}
-						>
-							<ListItemIcon>
-								<ShopRounded />
-							</ListItemIcon>
-							<ListItemText
-								primary="Listed Tokens"
-								secondary="Tokens availed to be bought / exchanged"
-							/>
-						</ListItemButton>
-						<ListItemButton
-							selected={path === "un-listed-tokens"}
-							onClick={() => navigate("un-listed-tokens")}
-						>
-							<ListItemIcon>
-								<SellRounded />
-							</ListItemIcon>
-							<ListItemText
-								primary="Un Listed Tokens"
-								secondary="Tokens which have been deposited to Market Contract but not listed to sell"
-							/>
-						</ListItemButton>
-						<ListItemButton
-							selected={path === "transferList"}
-							onClick={() => navigate("transferList")}
-						>
-							<ListItemIcon>
-								<SendRounded />
-							</ListItemIcon>
-							<ListItemText
-								primary="Transfer & List"
-								secondary="Transfer tokens from any CIS2 contract to Market contract"
-							/>
-						</ListItemButton>
-					</List>
-				</Box>
-			</Drawer>
-			<Box component="main" sx={{ flexGrow: 1, p: 0 }}>
-				<Routes>
-					<Route
-						path="listed-tokens"
-						element={
-							<ListedTokens
-								contract={contract}
-								currentAccount={currentAccount!}
-								onDeList={(token) =>
-									rwaMarket.deList.update(
-										walletApi!,
-										currentAccount!,
-										contract,
-										{
-											owner: token.owner,
-											token_id: {
-												id: token.token_id,
-												contract: token.token_contract,
-											},
-										},
-									)
-								}
-								onExchange={(token) => navigate("exchange", { state: token })}
-								onList={(token) => navigate("list", { state: token })}
-							/>
-						}
-					/>
-					<Route
-						path="un-listed-tokens"
-						element={
-							<UnListedTokens
-								contract={contract}
-								owner={currentAccount!}
-								onWithdraw={(token) => navigate("withdraw", { state: token })}
-								onList={(token) => navigate("list", { state: token })}
-							/>
-						}
-					/>
-					<Route
-						path="withdraw"
-						element={<WithdrawToken contract={contract} />}
-					/>
-					<Route path="list" element={<ListToken contract={contract} />} />
-					<Route
-						path="transferList"
-						element={<TransferList contract={contract} />}
-					/>
-					<Route
-						path="transferList/:listContractIndex/:listContractSubIndex/:listTokenId/:listAmount"
-						element={<TransferList contract={contract} />}
-					/>
-					<Route path="de-list" element={<div>De List</div>} />
-					<Route
-						path="exchange"
-						element={
-							<Exchange
-								contract={contract}
-								walletApi={walletApi!}
-								currentAccount={currentAccount!}
-							/>
-						}
-					/>
-					<Route path="" element={<Navigate to="listed-tokens" replace />} />
-				</Routes>
-			</Box>
-		</Box>
+		<>
+			<AppBar position="static" sx={{ bgcolor: grey[800], mt: -2 }}>
+				<Toolbar>
+					<IconButton onClick={() => navigate("")}>
+						<Icon sx={{ fontSize: 30 }}>
+							<HomeRounded sx={{ fontSize: 30, color: grey[50] }} />
+						</Icon>
+					</IconButton>
+					<Typography fontSize={30} component="div" sx={{ flexGrow: 1 }}>
+						Marketplace
+					</Typography>
+					<IconButton
+						sx={{ color: grey[50], m: 2 }}
+						onClick={() => navigate("un-listed-tokens")}
+					>
+						<Icon>
+							<SellRounded sx={{ color: grey[50] }} />
+						</Icon>
+						<Typography ml={1}>Un Listed Tokens</Typography>
+					</IconButton>
+					<IconButton
+						sx={{ color: grey[50], m: 2 }}
+						onClick={() => navigate("transferList")}
+					>
+						<Icon>
+							<ShopRounded sx={{ color: grey[50] }} />
+						</Icon>
+						<Typography ml={1}>List</Typography>
+					</IconButton>
+				</Toolbar>
+			</AppBar>
+			<Routes>
+				<Route
+					path="listed-tokens"
+					element={
+						<ListedTokens
+							contract={contract}
+							currentAccount={currentAccount!}
+							onDeList={(token) =>
+								rwaMarket.deList.update(walletApi!, currentAccount!, contract, {
+									owner: token.owner,
+									token_id: {
+										id: token.token_id,
+										contract: token.token_contract,
+									},
+								})
+							}
+							onExchange={(token) => navigate("exchange", { state: token })}
+							onList={(token) => navigate("list", { state: token })}
+						/>
+					}
+				/>
+				<Route
+					path="un-listed-tokens"
+					element={
+						<UnListedTokens
+							contract={contract}
+							owner={currentAccount!}
+							onWithdraw={(token) => navigate("withdraw", { state: token })}
+							onList={(token) => navigate("list", { state: token })}
+						/>
+					}
+				/>
+				<Route
+					path="withdraw"
+					element={<WithdrawToken contract={contract} />}
+				/>
+				<Route path="list" element={<ListToken contract={contract} />} />
+				<Route
+					path="transferList"
+					element={<TransferList contract={contract} />}
+				/>
+				<Route
+					path="transferList/:listContractIndex/:listContractSubIndex/:listTokenId/:listAmount"
+					element={<TransferList contract={contract} />}
+				/>
+				<Route path="de-list" element={<div>De List</div>} />
+				<Route
+					path="exchange"
+					element={
+						<Exchange
+							contract={contract}
+							walletApi={walletApi!}
+							currentAccount={currentAccount!}
+						/>
+					}
+				/>
+				<Route path="" element={<Navigate to="listed-tokens" replace />} />
+			</Routes>
+		</>
 	);
 }
