@@ -33,7 +33,6 @@ import { ArrowCircleLeft, Delete } from "@mui/icons-material";
 import InfoDisplay from "../../common/InfoDisplay";
 
 type TokenUi = Flatten<MintRequestUi["tokens"]>;
-type MetadataUi = TokenUi["metadata_url"];
 const PINATA_JWT = import.meta.env.VITE_PINATA_JWT!;
 
 const GetMetadataUrl = (props: {
