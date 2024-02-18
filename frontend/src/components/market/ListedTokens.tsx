@@ -1,14 +1,5 @@
 import { AccountAddress, ContractAddress } from "@concordium/web-sdk";
-import {
-	AppBar,
-	Box,
-	Grid,
-	Pagination,
-	Paper,
-	Stack,
-	Toolbar,
-	Typography,
-} from "@mui/material";
+import { Box, Grid, Pagination, Paper, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MarketToken } from "../../lib/contracts-api-client";
