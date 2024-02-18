@@ -60,7 +60,6 @@ export default function ContractLayout(props: { contracts: Contract[] }) {
 							subIndex={contract.address.subindex.toString()}
 						/>
 					</Typography>
-					<Typography variant="h4" fontSize={18}></Typography>
 				</Paper>
 			</Stack>
 			<Grid container spacing={1}>

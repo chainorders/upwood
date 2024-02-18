@@ -25,11 +25,23 @@ import {
 import { ENTRYPOINTS_UI } from "../../../lib/rwaSecurityNftUi";
 import NftTokensList from "./NftTokensList";
 import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
+import MintTokens from "./MintTokens";
 
 const entrypoints_ui_customizations: Record<
 	keyof typeof ENTRYPOINTS_UI,
 	{ uiSchema?: UiSchema; uiWidgets?: RegistryWidgetsType }
-> = {};
+> = {
+	mint: {
+		uiSchema: {
+			tokens: {
+				"ui:widget": "mintTokenUi",
+			},
+		},
+		uiWidgets: {
+			mintTokenUi: MintTokens,
+		},
+	},
+};
 
 export default function RwaSecurityNftContract() {
 	const { index, subIndex } = useParams();
@@ -62,7 +74,7 @@ export default function RwaSecurityNftContract() {
 									})}
 								/>
 							))}
-							<Route path="*" element={<Navigate to="tokens" />} />
+							<Route path="*" element={<Navigate to="tokens" replace />} />
 						</Routes>
 					</Paper>
 				</Grid>

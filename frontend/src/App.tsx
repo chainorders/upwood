@@ -1,9 +1,13 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import {
+	BrowserRouter as Router,
+	Route,
+	Routes,
+	Navigate,
+} from "react-router-dom";
 import { AppBar, Box, Toolbar, Typography } from "@mui/material";
 import ContractsPage from "./components/contracts/ContractsPage";
 import ConcordiumWalletProvider from "./components/WalletProvider";
 import ConcordiumNodeClientProvider from "./components/NodeClientProvider";
-import ErrorDisplay from "./components/common/ErrorDisplay";
 import MarketPage from "./components/market/MarketPage";
 import ContractsApiProvider from "./components/ContractsApiProvider";
 import VerifierPage from "./components/verifier/VerifierPage";
@@ -72,7 +76,10 @@ function Layout() {
 									<Route path="verifier" Component={VerifierPage} />
 									<Route path="nft/:index/:subIndex/*" Component={NftPage} />
 									<Route path="sft/:index/:subIndex/*" Component={SftPage} />
-									<Route path="*" element={<ErrorDisplay text="Not Found" />} />
+									<Route
+										path="*"
+										element={<Navigate to="contracts" replace />}
+									/>
 								</Routes>
 							</Box>
 							<Footer />
