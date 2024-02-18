@@ -8,6 +8,8 @@ import {
 } from "../../../lib/rwaIdentityRegistry";
 import { ENTRYPOINTS_UI } from "../../../lib/rwaIdentityRegistryUi";
 import { RegistryWidgetsType, UiSchema, WidgetProps } from "@rjsf/utils";
+import ContractBreadcrumb from "../common/ContractBreadcrumb";
+import { ContractType } from "../ContractTypes";
 
 const AttributeTagSelect = (props: WidgetProps) => {
 	return (
@@ -63,12 +65,19 @@ export default function RwaIdentityRegistryContract() {
 	const contract = ContractAddress.create(BigInt(index!), BigInt(subIndex!));
 	const { pathname } = useLocation();
 	const paths = pathname.split("/");
-	const path = paths[paths.length - 1];
+	const path = paths[5];
 
 	AttributesKeys;
 
 	return (
 		<Stack>
+			<ContractBreadcrumb
+				contractType={ContractType.RwaIdentityRegistry}
+				index={index!}
+				subIndex={subIndex!}
+				entrypointDisplayNames={ENTRYPOINT_DISPLAY_NAMES}
+				path={path}
+			/>
 			<Grid container spacing={1}>
 				<Grid item xs={12} md={9}>
 					<Paper variant="outlined" sx={{ border: 0 }}>

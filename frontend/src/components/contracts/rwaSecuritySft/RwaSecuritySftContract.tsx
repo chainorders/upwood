@@ -27,6 +27,8 @@ import { RegistryWidgetsType, UiSchema } from "@rjsf/utils";
 import SftTokensList from "./SftTokensList";
 import MetadataUrlUi from "./MetadataUrlUi";
 import FractionsRateUi from "./FractionsRateUi";
+import ContractBreadcrumb from "../common/ContractBreadcrumb";
+import { ContractType } from "../ContractTypes";
 
 const entrypoints_ui_customizations: Record<
 	keyof typeof ENTRYPOINTS_UI,
@@ -58,6 +60,13 @@ export default function RwaSecuritySftContract() {
 
 	return (
 		<Stack>
+			<ContractBreadcrumb
+				contractType={ContractType.RwaSecuritySft}
+				index={index!}
+				subIndex={subIndex!}
+				entrypointDisplayNames={ENTRYPOINT_DISPLAY_NAMES}
+				path={path}
+			/>
 			<Grid container spacing={1}>
 				<Grid item xs={12} md={9}>
 					<Paper variant="outlined" sx={{ border: 0 }}>

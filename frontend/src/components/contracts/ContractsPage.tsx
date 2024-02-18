@@ -86,6 +86,7 @@ export default function ContractsPage() {
 							path="*"
 							element={
 								<ConcordiumContract
+									contractType={ContractType.RwaCompliance}
 									entrypoints={rwaComplianceEntrypoints}
 									entrypointDisplayNames={rwaComplianceEntrypointNames}
 									entrypointUi={rwaComplianceEntrypointsUI}
@@ -161,6 +162,7 @@ export default function ContractsPage() {
 							path="*"
 							element={
 								<ConcordiumContract
+									contractType={ContractType.RwaComplianceModule}
 									entrypoints={rwaComplianceModuleEntrypoints}
 									entrypointDisplayNames={rwaComplianceModuleEntrypointNames}
 									entrypointUi={rwaComplianceModuleEntrypointsUI}
@@ -191,6 +193,7 @@ export default function ContractsPage() {
 							path="*"
 							element={
 								<ConcordiumContract
+									contractType={ContractType.RwaMarket}
 									entrypoints={rwaMarketEntrypoints}
 									entrypointDisplayNames={rwaMarketEntrypointNames}
 									entrypointUi={rwaMarketEntrypointsUI}
