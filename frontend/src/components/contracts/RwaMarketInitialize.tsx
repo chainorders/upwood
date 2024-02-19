@@ -1,9 +1,9 @@
 import {
+	AccountAddress,
 	BlockItemSummaryInBlock,
 	ContractAddress,
 	RejectedInit,
 } from "@concordium/web-sdk";
-import { useWallet } from "../WalletProvider";
 import SendTransactionButton from "../common/SendTransactionButton";
 import { Contract, ContractType } from "./ContractTypes";
 import {
@@ -27,6 +27,7 @@ import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import ContractAddressField from "../common/concordium/ContractAddressField";
 import TokenUIdField, { TokenUId } from "../common/concordium/TokenUIdField";
 import { Rate } from "../market/types";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 type TokenContract = ContractAddress.Type;
 const toCommission = (value: string) => {
@@ -41,12 +42,13 @@ const toCommission = (value: string) => {
 };
 
 type Props = {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	onSuccess: (contract: Contract) => void;
 	existingTokenContracts: Contract[];
 };
 
 export default function RwaMarketInitialize(props: Props) {
-	const wallet = useWallet();
 	const [form, setForm] = useState({
 		contractDisplayName: "",
 		commission: {
@@ -276,7 +278,7 @@ export default function RwaMarketInitialize(props: Props) {
 				</Paper>
 				<SendTransactionButton
 					onClick={() =>
-						rwaMarket.init.init(wallet.provider!, wallet.currentAccount!, {
+						rwaMarket.init.init(props.wallet, props.currentAccount, {
 							token_contracts: tokenContracts.map((c) => ({
 								index: Number(c.index),
 								subindex: Number(c.subindex),

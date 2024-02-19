@@ -1,5 +1,8 @@
-import { BlockItemSummaryInBlock, RejectedInit } from "@concordium/web-sdk";
-import { useWallet } from "../WalletProvider";
+import {
+	AccountAddress,
+	BlockItemSummaryInBlock,
+	RejectedInit,
+} from "@concordium/web-sdk";
 import SendTransactionButton from "../common/SendTransactionButton";
 import { Contract, ContractType } from "./ContractTypes";
 import { Stack, TextField } from "@mui/material";
@@ -7,11 +10,13 @@ import { useState } from "react";
 import { parseContractAddress } from "../../lib/common/common";
 import ErrorDisplay from "../common/ErrorDisplay";
 import rwaIdentityRegistry from "../../lib/rwaIdentityRegistry";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 export default function RwaIdentityRegistryInitialize(props: {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	onSuccess: (contract: Contract) => void;
 }) {
-	const wallet = useWallet();
 	const [form, setForm] = useState({
 		contractDisplayName: "",
 	});
@@ -54,10 +59,7 @@ export default function RwaIdentityRegistryInitialize(props: {
 				/>
 				<SendTransactionButton
 					onClick={() =>
-						rwaIdentityRegistry.init.init(
-							wallet.provider!,
-							wallet.currentAccount!,
-						)
+						rwaIdentityRegistry.init.init(props.wallet, props.currentAccount)
 					}
 					onFinalized={handleSuccess}
 					onFinalizedError={(r) =>

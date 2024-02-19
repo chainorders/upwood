@@ -27,7 +27,7 @@ export default function MarketPage() {
 	const { index, subIndex } = useParams();
 	const contract = ContractAddress.create(BigInt(index!), BigInt(subIndex!));
 	const navigate = useNavigate();
-	const { currentAccount, provider: walletApi } = useWallet();
+	const { currentAccount, provider: wallet } = useWallet();
 
 	return (
 		<>
@@ -69,7 +69,7 @@ export default function MarketPage() {
 							contract={contract}
 							currentAccount={currentAccount!}
 							onDeList={(token) =>
-								rwaMarket.deList.update(walletApi!, currentAccount!, contract, {
+								rwaMarket.deList.update(wallet!, currentAccount!, contract, {
 									owner: token.owner,
 									token_id: {
 										id: token.token_id,
@@ -95,16 +95,43 @@ export default function MarketPage() {
 				/>
 				<Route
 					path="withdraw"
-					element={<WithdrawToken contract={contract} />}
+					element={
+						<WithdrawToken
+							wallet={wallet!}
+							currentAccount={currentAccount!}
+							contract={contract}
+						/>
+					}
 				/>
-				<Route path="list" element={<ListToken contract={contract} />} />
+				<Route
+					path="list"
+					element={
+						<ListToken
+							wallet={wallet!}
+							currentAccount={currentAccount!}
+							contract={contract}
+						/>
+					}
+				/>
 				<Route
 					path="transferList"
-					element={<TransferList contract={contract} />}
+					element={
+						<TransferList
+							wallet={wallet!}
+							currentAccount={currentAccount!}
+							contract={contract}
+						/>
+					}
 				/>
 				<Route
 					path="transferList/:listContractIndex/:listContractSubIndex/:listTokenId/:listAmount"
-					element={<TransferList contract={contract} />}
+					element={
+						<TransferList
+							wallet={wallet!}
+							currentAccount={currentAccount!}
+							contract={contract}
+						/>
+					}
 				/>
 				<Route path="de-list" element={<div>De List</div>} />
 				<Route
@@ -112,7 +139,7 @@ export default function MarketPage() {
 					element={
 						<Exchange
 							contract={contract}
-							walletApi={walletApi!}
+							walletApi={wallet!}
 							currentAccount={currentAccount!}
 						/>
 					}

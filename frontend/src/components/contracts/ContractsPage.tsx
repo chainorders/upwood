@@ -31,8 +31,10 @@ import RwaSecurityNftContract from "./rwaSecurityNft/RwaSecurityNftContract";
 import RwaSecuritySftContract from "./rwaSecuritySft/RwaSecuritySftContract";
 import RwaSecuritySftInitialize from "./RwaSecuritySftInitialize";
 import RwaIdentityRegistryContract from "./rwaIdentityRegistry/RwaIdentityRegistryContract";
+import { useWallet } from "../WalletProvider";
 
 export default function ContractsPage() {
+	const { provider: wallet, currentAccount } = useWallet();
 	const [state, dispatch] = useReducer(reducer, initialState());
 	const onContractInitialized = (contract: Contract) => {
 		dispatch({ type: ActionTypes.AddContract, contract });
@@ -56,7 +58,11 @@ export default function ContractsPage() {
 					<Route
 						path="init"
 						element={
-							<IdentityRegistryInitialize onSuccess={onContractInitialized} />
+							<IdentityRegistryInitialize
+								wallet={wallet!}
+								currentAccount={currentAccount!}
+								onSuccess={onContractInitialized}
+							/>
 						}
 					/>
 					<Route
@@ -71,6 +77,8 @@ export default function ContractsPage() {
 						path="init"
 						element={
 							<ComplianceInitialize
+								wallet={wallet!}
+								currentAccount={currentAccount!}
 								onSuccess={onContractInitialized}
 								complianceModules={state.contracts.filter(
 									(c) => c.type == ContractType.RwaComplianceModule,
@@ -100,6 +108,8 @@ export default function ContractsPage() {
 						path="init"
 						element={
 							<RwaSecurityNftInitialize
+								wallet={wallet!}
+								currentAccount={currentAccount!}
 								onSuccess={onContractInitialized}
 								identityRegistries={state.contracts.filter(
 									(contract) =>
@@ -123,6 +133,8 @@ export default function ContractsPage() {
 						path="init"
 						element={
 							<RwaSecuritySftInitialize
+								wallet={wallet!}
+								currentAccount={currentAccount!}
 								onSuccess={onContractInitialized}
 								identityRegistries={state.contracts.filter(
 									(contract) =>
@@ -146,6 +158,8 @@ export default function ContractsPage() {
 						path="init"
 						element={
 							<RWAComplianceModuleInitialize
+								wallet={wallet!}
+								currentAccount={currentAccount!}
 								onSuccess={onContractInitialized}
 								identityRegistries={state.contracts.filter(
 									(contract) =>
@@ -176,6 +190,8 @@ export default function ContractsPage() {
 						path="init"
 						element={
 							<RwaMarketInitialize
+								wallet={wallet!}
+								currentAccount={currentAccount!}
 								onSuccess={onContractInitialized}
 								existingTokenContracts={state.contracts.filter(
 									(contract) =>
