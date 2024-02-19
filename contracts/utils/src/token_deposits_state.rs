@@ -2,32 +2,48 @@ use concordium_std::{bail, ensure, Deletable, HasStateApi, Serialize, StateMap};
 
 use crate::tokens_state::IsTokenAmount;
 
+/// An error that can occur when interacting with the deposited state.
 pub enum DepositedStateError {
+    /// The token with the given ID was not found.
     TokenNotFound,
+    /// The token with the given ID does not have enough deposits.
     InsufficientDeposits,
+    /// The token with the given ID does not have enough locked deposits.
     InsufficientLocked,
 }
 
 #[derive(Serialize, Clone)]
 pub struct DepositedTokenState<A> {
+    /// Total Amount Deposited
     pub amount:        A,
+    /// Amount Locked. This should be less than or equal to `amount`
     pub locked_amount: A,
 }
 
 pub trait IDepositedTokensState<T: Serialize + Clone, A: IsTokenAmount, S: HasStateApi> {
+    /// Returns the map of token IDs to their deposited state.
     fn tokens(&self) -> &StateMap<T, DepositedTokenState<A>, S>;
+
+    /// Returns the mutable map of token IDs to their deposited state.
     fn tokens_mut(&mut self) -> &mut StateMap<T, DepositedTokenState<A>, S>;
 
+    /// Returns `true` if the token with the given ID has been deposited.
     fn is_deposited(&self, token_id: &T) -> bool { self.tokens().get(token_id).is_some() }
 
+    /// Returns the total amount of the token with the given ID that has been
+    /// deposited.
     fn balance_of_deposited(&self, token_id: &T) -> A {
         self.tokens().get(token_id).map(|info| info.amount).unwrap_or(A::zero())
     }
 
+    /// Returns the total amount of the token with the given ID that has been
+    /// locked.
     fn balance_of_locked(&self, token_id: &T) -> A {
         self.tokens().get(token_id).map(|info| info.locked_amount).unwrap_or(A::zero())
     }
 
+    /// Returns the total amount of the token with the given ID that is
+    /// unlocked.
     fn balance_of_unlocked(&self, token_id: &T) -> A {
         self.balance_of_deposited(token_id).sub(self.balance_of_locked(token_id))
     }
@@ -46,12 +62,17 @@ pub trait IDepositedTokensState<T: Serialize + Clone, A: IsTokenAmount, S: HasSt
             });
     }
 
-    fn set_locked_deposits(&mut self, token_id: &T, amount: A) -> Result<(), DepositedStateError> {
+    /// Sets the locked amount for the token with the given ID.
+    fn set_locked_deposits(
+        &mut self,
+        token_id: &T,
+        locked_amount: A,
+    ) -> Result<(), DepositedStateError> {
         let token = self.tokens_mut().get_mut(token_id);
         match token {
             Some(mut token) => {
-                ensure!(token.amount.ge(&amount), DepositedStateError::InsufficientDeposits);
-                token.locked_amount = amount;
+                ensure!(token.amount.ge(&locked_amount), DepositedStateError::InsufficientDeposits);
+                token.locked_amount = locked_amount;
             }
             None => bail!(DepositedStateError::TokenNotFound),
         };
@@ -59,12 +80,16 @@ pub trait IDepositedTokensState<T: Serialize + Clone, A: IsTokenAmount, S: HasSt
         Ok(())
     }
 
+    /// Increases the locked amount for the token with the given ID.
     fn inc_locked_deposits(&mut self, token_id: &T, amount: A) -> Result<(), DepositedStateError> {
         let token = self.tokens_mut().get_mut(token_id);
         match token {
             Some(mut token) => {
                 token.locked_amount.add_assign(amount);
-                ensure!(token.amount.ge(&token.locked_amount), DepositedStateError::InsufficientDeposits);
+                ensure!(
+                    token.amount.ge(&token.locked_amount),
+                    DepositedStateError::InsufficientDeposits
+                );
             }
             None => bail!(DepositedStateError::TokenNotFound),
         };
@@ -81,9 +106,10 @@ pub trait IDepositedTokensState<T: Serialize + Clone, A: IsTokenAmount, S: HasSt
         let token = match token {
             Some(mut token) => {
                 token.amount.sub_assign(amount);
-                if token.amount.lt(&token.locked_amount) {
-                    bail!(DepositedStateError::InsufficientDeposits)
-                }
+                ensure!(
+                    token.amount.ge(&token.locked_amount),
+                    DepositedStateError::InsufficientDeposits
+                );
 
                 token
             }
@@ -98,28 +124,49 @@ pub trait IDepositedTokensState<T: Serialize + Clone, A: IsTokenAmount, S: HasSt
         }
     }
 
-    fn dec_locked_deposits(&mut self, token_id: &T, amount: A) -> Result<A, DepositedStateError> {
+    /// Decreases the locked amount for the token with the given ID.
+    fn dec_locked_deposits(
+        &mut self,
+        token_id: &T,
+        delta_locked_amount: A,
+    ) -> Result<A, DepositedStateError> {
         let token = self.tokens_mut().get_mut(token_id);
-        match token {
+        let token = match token {
             Some(mut token) => {
-                ensure!(token.locked_amount.ge(&amount), DepositedStateError::InsufficientLocked);
-                token.locked_amount.sub_assign(amount);
-                Ok(token.locked_amount)
+                ensure!(
+                    token.locked_amount.ge(&delta_locked_amount),
+                    DepositedStateError::InsufficientLocked
+                );
+                token.locked_amount.sub_assign(delta_locked_amount);
+                token
             }
             None => bail!(DepositedStateError::TokenNotFound),
-        }
+        };
+
+        Ok(token.locked_amount)
     }
 
-    fn burn_locked_deposits(&mut self, token_id: &T, amount: A) -> Result<A, DepositedStateError> {
+    /// Burns the specified amount of tokens. ie Removed them from the total
+    /// deposited amount and from the locked amount
+    fn burn_locked_deposits(
+        &mut self,
+        token_id: &T,
+        delta_amount: A,
+    ) -> Result<A, DepositedStateError> {
         let token = self.tokens_mut().get_mut(token_id);
-        match token {
+        let token = match token {
             Some(mut token) => {
-                ensure!(token.locked_amount.ge(&amount), DepositedStateError::InsufficientLocked);
-                token.locked_amount.sub_assign(amount);
-                token.amount.sub_assign(amount);
-                Ok(token.locked_amount)
+                ensure!(
+                    token.locked_amount.ge(&delta_amount),
+                    DepositedStateError::InsufficientLocked
+                );
+                token.locked_amount.sub_assign(delta_amount);
+                token.amount.sub_assign(delta_amount);
+                token
             }
             None => bail!(DepositedStateError::TokenNotFound),
-        }
+        };
+
+        Ok(token.locked_amount)
     }
 }
