@@ -32,9 +32,7 @@ function ContractLink(props: { contract: Contract }) {
 }
 
 const InitListItem = (props: { onClick: () => void; children: ReactNode }) => {
-	if (!props.onClick) return <></>;
-
-	<ListItem
+	return <ListItem
 		secondaryAction={
 			<IconButton edge="end" aria-label="add" onClick={() => props.onClick()}>
 				<AddBoxOutlined />
@@ -54,7 +52,7 @@ interface Props {
 }
 
 export default function ContractsList(props: Props) {
-	const identityRegistries = props.contracts.filter(
+		const identityRegistries = props.contracts.filter(
 		(c) => c.type == ContractType.RwaIdentityRegistry,
 	);
 	const complianceModules = props.contracts.filter(
