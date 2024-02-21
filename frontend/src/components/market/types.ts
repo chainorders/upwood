@@ -1,5 +1,6 @@
-import { ContractAddress } from "@concordium/web-sdk";
+import { ConcordiumGRPCClient, ContractAddress, ContractName } from "@concordium/web-sdk";
 import { ListRequest } from "../../lib/rwaMarket";
+import { ContractType } from "../contracts/ContractTypes";
 
 export type Flatten<T> = T extends unknown[] ? T[number] : T;
 export type ContractExchangeRates = ListRequest["exchange_rates"];
@@ -114,4 +115,23 @@ export const fromContractExchangeRate = (
 			),
 		};
 	}
+};
+
+export const getTokenContractType = async (
+	grpcClient: ConcordiumGRPCClient,
+	contract: ContractAddress.Type,
+): Promise<ContractType> => {
+	const info = await grpcClient.getInstanceInfo(contract);
+	return ContractName.fromInitName(info.name).value as ContractType;
+};
+
+export const getContractName = (contract: ContractAddress.Type): string => {
+	let envName = import.meta.env[
+		`VITE_CONTRACT_NAME_${contract.index.toString()}_${contract.subindex.toString()}`
+	];
+	if (!envName) {
+		envName = `${contract.index.toString()}/${contract.subindex.toString()}`;
+	}
+
+	return envName;
 };

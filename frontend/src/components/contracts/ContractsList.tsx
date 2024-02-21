@@ -19,12 +19,8 @@ import {
 	Token,
 	ViewModule,
 } from "@mui/icons-material";
-import { Link, useNavigate } from "react-router-dom";
-
-interface Props {
-	contracts: Contract[];
-	onDelete: (contract: Contract) => void;
-}
+import { Link } from "react-router-dom";
+import { ReactNode } from "react";
 
 function ContractLink(props: { contract: Contract }) {
 	const contractAddressString = `${props.contract.address.index.toString()}/${props.contract.address.subindex.toString()}`;
@@ -35,9 +31,29 @@ function ContractLink(props: { contract: Contract }) {
 	);
 }
 
-export default function ContractsList(props: Props) {
-	const navigate = useNavigate();
+const InitListItem = (props: { onClick: () => void; children: ReactNode }) => {
+	if (!props.onClick) return <></>;
 
+	<ListItem
+		secondaryAction={
+			<IconButton edge="end" aria-label="add" onClick={() => props.onClick()}>
+				<AddBoxOutlined />
+			</IconButton>
+		}
+	>
+		<ListItemText
+			primary={<Typography align="right">{props.children}</Typography>}
+		/>
+	</ListItem>;
+};
+
+interface Props {
+	contracts: Contract[];
+	onDelete?: (contract: Contract) => void;
+	onInit?: (type: ContractType) => void;
+}
+
+export default function ContractsList(props: Props) {
 	const identityRegistries = props.contracts.filter(
 		(c) => c.type == ContractType.RwaIdentityRegistry,
 	);
@@ -65,13 +81,15 @@ export default function ContractsList(props: Props) {
 					<ListItem
 						key={contract.address.index.toString()}
 						secondaryAction={
-							<IconButton
-								edge="end"
-								aria-label="delete"
-								onClick={() => props.onDelete(contract)}
-							>
-								<Delete />
-							</IconButton>
+							props.onDelete && (
+								<IconButton
+									edge="end"
+									aria-label="delete"
+									onClick={() => props.onDelete!(contract)}
+								>
+									<Delete />
+								</IconButton>
+							)
 						}
 					>
 						<ListItemButton>
@@ -83,38 +101,28 @@ export default function ContractsList(props: Props) {
 					</ListItem>
 				);
 			})}
-			<ListItem
-				secondaryAction={
-					<IconButton
-						edge="end"
-						aria-label="add"
-						onClick={() => navigate(ContractType.RwaIdentityRegistry + "/init")}
-					>
-						<AddBoxOutlined />
-					</IconButton>
-				}
-			>
-				<ListItemText
-					primary={
-						<Typography align="right">
-							Initialize new Identity Registry
-						</Typography>
-					}
-				/>
-			</ListItem>
+			{props.onInit && (
+				<InitListItem
+					onClick={() => props.onInit!(ContractType.RwaIdentityRegistry)}
+				>
+					Initialize new Identity Registry
+				</InitListItem>
+			)}
 			<ListSubheader>Compliance Modules</ListSubheader>
 			{complianceModules.map((contract) => {
 				return (
 					<ListItem
 						key={contract.address.index.toString()}
 						secondaryAction={
-							<IconButton
-								edge="end"
-								aria-label="delete"
-								onClick={() => props.onDelete(contract)}
-							>
-								<Delete />
-							</IconButton>
+							props.onDelete && (
+								<IconButton
+									edge="end"
+									aria-label="delete"
+									onClick={() => props.onDelete!(contract)}
+								>
+									<Delete />
+								</IconButton>
+							)
 						}
 					>
 						<ListItemButton>
@@ -126,38 +134,28 @@ export default function ContractsList(props: Props) {
 					</ListItem>
 				);
 			})}
-			<ListItem
-				secondaryAction={
-					<IconButton
-						edge="end"
-						aria-label="add"
-						onClick={() => navigate(ContractType.RwaComplianceModule + "/init")}
-					>
-						<AddBoxOutlined />
-					</IconButton>
-				}
-			>
-				<ListItemText
-					primary={
-						<Typography align="right">
-							Initialize new Compliance Module
-						</Typography>
-					}
-				/>
-			</ListItem>
+			{props.onInit && (
+				<InitListItem
+					onClick={() => props.onInit!(ContractType.RwaComplianceModule)}
+				>
+					Initialize new Compliance Module
+				</InitListItem>
+			)}
 			<ListSubheader>Compliance Contracts</ListSubheader>
 			{complianceContracts.map((contract) => {
 				return (
 					<ListItem
 						key={contract.address.index.toString()}
 						secondaryAction={
-							<IconButton
-								edge="end"
-								aria-label="delete"
-								onClick={() => props.onDelete(contract)}
-							>
-								<Delete />
-							</IconButton>
+							props.onDelete && (
+								<IconButton
+									edge="end"
+									aria-label="delete"
+									onClick={() => props.onDelete!(contract)}
+								>
+									<Delete />
+								</IconButton>
+							)
 						}
 					>
 						<ListItemButton>
@@ -169,25 +167,11 @@ export default function ContractsList(props: Props) {
 					</ListItem>
 				);
 			})}
-			<ListItem
-				secondaryAction={
-					<IconButton
-						edge="end"
-						aria-label="add"
-						onClick={() => navigate(ContractType.RwaCompliance + "/init")}
-					>
-						<AddBoxOutlined />
-					</IconButton>
-				}
-			>
-				<ListItemText
-					primary={
-						<Typography align="right">
-							Initialize new Compliance Contract
-						</Typography>
-					}
-				/>
-			</ListItem>
+			{props.onInit && (
+				<InitListItem onClick={() => props.onInit!(ContractType.RwaCompliance)}>
+					Initialize new Compliance Contract
+				</InitListItem>
+			)}
 			<ListSubheader>NFT Contracts</ListSubheader>
 			{nftContracts.map((contract) => {
 				return (
@@ -203,13 +187,15 @@ export default function ContractsList(props: Props) {
 										<OpenInBrowser />
 									</IconButton>
 								</Link>
-								<IconButton
-									edge="end"
-									aria-label="delete"
-									onClick={() => props.onDelete(contract)}
-								>
-									<Delete />
-								</IconButton>
+								{props.onDelete && (
+									<IconButton
+										edge="end"
+										aria-label="delete"
+										onClick={() => props.onDelete!(contract)}
+									>
+										<Delete />
+									</IconButton>
+								)}
 							</>
 						}
 					>
@@ -222,23 +208,13 @@ export default function ContractsList(props: Props) {
 					</ListItem>
 				);
 			})}
-			<ListItem
-				secondaryAction={
-					<IconButton
-						edge="end"
-						aria-label="add"
-						onClick={() => navigate(ContractType.RwaSecurityNft + "/init")}
-					>
-						<AddBoxOutlined />
-					</IconButton>
-				}
-			>
-				<ListItemText
-					primary={
-						<Typography align="right">Initialize new Nft Contract</Typography>
-					}
-				/>
-			</ListItem>
+			{props.onInit && (
+				<InitListItem
+					onClick={() => props.onInit!(ContractType.RwaSecurityNft)}
+				>
+					Initialize new NFT Contract
+				</InitListItem>
+			)}
 			<ListSubheader>Fractionalizer Contracts</ListSubheader>
 			{sftContracts.map((contract) => {
 				return (
@@ -255,13 +231,15 @@ export default function ContractsList(props: Props) {
 									</IconButton>
 								</Link>
 
-								<IconButton
-									edge="end"
-									aria-label="delete"
-									onClick={() => props.onDelete(contract)}
-								>
-									<Delete />
-								</IconButton>
+								{props.onDelete && (
+									<IconButton
+										edge="end"
+										aria-label="delete"
+										onClick={() => props.onDelete!(contract)}
+									>
+										<Delete />
+									</IconButton>
+								)}
 							</>
 						}
 					>
@@ -274,25 +252,13 @@ export default function ContractsList(props: Props) {
 					</ListItem>
 				);
 			})}
-			<ListItem
-				secondaryAction={
-					<IconButton
-						edge="end"
-						aria-label="add"
-						onClick={() => navigate(ContractType.RwaSecuritySft + "/init")}
-					>
-						<AddBoxOutlined />
-					</IconButton>
-				}
-			>
-				<ListItemText
-					primary={
-						<Typography align="right">
-							Initialize new Fractionalizer Contract
-						</Typography>
-					}
-				/>
-			</ListItem>
+			{props.onInit && (
+				<InitListItem
+					onClick={() => props.onInit!(ContractType.RwaSecuritySft)}
+				>
+					Initialize new SFT Contract
+				</InitListItem>
+			)}
 			<ListSubheader>Market Contracts</ListSubheader>
 			{marketContracts.map((contract) => {
 				return (
@@ -309,13 +275,15 @@ export default function ContractsList(props: Props) {
 									</IconButton>
 								</Link>
 
-								<IconButton
-									edge="end"
-									aria-label="delete"
-									onClick={() => props.onDelete(contract)}
-								>
-									<Delete />
-								</IconButton>
+								{props.onDelete && (
+									<IconButton
+										edge="end"
+										aria-label="delete"
+										onClick={() => props.onDelete!(contract)}
+									>
+										<Delete />
+									</IconButton>
+								)}
 							</>
 						}
 					>
@@ -328,25 +296,11 @@ export default function ContractsList(props: Props) {
 					</ListItem>
 				);
 			})}
-			<ListItem
-				secondaryAction={
-					<IconButton
-						edge="end"
-						aria-label="add"
-						onClick={() => navigate(ContractType.RwaMarket + "/init")}
-					>
-						<AddBoxOutlined />
-					</IconButton>
-				}
-			>
-				<ListItemText
-					primary={
-						<Typography align="right">
-							Initialize new Market Contract
-						</Typography>
-					}
-				/>
-			</ListItem>
+			{props.onInit && (
+				<InitListItem onClick={() => props.onInit!(ContractType.RwaMarket)}>
+					Initialize new Market
+				</InitListItem>
+			)}
 		</List>
 	);
 }

@@ -64,7 +64,7 @@ export default function SftPage() {
 					<List>
 						<ListItemButton
 							selected={path === "tokens"}
-							onClick={() => navigate("tokens")}
+							onClick={() => navigate("tokens", { replace: true })}
 						>
 							<ListItemIcon>
 								<Token />

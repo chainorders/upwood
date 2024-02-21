@@ -93,7 +93,7 @@ export default function RwaSecurityNftContract() {
 						<List>
 							<ListItem disablePadding>
 								<ListItemButton
-									onClick={() => navigate("tokens")}
+									onClick={() => navigate("tokens", { replace: true })}
 									selected={path === "tokens"}
 								>
 									<ListItemText primary="Tokens" />
