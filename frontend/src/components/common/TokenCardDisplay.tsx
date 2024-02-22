@@ -135,7 +135,7 @@ export default function TokenCardDisplay(props: Props) {
 			return;
 		}
 		setLoadingMetadata(true);
-		getTokenMetadata(metadataUrl)
+		getTokenMetadata(metadataUrl.url)
 			.then((metadata) => setMetadata(metadata))
 			.catch((error) => setError(error.message))
 			.finally(() => setLoadingMetadata(false));
@@ -161,7 +161,7 @@ export default function TokenCardDisplay(props: Props) {
 				title={`Token Id: ${token.id}`}
 				subheader={`${token.contract.index}/${token.contract.subindex}`}
 				avatar={
-					<Avatar sx={{ bgcolor: red[500] }} aria-label="recipe">
+					<Avatar sx={{ bgcolor: red[500] }} aria-label="token">
 						T
 					</Avatar>
 				}
@@ -173,7 +173,7 @@ export default function TokenCardDisplay(props: Props) {
 					image={imageUrl}
 				/>
 			)}
-			{loadingMetadata || loadingMetadataUrl ? (
+			{loadingMetadataUrl || loadingMetadata ? (
 				<Skeleton variant="rectangular" width="100%" height={118} />
 			) : (
 				<></>

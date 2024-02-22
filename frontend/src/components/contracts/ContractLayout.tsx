@@ -6,7 +6,6 @@ import concordiumNodeClient from "../../lib/ConcordiumNodeClient";
 import { ContractAddress, InstanceInfo } from "@concordium/web-sdk";
 import CCDScanModuleLink from "../common/concordium/CCDScanModuleLink";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
-import { capitalCase } from "change-case";
 import CCDScanAccountLink from "../common/concordium/CCDScanAccountLink";
 
 export default function ContractLayout(props: { contracts: Contract[] }) {
@@ -48,21 +47,6 @@ export default function ContractLayout(props: { contracts: Contract[] }) {
 
 	return (
 		<Stack spacing={2}>
-			<Stack>
-				<Paper variant="outlined">
-					<Typography variant="h2" fontSize={24}>
-						{capitalCase(contract.type)}
-					</Typography>
-					<Typography variant="h3" fontSize={20}>
-						<CCDScanContractLink
-							text={contract.name}
-							index={contract.address.index.toString()}
-							subIndex={contract.address.subindex.toString()}
-						/>
-					</Typography>
-					<Typography variant="h4" fontSize={18}></Typography>
-				</Paper>
-			</Stack>
 			<Grid container spacing={1}>
 				<Grid item xs={12} md={9}>
 					<Outlet context={contract} />
@@ -77,13 +61,12 @@ export default function ContractLayout(props: { contracts: Contract[] }) {
 								{onChainInfo && (
 									<>
 										<Typography>
-											Amount : {onChainInfo?.amount.toJSON()}
-										</Typography>
-										<Typography>
-											Module Ref :{" "}
-											<CCDScanModuleLink
-												moduleRef={onChainInfo?.sourceModule.moduleRef}
-											/>
+											Module Ref :
+											{
+												<CCDScanModuleLink
+													moduleRef={onChainInfo?.sourceModule.moduleRef}
+												/>
+											}
 										</Typography>
 										<Typography>
 											Name :{" "}

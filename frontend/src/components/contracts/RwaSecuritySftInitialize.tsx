@@ -1,4 +1,5 @@
 import {
+	AccountAddress,
 	BlockItemSummaryInBlock,
 	ContractAddress,
 	RejectedInit,
@@ -16,19 +17,20 @@ import {
 	TextField,
 	Typography,
 } from "@mui/material";
-import { useWallet } from "../WalletProvider";
 import ErrorDisplay from "../common/ErrorDisplay";
 import SendTransactionButton from "../common/SendTransactionButton";
 import ContractAddressField from "../common/concordium/ContractAddressField";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import rwaSecuritySft from "../../lib/rwaSecuritySft";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 export default function RwaSecuritySftInitialize(props: {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	onSuccess: (contract: Contract) => void;
 	identityRegistries: Contract[];
 	complianceContracts: Contract[];
 }) {
-	const wallet = useWallet();
 	const [form, setForm] = useState<{
 		contractDisplayName: string;
 		identityRegistry?: ContractAddress.Type;
@@ -134,7 +136,7 @@ export default function RwaSecuritySftInitialize(props: {
 			</Paper>
 			<SendTransactionButton
 				onClick={() =>
-					rwaSecuritySft.init.init(wallet.provider!, wallet.currentAccount!, {
+					rwaSecuritySft.init.init(props.wallet, props.currentAccount, {
 						identity_registry: {
 							index: Number(form.identityRegistry!.index),
 							subindex: Number(form.identityRegistry!.subindex),

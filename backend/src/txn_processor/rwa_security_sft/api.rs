@@ -6,7 +6,7 @@ use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
 use crate::txn_processor::{
     api::{ApiAddress, ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbAccountAddress, DbAddress, DbTokenAmount, ICollection},
+    db::{DbAccountAddress, DbAddress, ICollection},
 };
 
 use super::db::{DbDepositedToken, DbToken, IContractDb, TokenHolder};
@@ -161,7 +161,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
-    #[oai(path = "/rwa-market/:index/:subindex/deposited/:owner/:page", method = "get")]
+    #[oai(path = "/rwa-security-sft/:index/:subindex/deposited/:owner/:page", method = "get")]
     pub async fn deposited(
         &self,
         Path(index): Path<u64>,
@@ -176,7 +176,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         let query = doc! {
             "owner": to_bson(&DbAccountAddress(owner.parse()?))?,
             "deposited_amount": {
-                "$ne": to_bson(&DbTokenAmount::zero())?,
+                "$ne": "0",
             }
         };
         let res = self.to_paged_deposited_token_response(query, contract, page).await?;

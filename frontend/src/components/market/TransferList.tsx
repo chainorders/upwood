@@ -1,4 +1,5 @@
 import {
+	AccountAddress,
 	CIS2,
 	CIS2Contract,
 	ContractAddress,
@@ -10,16 +11,17 @@ import {
 import { Buffer } from "buffer/";
 import rwaMarket, { ListRequest } from "../../lib/rwaMarket";
 import { useNodeClient } from "../NodeClientProvider";
-import { useWallet } from "../WalletProvider";
 import ListRequestForm, { NonListedToken } from "./ListRequest";
 import { useParams } from "react-router-dom";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 type Props = {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	contract: ContractAddress.Type;
 };
 export default function TransferList(props: Props) {
 	const { contract } = props;
-	const { currentAccount, provider: walletApi } = useWallet();
 	const { provider: grpcClient } = useNodeClient();
 	const { listContractIndex, listContractSubIndex, listTokenId, listAmount } =
 		useParams();
@@ -43,7 +45,7 @@ export default function TransferList(props: Props) {
 				),
 			},
 			{
-				from: currentAccount!,
+				from: props.currentAccount,
 				to: {
 					address: contract,
 					hookName: EntrypointName.fromString("deposit"),
@@ -54,8 +56,8 @@ export default function TransferList(props: Props) {
 				data: Buffer.from(listRequestSerialized.buffer).toString("hex"),
 			} as CIS2.Transfer,
 		);
-		return walletApi!.sendTransaction(
-			currentAccount!,
+		return props.wallet.sendTransaction(
+			props.currentAccount,
 			transfer.type,
 			transfer.payload,
 			transfer.parameter.json,
@@ -78,7 +80,7 @@ export default function TransferList(props: Props) {
 	return (
 		<ListRequestForm
 			contract={contract}
-			currentAccount={currentAccount!}
+			currentAccount={props.currentAccount}
 			onSendTransaction={(req) => sendTransaction(req)}
 			nonListed={nonListed}
 		/>

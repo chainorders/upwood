@@ -23,16 +23,14 @@ import { DRAWER_WIDTH } from "../common/consts";
 import { Token } from "@mui/icons-material";
 import { useNodeClient } from "../NodeClientProvider";
 import TokensList from "./TokensList";
+import { MARKET_CONTRACT_INDEX, MARKET_CONTRACT_SUBINDEX } from "./const";
 
 export default function SftPage() {
-	const market_contract_index = import.meta.env.VITE_NFT_MARKET_CONTRACT_INDEX;
-	const market_contract_subindex = import.meta.env
-		.VITE_NFT_MARKET_CONTRACT_SUBINDEX;
 	let marketContract: ContractAddress.Type | undefined;
-	if (market_contract_index && market_contract_subindex) {
+	if (MARKET_CONTRACT_INDEX && MARKET_CONTRACT_SUBINDEX) {
 		marketContract = ContractAddress.create(
-			BigInt(market_contract_index),
-			BigInt(market_contract_subindex),
+			BigInt(MARKET_CONTRACT_INDEX),
+			BigInt(MARKET_CONTRACT_SUBINDEX),
 		);
 	}
 
@@ -66,7 +64,7 @@ export default function SftPage() {
 					<List>
 						<ListItemButton
 							selected={path === "tokens"}
-							onClick={() => navigate("tokens")}
+							onClick={() => navigate("tokens", { replace: true })}
 						>
 							<ListItemIcon>
 								<Token />

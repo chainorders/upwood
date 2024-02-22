@@ -1,8 +1,8 @@
 use std::ops::Sub;
 
 use concordium_cis2::{
-    AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver, TokenAmountU8,
-    TokenMetadataEvent,
+    AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver, TokenAmountU32,
+    TokenAmountU8, TokenMetadataEvent,
 };
 use concordium_std::*;
 
@@ -142,7 +142,6 @@ pub fn mint_internal(
     let compliance = ComplianceContract(state.compliance());
     let token_id =
         host.state().get_wrapped_id(&params.deposited_token_id).ok_or(Error::InvalidTokenId)?;
-    let compliance_token = Token::new(token_id, curr_contract_address);
 
     let token_state = host.state().token(&token_id)?;
     let (mint_amount, un_converted_amount) = token_state
@@ -153,6 +152,9 @@ pub fn mint_internal(
     let un_converted_amount = TokenAmountU8::from(un_converted_amount as u8);
     let converted_amount = params.deposited_amount.sub(un_converted_amount);
 
+    ensure!(mint_amount.ge(&TokenAmountU32(0)), Error::InvalidAmount);
+    
+    let compliance_token = Token::new(token_id, curr_contract_address);
     ensure!(
         compliance.can_transfer(host, compliance_token, owner_address, mint_amount)?,
         Error::InCompliantTransfer

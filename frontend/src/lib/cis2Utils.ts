@@ -1,4 +1,4 @@
-import { CIS2 } from "@concordium/web-sdk";
+import { sha256 } from "@concordium/web-sdk";
 
 export type UrlJson = {
 	url: string;
@@ -22,13 +22,24 @@ export type TokenMetadata = {
 	attributes?: AttributeJson[];
 	localizations?: { [key: string]: UrlJson };
 };
-export const getTokenMetadata = (
-	metadataUrl: CIS2.MetadataUrl,
-): Promise<TokenMetadata> => {
-	const url = toHttpUrl(metadataUrl.url);
-	return fetch(url, {
+
+export const getTokenMetadata = (url: string): Promise<TokenMetadata> => {
+	const httpUrl = toHttpUrl(url);
+	return fetch(httpUrl, {
 		cache: "force-cache",
 	}).then((response) => response.json());
+};
+
+export const getTokenMetadataHash = (url: string): Promise<string> => {
+	return fetch(toHttpUrl(url), {
+		cache: "force-cache",
+	})
+		.then((response) => response.blob())
+		.then((blob) => blob.arrayBuffer())
+		.then((buffer) => {
+			const uint8Array = new Uint8Array(buffer);
+			return sha256([uint8Array]).toString("hex");
+		});
 };
 
 export const toHttpUrl = (url: string): string => {
@@ -41,6 +52,19 @@ export const toHttpUrl = (url: string): string => {
 	}
 
 	return url;
+};
+
+export const isValidUrl = (url: string): boolean => {
+	if (!url) {
+		return false;
+	}
+
+	return (
+		url.startsWith("ipfs://") ||
+		url.startsWith("ipfs:") ||
+		url.startsWith("https://") ||
+		url.startsWith("http://")
+	);
 };
 
 export const toDataUrl = async (url: string): Promise<string> => {
@@ -62,4 +86,34 @@ export const toDataUrl = async (url: string): Promise<string> => {
 			reject(error);
 		}
 	});
+};
+
+export async function fetchJsonString(metadataUrl: string): Promise<string> {
+	const res = await fetch(metadataUrl);
+
+	if (!res.ok) {
+		return Promise.reject(new Error("Could not load Metadata"));
+	}
+
+	return res.text();
+}
+
+export const tokenIdToArtifactFileName = (
+	originalFileName: string,
+	tokenId: string,
+) => {
+	const ext = originalFileName.substring(originalFileName.lastIndexOf("."));
+
+	return `token_artifact_${tokenId}.${ext}`;
+};
+export const tokenIdToTokenMetadataFileName = (tokenId: string) => {
+	return `token_${tokenId}_metadata.json`;
+};
+export const tokenIdToTokenImageFileName = (
+	originalFileName: string,
+	tokenId: string,
+) => {
+	const ext = originalFileName.substring(originalFileName.lastIndexOf("."));
+
+	return `token_${tokenId}.${ext}`;
 };

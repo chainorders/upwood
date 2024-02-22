@@ -1,22 +1,23 @@
 import { useLocation, Location, useNavigate } from "react-router-dom";
 import { MarketToken } from "../../lib/contracts-api-client";
 import { Stack, Typography } from "@mui/material";
-import { ContractAddress } from "@concordium/web-sdk";
+import { AccountAddress, ContractAddress } from "@concordium/web-sdk";
 import rwaMarket, { GetListedResponse, ListRequest } from "../../lib/rwaMarket";
-import { useWallet } from "../WalletProvider";
 import { useEffect, useState } from "react";
 import { useNodeClient } from "../NodeClientProvider";
 import ErrorDisplay from "../common/ErrorDisplay";
 import ListRequestForm from "./ListRequest";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 type Props = {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	contract: ContractAddress.Type;
 };
 export default function ListToken(props: Props) {
 	const navigate = useNavigate();
 	const { contract } = props;
 	const { state: token }: Location<MarketToken | undefined> = useLocation();
-	const { provider: wallet, currentAccount } = useWallet();
 	const { provider: grpcClient } = useNodeClient();
 	const [error, setError] = useState<string | undefined>(undefined);
 	const [loading, setLoading] = useState(false);
@@ -62,8 +63,8 @@ export default function ListToken(props: Props) {
 
 	const sendTransaction = (request: ListRequest) => {
 		return rwaMarket.list.update(
-			wallet!,
-			currentAccount!,
+			props.wallet,
+			props.currentAccount,
 			props.contract,
 			request,
 		);
@@ -76,7 +77,7 @@ export default function ListToken(props: Props) {
 			{listedToken && (
 				<ListRequestForm
 					contract={contract}
-					currentAccount={currentAccount!}
+					currentAccount={props.currentAccount}
 					listed={listedToken}
 					onSendTransaction={sendTransaction}
 				/>

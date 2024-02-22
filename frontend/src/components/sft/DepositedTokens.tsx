@@ -6,7 +6,7 @@ import {
 } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { useContractsApi } from "../ContractsApiProvider";
-import { SftHolder } from "../../lib/contracts-api-client";
+import { DepositedToken, NftHolder } from "../../lib/contracts-api-client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ActionButtonProps, Token } from "../common/TokenCardDisplay";
 import TokensGrid from "../common/TokensGrid";
@@ -18,6 +18,7 @@ type Props = {
 	contract: ContractAddress.Type;
 	grpcClient: ConcordiumGRPCClient;
 	marketContract?: ContractAddress.Type;
+	sftContract?: ContractAddress.Type;
 };
 export default function TokensList(props: Props) {
 	const { currentAccount, walletApi, contract, grpcClient, marketContract } =
@@ -30,13 +31,13 @@ export default function TokensList(props: Props) {
 	const { provider: backendApi } = useContractsApi();
 	const navigate = useNavigate();
 
-	const [tokens, setTokens] = useState<SftHolder[]>([]);
+	const [tokens, setTokens] = useState<DepositedToken[]>([]);
 	useEffect(() => {
 		setLoading(true);
 		setError("");
 		backendApi.default
-			.getRwaSecuritySftHolders({
-				address: currentAccount.address,
+			.getRwaSecuritySftDeposited({
+				owner: currentAccount.address,
 				index: Number(contract.index),
 				subindex: Number(contract.subindex),
 				page,
@@ -55,7 +56,7 @@ export default function TokensList(props: Props) {
 			({
 				id: token.token_id,
 				contract,
-				amount: token.balance,
+				amount: token.deposited_amount,
 			}) as Token,
 	);
 

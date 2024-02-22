@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useWallet } from "../WalletProvider";
 import {
+	AccountAddress,
 	BlockItemSummaryInBlock,
 	ContractAddress,
 	RejectedInit,
@@ -20,12 +20,14 @@ import { parseContractAddress } from "../../lib/common/common";
 import { Contract, ContractType } from "./ContractTypes";
 import ErrorDisplay from "../common/ErrorDisplay";
 import rwaComplianceModuleAllowedNationalities from "../../lib/rwaComplianceModuleAllowedNationalities";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 export default function RwaComplianceModuleAllowedNationalitiesInitialize(props: {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	onSuccess: (contract: Contract) => void;
 	identityRegistries: Contract[];
 }) {
-	const wallet = useWallet();
 	const [form, setForm] = useState<{
 		contractDisplayName: string;
 		identityRegistry?: ContractAddress.Type;
@@ -124,8 +126,8 @@ export default function RwaComplianceModuleAllowedNationalitiesInitialize(props:
 			<SendTransactionButton
 				onClick={() =>
 					rwaComplianceModuleAllowedNationalities.init.init(
-						wallet.provider!,
-						wallet.currentAccount!,
+						props.wallet,
+						props.currentAccount,
 						{
 							identity_registry: {
 								index: Number(form.identityRegistry!.index),

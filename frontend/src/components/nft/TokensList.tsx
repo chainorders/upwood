@@ -20,6 +20,7 @@ import { LensBlur, Sell } from "@mui/icons-material";
 import { Buffer } from "buffer/";
 
 import rwaSecuritySft, { MintRequest } from "../../lib/rwaSecuritySft";
+import { SFT_CONTRACT_INDEX, SFT_CONTRACT_SUBINDEX } from "./const";
 
 type Props = {
 	currentAccount: AccountAddress.Type;
@@ -27,17 +28,11 @@ type Props = {
 	contract: ContractAddress.Type;
 	grpcClient: ConcordiumGRPCClient;
 	marketContract?: ContractAddress.Type;
-	sftContract?: ContractAddress.Type;
 };
 export default function TokensList(props: Props) {
-	const {
-		currentAccount,
-		walletApi,
-		contract,
-		grpcClient,
-		marketContract,
-		sftContract,
-	} = props;
+	const { currentAccount, walletApi, contract, grpcClient, marketContract } =
+		props;
+
 	const [pageCount, setPageCount] = useState(0);
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [page, setPage] = useState(Number(searchParams.get("page") || "0"));
@@ -45,6 +40,14 @@ export default function TokensList(props: Props) {
 	const [error, setError] = useState("");
 	const { provider: backendApi } = useContractsApi();
 	const navigate = useNavigate();
+
+	let sftContract: ContractAddress.Type | undefined;
+	if (SFT_CONTRACT_INDEX && SFT_CONTRACT_SUBINDEX) {
+		sftContract = ContractAddress.create(
+			BigInt(SFT_CONTRACT_INDEX),
+			BigInt(SFT_CONTRACT_SUBINDEX),
+		);
+	}
 
 	const [tokens, setTokens] = useState<NftHolder[]>([]);
 	useEffect(() => {
@@ -148,7 +151,7 @@ export default function TokensList(props: Props) {
 			variant: "outlined",
 			title: "Fractionalize",
 			disabled: false,
-			sendTransaction: (token) => onFractionalize(token, sftContract),
+			sendTransaction: (token) => onFractionalize(token, sftContract!),
 			onClick: (token: Token) => console.log("Fractionalize", token),
 		});
 	}

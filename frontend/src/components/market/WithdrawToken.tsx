@@ -1,19 +1,20 @@
 import { useLocation, Location, useNavigate } from "react-router-dom";
 import { MarketToken } from "../../lib/contracts-api-client";
 import { Button, Stack, Typography } from "@mui/material";
-import { ContractAddress } from "@concordium/web-sdk";
+import { AccountAddress, ContractAddress } from "@concordium/web-sdk";
 import SendTransactionButton from "../common/SendTransactionButton";
 import rwaMarket, { WithdrawRequest } from "../../lib/rwaMarket";
-import { useWallet } from "../WalletProvider";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 type Props = {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	contract: ContractAddress.Type;
 };
 export default function WithdrawToken(props: Props) {
 	const navigate = useNavigate();
 	const { state: token }: Location<MarketToken | undefined> = useLocation();
 	const { contract } = props;
-	const { provider: wallet, currentAccount } = useWallet();
 
 	if (!token) {
 		navigate(-1);
@@ -34,8 +35,8 @@ export default function WithdrawToken(props: Props) {
 		};
 
 		return rwaMarket.withdraw.update(
-			wallet!,
-			currentAccount!,
+			props.wallet,
+			props.currentAccount,
 			props.contract,
 			request,
 		);

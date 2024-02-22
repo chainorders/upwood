@@ -23,27 +23,14 @@ import { DRAWER_WIDTH } from "../common/consts";
 import { Token } from "@mui/icons-material";
 import TokensList from "./TokensList";
 import { useNodeClient } from "../NodeClientProvider";
+import { MARKET_CONTRACT_INDEX, MARKET_CONTRACT_SUBINDEX } from "./const";
 
 export default function NftPage() {
-	const market_contract_index = import.meta.env.VITE_NFT_MARKET_CONTRACT_INDEX;
-	const market_contract_subindex = import.meta.env
-		.VITE_NFT_MARKET_CONTRACT_SUBINDEX;
-	const sft_contract_index: string = import.meta.env
-		.VITE_NFT_SFT_CONTRACT_INDEX;
-	const sft_contract_subindex: string = import.meta.env
-		.VITE_NFT_SFT_CONTRACT_SUBINDEX;
 	let marketContract: ContractAddress.Type | undefined;
-	if (market_contract_index && market_contract_subindex) {
+	if (MARKET_CONTRACT_INDEX && MARKET_CONTRACT_SUBINDEX) {
 		marketContract = ContractAddress.create(
-			BigInt(market_contract_index),
-			BigInt(market_contract_subindex),
-		);
-	}
-	let sftContract: ContractAddress.Type | undefined;
-	if (sft_contract_index && sft_contract_subindex) {
-		sftContract = ContractAddress.create(
-			BigInt(sft_contract_index),
-			BigInt(sft_contract_subindex),
+			BigInt(MARKET_CONTRACT_INDEX),
+			BigInt(MARKET_CONTRACT_SUBINDEX),
 		);
 	}
 
@@ -77,7 +64,7 @@ export default function NftPage() {
 					<List>
 						<ListItemButton
 							selected={path === "tokens"}
-							onClick={() => navigate("tokens")}
+							onClick={() => navigate("tokens", { replace: true })}
 						>
 							<ListItemIcon>
 								<Token />
@@ -98,7 +85,6 @@ export default function NftPage() {
 								contract={contract}
 								grpcClient={grpcClient}
 								marketContract={marketContract}
-								sftContract={sftContract}
 							/>
 						}
 					/>

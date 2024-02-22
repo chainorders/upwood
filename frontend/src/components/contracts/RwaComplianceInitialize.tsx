@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useWallet } from "../WalletProvider";
 import {
 	Button,
 	IconButton,
@@ -19,20 +18,23 @@ import ErrorDisplay from "../common/ErrorDisplay";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import { Delete } from "@mui/icons-material";
 import {
+	AccountAddress,
 	BlockItemSummaryInBlock,
 	ContractAddress,
 	RejectedInit,
 } from "@concordium/web-sdk";
 import { parseContractAddress } from "../../lib/common/common";
 import rwaCompliance from "../../lib/rwaCompliance";
+import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 
 type ComplianceModule = ContractAddress.Type;
 
 export default function RwaComplianceInitialize(props: {
+	wallet: WalletApi;
+	currentAccount: AccountAddress.Type;
 	onSuccess: (contract: Contract) => void;
 	complianceModules: Contract[];
 }) {
-	const wallet = useWallet();
 	const [modules, setModules] = useState<ComplianceModule[]>([]);
 	const [name, setName] = useState<string>("");
 	const [newModule, setNewModule] = useState<ComplianceModule | undefined>(
@@ -171,7 +173,7 @@ export default function RwaComplianceInitialize(props: {
 			</Paper>
 			<SendTransactionButton
 				onClick={() =>
-					rwaCompliance.init.init(wallet.provider!, wallet.currentAccount!, {
+					rwaCompliance.init.init(props.wallet, props.currentAccount, {
 						modules: modules.map((m) => ({
 							index: Number(m.index),
 							subindex: Number(m.subindex),
