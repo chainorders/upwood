@@ -4,8 +4,9 @@ import { useState } from "react";
 
 export interface AccountAddressFieldProps
 	extends Omit<TextFieldProps, "onChange" | "value"> {
-	onChange: (address: AccountAddress.Type) => void;
+	onChange?: (address: AccountAddress.Type) => void;
 	value?: AccountAddress.Type;
+	disabled?: boolean;
 }
 
 export default function AccountAddressField(props: AccountAddressFieldProps) {
@@ -16,7 +17,7 @@ export default function AccountAddressField(props: AccountAddressFieldProps) {
 
 		try {
 			const address = AccountAddress.fromBase58(e.target.value);
-			props.onChange(address);
+			props.onChange && props.onChange(address);
 		} catch (e: unknown) {
 			setError(e instanceof Error ? e.message : "Unknown error");
 		}
@@ -30,6 +31,7 @@ export default function AccountAddressField(props: AccountAddressFieldProps) {
 			error={!!error}
 			value={props.value?.address || ""}
 			onChange={handleChange}
+			disabled={props.disabled}
 			helperText={
 				(props.helperText ? props.helperText + " " : "") + "Account Address"
 			}
