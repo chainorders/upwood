@@ -2,6 +2,7 @@
 	"name": "backend",
 	"packageManager": "yarn@4.0.2",
 	"scripts": {
+		"format": "cargo +nightly-2022-06-09 fmt",
 		"build": "cargo build",
 		"debug": "yarn run debug:contracts-api",
 		"watch": "yarn watch:contracts-api",

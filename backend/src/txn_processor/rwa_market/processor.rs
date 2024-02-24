@@ -67,19 +67,22 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
 
                     self.db
                         .deposited_tokens(contract)
-                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                            let mut t = match t {
-                                Some(t) => t,
-                                None => DbDepositedToken::default(
-                                    token_contract.clone(),
-                                    token_id.clone(),
-                                    owner.clone(),
-                                ),
-                            };
-                            t.deposited_amount.add_assign(token_amount.clone());
-                            t.unlisted_amount.add_assign(token_amount.clone());
-                            t
-                        })
+                        .upsert_one(
+                            DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                            |t| {
+                                let mut t = match t {
+                                    Some(t) => t,
+                                    None => DbDepositedToken::default(
+                                        token_contract.clone(),
+                                        token_id.clone(),
+                                        owner.clone(),
+                                    ),
+                                };
+                                t.deposited_amount.add_assign(token_amount.clone());
+                                t.unlisted_amount.add_assign(token_amount.clone());
+                                t
+                            },
+                        )
                         .await?
                 }
                 Event::Withdraw(e) => {
@@ -90,19 +93,22 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
 
                     self.db
                         .deposited_tokens(contract)
-                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                            let mut t = match t {
-                                Some(t) => t,
-                                None => DbDepositedToken::default(
-                                    token_contract.clone(),
-                                    token_id.clone(),
-                                    owner.clone(),
-                                ),
-                            };
-                            t.deposited_amount.sub_assign(token_amount.clone());
-                            t.unlisted_amount.sub_assign(token_amount.clone());
-                            t
-                        })
+                        .upsert_one(
+                            DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                            |t| {
+                                let mut t = match t {
+                                    Some(t) => t,
+                                    None => DbDepositedToken::default(
+                                        token_contract.clone(),
+                                        token_id.clone(),
+                                        owner.clone(),
+                                    ),
+                                };
+                                t.deposited_amount.sub_assign(token_amount.clone());
+                                t.unlisted_amount.sub_assign(token_amount.clone());
+                                t
+                            },
+                        )
                         .await?
                 }
                 Event::Listed(e) => {
@@ -112,19 +118,22 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     let token_amount = DbTokenAmount(e.supply.0.into());
                     self.db
                         .deposited_tokens(contract)
-                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                            let mut t = match t {
-                                Some(t) => t,
-                                None => DbDepositedToken::default(
-                                    token_contract.clone(),
-                                    token_id.clone(),
-                                    owner.clone(),
-                                ),
-                            };
-                            t.listed_amount.add_assign(token_amount.clone());
-                            t.unlisted_amount.sub_assign(token_amount.clone());
-                            t
-                        })
+                        .upsert_one(
+                            DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                            |t| {
+                                let mut t = match t {
+                                    Some(t) => t,
+                                    None => DbDepositedToken::default(
+                                        token_contract.clone(),
+                                        token_id.clone(),
+                                        owner.clone(),
+                                    ),
+                                };
+                                t.listed_amount.add_assign(token_amount.clone());
+                                t.unlisted_amount.sub_assign(token_amount.clone());
+                                t
+                            },
+                        )
                         .await?;
                 }
                 Event::DeListed(e) => {
@@ -134,19 +143,22 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
 
                     self.db
                         .deposited_tokens(contract)
-                        .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                            let mut t = match t {
-                                Some(t) => t,
-                                None => DbDepositedToken::default(
-                                    token_contract.clone(),
-                                    token_id.clone(),
-                                    owner.clone(),
-                                ),
-                            };
-                            t.unlisted_amount.add_assign(t.listed_amount.clone());
-                            t.listed_amount = DbTokenAmount::zero();
-                            t
-                        })
+                        .upsert_one(
+                            DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                            |t| {
+                                let mut t = match t {
+                                    Some(t) => t,
+                                    None => DbDepositedToken::default(
+                                        token_contract.clone(),
+                                        token_id.clone(),
+                                        owner.clone(),
+                                    ),
+                                };
+                                t.unlisted_amount.add_assign(t.listed_amount.clone());
+                                t.listed_amount = DbTokenAmount::zero();
+                                t
+                            },
+                        )
                         .await?;
                 }
                 Event::Exchanged(e) => {
@@ -158,7 +170,11 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                     self.db
                         .deposited_tokens(contract)
                         .upsert_one(
-                            DbDepositedToken::key(&buy_token_contract, &buy_token_id, &bought_from)?,
+                            DbDepositedToken::key(
+                                &buy_token_contract,
+                                &buy_token_id,
+                                &bought_from,
+                            )?,
                             |t| {
                                 let mut t = match t {
                                     Some(t) => t,
@@ -183,19 +199,22 @@ impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
                         let token_amount = DbTokenAmount(amount.0.into());
                         self.db
                             .deposited_tokens(contract)
-                            .upsert_one(DbDepositedToken::key(&token_contract, &token_id, &owner)?, |t| {
-                                let mut t = match t {
-                                    Some(t) => t,
-                                    None => DbDepositedToken::default(
-                                        token_contract.clone(),
-                                        token_id.clone(),
-                                        owner.clone(),
-                                    ),
-                                };
-                                t.deposited_amount.sub_assign(token_amount.clone());
-                                t.unlisted_amount.sub_assign(token_amount.clone());
-                                t
-                            })
+                            .upsert_one(
+                                DbDepositedToken::key(&token_contract, &token_id, &owner)?,
+                                |t| {
+                                    let mut t = match t {
+                                        Some(t) => t,
+                                        None => DbDepositedToken::default(
+                                            token_contract.clone(),
+                                            token_id.clone(),
+                                            owner.clone(),
+                                        ),
+                                    };
+                                    t.deposited_amount.sub_assign(token_amount.clone());
+                                    t.unlisted_amount.sub_assign(token_amount.clone());
+                                    t
+                                },
+                            )
                             .await?;
                     }
                 }

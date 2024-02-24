@@ -27,9 +27,7 @@ use poem::{
 use poem_openapi::OpenApiService;
 
 use self::{
-    api::Api,
-    db::Db,
-    identity_registry_client::IdentityRegistryClient,
+    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
     web3_id_utils::CredStatement,
 };
 

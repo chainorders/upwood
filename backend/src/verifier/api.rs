@@ -34,39 +34,25 @@ pub enum Error {
     NotFound,
 }
 impl From<mongodb::error::Error> for Error {
-    fn from(_: mongodb::error::Error) -> Self {
-        Self::InternalServer
-    }
+    fn from(_: mongodb::error::Error) -> Self { Self::InternalServer }
 }
 impl From<anyhow::Error> for Error {
-    fn from(_: anyhow::Error) -> Self {
-        Self::InternalServer
-    }
+    fn from(_: anyhow::Error) -> Self { Self::InternalServer }
 }
 impl From<AccountAddressParseError> for Error {
-    fn from(_: AccountAddressParseError) -> Self {
-        Self::BadRequest
-    }
+    fn from(_: AccountAddressParseError) -> Self { Self::BadRequest }
 }
 impl From<bson::ser::Error> for Error {
-    fn from(_: bson::ser::Error) -> Self {
-        Self::BadRequest
-    }
+    fn from(_: bson::ser::Error) -> Self { Self::BadRequest }
 }
 impl From<QueryError> for Error {
-    fn from(_: QueryError) -> Self {
-        Self::InternalServer
-    }
+    fn from(_: QueryError) -> Self { Self::InternalServer }
 }
 impl From<VerifyPresentationError> for Error {
-    fn from(_: VerifyPresentationError) -> Self {
-        Error::BadRequest
-    }
+    fn from(_: VerifyPresentationError) -> Self { Error::BadRequest }
 }
 impl From<IdentityRegistryError> for Error {
-    fn from(_: IdentityRegistryError) -> Self {
-        Error::InternalServer
-    }
+    fn from(_: IdentityRegistryError) -> Self { Error::InternalServer }
 }
 #[derive(Object)]
 pub struct GenerateChallengeRequest {
@@ -75,31 +61,31 @@ pub struct GenerateChallengeRequest {
 
 #[derive(Object)]
 pub struct GenerateChallengeResponse {
-    challenge: String,
-    id_statement: Value,
-    cred_statement: Value,
-    issuers: Vec<ApiContractAddress>,
+    challenge:          String,
+    id_statement:       Value,
+    cred_statement:     Value,
+    issuers:            Vec<ApiContractAddress>,
     identity_providers: Vec<u32>,
 }
 
 pub struct Api {
-    pub identity_registry: ContractAddress,
-    pub agent_wallet: WalletAccount,
-    pub id_statement: IdStatement,
-    pub cred_statement: CredStatement,
-    pub db: Db,
-    pub concordium_client: concordium_rust_sdk::v2::Client,
-    pub global_context: GlobalContext,
-    pub max_energy: Energy,
-    pub network: Network,
-    pub issuers: Vec<ContractAddress>,
+    pub identity_registry:  ContractAddress,
+    pub agent_wallet:       WalletAccount,
+    pub id_statement:       IdStatement,
+    pub cred_statement:     CredStatement,
+    pub db:                 Db,
+    pub concordium_client:  concordium_rust_sdk::v2::Client,
+    pub global_context:     GlobalContext,
+    pub max_energy:         Energy,
+    pub network:            Network,
+    pub issuers:            Vec<ContractAddress>,
     pub identity_providers: Vec<IpIdentity>,
 }
 
 #[derive(Object)]
 pub struct RegisterIdentityRequest {
-    pub proof: Value,
-    pub account: String,
+    pub proof:    Value,
+    pub account:  String,
     pub contract: Option<ApiContractAddress>,
 }
 

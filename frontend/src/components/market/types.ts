@@ -1,4 +1,8 @@
-import { ConcordiumGRPCClient, ContractAddress, ContractName } from "@concordium/web-sdk";
+import {
+	ConcordiumGRPCClient,
+	ContractAddress,
+	ContractName,
+} from "@concordium/web-sdk";
 import { ListRequest } from "../../lib/rwaMarket";
 import { ContractType } from "../contracts/ContractTypes";
 
