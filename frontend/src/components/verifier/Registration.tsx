@@ -1,7 +1,6 @@
 import {
 	Button,
 	Divider,
-	Grid,
 	Stack,
 	Step,
 	StepLabel,
