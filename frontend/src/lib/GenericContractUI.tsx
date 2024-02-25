@@ -21,7 +21,7 @@ import {
 	Icon,
 	Alert,
 } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 import { parseUiToContract, parseContractToUi } from "./genericParser";
 import { useNodeClient } from "../components/NodeClientProvider";
 import { useWallet } from "../components/WalletProvider";

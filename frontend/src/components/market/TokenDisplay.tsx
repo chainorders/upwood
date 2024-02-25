@@ -111,7 +111,7 @@ export default function TokenDisplay(props: Props) {
 			return;
 		}
 		setLoadingMetadata(true);
-		getTokenMetadata(metadataUrl)
+		getTokenMetadata(metadataUrl.url)
 			.then((metadata) => setMetadata(metadata))
 			.catch((error) => setError(error.message))
 			.finally(() => setLoadingMetadata(false));
