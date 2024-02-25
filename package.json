@@ -17,7 +17,7 @@
 	],
 	"scripts": {
 		"format": "yarn format:contracts && yarn format:backend && yarn format:frontend",
-		"build": "yarn build:contracts && yarn build:backend && generate:backend:client && yarn build:frontend",
+		"build": "yarn build:contracts && yarn build:backend && yarn generate:backend:client && yarn build:frontend",
 		"build:contracts": "yarn && yarn workspaces foreach -Ap --include 'contracts/*' run build",
 		"deploy:contracts": "yarn workspaces foreach -A --include 'contracts/*' run deploy",
 		"format:contracts": "yarn workspaces foreach -Ap --include 'contracts/*' run format",
