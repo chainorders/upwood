@@ -1,3 +1,4 @@
+mod shared;
 mod txn_listener;
 mod txn_processor;
 mod verifier;

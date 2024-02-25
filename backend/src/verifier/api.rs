@@ -13,7 +13,7 @@ use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use crate::txn_processor::api::ApiContractAddress;
+use crate::shared::api::ApiContractAddress;
 
 use super::{
     db::{Db, DbChallenge},

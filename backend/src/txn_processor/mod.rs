@@ -1,5 +1,4 @@
-pub mod api;
-pub mod db;
+mod db;
 mod rwa_identity_registry;
 mod rwa_market;
 mod rwa_security_nft;

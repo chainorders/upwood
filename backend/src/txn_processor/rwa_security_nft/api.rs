@@ -1,14 +1,12 @@
+use super::db::{DbToken, IContractDb, TokenHolder};
+use crate::shared::{
+    api::{ApiAddress, Error, PagedResponse, PAGE_SIZE},
+    db::{DbAddress, DbTokenAmount, ICollection},
+};
 use bson::{doc, to_bson, Document};
 use concordium_rust_sdk::types::ContractAddress;
 use futures::TryStreamExt;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
-
-use crate::txn_processor::{
-    api::{ApiAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbAddress, DbTokenAmount, ICollection},
-};
-
-use super::db::{DbToken, IContractDb, TokenHolder};
 
 #[derive(Object)]
 pub struct NftToken {

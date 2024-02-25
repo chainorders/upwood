@@ -1,8 +1,7 @@
-use crate::txn_processor::{
+use crate::shared::{
     api::{ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
     db::{DbAccountAddress, DbTokenAmount, ICollection},
 };
-
 use bson::{doc, to_bson, Document};
 use concordium_rust_sdk::types::ContractAddress;
 use futures::TryStreamExt;

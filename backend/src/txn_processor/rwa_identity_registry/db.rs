@@ -1,6 +1,8 @@
+use crate::{
+    shared::db::{Collection, DbAddress, DbContractAddress},
+    txn_processor::db::IDb,
+};
 use concordium_rust_sdk::types::ContractAddress;
-
-use crate::txn_processor::db::{Collection, DbAddress, DbContractAddress, IDb};
 
 pub trait IContractDb: IDb {
     fn identities(&self, contract: &ContractAddress) -> Collection<DbAddress> {

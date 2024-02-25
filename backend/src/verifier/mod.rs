@@ -1,13 +1,12 @@
-pub mod api;
-pub mod db;
+mod api;
+mod db;
 mod identity_registry_client;
 mod web3_id_utils;
-
-use futures::{StreamExt, TryStreamExt};
-use log::{debug, info};
-use std::{io::Write, path::PathBuf, str::FromStr};
-use tokio::spawn;
-
+use self::{
+    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
+    web3_id_utils::CredStatement,
+};
+use chrono::Datelike;
 use clap::Parser;
 use concordium_rust_sdk::{
     id::{
@@ -19,17 +18,16 @@ use concordium_rust_sdk::{
     v2::BlockIdentifier,
     web3id::{did::Network, Web3IdAttribute},
 };
+use futures::{StreamExt, TryStreamExt};
+use log::{debug, info};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, CorsEndpoint},
     EndpointExt, Route, Server,
 };
 use poem_openapi::OpenApiService;
-
-use self::{
-    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
-    web3_id_utils::CredStatement,
-};
+use std::{io::Write, path::PathBuf, str::FromStr};
+use tokio::spawn;
 
 #[derive(Parser, Debug, Clone)]
 pub struct VerifierApiConfig {
@@ -89,7 +87,6 @@ async fn create_service(
     let agent_wallet = WalletAccount::from_json_file(config.agent_wallet_path)?;
     let identity_registry = ContractAddress::from_str(&config.identity_registry)?;
 
-    use chrono::Datelike;
     let now = chrono::Utc::now();
     let year = u64::try_from(now.year()).ok().unwrap();
     let years_ago = year.checked_sub(18).unwrap();

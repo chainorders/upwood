@@ -7,8 +7,8 @@ use concordium_rust_sdk::types::{
 use concordium_rwa_identity_registry::event::Event;
 
 use crate::{
+    shared::db::{DbAddress, DbContractAddress, ICollection},
     txn_listener::EventsProcessor,
-    txn_processor::db::{DbAddress, DbContractAddress, ICollection},
 };
 
 use super::db::IContractDb;
