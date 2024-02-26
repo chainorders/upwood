@@ -2,6 +2,10 @@
 
 use std::ops::Sub;
 mod utils;
+use crate::utils::{
+    chain::{create_accounts, init_identity_contracts, init_security_token_contracts},
+    security_nft::{nft_balance_of, nft_mint},
+};
 use concordium_cis2::{
     AdditionalData, BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, Receiver,
     TokenAmountU64, TokenAmountU8, TokenIdU8, TokenIdUnit, TokenIdVec, TransferParams,
@@ -13,20 +17,10 @@ use concordium_rwa_market::{
     list::{GetListedParam, ListParams},
     types::{ExchangeRate, Rate, TokenUId},
 };
-use concordium_rwa_security_nft::{
-    event::Event as SecurityNftEvent,
-    mint::{MintParam, MintParams as SecurityNftMintParams},
-    types::{ContractMetadataUrl, TokenId},
-};
 use concordium_smart_contract_testing::*;
 use concordium_std::ExpectReport;
 use euroe_stablecoin::{MintParams as EuroEMintParams, RoleTypes};
 use utils::{consts::*, identity_registry::*};
-
-use crate::utils::{
-    compliance::compliance_deploy_and_init,
-    security_nft::{nft_balance_of, nft_mint, security_nft_deploy_and_init},
-};
 
 const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const IDENTITY_REGISTRY_AGENT: AccountAddress = AccountAddress([1; 32]);
@@ -37,38 +31,35 @@ const BUYER_ACC_NON_COMPLIANT: AccountAddress = AccountAddress([4; 32]);
 #[test]
 fn market_buy_via_transfer_of_cis2() {
     let mut chain = Chain::new();
-    chain.create_account(Account::new_with_balance(
-        DEFAULT_INVOKER,
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-    ));
-    chain.create_account(Account::new_with_balance(
-        ADMIN,
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-    ));
-    chain.create_account(Account::new_with_balance(
-        IDENTITY_REGISTRY_AGENT,
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-    ));
-    chain.create_account(Account::new_with_balance(
-        SELLER_ACC,
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-    ));
-    chain.create_account(Account::new_with_balance(
-        BUYER_ACC,
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-    ));
-    chain.create_account(Account::new_with_balance(
-        BUYER_ACC_NON_COMPLIANT,
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-    ));
-    let ir_contract = identity_registry_deploy_and_init(&mut chain, ADMIN);
-    let compliance_contract = compliance_deploy_and_init(&mut chain, ir_contract, ADMIN, vec![
-        "IN".to_owned(),
-        "US".to_owned(),
-    ]);
-    let security_nft_contract =
-        security_nft_deploy_and_init(&mut chain, ADMIN, compliance_contract, ir_contract);
+    create_accounts(
+        &mut chain,
+        vec![
+            DEFAULT_INVOKER,
+            ADMIN,
+            IDENTITY_REGISTRY_AGENT,
+            SELLER_ACC,
+            BUYER_ACC,
+            BUYER_ACC_NON_COMPLIANT,
+        ],
+        DEFAULT_ACC_BALANCE,
+    );
 
+    let (ir_contract, _, compliance_contract) =
+        init_identity_contracts(&mut chain, ADMIN, vec!["IN".to_owned(), "US".to_owned()]);
+    add_identities(
+        &mut chain,
+        ir_contract,
+        ADMIN,
+        vec![
+            (Address::Account(BUYER_ACC), "IN".to_string()),
+            (Address::Account(SELLER_ACC), "US".to_string()),
+            (Address::Account(BUYER_ACC_NON_COMPLIANT), "DK".to_string()),
+        ],
+    )
+    .expect("Add Account identities");
+
+    let (security_nft_contract, _) =
+        init_security_token_contracts(&mut chain, ADMIN, ir_contract, compliance_contract, vec![]);
     let euroe_contract = euroe_deploy_and_init(&mut chain, ADMIN);
     let market_contract = market_deploy_and_init(
         &mut chain,
@@ -76,35 +67,21 @@ fn market_buy_via_transfer_of_cis2() {
         vec![security_nft_contract],
         vec![TokenUId {
             // Euro E has a Unit Token Id
-            id:       TokenIdVec(Vec::new()),
+            id: TokenIdVec(Vec::new()),
             contract: euroe_contract,
         }],
         Rate {
-            numerator:   1,
+            numerator: 1,
             denominator: 10,
         },
     );
-
-    add_identity_nationality(
+    add_identities(
         &mut chain,
         ir_contract,
         ADMIN,
-        Address::Contract(market_contract),
-        "IN",
+        vec![(Address::Contract(market_contract), "IN".to_string())],
     )
-    .expect_report("Add market Identity");
-    add_identity_nationality(&mut chain, ir_contract, ADMIN, Address::Account(BUYER_ACC), "IN")
-        .expect_report("Add buyer Identity");
-    add_identity_nationality(
-        &mut chain,
-        ir_contract,
-        ADMIN,
-        Address::Account(BUYER_ACC_NON_COMPLIANT),
-        "DK",
-    )
-    .expect_report("Add non compliant buyer Identity");
-    add_identity_nationality(&mut chain, ir_contract, ADMIN, Address::Account(SELLER_ACC), "US")
-        .expect_report("Add seller Identity");
+    .expect("Add Contract identities");
 
     let buy_token = nft_mint(
         &mut chain,
@@ -118,10 +95,10 @@ fn market_buy_via_transfer_of_cis2() {
     let euroe_exchange_rate: ExchangeRate = ExchangeRate::Cis2((
         TokenUId {
             contract: euroe_contract,
-            id:       TokenIdVec(Vec::new()),
+            id: TokenIdVec(Vec::new()),
         },
         Rate {
-            numerator:   2_000_000,
+            numerator: 2_000_000,
             denominator: 1,
         },
     ));
@@ -175,7 +152,7 @@ fn market_buy_via_transfer_of_cis2() {
         amounts.pay_token,
         PaymentTokenUId::Cis2(TokenUId {
             contract: euroe_contract,
-            id:       TokenIdVec(Vec::new()),
+            id: TokenIdVec(Vec::new()),
         }),
         "Invalid Calculated Pay Token Id"
     );
@@ -188,11 +165,11 @@ fn market_buy_via_transfer_of_cis2() {
             Address::Account(ADMIN),
             Energy::from(10000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked("euroe_stablecoin.mint".to_string()),
-                address:      euroe_contract,
-                message:      OwnedParameter::from_serial(&EuroEMintParams {
-                    owner:  Address::Account(BUYER_ACC),
+                address: euroe_contract,
+                message: OwnedParameter::from_serial(&EuroEMintParams {
+                    owner: Address::Account(BUYER_ACC),
                     amount: init_euroe_balance,
                 })
                 .expect_report("Mint params"),
@@ -260,14 +237,14 @@ fn euroe_balance_of(
             Address::Account(ADMIN),
             Energy::from(10000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked(
                     "euroe_stablecoin.balanceOf".to_string(),
                 ),
-                address:      euroe_contract,
-                message:      OwnedParameter::from_serial(&BalanceOfQueryParams {
+                address: euroe_contract,
+                message: OwnedParameter::from_serial(&BalanceOfQueryParams {
                     queries: vec![BalanceOfQuery {
-                        address:  owner,
+                        address: owner,
                         token_id: TokenIdUnit(),
                     }],
                 })
@@ -295,17 +272,22 @@ fn market_deploy_and_init(
         .module_reference;
 
     chain
-        .contract_init(Signer::with_one_key(), owner, Energy::from(30000), InitContractPayload {
-            mod_ref:   market_module,
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked(MARKET_CONTRACT_NAME.to_owned()),
-            param:     OwnedParameter::from_serial(&MarketInitParams {
-                token_contracts,
-                commission,
-                exchange_tokens,
-            })
-            .unwrap(),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            owner,
+            Energy::from(30000),
+            InitContractPayload {
+                mod_ref: market_module,
+                amount: Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(MARKET_CONTRACT_NAME.to_owned()),
+                param: OwnedParameter::from_serial(&MarketInitParams {
+                    token_contracts,
+                    commission,
+                    exchange_tokens,
+                })
+                .unwrap(),
+            },
+        )
         .expect_report("Market: Init")
         .contract_address
 }
@@ -316,12 +298,17 @@ fn euroe_deploy_and_init(chain: &mut Chain, owner: AccountAddress) -> ContractAd
         .unwrap()
         .module_reference;
     let euroe_contract = chain
-        .contract_init(Signer::with_one_key(), owner, Energy::from(30000), InitContractPayload {
-            mod_ref:   euroe_module,
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked(EUROE_CONTRACT_NAME.to_owned()),
-            param:     OwnedParameter::empty(),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            owner,
+            Energy::from(30000),
+            InitContractPayload {
+                mod_ref: euroe_module,
+                amount: Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(EUROE_CONTRACT_NAME.to_owned()),
+                param: OwnedParameter::empty(),
+            },
+        )
         .expect_report("EuroE: Init")
         .contract_address;
     chain
@@ -331,15 +318,15 @@ fn euroe_deploy_and_init(chain: &mut Chain, owner: AccountAddress) -> ContractAd
             Address::Account(owner),
             Energy::from(10000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked(
                     "euroe_stablecoin.grantRole".to_string(),
                 ),
-                address:      euroe_contract,
-                message:      OwnedParameter::from_serial(&RoleTypes {
-                    mintrole:  Address::Account(owner),
+                address: euroe_contract,
+                message: OwnedParameter::from_serial(&RoleTypes {
+                    mintrole: Address::Account(owner),
                     pauserole: Address::Account(owner),
-                    burnrole:  Address::Account(owner),
+                    burnrole: Address::Account(owner),
                     blockrole: Address::Account(owner),
                     adminrole: Address::Account(owner),
                 })
@@ -365,7 +352,7 @@ fn euroe_transfer_and_buy(
     let exchange_params = ExchangeParams {
         token_id: TokenUId {
             contract: buy_token_contract,
-            id:       to_token_id_vec(buy_token_id),
+            id: to_token_id_vec(buy_token_id),
         },
         amount: to_token_amount_u64(buy_token_amount),
         owner: seller_acc,
@@ -378,19 +365,19 @@ fn euroe_transfer_and_buy(
         Address::Account(buyer_acc),
         Energy::from(30000),
         UpdateContractPayload {
-            amount:       Amount::zero(),
+            amount: Amount::zero(),
             receive_name: OwnedReceiveName::new_unchecked("euroe_stablecoin.transfer".to_string()),
-            address:      euroe_contract,
-            message:      OwnedParameter::from_serial(&TransferParams(vec![
+            address: euroe_contract,
+            message: OwnedParameter::from_serial(&TransferParams(vec![
                 concordium_cis2::Transfer {
                     token_id: TokenIdUnit(),
-                    amount:   euroe_pay_amount,
-                    from:     Address::Account(buyer_acc),
-                    to:       Receiver::Contract(
+                    amount: euroe_pay_amount,
+                    from: Address::Account(buyer_acc),
+                    to: Receiver::Contract(
                         market_contract,
                         OwnedEntrypointName::new_unchecked("deposit".to_string()),
                     ),
-                    data:     AdditionalData::from(to_bytes(&exchange_params)),
+                    data: AdditionalData::from(to_bytes(&exchange_params)),
                 },
             ]))
             .unwrap(),
@@ -410,16 +397,16 @@ fn market_balance_of_listed(
             Address::Account(ADMIN),
             Energy::from(10000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked(
                     "rwa_market.balanceOfListed".to_string(),
                 ),
-                address:      market_contract,
-                message:      OwnedParameter::from_serial(&GetListedParam {
-                    owner:    SELLER_ACC,
+                address: market_contract,
+                message: OwnedParameter::from_serial(&GetListedParam {
+                    owner: SELLER_ACC,
                     token_id: TokenUId {
                         contract: token_contract,
-                        id:       to_token_id_vec(token_id),
+                        id: to_token_id_vec(token_id),
                     },
                 })
                 .expect_report("Serialize Get Listed Params"),
@@ -446,15 +433,15 @@ fn market_calculate_amounts(
             Address::Account(ADMIN),
             Energy::from(10000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked(
                     "rwa_market.calculateAmounts".to_string(),
                 ),
-                address:      market_contract,
-                message:      OwnedParameter::from_serial(&ExchangeParams {
+                address: market_contract,
+                message: OwnedParameter::from_serial(&ExchangeParams {
                     token_id: TokenUId {
                         contract: buy_token_contract,
-                        id:       to_token_id_vec(buy_token_id),
+                        id: to_token_id_vec(buy_token_id),
                     },
                     amount: to_token_amount_u64(buy_token_amount),
                     owner: seller_acc,
@@ -480,7 +467,7 @@ fn market_transfer_and_list(
     let token_1_list_params = ListParams {
         token_id: TokenUId {
             contract: security_nft_contract,
-            id:       to_token_id_vec(token_id),
+            id: to_token_id_vec(token_id),
         },
         supply: TokenAmountU64(1),
         owner: from,
@@ -492,10 +479,10 @@ fn market_transfer_and_list(
         Address::Account(from),
         Energy::from(30000),
         UpdateContractPayload {
-            amount:       Amount::zero(),
+            amount: Amount::zero(),
             receive_name: OwnedReceiveName::new_unchecked("rwa_security_nft.transfer".to_string()),
-            address:      security_nft_contract,
-            message:      OwnedParameter::from_serial(&TransferParams(vec![
+            address: security_nft_contract,
+            message: OwnedParameter::from_serial(&TransferParams(vec![
                 concordium_cis2::Transfer {
                     token_id,
                     amount: TokenAmountU8(1),

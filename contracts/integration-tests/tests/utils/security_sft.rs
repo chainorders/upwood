@@ -12,8 +12,9 @@ use concordium_std::ExpectReport;
 pub fn security_sft_deploy_and_init(
     chain: &mut Chain,
     owner: AccountAddress,
-    compliance_contract: ContractAddress,
-    ir_contract: ContractAddress,
+    compliance: ContractAddress,
+    identity_registry: ContractAddress,
+    sponsors: Vec<ContractAddress>,
 ) -> ContractAddress {
     let security_nft_module = chain
         .module_deploy_v1(
@@ -25,17 +26,22 @@ pub fn security_sft_deploy_and_init(
         .module_reference;
 
     chain
-        .contract_init(Signer::with_one_key(), owner, Energy::from(30000), InitContractPayload {
-            mod_ref:   security_nft_module,
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked(SECURITY_SFT_CONTRACT_NAME.to_owned()),
-            param:     OwnedParameter::from_serial(&InitParam {
-                compliance:        compliance_contract,
-                identity_registry: ir_contract,
-                sponsors:          vec![],
-            })
-            .expect_report("Security SFT: Init"),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            owner,
+            Energy::from(30000),
+            InitContractPayload {
+                mod_ref: security_nft_module,
+                amount: Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(SECURITY_SFT_CONTRACT_NAME.to_owned()),
+                param: OwnedParameter::from_serial(&InitParam {
+                    compliance,
+                    identity_registry,
+                    sponsors,
+                })
+                .expect_report("Security SFT: Init"),
+            },
+        )
         .expect_report("Security SFT: Init")
         .contract_address
 }
@@ -53,12 +59,12 @@ pub fn sft_add_token(
             Address::Account(agent),
             Energy::from(30000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked(
                     "rwa_security_sft.addTokens".to_string(),
                 ),
-                address:      sft_contract,
-                message:      OwnedParameter::from_serial(&AddParams {
+                address: sft_contract,
+                message: OwnedParameter::from_serial(&AddParams {
                     tokens: vec![param],
                 })
                 .unwrap(),
