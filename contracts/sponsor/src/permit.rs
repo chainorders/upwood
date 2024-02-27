@@ -1,8 +1,6 @@
-use concordium_std::*;
-
-use concordium_rwa_utils::{concordium_cis3::*, sponsor_types::SponsoredParamsRaw};
-
 use super::{event::*, state::State, utils::calculate_message_hash};
+use concordium_rwa_utils::{concordium_cis3::*, sponsor_types::SponsoredParamsRaw};
+use concordium_std::*;
 
 #[derive(SchemaType, Serialize, Reject)]
 enum Error {
@@ -81,7 +79,7 @@ fn permit(
         .check_account_signature(param.signer, &param.signature, &signed_bytes)
         .map_err(|_| Error::AccountMissing)?;
     ensure!(valid_signature, Error::WrongSignature);
-    
+
     host.invoke_contract_read_only(
         &message.contract_address,
         &SponsoredParamsRaw {

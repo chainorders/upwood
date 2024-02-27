@@ -1,28 +1,21 @@
 mod shared;
+mod sponsor;
 mod txn_listener;
 mod txn_processor;
 mod verifier;
-
 use anyhow::Ok;
 use clap::Parser;
 use dotenv::dotenv;
-use verifier::{
-    generate_verifier_api_frontend_client, run_verifier_api_server, VerifierApiConfig,
-    VerifierApiSwaggerConfig,
-};
-
-use txn_processor::{
-    generate_contracts_api_frontend_client, run_contracts_api_server, ContractsApiSwaggerConfig,
-    ContractsListenerAndApiConfig,
-};
 
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
 enum Command {
-    GenerateContractsApiSpecs(ContractsApiSwaggerConfig),
-    ContractsApi(ContractsListenerAndApiConfig),
-    VerifierApi(VerifierApiConfig),
-    GenerateVerifierApiSpecs(VerifierApiSwaggerConfig),
+    GenerateContractsApiSpecs(txn_processor::OpenApiConfig),
+    ContractsApi(txn_processor::ListenerAndApiConfig),
+    GenerateVerifierApiSpecs(verifier::OpenApiConfig),
+    VerifierApi(verifier::ApiConfig),
+    GenerateSponsorApiSpecs(sponsor::OpenApiConfig),
+    SponsorApi(sponsor::ApiConfig),
 }
 
 #[tokio::main]
@@ -32,13 +25,13 @@ async fn main() -> anyhow::Result<()> {
 
     match Command::parse() {
         Command::GenerateContractsApiSpecs(config) => {
-            generate_contracts_api_frontend_client(config).await?
+            txn_processor::generate_api_client(config).await?
         }
-        Command::ContractsApi(config) => run_contracts_api_server(config).await?,
-        Command::VerifierApi(config) => run_verifier_api_server(config).await?,
-        Command::GenerateVerifierApiSpecs(config) => {
-            generate_verifier_api_frontend_client(config).await?
-        }
+        Command::ContractsApi(config) => txn_processor::run_api_server_and_listener(config).await?,
+        Command::VerifierApi(config) => verifier::run_api_server(config).await?,
+        Command::GenerateVerifierApiSpecs(config) => verifier::generate_api_client(config).await?,
+        Command::SponsorApi(config) => sponsor::run_api_server(config).await?,
+        Command::GenerateSponsorApiSpecs(config) => sponsor::generate_api_client(config).await?,
     }
     Ok(())
 }

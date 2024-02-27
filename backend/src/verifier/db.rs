@@ -23,6 +23,7 @@ impl Db {
             "verifier-{}-{}-{}",
             self.identity_registry.index,
             self.identity_registry.subindex,
+            // truncated due to mongodb collection name length limit
             &self.agent_address.to_string()[0..6]
         ))
     }
