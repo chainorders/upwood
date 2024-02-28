@@ -48,15 +48,15 @@ export default function Registration(props: {
 			})
 			.then((response) => {
 				setChallenge(response.challenge);
-				setStatement([
-					{
-						idQualifier: {
-							type: "cred",
-							issuers: response.identity_providers,
-						},
-						statement: response.id_statement,
+				const statement: CredentialStatements = [{
+					idQualifier: {
+						type: "cred",
+						issuers: response.identity_providers,
 					},
-					{
+					statement: response.id_statement,
+				}];
+				if (response.issuers.length > 0) { 
+					statement.push({
 						idQualifier: {
 							type: "sci",
 							issuers: response.issuers.map((i) =>
@@ -64,8 +64,9 @@ export default function Registration(props: {
 							),
 						},
 						statement: response.cred_statement,
-					},
-				] as CredentialStatements);
+					});
+				}
+				setStatement(statement);
 				setActiveStep(1);
 			})
 			.catch((e) => {

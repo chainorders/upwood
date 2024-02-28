@@ -117,3 +117,10 @@ export const tokenIdToTokenImageFileName = (
 
 	return `token_${tokenId}.${ext}`;
 };
+export const toTokenIdInt = (tokenId: string) => {
+	try {
+		return parseInt(tokenId.match(/../g)!.reverse().join(""), 16);
+	} catch (error) {
+		return tokenId;
+	}
+};

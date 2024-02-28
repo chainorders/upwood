@@ -35,6 +35,11 @@ import {
 	ENTRYPOINT_DISPLAY_NAMES as rwaMarketEntrypointNames,
 	ENTRYPOINTS as rwaMarketEntrypoints,
 } from "../../lib/rwaMarket";
+import {
+	ENTRYPOINT_DISPLAY_NAMES as rwaSponsorEntrypointNames,
+	ENTRYPOINTS as rwaSponsorEntrypoints,
+} from "../../lib/rwaSponsor";
+import { ENTRYPOINTS_UI as rwaSponsorEntrypointsUI } from "../../lib/rwaSponsorUi";
 import { ENTRYPOINTS_UI as rwaMarketEntrypointsUI } from "../../lib/rwaMarketUi";
 import RwaMarketInitialize from "./RwaMarketInitialize";
 import RwaSecurityNftContract from "./rwaSecurityNft/RwaSecurityNftContract";
@@ -57,6 +62,7 @@ import {
 import { grey } from "@mui/material/colors";
 import InfoDisplay from "../common/InfoDisplay";
 import ConcordiumWalletProvider from "../WalletProvider";
+import RwaSponsorInitialize from "./RwaSponsorInitialize";
 
 const ContractsAppBar = (props: {
 	onLogin: (account: AccountAddress.Type, wallet: WalletApi) => void;
@@ -293,6 +299,9 @@ const ConnectedContent = (props: {
 								complianceContracts={state.contracts.filter(
 									(contract) => contract.type === ContractType.RwaCompliance,
 								)}
+								sponsorContracts={state.contracts.filter(
+									(contract) => contract.type === ContractType.RwaSponsor,
+								)}
 							/>
 						}
 					/>
@@ -317,6 +326,9 @@ const ConnectedContent = (props: {
 								)}
 								complianceContracts={state.contracts.filter(
 									(contract) => contract.type === ContractType.RwaCompliance,
+								)}
+								sponsorContracts={state.contracts.filter(
+									(contract) => contract.type === ContractType.RwaSponsor,
 								)}
 							/>
 						}
@@ -355,6 +367,34 @@ const ConnectedContent = (props: {
 									entrypoints={rwaComplianceModuleEntrypoints}
 									entrypointDisplayNames={rwaComplianceModuleEntrypointNames}
 									entrypointUi={rwaComplianceModuleEntrypointsUI}
+								/>
+							}
+						/>
+					</Route>
+				</Route>
+				<Route path={ContractType.RwaSponsor}>
+					<Route
+						path="init"
+						element={
+							<RwaSponsorInitialize
+								wallet={wallet}
+								currentAccount={account}
+								onSuccess={onContractInitialized}
+							/>
+						}
+					/>
+					<Route
+						path=":index/:subIndex/*"
+						element={<ContractLayout contracts={state.contracts} />}
+					>
+						<Route
+							path="*"
+							element={
+								<ConcordiumContract
+									contractType={ContractType.RwaSponsor}
+									entrypoints={rwaSponsorEntrypoints}
+									entrypointDisplayNames={rwaSponsorEntrypointNames}
+									entrypointUi={rwaSponsorEntrypointsUI}
 								/>
 							}
 						/>

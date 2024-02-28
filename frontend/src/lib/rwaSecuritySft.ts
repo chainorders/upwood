@@ -1125,7 +1125,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const rwaSecuritySft = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"02f1183cc1f4566f5afe952cfe4ab917be9ede8a480e8668b7c13e486ef3d0a0",
+			"b325d6e44d39ff45dbaafe6a58666cb47a9cda3936d665c06ea4f6276ea38f20",
 		),
 		ContractName.fromString("rwa_security_sft"),
 		initRequestSchemaBase64,

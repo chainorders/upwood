@@ -13,14 +13,8 @@ export const initErrorJsonSchema: RJSFSchema = {
 			enum: [
 				"ParseError",
 				"LogError",
-				"WrongContract",
-				"Expired",
-				"NonceMismatch",
-				"WrongSignature",
 				"SerializationError",
-				"AccountMissing",
 				"CallContractError",
-				"CIS3NotImplemented",
 				"CIS3CheckError",
 			],
 		},
@@ -43,42 +37,6 @@ export const initErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["WrongContract"] },
-						WrongContract: {
-							type: "object",
-							title: "WrongContract",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Expired"] },
-						Expired: { type: "object", title: "Expired", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["NonceMismatch"] },
-						NonceMismatch: {
-							type: "object",
-							title: "NonceMismatch",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["WrongSignature"] },
-						WrongSignature: {
-							type: "object",
-							title: "WrongSignature",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["SerializationError"] },
 						SerializationError: {
 							type: "object",
@@ -89,30 +47,10 @@ export const initErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AccountMissing"] },
-						AccountMissing: {
-							type: "object",
-							title: "AccountMissing",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["CallContractError"] },
 						CallContractError: {
 							type: "object",
 							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CIS3NotImplemented"] },
-						CIS3NotImplemented: {
-							type: "object",
-							title: "CIS3NotImplemented",
 							properties: {},
 						},
 					},
@@ -134,14 +72,197 @@ export const initErrorJsonSchema: RJSFSchema = {
 export type initErrorUi =
 	| { tag: "ParseError"; ParseError: never }
 	| { tag: "LogError"; LogError: never }
-	| { tag: "WrongContract"; WrongContract: never }
-	| { tag: "Expired"; Expired: never }
-	| { tag: "NonceMismatch"; NonceMismatch: never }
-	| { tag: "WrongSignature"; WrongSignature: never }
 	| { tag: "SerializationError"; SerializationError: never }
-	| { tag: "AccountMissing"; AccountMissing: never }
 	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "CIS3NotImplemented"; CIS3NotImplemented: never }
+	| { tag: "CIS3CheckError"; CIS3CheckError: never };
+export const bytesToSignRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Bytes To Sign Request",
+	properties: {
+		contract_address: {
+			type: "object",
+			title: "Contract Address",
+			properties: {
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
+			},
+		},
+		nonce: { type: "integer", minimum: 0, title: "Nonce" },
+		timestamp: { type: "string", format: "date-time", title: "Timestamp" },
+		entry_point: { type: "string", title: "Entry Point" },
+		payload: {
+			type: "array",
+			items: { type: "integer", minimum: 0, maximum: 255, title: "" },
+			title: "Payload",
+		},
+	},
+};
+export type BytesToSignRequestUi = {
+	contract_address: { index: number; subindex: number };
+	nonce: number;
+	timestamp: string;
+	entry_point: string;
+	payload: number[];
+};
+export const bytesToSignResponseJsonSchema: RJSFSchema = {
+	type: "array",
+	items: { type: "integer", minimum: 0, maximum: 255, title: "" },
+	title: "Bytes To Sign Response",
+};
+export type BytesToSignResponseUi = number[];
+export const bytesToSignErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Bytes To Sign Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"SerializationError",
+				"CallContractError",
+				"CIS3CheckError",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["SerializationError"] },
+						SerializationError: {
+							type: "object",
+							title: "SerializationError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractError"] },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CIS3CheckError"] },
+						CIS3CheckError: {
+							type: "object",
+							title: "CIS3CheckError",
+							properties: {},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type BytesToSignErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "SerializationError"; SerializationError: never }
+	| { tag: "CallContractError"; CallContractError: never }
+	| { tag: "CIS3CheckError"; CIS3CheckError: never };
+export const nonceRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Nonce Request",
+	properties: { account: { type: "string", title: "Account" } },
+};
+export type NonceRequestUi = { account: string };
+export const nonceResponseJsonSchema: RJSFSchema = {
+	type: "integer",
+	minimum: 0,
+	title: "Nonce Response",
+};
+export type NonceResponseUi = number;
+export const nonceErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Nonce Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"SerializationError",
+				"CallContractError",
+				"CIS3CheckError",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["SerializationError"] },
+						SerializationError: {
+							type: "object",
+							title: "SerializationError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractError"] },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CIS3CheckError"] },
+						CIS3CheckError: {
+							type: "object",
+							title: "CIS3CheckError",
+							properties: {},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type NonceErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "SerializationError"; SerializationError: never }
+	| { tag: "CallContractError"; CallContractError: never }
 	| { tag: "CIS3CheckError"; CIS3CheckError: never };
 export const permitRequestJsonSchema: RJSFSchema = {
 	type: "object",
@@ -196,7 +317,7 @@ export const permitRequestJsonSchema: RJSFSchema = {
 					},
 				},
 				nonce: { type: "integer", minimum: 0, title: "Nonce" },
-				timestamp: { type: "string", title: "Timestamp" },
+				timestamp: { type: "string", format: "date-time", title: "Timestamp" },
 				entry_point: { type: "string", title: "Entry Point" },
 				payload: {
 					type: "array",
@@ -225,17 +346,21 @@ export const permitErrorJsonSchema: RJSFSchema = {
 		tag: {
 			type: "string",
 			enum: [
-				"ParseError",
-				"LogError",
+				"Parse",
+				"Log",
 				"WrongContract",
 				"Expired",
 				"NonceMismatch",
 				"WrongSignature",
-				"SerializationError",
+				"Serialization",
 				"AccountMissing",
-				"CallContractError",
-				"CIS3NotImplemented",
-				"CIS3CheckError",
+				"CallContractAmountTooLarge",
+				"CallContractMissingAccount",
+				"CallContractMissingContract",
+				"CallContractMissingEntrypoint",
+				"CallContractMessageFailed",
+				"CallContractTrap",
+				"CallContractLogicReject",
 			],
 		},
 	},
@@ -245,14 +370,14 @@ export const permitErrorJsonSchema: RJSFSchema = {
 			oneOf: [
 				{
 					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
+						tag: { enum: ["Parse"] },
+						Parse: { type: "object", title: "Parse", properties: {} },
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
+						tag: { enum: ["Log"] },
+						Log: { type: "object", title: "Log", properties: {} },
 					},
 				},
 				{
@@ -293,10 +418,10 @@ export const permitErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["SerializationError"] },
-						SerializationError: {
+						tag: { enum: ["Serialization"] },
+						Serialization: {
 							type: "object",
-							title: "SerializationError",
+							title: "Serialization",
 							properties: {},
 						},
 					},
@@ -313,31 +438,77 @@ export const permitErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["CallContractError"] },
-						CallContractError: {
+						tag: { enum: ["CallContractAmountTooLarge"] },
+						CallContractAmountTooLarge: {
 							type: "object",
-							title: "CallContractError",
+							title: "CallContractAmountTooLarge",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["CIS3NotImplemented"] },
-						CIS3NotImplemented: {
+						tag: { enum: ["CallContractMissingAccount"] },
+						CallContractMissingAccount: {
 							type: "object",
-							title: "CIS3NotImplemented",
+							title: "CallContractMissingAccount",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["CIS3CheckError"] },
-						CIS3CheckError: {
+						tag: { enum: ["CallContractMissingContract"] },
+						CallContractMissingContract: {
 							type: "object",
-							title: "CIS3CheckError",
+							title: "CallContractMissingContract",
 							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractMissingEntrypoint"] },
+						CallContractMissingEntrypoint: {
+							type: "object",
+							title: "CallContractMissingEntrypoint",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractMessageFailed"] },
+						CallContractMessageFailed: {
+							type: "object",
+							title: "CallContractMessageFailed",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractTrap"] },
+						CallContractTrap: {
+							type: "object",
+							title: "CallContractTrap",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractLogicReject"] },
+						CallContractLogicReject: {
+							type: "array",
+							items: [
+								{
+									type: "integer",
+									minimum: -2147483648,
+									maximum: 2147483647,
+									title: "",
+								},
+							],
 						},
 					},
 				},
@@ -346,17 +517,24 @@ export const permitErrorJsonSchema: RJSFSchema = {
 	},
 };
 export type PermitErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
+	| { tag: "Parse"; Parse: never }
+	| { tag: "Log"; Log: never }
 	| { tag: "WrongContract"; WrongContract: never }
 	| { tag: "Expired"; Expired: never }
 	| { tag: "NonceMismatch"; NonceMismatch: never }
 	| { tag: "WrongSignature"; WrongSignature: never }
-	| { tag: "SerializationError"; SerializationError: never }
+	| { tag: "Serialization"; Serialization: never }
 	| { tag: "AccountMissing"; AccountMissing: never }
-	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "CIS3NotImplemented"; CIS3NotImplemented: never }
-	| { tag: "CIS3CheckError"; CIS3CheckError: never };
+	| { tag: "CallContractAmountTooLarge"; CallContractAmountTooLarge: never }
+	| { tag: "CallContractMissingAccount"; CallContractMissingAccount: never }
+	| { tag: "CallContractMissingContract"; CallContractMissingContract: never }
+	| {
+			tag: "CallContractMissingEntrypoint";
+			CallContractMissingEntrypoint: never;
+	  }
+	| { tag: "CallContractMessageFailed"; CallContractMessageFailed: never }
+	| { tag: "CallContractTrap"; CallContractTrap: never }
+	| { tag: "CallContractLogicReject"; CallContractLogicReject: [number] };
 export const supportsPermitRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Supports Permit Request",
@@ -384,14 +562,8 @@ export const supportsPermitErrorJsonSchema: RJSFSchema = {
 			enum: [
 				"ParseError",
 				"LogError",
-				"WrongContract",
-				"Expired",
-				"NonceMismatch",
-				"WrongSignature",
 				"SerializationError",
-				"AccountMissing",
 				"CallContractError",
-				"CIS3NotImplemented",
 				"CIS3CheckError",
 			],
 		},
@@ -414,42 +586,6 @@ export const supportsPermitErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["WrongContract"] },
-						WrongContract: {
-							type: "object",
-							title: "WrongContract",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Expired"] },
-						Expired: { type: "object", title: "Expired", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["NonceMismatch"] },
-						NonceMismatch: {
-							type: "object",
-							title: "NonceMismatch",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["WrongSignature"] },
-						WrongSignature: {
-							type: "object",
-							title: "WrongSignature",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["SerializationError"] },
 						SerializationError: {
 							type: "object",
@@ -460,30 +596,10 @@ export const supportsPermitErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AccountMissing"] },
-						AccountMissing: {
-							type: "object",
-							title: "AccountMissing",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["CallContractError"] },
 						CallContractError: {
 							type: "object",
 							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CIS3NotImplemented"] },
-						CIS3NotImplemented: {
-							type: "object",
-							title: "CIS3NotImplemented",
 							properties: {},
 						},
 					},
@@ -505,14 +621,8 @@ export const supportsPermitErrorJsonSchema: RJSFSchema = {
 export type SupportsPermitErrorUi =
 	| { tag: "ParseError"; ParseError: never }
 	| { tag: "LogError"; LogError: never }
-	| { tag: "WrongContract"; WrongContract: never }
-	| { tag: "Expired"; Expired: never }
-	| { tag: "NonceMismatch"; NonceMismatch: never }
-	| { tag: "WrongSignature"; WrongSignature: never }
 	| { tag: "SerializationError"; SerializationError: never }
-	| { tag: "AccountMissing"; AccountMissing: never }
 	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "CIS3NotImplemented"; CIS3NotImplemented: never }
 	| { tag: "CIS3CheckError"; CIS3CheckError: never };
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
@@ -532,6 +642,50 @@ export const ENTRYPOINTS_UI: {
 		uiWidgets?: RegistryWidgetsType;
 	}) => React.JSX.Element;
 } = {
+	bytesToSign: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			types.BytesToSignRequest,
+			BytesToSignRequestUi,
+			types.BytesToSignResponse,
+			BytesToSignResponseUi,
+			types.BytesToSignError,
+			BytesToSignErrorUi
+		>({
+			...props,
+			method: client.bytesToSign,
+			requestJsonSchema: bytesToSignRequestJsonSchema,
+			requestSchemaBase64: types.bytesToSignRequestSchemaBase64,
+			responseJsonSchema: bytesToSignResponseJsonSchema,
+			responseSchemaBase64: types.bytesToSignResponseSchemaBase64,
+			errorJsonSchema: bytesToSignErrorJsonSchema,
+			errorSchemaBase64: types.bytesToSignErrorSchemaBase64,
+		}),
+	nonce: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericInvoke<
+			types.NonceRequest,
+			NonceRequestUi,
+			types.NonceResponse,
+			NonceResponseUi,
+			types.NonceError,
+			NonceErrorUi
+		>({
+			...props,
+			method: client.nonce,
+			requestJsonSchema: nonceRequestJsonSchema,
+			requestSchemaBase64: types.nonceRequestSchemaBase64,
+			responseJsonSchema: nonceResponseJsonSchema,
+			responseSchemaBase64: types.nonceResponseSchemaBase64,
+			errorJsonSchema: nonceErrorJsonSchema,
+			errorSchemaBase64: types.nonceErrorSchemaBase64,
+		}),
 	permit: (props: {
 		contract: ContractAddress.Type;
 		uiSchema?: UiSchema;

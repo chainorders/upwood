@@ -10,6 +10,7 @@ use concordium_rust_sdk::{
     types::{ContractAddress, Energy, WalletAccount},
 };
 use concordium_rwa_sponsor::types::{PermitMessage, PermitParam};
+use log::debug;
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
 
 #[derive(Debug, ApiResponse)]
@@ -156,6 +157,8 @@ impl Api {
         request: Json<ApiPermitParam>,
     ) -> Result<Json<ApiPermitResponse>, Error> {
         let permit_param: PermitParam = request.0.try_into().map_err(|_| Error::BadRequest)?;
+        debug!("Permitting with {:?}", permit_param);
+
         let txn_hash = SponsorClient::new(self.concordium_client.clone(), self.contract)
             .permit(&self.wallet, self.max_energy, permit_param)
             .await?;

@@ -26,7 +26,7 @@ impl PermitMessage {
     }
 }
 
-#[derive(SchemaType, Serialize)]
+#[derive(SchemaType, Serialize, Debug)]
 pub struct PermitParam {
     pub signature: AccountSignatures,
     pub signer: AccountAddress,

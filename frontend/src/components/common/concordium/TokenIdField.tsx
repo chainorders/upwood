@@ -1,4 +1,5 @@
 import { TextField, TextFieldProps } from "@mui/material";
+import { toTokenIdInt } from "../../../lib/cis2Utils";
 
 type TokenId = string;
 export default function TokenIdField(
@@ -22,7 +23,7 @@ export default function TokenIdField(
 			{...rest}
 			error={!isValid}
 			type="number"
-			value={value ? parseInt(value, 16) : ""}
+			value={value ? toTokenIdInt(value) : ""}
 			onChange={(e) =>
 				onChange(
 					Number(e.target.value)

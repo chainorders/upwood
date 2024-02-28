@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import ErrorDisplay from "./ErrorDisplay";
 import CCDCis2TokenLink from "./concordium/CCDCis2TokenLink";
-import { toHttpUrl } from "../../lib/cis2Utils";
+import { toHttpUrl, toTokenIdInt } from "../../lib/cis2Utils";
 
 type TokensListProps = {
 	contract: ContractAddress.Type;
@@ -65,7 +65,7 @@ export default function TokensList(props: TokensListProps) {
 										<Token />
 									</ListItemIcon>
 									<ListItemText
-										primary={`${token.token_id} (${parseInt(token.token_id, 16)})`}
+										primary={`${token.token_id} (${toTokenIdInt(token.token_id)})`}
 										secondary={
 											<Link
 												href={toHttpUrl(token.metadata_url)}

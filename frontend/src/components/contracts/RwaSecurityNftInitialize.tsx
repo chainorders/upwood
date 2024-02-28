@@ -19,7 +19,6 @@ import {
 } from "@mui/material";
 import ErrorDisplay from "../common/ErrorDisplay";
 import SendTransactionButton from "../common/SendTransactionButton";
-import ContractAddressField from "../common/concordium/ContractAddressField";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import rwaSecurityNft from "../../lib/rwaSecurityNft";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
@@ -30,13 +29,16 @@ export default function RwaSecurityNftInitialize(props: {
 	onSuccess: (contract: Contract) => void;
 	identityRegistries: Contract[];
 	complianceContracts: Contract[];
+	sponsorContracts: Contract[];
 }) {
 	const [form, setForm] = useState<{
 		contractDisplayName: string;
 		identityRegistry?: ContractAddress.Type;
 		complianceContract?: ContractAddress.Type;
+		sponsorContracts: ContractAddress.Type[];
 	}>({
 		contractDisplayName: "",
+		sponsorContracts: [],
 	});
 	const [error, setError] = useState("");
 
@@ -61,6 +63,7 @@ export default function RwaSecurityNftInitialize(props: {
 			setError("");
 			setForm({
 				contractDisplayName: "",
+				sponsorContracts: [],
 			});
 		} catch (error) {
 			setError(error instanceof Error ? error.message : "Unknown error");
@@ -84,8 +87,13 @@ export default function RwaSecurityNftInitialize(props: {
 					{props.identityRegistries.map((contract, i) => (
 						<ListItem key={i}>
 							<ListItemButton
+								selected={
+									form.identityRegistry?.index === contract.address.index
+								}
 								onClick={() =>
-									setFormValue("identityRegistry", contract.address)
+									form.identityRegistry?.index === contract.address.index
+										? setFormValue("identityRegistry", undefined)
+										: setFormValue("identityRegistry", contract.address)
 								}
 							>
 								<ListItemText
@@ -99,12 +107,6 @@ export default function RwaSecurityNftInitialize(props: {
 						</ListItem>
 					))}
 				</List>
-				<ContractAddressField
-					indexHelperText="Identity registry Index"
-					subIndexHelperText="Identity registry SubIndex"
-					value={form.identityRegistry}
-					onChange={(value) => setFormValue("identityRegistry", value)}
-				/>
 			</Paper>
 			<Paper sx={{ padding: 2 }} variant="outlined">
 				<Typography variant="caption">Select compliance contract</Typography>
@@ -112,8 +114,11 @@ export default function RwaSecurityNftInitialize(props: {
 					{props.complianceContracts.map((contract, i) => (
 						<ListItem key={i}>
 							<ListItemButton
+								selected={form.complianceContract === contract.address}
 								onClick={() =>
-									setFormValue("complianceContract", contract.address)
+									form.complianceContract?.index === contract.address.index
+										? setFormValue("complianceContract", undefined)
+										: setFormValue("complianceContract", contract.address)
 								}
 							>
 								<ListItemText
@@ -127,12 +132,43 @@ export default function RwaSecurityNftInitialize(props: {
 						</ListItem>
 					))}
 				</List>
-				<ContractAddressField
-					indexHelperText="Compliance contract Index"
-					subIndexHelperText="Compliance contract SubIndex"
-					value={form.complianceContract}
-					onChange={(value) => setFormValue("complianceContract", value)}
-				/>
+			</Paper>
+			<Paper sx={{ padding: 2 }} variant="outlined">
+				<Typography variant="caption">Select Sponsor contracts</Typography>
+				<List>
+					{props.sponsorContracts.map((contract, i) => (
+						<ListItem key={i}>
+							<ListItemButton
+								selected={form.sponsorContracts
+									.map((c) => c.index)
+									.includes(contract.address.index)}
+								onClick={() =>
+									form.sponsorContracts
+										.map((c) => c.index)
+										.includes(contract.address.index)
+										? setFormValue(
+												"sponsorContracts",
+												form.sponsorContracts.filter(
+													(c) => c.index !== contract.address.index,
+												),
+											)
+										: setFormValue("sponsorContracts", [
+												...form.sponsorContracts,
+												contract.address,
+											])
+								}
+							>
+								<ListItemText
+									primary={contract.name}
+									secondary={CCDScanContractLink({
+										index: contract.address.index.toString(),
+										subIndex: contract.address.subindex.toString(),
+									})}
+								/>
+							</ListItemButton>
+						</ListItem>
+					))}
+				</List>
 			</Paper>
 			<SendTransactionButton
 				onClick={() =>
@@ -145,7 +181,10 @@ export default function RwaSecurityNftInitialize(props: {
 							index: Number(form.complianceContract!.index),
 							subindex: Number(form.complianceContract!.subindex),
 						},
-						sponsors: [],
+						sponsors: form.sponsorContracts.map((s) => ({
+							index: Number(s.index),
+							subindex: Number(s.subindex),
+						})),
 					})
 				}
 				onFinalized={handleSuccess}

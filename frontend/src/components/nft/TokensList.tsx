@@ -16,11 +16,13 @@ import { NftHolder } from "../../lib/contracts-api-client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ActionButtonProps, Token } from "../common/TokenCardDisplay";
 import TokensGrid from "../common/TokensGrid";
-import { LensBlur, Sell } from "@mui/icons-material";
+import { LensBlur, Sell, SubscriptionsRounded } from "@mui/icons-material";
 import { Buffer } from "buffer/";
 
 import rwaSecuritySft, { MintRequest } from "../../lib/rwaSecuritySft";
 import { SFT_CONTRACT_INDEX, SFT_CONTRACT_SUBINDEX } from "./const";
+import { useSponsorApi } from "../SponsorApiProvider";
+import { permit } from "../../lib/sponsorUtils";
 
 type Props = {
 	currentAccount: AccountAddress.Type;
@@ -28,10 +30,17 @@ type Props = {
 	contract: ContractAddress.Type;
 	grpcClient: ConcordiumGRPCClient;
 	marketContract?: ContractAddress.Type;
+	sponsorContract?: ContractAddress.Type;
 };
 export default function TokensList(props: Props) {
-	const { currentAccount, walletApi, contract, grpcClient, marketContract } =
-		props;
+	const {
+		currentAccount,
+		walletApi,
+		contract,
+		grpcClient,
+		marketContract,
+		sponsorContract,
+	} = props;
 
 	const [pageCount, setPageCount] = useState(0);
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -40,6 +49,7 @@ export default function TokensList(props: Props) {
 	const [error, setError] = useState("");
 	const { provider: backendApi } = useContractsApi();
 	const navigate = useNavigate();
+	const { provider: sponsorApi } = useSponsorApi();
 
 	let sftContract: ContractAddress.Type | undefined;
 	if (SFT_CONTRACT_INDEX && SFT_CONTRACT_SUBINDEX) {
@@ -72,7 +82,8 @@ export default function TokensList(props: Props) {
 	const onFractionalize = async (
 		token: Token,
 		sftContract: ContractAddress.Type,
-	) => {
+		sponsorContract?: ContractAddress.Type,
+	): Promise<string> => {
 		const fracRequest: MintRequest = {
 			deposited_token_id: {
 				id: token.id,
@@ -109,13 +120,25 @@ export default function TokensList(props: Props) {
 			} as CIS2.Transfer,
 		);
 
-		return walletApi!.sendTransaction(
-			currentAccount!,
-			transfer.type,
-			transfer.payload,
-			transfer.parameter.json,
-			transfer.schema,
-		);
+		if (!sponsorContract) {
+			return walletApi!.sendTransaction(
+				currentAccount!,
+				transfer.type,
+				transfer.payload,
+				transfer.parameter.json,
+				transfer.schema,
+			);
+		} else {
+			return permit(
+				grpcClient,
+				walletApi,
+				sponsorApi,
+				sponsorContract,
+				currentAccount,
+				token.contract,
+				transfer.parameter.hex,
+			);
+		}
 	};
 
 	const uiTokens = tokens.map(
@@ -154,6 +177,19 @@ export default function TokensList(props: Props) {
 			sendTransaction: (token) => onFractionalize(token, sftContract!),
 			onClick: (token: Token) => console.log("Fractionalize", token),
 		});
+
+		if (sponsorContract) {
+			actions.push({
+				ariaLabel: "Sponsored Fractionalize",
+				children: <SubscriptionsRounded />,
+				variant: "outlined",
+				title: "Sponsored Fractionalize",
+				disabled: false,
+				sendTransaction: (token) =>
+					onFractionalize(token, sftContract!, sponsorContract),
+				onClick: (token: Token) => console.log("Sponsor Fractionalize", token),
+			});
+		}
 	}
 
 	return TokensGrid({

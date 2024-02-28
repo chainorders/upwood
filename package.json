@@ -11,6 +11,7 @@
 		"contracts/security-nft",
 		"contracts/security-sft",
 		"contracts/market",
+		"contracts/sponsor",
 		"contracts/integration-tests",
 		"frontend",
 		"backend"

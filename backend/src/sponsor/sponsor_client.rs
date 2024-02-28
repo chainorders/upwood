@@ -78,7 +78,7 @@ impl SponsorClient {
                     amount:         Amount::zero(),
                     energy:         GivenEnergy::Absolute(energy),
                 },
-                "registerIdentity",
+                "permit",
                 &param,
             )
             .await?;
