@@ -48,14 +48,16 @@ export default function Registration(props: {
 			})
 			.then((response) => {
 				setChallenge(response.challenge);
-				const statement: CredentialStatements = [{
-					idQualifier: {
-						type: "cred",
-						issuers: response.identity_providers,
+				const statement: CredentialStatements = [
+					{
+						idQualifier: {
+							type: "cred",
+							issuers: response.identity_providers,
+						},
+						statement: response.id_statement,
 					},
-					statement: response.id_statement,
-				}];
-				if (response.issuers.length > 0) { 
+				];
+				if (response.issuers.length > 0) {
 					statement.push({
 						idQualifier: {
 							type: "sci",

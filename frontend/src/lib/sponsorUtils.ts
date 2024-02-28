@@ -9,7 +9,11 @@ import rwaSponsor from "./rwaSponsor";
 import moment from "moment";
 import { Buffer } from "buffer/";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
-import { ApiCredentialSignature, ApiKeySignature, SponsorApi } from "./sponsor-api-client";
+import {
+	ApiCredentialSignature,
+	ApiKeySignature,
+	SponsorApi,
+} from "./sponsor-api-client";
 
 export const permit = async (
 	grpcClient: ConcordiumGRPCClient,
