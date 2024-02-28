@@ -96,3 +96,5 @@ pub struct PagedResponse<T: Sync + Send + Type + ToJSON + ParseFromJSON> {
     pub page:       u64,
     pub data:       Vec<T>,
 }
+
+pub type ApiAccountAddress = String;

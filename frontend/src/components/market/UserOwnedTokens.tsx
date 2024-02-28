@@ -22,6 +22,7 @@ const ContractTokens = (props: {
 	currentAccount: AccountAddress.Type;
 	tokenContract: ContractAddress.Type;
 	marketContract: ContractAddress.Type;
+	sponsorContract?: ContractAddress.Type;
 }) => {
 	const { tokenContract: contract, grpcClient } = props;
 	const [loading, setLoading] = useState(false);
@@ -56,6 +57,7 @@ const ContractTokens = (props: {
 					walletApi={props.walletApi}
 					grpcClient={props.grpcClient}
 					marketContract={props.marketContract}
+					sponsorContract={props.sponsorContract}
 				/>
 			)}
 			{contractType && contractType === ContractType.RwaSecuritySft && (
@@ -77,6 +79,7 @@ export default function UserOwnedTokens(props: {
 	currentAccount: AccountAddress.Type;
 	contract: ContractAddress.Type;
 	wallet: WalletApi;
+	sponsorContract?: ContractAddress.Type;
 }) {
 	const { contract: contract } = props;
 	const { provider: grpcClient } = useNodeClient();
@@ -103,6 +106,7 @@ export default function UserOwnedTokens(props: {
 					walletApi={props.wallet}
 					currentAccount={props.currentAccount}
 					marketContract={contract}
+					sponsorContract={props.sponsorContract}
 				/>
 			))}
 		</Stack>

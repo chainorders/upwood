@@ -1,3 +1,11 @@
+use super::db::{
+    ContractConfig, DbToken, IContractDb, TokenHolder, TokenHolderOperator,
+    TokenHolderRecoveryRecord,
+};
+use crate::{
+    shared::db::{DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
+    txn_listener::EventsProcessor,
+};
 use async_trait::async_trait;
 use bson::{doc, to_document};
 use concordium_cis2::{Cis2Event, OperatorUpdate};
@@ -10,16 +18,6 @@ use concordium_rust_sdk::{
 };
 use concordium_rwa_security_nft::event::Event;
 use tokio::try_join;
-
-use crate::{
-    txn_listener::EventsProcessor,
-    txn_processor::db::{DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
-};
-
-use super::db::{
-    ContractConfig, DbToken, IContractDb, TokenHolder, TokenHolderOperator,
-    TokenHolderRecoveryRecord,
-};
 
 pub struct Processor<TDb> {
     /// Client to interact with the MongoDB database.

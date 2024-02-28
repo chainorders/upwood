@@ -1,13 +1,12 @@
-pub mod api;
-pub mod db;
+mod api;
+mod db;
 mod identity_registry_client;
 mod web3_id_utils;
-
-use futures::{StreamExt, TryStreamExt};
-use log::{debug, info};
-use std::{io::Write, path::PathBuf, str::FromStr};
-use tokio::spawn;
-
+use self::{
+    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
+    web3_id_utils::CredStatement,
+};
+use chrono::Datelike;
 use clap::Parser;
 use concordium_rust_sdk::{
     id::{
@@ -19,20 +18,19 @@ use concordium_rust_sdk::{
     v2::BlockIdentifier,
     web3id::{did::Network, Web3IdAttribute},
 };
+use futures::{StreamExt, TryStreamExt};
+use log::{debug, info};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, CorsEndpoint},
     EndpointExt, Route, Server,
 };
 use poem_openapi::OpenApiService;
-
-use self::{
-    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
-    web3_id_utils::CredStatement,
-};
+use std::{io::Write, path::PathBuf, str::FromStr};
+use tokio::spawn;
 
 #[derive(Parser, Debug, Clone)]
-pub struct VerifierApiConfig {
+pub struct ApiConfig {
     #[clap(env)]
     pub concordium_node_uri: String,
     #[clap(env)]
@@ -50,7 +48,8 @@ pub struct VerifierApiConfig {
     #[clap(env, default_value = "testnet")]
     pub network: String,
 }
-pub async fn run_verifier_api_server(config: VerifierApiConfig) -> anyhow::Result<()> {
+
+pub async fn run_api_server(config: ApiConfig) -> anyhow::Result<()> {
     debug!("Starting Verifier API Server with config: {:?}", config);
 
     let routes = create_server_routes(config.to_owned()).await?;
@@ -63,7 +62,7 @@ pub async fn run_verifier_api_server(config: VerifierApiConfig) -> anyhow::Resul
     Ok(())
 }
 
-async fn create_server_routes(config: VerifierApiConfig) -> anyhow::Result<CorsEndpoint<Route>> {
+async fn create_server_routes(config: ApiConfig) -> anyhow::Result<CorsEndpoint<Route>> {
     let api_service = create_service(config).await?;
     let ui = api_service.swagger_ui();
     let routes = Route::new().nest("/", api_service).nest("/ui", ui).with(Cors::new());
@@ -71,9 +70,7 @@ async fn create_server_routes(config: VerifierApiConfig) -> anyhow::Result<CorsE
     Ok(routes)
 }
 
-async fn create_service(
-    config: VerifierApiConfig,
-) -> Result<OpenApiService<Api, ()>, anyhow::Error> {
+async fn create_service(config: ApiConfig) -> Result<OpenApiService<Api, ()>, anyhow::Error> {
     let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri)
         .await
         .map_err(|_| anyhow::Error::msg("Failed to connect to MongoDB"))?;
@@ -89,7 +86,6 @@ async fn create_service(
     let agent_wallet = WalletAccount::from_json_file(config.agent_wallet_path)?;
     let identity_registry = ContractAddress::from_str(&config.identity_registry)?;
 
-    use chrono::Datelike;
     let now = chrono::Utc::now();
     let year = u64::try_from(now.year()).ok().unwrap();
     let years_ago = year.checked_sub(18).unwrap();
@@ -166,7 +162,7 @@ async fn create_service(
 }
 
 #[derive(Parser, Debug, Clone)]
-pub struct VerifierApiSwaggerConfig {
+pub struct OpenApiConfig {
     #[clap(env, default_value = "verifier-api-specs.json")]
     pub output: String,
     #[clap(env, default_value = "http://node.testnet.concordium.com:20000")]
@@ -192,8 +188,8 @@ pub struct VerifierApiSwaggerConfig {
     pub network: String,
 }
 
-impl From<VerifierApiSwaggerConfig> for VerifierApiConfig {
-    fn from(config: VerifierApiSwaggerConfig) -> Self {
+impl From<OpenApiConfig> for ApiConfig {
+    fn from(config: OpenApiConfig) -> Self {
         Self {
             concordium_node_uri: config.concordium_node_uri,
             verifier_web_server_addr: config.verifier_web_server_addr,
@@ -207,9 +203,7 @@ impl From<VerifierApiSwaggerConfig> for VerifierApiConfig {
     }
 }
 
-pub async fn generate_verifier_api_frontend_client(
-    config: VerifierApiSwaggerConfig,
-) -> anyhow::Result<()> {
+pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
     let api_service = create_service(config.to_owned().into()).await?;
     let spec_json = api_service.spec();
     let mut file = std::fs::File::create(config.output)?;

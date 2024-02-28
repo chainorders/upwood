@@ -16,6 +16,7 @@ import {
 	Delete,
 	Handshake,
 	OpenInBrowser,
+	SubscriptionsRounded,
 	Token,
 	ViewModule,
 } from "@mui/icons-material";
@@ -71,6 +72,9 @@ export default function ContractsList(props: Props) {
 	);
 	const sftContracts = props.contracts.filter(
 		(c) => c.type == ContractType.RwaSecuritySft,
+	);
+	const sponsorContracts = props.contracts.filter(
+		(c) => c.type == ContractType.RwaSponsor,
 	);
 
 	return (
@@ -170,6 +174,39 @@ export default function ContractsList(props: Props) {
 			{props.onInit && (
 				<InitListItem onClick={() => props.onInit!(ContractType.RwaCompliance)}>
 					Initialize new Compliance Contract
+				</InitListItem>
+			)}
+			<ListSubheader>Sponsor Contracts</ListSubheader>
+			{sponsorContracts.map((contract) => {
+				return (
+					<ListItem
+						key={contract.address.index.toString()}
+						secondaryAction={
+							<>
+								{props.onDelete && (
+									<IconButton
+										edge="end"
+										aria-label="delete"
+										onClick={() => props.onDelete!(contract)}
+									>
+										<Delete />
+									</IconButton>
+								)}
+							</>
+						}
+					>
+						<ListItemButton>
+							<ListItemIcon>
+								<SubscriptionsRounded />
+							</ListItemIcon>
+							<ListItemText primary={<ContractLink contract={contract} />} />
+						</ListItemButton>
+					</ListItem>
+				);
+			})}
+			{props.onInit && (
+				<InitListItem onClick={() => props.onInit!(ContractType.RwaSponsor)}>
+					Initialize Sponsor Contract
 				</InitListItem>
 			)}
 			<ListSubheader>NFT Contracts</ListSubheader>

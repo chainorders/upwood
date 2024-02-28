@@ -1,9 +1,13 @@
 use super::consts::*;
 use concordium_cis2::{
-    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, Cis2Event, Receiver, TokenAmountU8, TokenIdU8
+    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, Cis2Event, Receiver,
+    TokenAmountU8, TokenIdU8,
 };
 use concordium_rwa_security_nft::{
-    event::Event, init::InitParam, mint::{MintParam, MintParams}, types::{ContractMetadataUrl, TokenId}
+    event::Event,
+    init::InitParam,
+    mint::{MintParam, MintParams},
+    types::{ContractMetadataUrl, TokenId},
 };
 use concordium_smart_contract_testing::*;
 use concordium_std::ExpectReport;
@@ -11,8 +15,9 @@ use concordium_std::ExpectReport;
 pub fn security_nft_deploy_and_init(
     chain: &mut Chain,
     owner: AccountAddress,
-    compliance_contract: ContractAddress,
-    ir_contract: ContractAddress,
+    compliance: ContractAddress,
+    identity_registry: ContractAddress,
+    sponsors: Vec<ContractAddress>,
 ) -> ContractAddress {
     let security_nft_module = chain
         .module_deploy_v1(
@@ -24,17 +29,22 @@ pub fn security_nft_deploy_and_init(
         .module_reference;
 
     chain
-        .contract_init(Signer::with_one_key(), owner, Energy::from(30000), InitContractPayload {
-            mod_ref:   security_nft_module,
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked(SECURITY_NFT_CONTRACT_NAME.to_owned()),
-            param:     OwnedParameter::from_serial(&InitParam {
-                compliance:        compliance_contract,
-                identity_registry: ir_contract,
-                sponsors:          vec![],
-            })
-            .expect_report("Security NFT: Init"),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            owner,
+            Energy::from(30000),
+            InitContractPayload {
+                mod_ref: security_nft_module,
+                amount: Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(SECURITY_NFT_CONTRACT_NAME.to_owned()),
+                param: OwnedParameter::from_serial(&InitParam {
+                    compliance,
+                    identity_registry,
+                    sponsors,
+                })
+                .expect_report("Security NFT: Init"),
+            },
+        )
         .expect_report("Security NFT: Init")
         .contract_address
 }
@@ -46,18 +56,25 @@ pub fn nft_balance_of(
     owner: Address,
 ) -> TokenAmountU8 {
     let balances = chain
-        .contract_invoke(DEFAULT_INVOKER, owner, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("rwa_security_nft.balanceOf".to_string()),
-            address:      security_nft_contract,
-            message:      OwnedParameter::from_serial(&BalanceOfQueryParams {
-                queries: vec![BalanceOfQuery {
-                    address:  owner,
-                    token_id: security_nft_token_id,
-                }],
-            })
-            .expect_report("Serialize Balance Of Query Params"),
-        })
+        .contract_invoke(
+            DEFAULT_INVOKER,
+            owner,
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "rwa_security_nft.balanceOf".to_string(),
+                ),
+                address: security_nft_contract,
+                message: OwnedParameter::from_serial(&BalanceOfQueryParams {
+                    queries: vec![BalanceOfQuery {
+                        address: owner,
+                        token_id: security_nft_token_id,
+                    }],
+                })
+                .expect_report("Serialize Balance Of Query Params"),
+            },
+        )
         .expect_report("Security Nft: Balance Of")
         .parse_return_value::<BalanceOfQueryResponse<TokenAmountU8>>()
         .expect_report("Parsed Balance of Security Nft Token");
@@ -80,14 +97,14 @@ pub fn nft_mint(
             Address::Account(agent),
             Energy::from(30000),
             UpdateContractPayload {
-                amount:       Amount::zero(),
+                amount: Amount::zero(),
                 receive_name: OwnedReceiveName::new_unchecked("rwa_security_nft.mint".to_string()),
-                address:      security_nft_contract,
-                message:      OwnedParameter::from_serial(&MintParams {
+                address: security_nft_contract,
+                message: OwnedParameter::from_serial(&MintParams {
                     owner,
                     tokens: vec![MintParam {
                         metadata_url: ContractMetadataUrl {
-                            url:  metadata_url.to_string(),
+                            url: metadata_url.to_string(),
                             hash: None,
                         },
                     }],

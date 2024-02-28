@@ -1,5 +1,4 @@
-pub mod api;
-pub mod db;
+mod db;
 mod rwa_identity_registry;
 mod rwa_market;
 mod rwa_security_nft;
@@ -41,7 +40,7 @@ impl IRwaSecuritySftDb for ContractDb {}
 impl IRwaMarketDb for ContractDb {}
 
 #[derive(Parser, Debug, Clone)]
-pub struct ContractsListenerAndApiConfig {
+pub struct ListenerAndApiConfig {
     #[clap(env)]
     pub mongodb_uri: String,
     #[clap(env)]
@@ -75,8 +74,8 @@ pub struct ContractsApiConfig {
     pub rwa_security_sft_contract_name: String,
 }
 
-impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
-    fn from(config: ContractsListenerAndApiConfig) -> Self {
+impl From<ListenerAndApiConfig> for ContractsApiConfig {
+    fn from(config: ListenerAndApiConfig) -> Self {
         Self {
             mongodb_uri:                    config.mongodb_uri,
             rwa_market_contract_name:       config.rwa_market_contract_name,
@@ -87,7 +86,7 @@ impl From<ContractsListenerAndApiConfig> for ContractsApiConfig {
 }
 
 /// Runs the contracts API server & Contracts events processor
-pub async fn run_contracts_api_server(config: ContractsListenerAndApiConfig) -> anyhow::Result<()> {
+pub async fn run_api_server_and_listener(config: ListenerAndApiConfig) -> anyhow::Result<()> {
     debug!("Starting contracts API server with config: {:?}", config);
 
     let mut listener = create_listener(config.to_owned()).await?;
@@ -117,9 +116,7 @@ pub async fn run_contracts_api_server(config: ContractsListenerAndApiConfig) -> 
     Ok(())
 }
 
-async fn create_listener(
-    config: ContractsListenerAndApiConfig,
-) -> anyhow::Result<TransactionsListener> {
+async fn create_listener(config: ListenerAndApiConfig) -> anyhow::Result<TransactionsListener> {
     let client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
     let concordium_client =
         concordium_rust_sdk::v2::Client::new(Endpoint::from_str(&config.concordium_node_uri)?)
@@ -169,7 +166,7 @@ async fn create_server_routes(config: ContractsApiConfig) -> anyhow::Result<Cors
 }
 
 #[derive(Parser, Debug, Clone)]
-pub struct ContractsApiSwaggerConfig {
+pub struct OpenApiConfig {
     #[clap(env, default_value = "processor-openapi-spec.json")]
     pub output: String,
     #[clap(env, default_value = "mongodb://root:example@localhost:27017")]
@@ -184,8 +181,8 @@ pub struct ContractsApiSwaggerConfig {
     pub rwa_market_contract_name: String,
 }
 
-impl From<ContractsApiSwaggerConfig> for ContractsApiConfig {
-    fn from(config: ContractsApiSwaggerConfig) -> Self {
+impl From<OpenApiConfig> for ContractsApiConfig {
+    fn from(config: OpenApiConfig) -> Self {
         Self {
             mongodb_uri:                    config.mongodb_uri,
             rwa_market_contract_name:       config.rwa_market_contract_name,
@@ -195,9 +192,7 @@ impl From<ContractsApiSwaggerConfig> for ContractsApiConfig {
     }
 }
 
-pub async fn generate_contracts_api_frontend_client(
-    config: ContractsApiSwaggerConfig,
-) -> anyhow::Result<()> {
+pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
     let api_service = create_service(config.to_owned().into()).await?;
     let spec_json = api_service.spec();
     let mut file = std::fs::File::create(config.output)?;

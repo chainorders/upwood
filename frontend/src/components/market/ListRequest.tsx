@@ -16,7 +16,13 @@ import {
 import { useEffect, useState } from "react";
 import rwaMarket, { GetListedResponse, ListRequest } from "../../lib/rwaMarket";
 import { useNodeClient } from "../NodeClientProvider";
-import { Cancel, CheckCircle, Token } from "@mui/icons-material";
+import {
+	Cancel,
+	CheckCircle,
+	Sell,
+	SubscriptionsRounded,
+	Token,
+} from "@mui/icons-material";
 import ErrorDisplay from "../common/ErrorDisplay";
 import { useNavigate } from "react-router-dom";
 import {
@@ -37,12 +43,22 @@ type Props = {
 	contract: ContractAddress.Type;
 	listed?: GetListedResponse;
 	nonListed?: NonListedToken;
-	onSendTransaction: (request: ListRequest) => Promise<string>;
+	onSendTransaction: (
+		request: ListRequest,
+		sponsorContract?: ContractAddress.Type,
+	) => Promise<string>;
 	currentAccount: AccountAddress.Type;
+	sponsorContract?: ContractAddress.Type;
 };
 export default function ListRequestForm(props: Props) {
-	const { contract, listed, onSendTransaction, currentAccount, nonListed } =
-		props;
+	const {
+		contract,
+		listed,
+		onSendTransaction,
+		currentAccount,
+		nonListed,
+		sponsorContract,
+	} = props;
 	const { provider: grpcClient } = useNodeClient();
 	const navigate = useNavigate();
 
@@ -51,17 +67,18 @@ export default function ListRequestForm(props: Props) {
 	const [allowedToListContracts, setAllowedToListContracts] = useState<
 		ContractAddress.Type[]
 	>([]);
-	const [listTokenContract, setListTokenContract] = useState<
-		ContractAddress.Type | undefined
-	>(
+	const selectedListTokenContract =
 		(listed &&
 			ContractAddress.create(
 				listed.token_id.contract.index,
 				listed.token_id.contract.subindex,
 			)) ||
-			nonListed?.contract ||
-			undefined,
-	);
+		nonListed?.contract ||
+		undefined;
+	const [listTokenContract, setListTokenContract] = useState<
+		ContractAddress.Type | undefined
+	>(selectedListTokenContract);
+
 	const [listTokenId, setListTokenId] = useState(
 		listed?.token_id.id || nonListed?.id || "",
 	);
@@ -109,12 +126,12 @@ export default function ListRequestForm(props: Props) {
 				);
 				setAllowedToListContracts(parsedContracts);
 				if (parsedContracts.length > 0) {
-					setListTokenContract(parsedContracts[0]);
+					setListTokenContract(selectedListTokenContract || parsedContracts[0]);
 				}
 			})
 			.catch((error) => setErrorAllowedToList(error.message))
 			.finally(() => setLoadingAllowedToList(false));
-	}, [contract, grpcClient]);
+	}, [contract, grpcClient, selectedListTokenContract]);
 
 	// load payment tokens
 	useEffect(() => {
@@ -186,7 +203,7 @@ export default function ListRequestForm(props: Props) {
 		);
 	};
 
-	const sendTransaction = async () => {
+	const sendTransaction = async (sponsorContract?: ContractAddress.Type) => {
 		const request: ListRequest = {
 			owner: currentAccount!.address,
 			token_id: {
@@ -203,7 +220,8 @@ export default function ListRequestForm(props: Props) {
 				.filter((t) => !!t)
 				.map((t) => t!),
 		};
-		return onSendTransaction(request);
+
+		return onSendTransaction(request, sponsorContract);
 	};
 
 	return (
@@ -358,13 +376,25 @@ export default function ListRequestForm(props: Props) {
 				</Grid>
 				<Grid item xs={12} md={2}></Grid>
 				<Grid item xs={12} md={10}>
-					<Button onClick={() => navigate(-1)}>Cancel</Button>
-					<SendTransactionButton
-						disabled={!isValid()}
-						onClick={() => sendTransaction()}
-					>
-						List
-					</SendTransactionButton>
+					<ButtonGroup>
+						<Button onClick={() => navigate(-1)}>Cancel</Button>
+						<SendTransactionButton
+							disabled={!isValid()}
+							onClick={() => sendTransaction()}
+						>
+							<Sell sx={{ mr: 1 }} />
+							List
+						</SendTransactionButton>
+						{sponsorContract && (
+							<SendTransactionButton
+								disabled={!isValid()}
+								onClick={() => sendTransaction(sponsorContract!)}
+							>
+								<SubscriptionsRounded sx={{ mr: 1 }} />
+								List Sponsored
+							</SendTransactionButton>
+						)}
+					</ButtonGroup>
 				</Grid>
 			</Grid>
 		</Paper>

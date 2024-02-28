@@ -8,10 +8,8 @@ use concordium_rwa_market::event::{Event, PaymentAmount, PaymentTokenUId};
 
 use super::db::{DbDepositedToken, IContractDb};
 use crate::{
+    shared::db::{DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
     txn_listener::EventsProcessor,
-    txn_processor::db::{
-        DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection,
-    },
 };
 
 pub struct Processor<TDb: IContractDb> {

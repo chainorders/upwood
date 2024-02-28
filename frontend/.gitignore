@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 src/lib/contracts-api-client
 src/lib/verifier-api-client
+src/lib/sponsor-api-client

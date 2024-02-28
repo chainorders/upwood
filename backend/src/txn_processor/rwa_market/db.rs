@@ -2,8 +2,9 @@ use bson::{doc, to_bson};
 use concordium_rust_sdk::types::ContractAddress;
 use serde::{Deserialize, Serialize};
 
-use crate::txn_processor::db::{
-    Collection, DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId, IDb,
+use crate::{
+    shared::db::{Collection, DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId},
+    txn_processor::db::IDb,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

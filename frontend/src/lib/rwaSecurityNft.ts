@@ -789,7 +789,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const rwaSecurityNft = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"4891e4463617bfa259f8a4c8f9835dd8e326491f0591f1ab89c09a9f8a836695",
+			"2992e4b569aa90fa1fa2b613d909651ba8db3650f0ea835774b38e6bae353539",
 		),
 		ContractName.fromString("rwa_security_nft"),
 		initRequestSchemaBase64,

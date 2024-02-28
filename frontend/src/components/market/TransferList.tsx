@@ -14,30 +14,35 @@ import { useNodeClient } from "../NodeClientProvider";
 import ListRequestForm, { NonListedToken } from "./ListRequest";
 import { useParams } from "react-router-dom";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
+import { permit } from "../../lib/sponsorUtils";
+import { useSponsorApi } from "../SponsorApiProvider";
 
 type Props = {
 	wallet: WalletApi;
 	currentAccount: AccountAddress.Type;
 	contract: ContractAddress.Type;
+	sponsorContract?: ContractAddress.Type;
 };
 export default function TransferList(props: Props) {
-	const { contract } = props;
+	const { contract, wallet, currentAccount } = props;
 	const { provider: grpcClient } = useNodeClient();
 	const { listContractIndex, listContractSubIndex, listTokenId, listAmount } =
 		useParams();
+	const { provider: sponsorApi } = useSponsorApi();
 
-	const sendTransaction = async (request: ListRequest) => {
+	const sendTransaction = async (
+		request: ListRequest,
+		sponsorContract?: ContractAddress.Type,
+	) => {
 		const listRequestSerialized = serializeTypeValue(
 			request,
 			toBuffer(rwaMarket.list.paramsSchemaBase64!, "base64"),
 		);
-		const cis2CLient = await CIS2Contract.create(
-			grpcClient,
-			ContractAddress.create(
-				request.token_id.contract.index,
-				request.token_id.contract.subindex,
-			),
+		const tokenContract = ContractAddress.create(
+			request.token_id.contract.index,
+			request.token_id.contract.subindex,
 		);
+		const cis2CLient = await CIS2Contract.create(grpcClient, tokenContract);
 		const transfer = cis2CLient.createTransfer(
 			{
 				energy: Energy.create(
@@ -45,7 +50,7 @@ export default function TransferList(props: Props) {
 				),
 			},
 			{
-				from: props.currentAccount,
+				from: currentAccount,
 				to: {
 					address: contract,
 					hookName: EntrypointName.fromString("deposit"),
@@ -56,13 +61,26 @@ export default function TransferList(props: Props) {
 				data: Buffer.from(listRequestSerialized.buffer).toString("hex"),
 			} as CIS2.Transfer,
 		);
-		return props.wallet.sendTransaction(
-			props.currentAccount,
-			transfer.type,
-			transfer.payload,
-			transfer.parameter.json,
-			transfer.schema,
-		);
+
+		if (!sponsorContract) {
+			return wallet.sendTransaction(
+				currentAccount,
+				transfer.type,
+				transfer.payload,
+				transfer.parameter.json,
+				transfer.schema,
+			);
+		} else {
+			return permit(
+				grpcClient,
+				wallet,
+				sponsorApi,
+				sponsorContract!,
+				currentAccount,
+				tokenContract,
+				transfer.parameter.hex,
+			);
+		}
 	};
 
 	const nonListed: NonListedToken | undefined = (listContractIndex &&
@@ -81,8 +99,11 @@ export default function TransferList(props: Props) {
 		<ListRequestForm
 			contract={contract}
 			currentAccount={props.currentAccount}
-			onSendTransaction={(req) => sendTransaction(req)}
+			onSendTransaction={(req, sponsorContract) =>
+				sendTransaction(req, sponsorContract)
+			}
 			nonListed={nonListed}
+			sponsorContract={props.sponsorContract}
 		/>
 	);
 }

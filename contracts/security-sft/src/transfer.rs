@@ -1,8 +1,7 @@
+use super::{error::*, event::*, state::State, types::*};
 use concordium_cis2::{
     Cis2Event, OnReceivingCis2Params, Receiver, Transfer, TransferEvent, TransferParams,
 };
-use concordium_std::*;
-
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     clients::{
@@ -12,11 +11,12 @@ use concordium_rwa_utils::{
     compliance_types::Token,
     holders_security_state::IHoldersSecurityState,
     holders_state::IHoldersState,
+    sponsor_types::{SponsoredParams, SponsoredParamsRaw},
+    sponsors_state::ISponsorsState,
     tokens_security_state::ITokensSecurityState,
     tokens_state::ITokensState,
 };
-
-use super::{error::*, event::*, state::State, types::*};
+use concordium_std::*;
 
 pub type ContractTransferParams = TransferParams<TokenId, TokenAmount>;
 /// Compliant Transfers ownership of an NFT from one verified account to another
@@ -56,10 +56,20 @@ pub fn transfer(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let sender = ctx.sender();
-    let TransferParams(transfers): ContractTransferParams = ctx.parameter_cursor().get()?;
-
     let state = host.state();
+    let (sender, params) = {
+        let sender = ctx.sender();
+        if state.is_sponsor(&sender) {
+            let params: SponsoredParamsRaw = ctx.parameter_cursor().get()?;
+            let params: SponsoredParams<ContractTransferParams> = params.try_into()?;
+            (Address::Account(params.signer), params.params)
+        } else {
+            let params: ContractTransferParams = ctx.parameter_cursor().get()?;
+            (sender, params)
+        }
+    };
+
+    let TransferParams(transfers): ContractTransferParams = params;
     let compliance = ComplianceContract(state.compliance());
 
     for Transfer {

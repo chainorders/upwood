@@ -1,12 +1,14 @@
+use crate::{
+    shared::db::{
+        Collection, DbAccountAddress, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId,
+        ICollection,
+    },
+    txn_processor::db::IDb,
+};
 use async_trait::async_trait;
 use bson::{doc, to_bson, Document};
 use concordium_rust_sdk::types::ContractAddress;
 use serde::{Deserialize, Serialize};
-
-use crate::txn_processor::db::{
-    Collection, DbAccountAddress, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId,
-    ICollection, IDb,
-};
 
 #[derive(Serialize, Deserialize)]
 pub struct ContractConfig {

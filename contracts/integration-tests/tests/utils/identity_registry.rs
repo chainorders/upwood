@@ -19,17 +19,35 @@ pub fn identity_registry_deploy_and_init(
         .module_reference;
 
     chain
-        .contract_init(Signer::with_one_key(), owner, Energy::from(30000), InitContractPayload {
-            mod_ref:   ir_module,
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked(IR_CONTRACT_NAME.to_owned()),
-            param:     OwnedParameter::empty(),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            owner,
+            Energy::from(30000),
+            InitContractPayload {
+                mod_ref: ir_module,
+                amount: Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(IR_CONTRACT_NAME.to_owned()),
+                param: OwnedParameter::empty(),
+            },
+        )
         .expect_report("Identity Registry: Init")
         .contract_address
 }
 
-pub fn add_identity_nationality(
+pub fn add_identities(
+    chain: &mut Chain,
+    ir_contract: ContractAddress,
+    ir_agent: AccountAddress,
+    address_identity: Vec<(Address, String)>,
+) -> Result<(), ContractInvokeError> {
+    for identity in address_identity {
+        add_identity_nationality(chain, ir_contract, ir_agent, identity.0, &identity.1)?;
+    }
+
+    Ok(())
+}
+
+fn add_identity_nationality(
     chain: &mut Chain,
     ir_contract: ContractAddress,
     ir_agent: AccountAddress,
@@ -42,20 +60,20 @@ pub fn add_identity_nationality(
         Address::Account(ir_agent),
         Energy::from(10000),
         UpdateContractPayload {
-            amount:       Amount::zero(),
+            amount: Amount::zero(),
             receive_name: OwnedReceiveName::new_unchecked(
                 "rwa_identity_registry.registerIdentity".to_string(),
             ),
-            address:      ir_contract,
-            message:      OwnedParameter::from_serial(&RegisterIdentityParams {
+            address: ir_contract,
+            message: OwnedParameter::from_serial(&RegisterIdentityParams {
                 identity: Identity {
-                    attributes:  vec![IdentityAttribute {
-                        tag:   NATIONALITY_ATTRIBUTE_TAG,
+                    attributes: vec![IdentityAttribute {
+                        tag: NATIONALITY_ATTRIBUTE_TAG,
                         value: identity_nationality.to_owned(),
                     }],
                     credentials: vec![],
                 },
-                address:  identity_address,
+                address: identity_address,
             })
             .unwrap(),
         },

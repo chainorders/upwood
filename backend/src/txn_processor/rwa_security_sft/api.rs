@@ -1,15 +1,13 @@
+use super::db::{DbDepositedToken, DbToken, IContractDb, TokenHolder};
+use crate::shared::{
+    api::{ApiAddress, ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
+    db::{DbAccountAddress, DbAddress, ICollection},
+};
 use bson::{doc, to_bson, Document};
 use concordium_rust_sdk::types::ContractAddress;
 use futures::TryStreamExt;
 use log::debug;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
-
-use crate::txn_processor::{
-    api::{ApiAddress, ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbAccountAddress, DbAddress, ICollection},
-};
-
-use super::db::{DbDepositedToken, DbToken, IContractDb, TokenHolder};
 
 #[derive(Object, Debug)]
 pub struct SftToken {

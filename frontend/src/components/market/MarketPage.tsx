@@ -48,6 +48,8 @@ import UserOwnedTokens from "./UserOwnedTokens";
 import Admin from "./Admin";
 import Registration from "../verifier/Registration";
 import VerifierApiProvider from "../VerifierApiProvider";
+import SponsorApiProvider from "../SponsorApiProvider";
+import { SPONSOR_CONTRACT_INDEX, SPONSOR_CONTRACT_SUBINDEX } from "./consts";
 
 const MarketAppBar = (props: {
 	onLogin: (account: AccountAddress.Type, wallet: WalletApi) => void;
@@ -276,6 +278,13 @@ export default function MarketPage() {
 	const contract = ContractAddress.create(BigInt(index!), BigInt(subIndex!));
 	const navigate = useNavigate();
 
+	let sponsorContract: ContractAddress.Type | undefined = undefined;
+	if (SPONSOR_CONTRACT_INDEX && SPONSOR_CONTRACT_SUBINDEX) {
+		sponsorContract = ContractAddress.create(
+			BigInt(SPONSOR_CONTRACT_INDEX!),
+			BigInt(SPONSOR_CONTRACT_SUBINDEX!),
+		);
+	}
 	const [wallet, setWallet] = useState<{
 		wallet: WalletApi;
 		account: AccountAddress.Type;
@@ -353,21 +362,27 @@ export default function MarketPage() {
 				<Route
 					path="transferList"
 					element={
-						<TransferList
-							wallet={wallet}
-							currentAccount={account}
-							contract={contract}
-						/>
+						<SponsorApiProvider>
+							<TransferList
+								wallet={wallet}
+								currentAccount={account}
+								contract={contract}
+								sponsorContract={sponsorContract}
+							/>
+						</SponsorApiProvider>
 					}
 				/>
 				<Route
 					path="transferList/:listContractIndex/:listContractSubIndex/:listTokenId/:listAmount"
 					element={
-						<TransferList
-							wallet={wallet}
-							currentAccount={account}
-							contract={contract}
-						/>
+						<SponsorApiProvider>
+							<TransferList
+								wallet={wallet}
+								currentAccount={account}
+								contract={contract}
+								sponsorContract={sponsorContract}
+							/>
+						</SponsorApiProvider>
 					}
 				/>
 				<Route path="de-list" element={<div>De List</div>} />
@@ -384,11 +399,14 @@ export default function MarketPage() {
 				<Route
 					path="tokens"
 					element={
-						<UserOwnedTokens
-							contract={contract}
-							currentAccount={account}
-							wallet={wallet}
-						/>
+						<SponsorApiProvider>
+							<UserOwnedTokens
+								contract={contract}
+								currentAccount={account}
+								wallet={wallet}
+								sponsorContract={sponsorContract}
+							/>
+						</SponsorApiProvider>
 					}
 				/>
 				<Route
