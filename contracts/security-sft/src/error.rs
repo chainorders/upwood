@@ -45,7 +45,7 @@ pub enum Error {
     InsufficientDeposits,
     NotDeposited,
     InsufficientFractionalized,
-    InvalidFractionsRate
+    InvalidFractionsRate,
 }
 
 impl Error {

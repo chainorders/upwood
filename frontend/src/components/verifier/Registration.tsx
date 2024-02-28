@@ -1,5 +1,6 @@
 import {
 	Button,
+	Divider,
 	Stack,
 	Step,
 	StepLabel,
@@ -9,9 +10,15 @@ import {
 import ErrorDisplay from "../common/ErrorDisplay";
 import { useEffect, useState } from "react";
 import { useVerifierApi } from "../VerifierApiProvider";
-import { AccountAddress, IdStatement } from "@concordium/web-sdk";
+import {
+	AccountAddress,
+	ContractAddress,
+	CredentialStatements,
+} from "@concordium/web-sdk";
 import { WalletApi } from "@concordium/browser-wallet-api-helpers";
 import SendTransactionButton from "../common/SendTransactionButton";
+import ContractAddressField from "../common/concordium/ContractAddressField";
+import AccountAddressField from "../common/concordium/AccountAddressField";
 
 export default function Registration(props: {
 	wallet: WalletApi;
@@ -20,7 +27,7 @@ export default function Registration(props: {
 	const { wallet: wallet, currentAccount } = props;
 	const [activeStep, setActiveStep] = useState(0);
 	const [challenge, setChallenge] = useState("");
-	const [statement, setStatement] = useState<IdStatement>([]);
+	const [statement, setStatement] = useState<CredentialStatements>([]);
 	const [error, setError] = useState("");
 
 	const { provider: api } = useVerifierApi();
@@ -41,7 +48,24 @@ export default function Registration(props: {
 			})
 			.then((response) => {
 				setChallenge(response.challenge);
-				setStatement(response.statement);
+				setStatement([
+					{
+						idQualifier: {
+							type: "cred",
+							issuers: response.identity_providers,
+						},
+						statement: response.id_statement,
+					},
+					{
+						idQualifier: {
+							type: "sci",
+							issuers: response.issuers.map((i) =>
+								ContractAddress.create(i.index, i.subindex),
+							),
+						},
+						statement: response.cred_statement,
+					},
+				] as CredentialStatements);
 				setActiveStep(1);
 			})
 			.catch((e) => {
@@ -49,16 +73,18 @@ export default function Registration(props: {
 			});
 	};
 
-	const registerIdentity = () => {
+	const registerIdentity = (contract?: ContractAddress.Type) => {
+		console.log("Registering identity", challenge, statement);
 		return wallet
-			.requestIdProof(currentAccount.address, statement, challenge)
+			.requestVerifiablePresentation(challenge, statement)
 			.then((proof) =>
 				api.default.postVerifierRegisterIdentity({
 					requestBody: {
 						account: currentAccount.address,
-						proof: {
-							credential: proof?.credential,
-							proof: JSON.stringify(proof?.proof),
+						proof,
+						contract: contract && {
+							index: Number(contract.index),
+							subindex: Number(contract.subindex),
 						},
 					},
 				}),
@@ -76,17 +102,29 @@ export default function Registration(props: {
 	};
 
 	const RegisterIdentityStep = () => {
+		const [contract, setContract] = useState<ContractAddress.Type>();
 		return (
-			<>
-				<Typography variant="h5">Register Identity</Typography>
+			<Stack spacing={2}>
+				<Typography variant="h5">Register Account Identity</Typography>
+				<AccountAddressField value={currentAccount} disabled />
 				<SendTransactionButton
 					disabled={!challenge || !statement}
 					onClick={registerIdentity}
 					onDone={() => setActiveStep(0)}
 				>
-					Register Identity
+					Register Account Identity
 				</SendTransactionButton>
-			</>
+				<Divider />
+				<Typography variant="h5">Register Contract Identity</Typography>
+				<ContractAddressField onChange={setContract} />
+				<SendTransactionButton
+					disabled={!challenge || !statement || !contract}
+					onClick={registerIdentity}
+					onDone={() => setActiveStep(0)}
+				>
+					Register Contract Identity
+				</SendTransactionButton>
+			</Stack>
 		);
 	};
 

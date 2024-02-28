@@ -1,5 +1,4 @@
 import {
-	ContractEvent,
 	ContractName,
 	EntrypointName,
 	ModuleReference,
@@ -117,11 +116,5 @@ export const rwaComplianceModuleAllowedNationalities = {
 		undefined,
 		transferredErrorSchemaBase64,
 	),
-	deserializeEvent: (event: ContractEvent.Type): event => {
-		return ContractEvent.parseWithSchemaTypeBase64(
-			event,
-			eventSchemaBase64,
-		) as event;
-	},
 };
 export default rwaComplianceModuleAllowedNationalities;

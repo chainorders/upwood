@@ -15,13 +15,14 @@
 		"isolatedModules": true,
 		"jsx": "react-jsx",
 		"allowImportingTsExtensions": true,
-		"emitDeclarationOnly": true,
+		"noEmit": true,
 
 		/* Linting */
 		"strict": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"noFallthroughCasesInSwitch": true
+		"noFallthroughCasesInSwitch": true,
+		"outDir": "dist"
 	},
 	"include": ["src"],
 	"references": [{ "path": "./tsconfig.node.json" }]

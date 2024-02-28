@@ -2,14 +2,18 @@
 	"name": "backend",
 	"packageManager": "yarn@4.0.2",
 	"scripts": {
+		"format": "cargo +nightly-2022-06-09 fmt",
 		"build": "cargo build",
 		"debug": "yarn run debug:contracts-api",
+		"watch": "yarn watch:contracts-api",
 		"generate:spec": "yarn run generate:contracts-api-specs",
 		"generate:client": "yarn run generate:contracts-api-client",
 		"debug:contracts-api": "RUST_LOG=debug cargo run contracts-api",
+		"watch:contracts-api": "RUST_LOG=debug cargo watch -x 'run contracts-api'",
 		"generate:contracts-api-specs": "cargo run generate-contracts-api-specs contracts-api-specs.json",
 		"generate:contracts-api-client": "yarn run generate:contracts-api-specs && openapi --input ./contracts-api-specs.json --output ../frontend/src/lib/contracts-api-client --name ContractsApi --useOptions",
 		"debug:verifier-api": "RUST_LOG=debug cargo run verifier-api",
+		"watch:verifier-api": "RUST_LOG=debug cargo watch -x 'run verifier-api'",
 		"generate:verifier-api-specs": "cargo run generate-verifier-api-specs verifier-api-specs.json",
 		"generate:verifier-api-client": "yarn run generate:verifier-api-specs && openapi --input ./verifier-api-specs.json --output ../frontend/src/lib/verifier-api-client --name VerifierApi --useOptions"
 	},

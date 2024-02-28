@@ -52,14 +52,13 @@ pub trait IDb {
 
 #[derive(Clone)]
 pub struct ContractDb {
-    pub client: mongodb::Client,
+    pub client:        mongodb::Client,
     pub contract_name: OwnedContractName,
 }
 impl IDb for ContractDb {
     fn client(&self) -> &mongodb::Client { &self.client }
-    fn contract_name(&self) -> &OwnedContractName {
-        &self.contract_name
-    }
+
+    fn contract_name(&self) -> &OwnedContractName { &self.contract_name }
 }
 
 #[async_trait]
@@ -127,12 +126,14 @@ pub trait ICollection {
         }
     }
 
-    async fn find(&self, query: Document, skip: u64, take: i64) -> anyhow::Result<mongodb::Cursor<Self::ItemType>> {
+    async fn find(
+        &self,
+        query: Document,
+        skip: u64,
+        take: i64,
+    ) -> anyhow::Result<mongodb::Cursor<Self::ItemType>> {
         let collection = self.collection();
-        let options = mongodb::options::FindOptions::builder()
-            .skip(skip)
-            .limit(take)
-            .build();
+        let options = mongodb::options::FindOptions::builder().skip(skip).limit(take).build();
         let cursor = collection.find(query, options).await?;
         Ok(cursor)
     }

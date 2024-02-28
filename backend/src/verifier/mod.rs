@@ -1,19 +1,23 @@
 pub mod api;
 pub mod db;
+mod identity_registry_client;
+mod web3_id_utils;
 
+use futures::{StreamExt, TryStreamExt};
 use log::{debug, info};
 use std::{io::Write, path::PathBuf, str::FromStr};
 use tokio::spawn;
 
 use clap::Parser;
 use concordium_rust_sdk::{
-    id::types::AttributeTag,
-    smart_contracts::common::EntrypointName,
-    types::{
-        smart_contracts::{ContractName, OwnedReceiveName},
-        ContractAddress, Energy, WalletAccount,
+    id::{
+        constants::AttributeKind,
+        id_proof_types::{AtomicStatement, AttributeInRangeStatement, RevealAttributeStatement},
+        types::AttributeTag,
     },
+    types::{ContractAddress, Energy, WalletAccount},
     v2::BlockIdentifier,
+    web3id::{did::Network, Web3IdAttribute},
 };
 use poem::{
     listener::TcpListener,
@@ -23,8 +27,8 @@ use poem::{
 use poem_openapi::OpenApiService;
 
 use self::{
-    api::{Api, StatementType},
-    db::Db,
+    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
+    web3_id_utils::CredStatement,
 };
 
 #[derive(Parser, Debug, Clone)]
@@ -41,10 +45,10 @@ pub struct VerifierApiConfig {
     pub agent_wallet_path: PathBuf,
     #[clap(env, default_value = "init_rwa_identity_registry")]
     pub rwa_identity_registry_contract_name: String,
-    #[clap(env, default_value = "registerIdentity")]
-    pub rwa_identity_registry_register_identity_fn_name: String,
     #[clap(env, default_value = "30000")]
     pub register_identity_max_energy: String,
+    #[clap(env, default_value = "testnet")]
+    pub network: String,
 }
 pub async fn run_verifier_api_server(config: VerifierApiConfig) -> anyhow::Result<()> {
     debug!("Starting Verifier API Server with config: {:?}", config);
@@ -72,31 +76,75 @@ async fn create_service(
 ) -> Result<OpenApiService<Api, ()>, anyhow::Error> {
     let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri)
         .await
-        .unwrap_or_else(|_| panic!("Failed to connect to MongoDB at url {}", config.mongodb_uri));
+        .map_err(|_| anyhow::Error::msg("Failed to connect to MongoDB"))?;
+
     let mut concordium_client = concordium_rust_sdk::v2::Client::new(
         concordium_rust_sdk::v2::Endpoint::from_str(&config.concordium_node_uri)?,
     )
     .await
-    .unwrap_or_else(|_| panic!("Failed to connect to Concordium Node at url {}", config.concordium_node_uri));
+    .map_err(|_| anyhow::Error::msg("Failed to connect to Concordium Node"))?;
+
     let global_context =
         concordium_client.get_cryptographic_parameters(BlockIdentifier::LastFinal).await?.response;
     let agent_wallet = WalletAccount::from_json_file(config.agent_wallet_path)?;
     let identity_registry = ContractAddress::from_str(&config.identity_registry)?;
-    let register_identity_receive_name = OwnedReceiveName::construct(
-        ContractName::new(&config.rwa_identity_registry_contract_name)?,
-        EntrypointName::new(&config.rwa_identity_registry_register_identity_fn_name)?,
-    )?;
-    let statement: StatementType = StatementType::new()
-        // Should be older than 18
-        .older_than(18)
-        // unwrap here because value is hardcoded
-        .unwrap()
-        // reveal nationality : needed for compliant transfers
-        .reveal_attribute(AttributeTag(5));
+
+    use chrono::Datelike;
+    let now = chrono::Utc::now();
+    let year = u64::try_from(now.year()).ok().unwrap();
+    let years_ago = year.checked_sub(18).unwrap();
+    let date_years_ago = format!("{:04}{:02}{:02}", years_ago, now.month(), now.day());
+    let upper = Web3IdAttribute::String(AttributeKind(date_years_ago));
+    let lower = Web3IdAttribute::String(AttributeKind(String::from("18000101")));
+    let id_statement = vec![
+        AtomicStatement::AttributeInRange {
+            statement: AttributeInRangeStatement {
+                // date of birth
+                attribute_tag: AttributeTag(3),
+                lower,
+                upper,
+                _phantom: std::marker::PhantomData,
+            },
+        },
+        AtomicStatement::RevealAttribute {
+            statement: RevealAttributeStatement {
+                // nationality
+                attribute_tag: AttributeTag(5),
+            },
+        },
+    ];
+    let cred_statement: CredStatement = vec![AtomicStatement::RevealAttribute {
+        statement: RevealAttributeStatement {
+            // `degreeType` is being used to enable testing of the project using the [web3 id test tools](https://github.com/Concordium/concordium-web3id/blob/main/test-tools/issuer-front-end/README.md)
+            attribute_tag: "degreeType".to_string(),
+        },
+    }];
+
+    let issuers = IdentityRegistryClient::new(concordium_client.clone(), identity_registry)
+        .issuers()
+        .await
+        .map_err(|_| anyhow::Error::msg("Failed to retrieve issuers from identity registry"))?;
+    info!("Issuers: {:?}", issuers);
+
+    let identity_providers = concordium_client
+        .get_identity_providers(BlockIdentifier::LastFinal)
+        .await?
+        .response
+        .map_ok(|ip_info| ip_info.ip_identity)
+        .filter_map(|r| async move {
+            match r {
+                Ok(r) => Some(r),
+                Err(_) => None,
+            }
+        })
+        .collect::<Vec<_>>()
+        .await;
+    info!("Identity Providers: {:?}", identity_providers);
 
     let api_service = OpenApiService::new(
         Api {
-            statement,
+            id_statement,
+            cred_statement,
             identity_registry,
             db: Db {
                 client: mongo_client.to_owned(),
@@ -105,9 +153,11 @@ async fn create_service(
             },
             concordium_client,
             agent_wallet,
-            register_identity_receive_name,
             global_context,
             max_energy: Energy::from_str(&config.register_identity_max_energy)?,
+            network: Network::from_str(&config.network)?,
+            issuers,
+            identity_providers,
         },
         "RWA Contracts API",
         "1.0.0",
@@ -138,6 +188,8 @@ pub struct VerifierApiSwaggerConfig {
     /// Max energy to use for register identity
     #[clap(env, default_value = "30000")]
     pub register_identity_max_energy: String,
+    #[clap(env, default_value = "testnet")]
+    pub network: String,
 }
 
 impl From<VerifierApiSwaggerConfig> for VerifierApiConfig {
@@ -148,10 +200,9 @@ impl From<VerifierApiSwaggerConfig> for VerifierApiConfig {
             mongodb_uri: config.mongodb_uri,
             identity_registry: config.identity_registry,
             rwa_identity_registry_contract_name: config.rwa_identity_registry_contract_name,
-            rwa_identity_registry_register_identity_fn_name: config
-                .rwa_identity_registry_register_identity_fn_name,
             agent_wallet_path: config.agent_wallet_path,
             register_identity_max_energy: config.register_identity_max_energy,
+            network: config.network,
         }
     }
 }

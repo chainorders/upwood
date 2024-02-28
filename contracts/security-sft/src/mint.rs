@@ -153,7 +153,7 @@ pub fn mint_internal(
     let converted_amount = params.deposited_amount.sub(un_converted_amount);
 
     ensure!(mint_amount.ge(&TokenAmountU32(0)), Error::InvalidAmount);
-    
+
     let compliance_token = Token::new(token_id, curr_contract_address);
     ensure!(
         compliance.can_transfer(host, compliance_token, owner_address, mint_amount)?,

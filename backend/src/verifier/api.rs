@@ -1,29 +1,28 @@
-use std::str::FromStr;
-
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
-    common::{to_bytes, types::TransactionTime, Versioned},
-    id::{
-        constants::{ArCurve, AttributeKind},
-        id_proof_types::{AtomicProof, AtomicStatement, Proof, ProofVersion, Statement},
-        types::{AccountCredentialWithoutProofs, AttributeTag, GlobalContext},
-    },
-    smart_contracts::common::{AccountAddress, AccountAddressParseError, Amount, Serial},
-    types::{
-        smart_contracts::{OwnedParameter, OwnedReceiveName},
-        transactions::{send, UpdateContractPayload},
-        ContractAddress, CredentialRegistrationID, Energy, WalletAccount,
-    },
+    common::to_bytes,
+    constants::SHA256,
+    id::types::IpIdentity,
+    smart_contracts::common::{AccountAddress, AccountAddressParseError},
+    types::{smart_contracts::InstanceInfo, Address, ContractAddress, Energy, WalletAccount},
     v2::{BlockIdentifier, QueryError},
+    web3id::did::Network,
 };
-use concordium_rwa_identity_registry::{identities::RegisterIdentityParams, types::Identity};
-use concordium_rwa_utils::common_types::IdentityAttribute;
-use log::{debug, error};
+use log::debug;
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use super::db::{Db, DbChallenge};
+use crate::txn_processor::api::ApiContractAddress;
+
+use super::{
+    db::{Db, DbChallenge},
+    identity_registry_client::{Error as IdentityRegistryError, IdentityRegistryClient},
+    web3_id_utils::{
+        verify_presentation, CredStatement, GlobalContext, IdStatement, Presentation,
+        VerifyPresentationError,
+    },
+};
 
 #[derive(Debug, ApiResponse)]
 pub enum Error {
@@ -49,7 +48,12 @@ impl From<bson::ser::Error> for Error {
 impl From<QueryError> for Error {
     fn from(_: QueryError) -> Self { Self::InternalServer }
 }
-
+impl From<VerifyPresentationError> for Error {
+    fn from(_: VerifyPresentationError) -> Self { Error::BadRequest }
+}
+impl From<IdentityRegistryError> for Error {
+    fn from(_: IdentityRegistryError) -> Self { Error::InternalServer }
+}
 #[derive(Object)]
 pub struct GenerateChallengeRequest {
     account: String,
@@ -57,54 +61,32 @@ pub struct GenerateChallengeRequest {
 
 #[derive(Object)]
 pub struct GenerateChallengeResponse {
-    challenge: String,
-    statement: Value,
+    challenge:          String,
+    id_statement:       Value,
+    cred_statement:     Value,
+    issuers:            Vec<ApiContractAddress>,
+    identity_providers: Vec<u32>,
 }
 
-pub type GlobalContextType = GlobalContext<ArCurve>;
-pub type ProofType = Proof<ArCurve, AttributeKind>;
-pub type StatementType = Statement<ArCurve, AttributeKind>;
 pub struct Api {
-    pub identity_registry: ContractAddress,
-    pub register_identity_receive_name: OwnedReceiveName,
-    pub agent_wallet: WalletAccount,
-    pub statement: StatementType,
-    pub db: Db,
-    pub concordium_client: concordium_rust_sdk::v2::Client,
-    pub global_context: GlobalContextType,
-    pub max_energy: Energy,
+    pub identity_registry:  ContractAddress,
+    pub agent_wallet:       WalletAccount,
+    pub id_statement:       IdStatement,
+    pub cred_statement:     CredStatement,
+    pub db:                 Db,
+    pub concordium_client:  concordium_rust_sdk::v2::Client,
+    pub global_context:     GlobalContext,
+    pub max_energy:         Energy,
+    pub network:            Network,
+    pub issuers:            Vec<ContractAddress>,
+    pub identity_providers: Vec<IpIdentity>,
 }
 
 #[derive(Object)]
 pub struct RegisterIdentityRequest {
-    pub proof:   ApiProofWithContext,
-    pub account: String,
-}
-
-#[derive(Debug)]
-pub struct ProofWithContext {
-    pub credential: CredentialRegistrationID,
-    pub proof:      Versioned<ProofType>,
-}
-
-#[derive(Object)]
-pub struct ApiProofWithContext {
-    pub credential: String, //CredentialRegistrationID,
-    pub proof:      String, //Versioned<Proof<ArCurve, AttributeKind>>,
-}
-
-impl ApiProofWithContext {
-    pub fn parse(&self) -> anyhow::Result<ProofWithContext> {
-        let credential = CredentialRegistrationID::from_str(&self.credential)?;
-        debug!("Credential: {:?}", credential);
-        let proof: Versioned<Proof<ArCurve, AttributeKind>> =
-            serde_json::from_value(serde_json::from_str(&self.proof)?)?;
-        debug!("Proof: {:?}", proof);
-        Ok(ProofWithContext {
-            credential,
-            proof,
-        })
-    }
+    pub proof:    Value,
+    pub account:  String,
+    pub contract: Option<ApiContractAddress>,
 }
 
 #[derive(Object)]
@@ -121,6 +103,111 @@ impl Api {
     ) -> Result<Json<GenerateChallengeResponse>, Error> {
         let account: AccountAddress = request.account.parse()?;
         debug!("Generating challenge for account: {}", account.to_string());
+        let challenge = self.get_or_create_db_challenge(account).await?;
+
+        let id_statement =
+            serde_json::to_value(&self.id_statement).map_err(|_| Error::InternalServer)?;
+        let cred_statement =
+            serde_json::to_value(&self.cred_statement).map_err(|_| Error::InternalServer)?;
+        Ok(Json(GenerateChallengeResponse {
+            challenge: challenge.challenge,
+            id_statement,
+            cred_statement,
+            issuers: self
+                .issuers
+                .iter()
+                .map(|c| ApiContractAddress::from_contract_address(*c))
+                .collect(),
+            identity_providers: self.identity_providers.iter().map(|i| i.0).collect(),
+        }))
+    }
+
+    #[oai(path = "/verifier/registerIdentity", method = "post")]
+    pub async fn register_identity(
+        &self,
+        request: Json<RegisterIdentityRequest>,
+    ) -> Result<Json<RegisterIdentityResponse>, Error> {
+        let account: AccountAddress = request.account.parse()?;
+        debug!(
+            "Registering identity for contract: {:?} from account: {}",
+            request.contract, request.account
+        );
+        debug!("Register Identity Proofs: {:?}", request.proof);
+        let proof: Presentation = request.proof.clone().try_into()?;
+        let challenge = self
+            .db
+            .find_challenge(&account)
+            .await?
+            .map(|db_challenge| {
+                let mut challenge = [0u8; SHA256];
+                hex::decode_to_slice(db_challenge.challenge, &mut challenge)
+                    .map_err(|_| Error::InternalServer)?;
+                Result::<_, Error>::Ok(challenge)
+            })
+            .ok_or(Error::NotFound)??;
+        debug!("Challenge: {:?}", challenge);
+
+        let mut concordium_client = self.concordium_client.clone();
+        let verification_response = verify_presentation(
+            self.network,
+            &mut concordium_client,
+            &self.global_context,
+            &proof,
+            challenge,
+        )
+        .await?;
+        debug!("Revealed Id Attributes: {:?}", verification_response.revealed_attributes);
+        debug!("Credentials: {:?}", verification_response.credentials);
+        let identity_address: Address = {
+            if let Some(contract) = request.contract {
+                let contract: ContractAddress = contract.into();
+                let contract_info = self
+                    .concordium_client
+                    .clone()
+                    .get_instance_info(contract, BlockIdentifier::LastFinal)
+                    .await?;
+                let contract_owner = match contract_info.response {
+                    InstanceInfo::V0 {
+                        owner,
+                        ..
+                    } => owner,
+                    InstanceInfo::V1 {
+                        owner,
+                        ..
+                    } => owner,
+                };
+
+                if contract_owner != account {
+                    debug!("Contract owner: {} does not match", contract_owner.to_string());
+                    return Err(Error::BadRequest);
+                }
+
+                Address::Contract(contract)
+            } else {
+                Address::Account(account)
+            }
+        };
+
+        let txn =
+            IdentityRegistryClient::new(self.concordium_client.clone(), self.identity_registry)
+                .register_identity(
+                    &self.agent_wallet,
+                    identity_address,
+                    verification_response,
+                    self.max_energy,
+                )
+                .await?;
+
+        debug!("Register Identity Transaction Hash: {}", txn.to_string());
+        Ok(Json(RegisterIdentityResponse {
+            txn_hash: txn.to_string(),
+        }))
+    }
+
+    async fn get_or_create_db_challenge(
+        &self,
+        account: AccountAddress,
+    ) -> Result<DbChallenge, Error> {
         let challenge = self.db.find_challenge(&account).await?;
         debug!("Challenge: {:?}", challenge);
         let challenge = match challenge {
@@ -138,159 +225,12 @@ impl Api {
             }
         };
 
-        let statement = serde_json::to_value(&self.statement).map_err(|_| Error::InternalServer)?;
-        // let statement =
-        //     serde_json::to_string(&self.statement).map_err(|_|
-        // Error::InternalServerError)?;
-        debug!("Statement: {:?}", statement);
-        Ok(Json(GenerateChallengeResponse {
-            challenge: challenge.challenge,
-            statement,
-        }))
-    }
-
-    #[oai(path = "/verifier/registerIdentity", method = "post")]
-    pub async fn register_identity(
-        &self,
-        request: Json<RegisterIdentityRequest>,
-    ) -> Result<Json<RegisterIdentityResponse>, Error> {
-        let account: AccountAddress = request.account.parse()?;
-        debug!("Registering identity for account: {}", request.account);
-        let proof = request.proof.parse()?;
-        debug!("Register Identity Proofs: {:?}", proof);
-        let challenge = self.db.find_challenge(&account).await?;
-        debug!("Challenge: {:?}", challenge);
-        let challenge = match challenge {
-            Some(challenge) => {
-                hex::decode(challenge.challenge).map_err(|_| Error::InternalServer)?
-            }
-            None => return Err(Error::NotFound),
-        };
-        let mut concordium_client = self.concordium_client.clone();
-        let acc_info = concordium_client
-            .get_account_info(&account.into(), BlockIdentifier::LastFinal)
-            .await
-            .map_err(|e| {
-                error!("Error getting account info: {:?}", e);
-                Error::InternalServer
-            })?;
-        debug!("Retrieved Account Info");
-
-        let commitments = acc_info
-            .response
-            .account_credentials
-            .iter()
-            .find_map(|(_, credential)| {
-                if to_bytes(credential.value.cred_id()).eq(&to_bytes(&proof.credential)) {
-                    match &credential.value {
-                        AccountCredentialWithoutProofs::Initial {
-                            icdv: _,
-                            ..
-                        } => None,
-                        AccountCredentialWithoutProofs::Normal {
-                            commitments,
-                            ..
-                        } => Some(commitments),
-                    }
-                } else {
-                    None
-                }
-            })
-            .ok_or(Error::InternalServer)?;
-        let is_verified = self.statement.verify(
-            ProofVersion::Version1,
-            &challenge,
-            &self.global_context,
-            proof.credential.as_ref(),
-            commitments,
-            &proof.proof.value,
-        );
-        debug!("Is Verified: {:?}", is_verified);
-        if !is_verified {
-            return Err(Error::BadRequest);
-        }
-
-        let revealed_attributes: Vec<(AttributeTag, String)> = self
-            .statement
-            .statements
-            .iter()
-            .zip(proof.proof.value.proofs)
-            .filter_map(|(s, p)| {
-                if let (
-                    AtomicStatement::RevealAttribute {
-                        statement,
-                    },
-                    AtomicProof::RevealAttribute {
-                        attribute,
-                        proof: _,
-                    },
-                ) = (s, p)
-                {
-                    Some((statement.attribute_tag, attribute.0))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        debug!("Revealed Attributes: {:?}", revealed_attributes);
-        let register_identity_payload = RegisterIdentityParams {
-            address:  concordium_rust_sdk::types::Address::Account(account),
-            identity: Identity {
-                attributes:  revealed_attributes
-                    .iter()
-                    .map::<Result<IdentityAttribute, _>, _>(|(tag, value)| {
-                        Ok(IdentityAttribute {
-                            tag:   tag.0,
-                            value: value.to_string(),
-                        })
-                    })
-                    .collect::<Result<Vec<_>, Error>>()?,
-                credentials: Vec::new(),
-            },
-        };
-
-        let agent_account_info = concordium_client
-            .get_account_info(&self.agent_wallet.address.into(), BlockIdentifier::LastFinal)
-            .await
-            .map_err(|e| {
-                error!("Error getting agent account info: {:?}", e);
-                Error::InternalServer
-            })?;
-        debug!("Retrieved Agent Account Info");
-
-        let mut register_identity_payload_bytes: Vec<u8> = Vec::new();
-        register_identity_payload
-            .serial(&mut register_identity_payload_bytes)
-            .map_err(|_| Error::InternalServer)?;
-        let expiry: TransactionTime =
-            TransactionTime::from_seconds((Utc::now().timestamp() + 300) as u64);
-        let txn = send::update_contract(
-            &self.agent_wallet.keys,
-            self.agent_wallet.address,
-            agent_account_info.response.account_nonce,
-            expiry,
-            UpdateContractPayload {
-                amount:       Amount::from_ccd(0u64),
-                address:      self.identity_registry,
-                receive_name: self.register_identity_receive_name.clone(),
-                message:      OwnedParameter::new_unchecked(register_identity_payload_bytes),
-            },
-            self.max_energy,
-        );
-        let txn = concordium_client.send_account_transaction(txn).await.map_err(|e| {
-            error!("Error sending transaction: {:?}", e);
-            Error::InternalServer
-        })?;
-        debug!("Register Identity Transaction Hash: {}", txn.to_string());
-        Ok(Json(RegisterIdentityResponse {
-            txn_hash: txn.to_string(),
-        }))
+        Ok(challenge)
     }
 
     fn create_new_challenge(&self, account: AccountAddress, now: DateTime<Utc>) -> [u8; 32] {
         let mut hasher = Sha256::new();
-        hasher.update(to_bytes(&self.statement));
+        hasher.update(to_bytes(&self.id_statement));
         hasher.update(AsRef::<[u8; 32]>::as_ref(&account)); // Add type annotation to specify the implementation of AsRef to use
         hasher.update(self.identity_registry.index.to_be_bytes());
         hasher.update(self.identity_registry.subindex.to_be_bytes());

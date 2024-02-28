@@ -56,6 +56,7 @@ import {
 } from "@mui/icons-material";
 import { grey } from "@mui/material/colors";
 import InfoDisplay from "../common/InfoDisplay";
+import ConcordiumWalletProvider from "../WalletProvider";
 
 const ContractsAppBar = (props: {
 	onLogin: (account: AccountAddress.Type, wallet: WalletApi) => void;
@@ -423,7 +424,9 @@ export default function ContractsPage() {
 				onLogout={onLogout}
 			/>
 			{isLoggedIn ? (
-				<ConnectedContent wallet={wallet!.wallet} account={wallet!.account} />
+				<ConcordiumWalletProvider>
+					<ConnectedContent wallet={wallet!.wallet} account={wallet!.account} />
+				</ConcordiumWalletProvider>
 			) : (
 				<DisconnectedContent />
 			)}

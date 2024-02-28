@@ -4,7 +4,8 @@ use concordium_rust_sdk::types::ContractAddress;
 use serde::{Deserialize, Serialize};
 
 use crate::txn_processor::db::{
-    Collection, DbAccountAddress, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection, IDb
+    Collection, DbAccountAddress, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId,
+    ICollection, IDb,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -20,7 +21,7 @@ pub struct DbDepositedToken {
     pub owner:            DbAccountAddress,
     pub deposited_amount: DbTokenAmount,
     pub locked_amount:    DbTokenAmount,
-    pub un_locked_amount:  DbTokenAmount,
+    pub un_locked_amount: DbTokenAmount,
 }
 
 impl DbDepositedToken {

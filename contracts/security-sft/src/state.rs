@@ -12,9 +12,7 @@ use concordium_rwa_utils::{
 };
 use concordium_std::*;
 
-use super::types::{
-    NftTokenAmount, NftTokenOwnerUId, NftTokenUId, Rate, TokenAmount, TokenId,
-};
+use super::types::{NftTokenAmount, NftTokenOwnerUId, NftTokenUId, Rate, TokenAmount, TokenId};
 
 #[derive(Serialize, Clone)]
 pub struct TokenState {
@@ -103,10 +101,7 @@ impl State {
     /// # Returns
     ///
     /// Returns the `TokenId`.
-    pub fn generate_add_token(
-        &mut self,
-        token_metadata: TokenState,
-    ) -> TokenStateResult<TokenId> {
+    pub fn generate_add_token(&mut self, token_metadata: TokenState) -> TokenStateResult<TokenId> {
         let token_id = self.get_and_increment_token_id();
         self.add_token(token_id, token_metadata)?;
         Ok(token_id)

@@ -34,11 +34,21 @@ impl From<AddressParseError> for Error {
     fn from(_: AddressParseError) -> Self { Self::ParseError }
 }
 
-#[derive(Object)]
+#[derive(Object, Debug, Clone, Copy)]
 pub struct ApiContractAddress {
     index:    u64,
     subindex: u64,
 }
+
+impl ApiContractAddress {
+    pub fn from_contract_address(contract_address: ContractAddress) -> Self {
+        Self {
+            index:    contract_address.index,
+            subindex: contract_address.subindex,
+        }
+    }
+}
+
 impl From<DbContractAddress> for ApiContractAddress {
     fn from(value: DbContractAddress) -> Self {
         Self {
@@ -48,15 +58,19 @@ impl From<DbContractAddress> for ApiContractAddress {
     }
 }
 impl From<ContractAddress> for ApiContractAddress {
-    fn from(value: ContractAddress) -> Self {
-        Self {
-            index:    value.index,
-            subindex: value.subindex,
+    fn from(value: ContractAddress) -> Self { Self::from_contract_address(value) }
+}
+
+impl From<ApiContractAddress> for ContractAddress {
+    fn from(val: ApiContractAddress) -> Self {
+        ContractAddress {
+            index:    val.index,
+            subindex: val.subindex,
         }
     }
 }
 
-#[derive(Object)]
+#[derive(Object, Debug)]
 pub struct ApiAddress {
     pub account_address:  Option<String>,
     pub contract_address: Option<ApiContractAddress>,

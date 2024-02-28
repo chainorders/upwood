@@ -2,7 +2,7 @@
 use concordium_cis2::{Cis2Event, IsTokenAmount, IsTokenId};
 use concordium_std::{schema::SchemaType, *};
 
-use super::types::{TokenAmount, TokenId, NftTokenAmount, NftTokenUId};
+use super::types::{NftTokenAmount, NftTokenUId, TokenAmount, TokenId};
 /// Represents an event that is triggered when an agent is updated (Added /
 /// Removed).
 #[derive(Serialize, SchemaType, Debug)]
@@ -49,7 +49,6 @@ pub struct TokenDeposited {
     pub owner:    AccountAddress,
     pub amount:   NftTokenAmount,
 }
-
 
 #[derive(Serialize, SchemaType, Debug)]
 #[concordium(repr(u8))]
