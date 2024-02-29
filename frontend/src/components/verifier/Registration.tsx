@@ -122,7 +122,7 @@ export default function Registration(props: {
 				<ContractAddressField onChange={setContract} />
 				<SendTransactionButton
 					disabled={!challenge || !statement || !contract}
-					onClick={registerIdentity}
+					onClick={() => registerIdentity(contract)}
 					onDone={() => setActiveStep(0)}
 				>
 					Register Contract Identity
