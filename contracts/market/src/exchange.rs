@@ -133,8 +133,9 @@ pub fn exchange_internal(
                     .map_err(|_| Error::CCDPaymentError)?;
             }
 
-            let tip_amount = ccd_amount_paid.sub(pay_amount).sub(commission_amount);
-            let owner_amount = pay_amount.add(commission_amount).add(tip_amount);
+            let owner_amount = ccd_amount_paid.sub(pay_amount);
+            ensure!(owner_amount.ge(&commission_amount), Error::InsufficientPayment);
+
             if owner_amount.gt(&Amount::zero()) {
                 host.invoke_transfer(&contract_owner, owner_amount)
                     .map_err(|_| Error::CCDCommissionPaymentError)?;
