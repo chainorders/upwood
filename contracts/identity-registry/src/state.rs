@@ -1,13 +1,6 @@
+use super::types::{AttributeTag, AttributeValue, *};
+use concordium_rwa_utils::{agents_state::IsAgentsState, clients::contract_client::IContractState};
 use concordium_std::*;
-
-use concordium_rwa_utils::{
-    agents_state::IsAgentsState,
-    clients::contract_client::IContractState,
-    common_types::{IdentityAttribute, IdentityCredential},
-};
-
-use super::types::{AttributeTag, AttributeValue, Identity, Issuer};
-pub type CredentialId = PublicKeyEd25519;
 
 #[derive(Serial, DeserialWithState, Deletable)]
 #[concordium(state_parameter = "S")]

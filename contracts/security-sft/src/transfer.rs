@@ -18,7 +18,6 @@ use concordium_rwa_utils::{
 };
 use concordium_std::*;
 
-pub type ContractTransferParams = TransferParams<TokenId, TokenAmount>;
 /// Compliant Transfers ownership of an NFT from one verified account to another
 /// verified account. This function can be called by the owner of the token or
 /// an operator of the owner or the trusted sponsor of the transaction.
