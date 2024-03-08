@@ -77,7 +77,7 @@ fn sponsored_nft_transfer() {
 
     // Payload for NFT contract
     let payload = {
-        let payload: concordium_rwa_security_nft::transfer::ContractTransferParams =
+        let payload: concordium_rwa_security_nft::types::ContractTransferParams =
             TransferParams(vec![Transfer {
                 from: TOKEN_OWNER.into(),
                 amount: 1.into(),
@@ -192,7 +192,7 @@ pub fn sponsored_sft_transfer() {
 
     // Payload for SFT contract
     let payload = {
-        let payload: concordium_rwa_security_sft::transfer::ContractTransferParams =
+        let payload: concordium_rwa_security_sft::types::ContractTransferParams =
             TransferParams(vec![Transfer {
                 from: TOKEN_OWNER.into(),
                 amount: TokenAmountU32(100),

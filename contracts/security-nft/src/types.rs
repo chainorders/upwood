@@ -7,6 +7,10 @@ use super::error::Error;
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = cis2_types::NftTokenAmount;
 pub type TokenId = cis2_types::TokenId;
+pub type ContractTransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
+pub type ContractTransferParam = concordium_cis2::Transfer<TokenId, TokenAmount>;
+pub type ContractBalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
+pub type ContractBalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 
 /// Represents the metadata URL and hash of a token.
 #[derive(SchemaType, Serial, Clone, Deserial)]

@@ -125,13 +125,10 @@ export default function ListRequestForm(props: Props) {
 					ContractAddress.create(c.index, c.subindex),
 				);
 				setAllowedToListContracts(parsedContracts);
-				if (parsedContracts.length > 0) {
-					setListTokenContract(selectedListTokenContract || parsedContracts[0]);
-				}
 			})
 			.catch((error) => setErrorAllowedToList(error.message))
 			.finally(() => setLoadingAllowedToList(false));
-	}, [contract, grpcClient, selectedListTokenContract]);
+	}, [contract, grpcClient]);
 
 	// load payment tokens
 	useEffect(() => {
