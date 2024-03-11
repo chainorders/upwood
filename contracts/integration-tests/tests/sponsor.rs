@@ -1,203 +1,259 @@
 mod utils;
-use crate::utils::{
-    chain::{init_identity_contracts, init_security_token_contracts},
-    consts::DEFAULT_INVOKER,
-    security_nft::nft_mint,
-    security_sft::{sft_balance_of, sft_mint},
-    sponsor::sponsor_deploy_and_init,
-};
-use concordium_cis2::{AdditionalData, Receiver, TokenAmountU32, Transfer, TransferParams};
-use concordium_rwa_security_nft::types::TokenAmount;
-use concordium_rwa_sponsor::types::{PermitMessage, PermitParam};
-use concordium_smart_contract_testing::*;
-use concordium_std::ExpectReport;
-use concordium_std::Serial;
-use utils::{
-    chain::create_accounts,
-    consts::DEFAULT_ACC_BALANCE,
-    identity_registry::add_identities,
-    security_nft::nft_balance_of,
-    sponsor::{get_bytes_to_sign, get_nonce},
-};
 
-const ADMIN: AccountAddress = AccountAddress([0; 32]);
-const TOKEN_OWNER: AccountAddress = AccountAddress([1; 32]);
-const TOKEN_RECEIVER: AccountAddress = AccountAddress([2; 32]);
-const SPONSOR_ACCOUNT: AccountAddress = AccountAddress([3; 32]);
-const NATIONALITY_INDIA: &str = "IN";
-const NATIONALITY_USA: &str = "US";
+use concordium_cis2::{AdditionalData, Receiver, TokenAmountU32, Transfer, TransferParams};
+use concordium_rwa_sponsor::types::{PermitMessage, PermitParam};
+use concordium_smart_contract_testing::{ed25519::PublicKey, *};
+use concordium_std::{ExpectReport, Serial, ACCOUNT_ADDRESS_SIZE};
+use integration_tests::{
+    cis2_test_contract::{ICis2Contract, ICis2ContractExt},
+    security_nft::ISecurityNftContractExt,
+    security_sft::sft_mint,
+    sponsor::{ISponsorContract, ISponsorModule, SponsorContract, SponsorModule},
+    test_contract_client::{ITestContract, ITestModule},
+    verifier::Verifier,
+};
+use utils::{
+    common::{init_identity_contracts, init_security_token_contracts},
+    consts::{DEFAULT_ACC_BALANCE, SPONSOR_MODULE},
+};
 
 #[test]
 fn sponsored_nft_transfer() {
+    let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
     let mut chain = Chain::new();
-    create_accounts(
-        &mut chain,
-        vec![DEFAULT_INVOKER, ADMIN, TOKEN_RECEIVER, SPONSOR_ACCOUNT],
-        DEFAULT_ACC_BALANCE,
+    let admin = Account::new_with_keys(
+        AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
     );
-
-    // Create an account for the token owner
-    let token_owner_key_pairs = {
-        let rng = &mut rand::thread_rng();
-        let key_pairs = AccountKeys::singleton(rng);
-        chain.create_account(Account::new_with_keys(
-            TOKEN_OWNER,
-            AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-            (&key_pairs).into(),
-        ));
-        key_pairs
+    let token_receiver = Account::new_with_keys(
+        AccountAddress([1; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let rng = &mut rand::thread_rng();
+    let token_owner_key_pairs = AccountKeys::singleton(rng);
+    let token_owner = Account::new_with_keys(
+        AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        (&token_owner_key_pairs).into(),
+    );
+    let sponsor_account = Account::new_with_keys(
+        AccountAddress([3; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    vec![admin.clone(), token_receiver.clone(), sponsor_account.clone(), token_owner.clone()]
+        .iter()
+        .for_each(|a| {
+            chain.create_account(a.clone());
+        });
+    let (ir_contract, compliance_contract) =
+        init_identity_contracts(&mut chain, &admin, compliant_nationalities.to_vec());
+    let verifier = Verifier {
+        account:           admin.clone(),
+        identity_registry: ir_contract.clone(),
     };
-    let (ir_contract, _, compliance_contract) = init_identity_contracts(
-        &mut chain,
-        ADMIN,
-        vec![NATIONALITY_INDIA.to_string(), NATIONALITY_USA.to_string()],
-    );
-    add_identities(
-        &mut chain,
-        ir_contract,
-        ADMIN,
-        vec![
-            (TOKEN_OWNER.into(), NATIONALITY_INDIA.to_string()),
-            (TOKEN_RECEIVER.into(), NATIONALITY_USA.to_string()),
-        ],
-    )
-    .expect_report("Add identities");
+    verifier
+        .register_nationalities(&mut chain, vec![
+            (Address::Account(token_receiver.address), compliant_nationalities[0].clone()),
+            (Address::Account(token_owner.address), compliant_nationalities[1].clone()),
+        ])
+        .expect("Add Account identities");
 
-    let sponsor = sponsor_deploy_and_init(&mut chain, SPONSOR_ACCOUNT);
-    let (nft_contract, _) = init_security_token_contracts(
+    let sponsor_module = SponsorModule {
+        module_path: SPONSOR_MODULE.to_owned(),
+    };
+    sponsor_module.deploy(&mut chain, &admin).expect("deploy sponsor module");
+    let sponsor = sponsor_module
+        .rwa_sponsor()
+        .init_without_params(&mut chain, &sponsor_account)
+        .map(|s| SponsorContract(s.contract_address))
+        .expect("Sponsor: init");
+
+    let (token_contract, _) = init_security_token_contracts(
         &mut chain,
-        ADMIN,
-        ir_contract,
-        compliance_contract,
-        vec![sponsor],
-    );
-    let nft_token =
-        nft_mint(&mut chain, nft_contract, ADMIN, Receiver::Account(TOKEN_OWNER), "ipfs:url1")
-            .expect_report("Security NFT: Mint token 1");
+        &admin,
+        &ir_contract,
+        &compliance_contract,
+        vec![sponsor.contract_address()],
+    )
+    .expect("Init security token contracts");
+
+    let token_id = token_contract
+        .mint_single_update(
+            &mut chain,
+            &admin,
+            Receiver::Account(token_owner.address),
+            concordium_rwa_security_nft::types::ContractMetadataUrl {
+                url:  "ipfs:url1".to_string(),
+                hash: None,
+            },
+        )
+        .expect("nft: mint token");
 
     // Payload for NFT contract
-    let payload = {
-        let payload: concordium_rwa_security_nft::types::ContractTransferParams =
-            TransferParams(vec![Transfer {
-                from: TOKEN_OWNER.into(),
-                amount: 1.into(),
-                to: TOKEN_RECEIVER.into(),
-                token_id: nft_token,
-                data: AdditionalData::empty(),
-            }]);
-        let mut payload_bytes = Vec::new();
-        payload.serial(&mut payload_bytes).expect("Serializing payload");
-        payload_bytes
-    };
-
+    let payload: concordium_rwa_security_nft::types::ContractTransferParams =
+        TransferParams(vec![Transfer {
+            from: token_owner.address.into(),
+            amount: 1.into(),
+            to: token_receiver.address.into(),
+            token_id,
+            data: AdditionalData::empty(),
+        }]);
     // Sponsor Contract Params
     let permit_param: PermitParam = {
-        let nonce = get_nonce(&mut chain, sponsor, TOKEN_OWNER);
+        let nonce = sponsor
+            .nonce()
+            .invoke(&mut chain, &token_owner, &concordium_rwa_sponsor::utils::NonceParam {
+                account: token_owner.address,
+            })
+            .map(|res| sponsor.nonce().parse_return_value(&res).expect("Parsing nonce"))
+            .expect("sponsor: nonce");
         let permit_message = PermitMessage {
-            contract_address: nft_contract,
-            entry_point: OwnedEntrypointName::new_unchecked("transfer".to_string()),
+            contract_address: token_contract.contract_address(),
+            entry_point: token_contract.transfer().entrypoint_name,
             nonce,
             timestamp: chain
                 .block_time()
                 .checked_add(Duration::from_seconds(1))
                 .expect_report("Block time"),
-            payload,
+            payload: to_bytes(&payload),
         };
-        let bytes_to_sign = get_bytes_to_sign(&mut chain, sponsor, TOKEN_OWNER, &permit_message);
+        let bytes_to_sign = sponsor
+            .bytes_to_sign()
+            .invoke(&mut chain, &token_owner, &permit_message)
+            .map(|res| {
+                sponsor.bytes_to_sign().parse_return_value(&res).expect("Parsing bytes to sign")
+            })
+            .expect("sponsor: bytes to sign");
+
         PermitParam {
             signature: token_owner_key_pairs.sign_message(&bytes_to_sign),
-            signer: TOKEN_OWNER,
-            message: permit_message,
+            signer:    token_owner.address,
+            message:   permit_message,
         }
     };
 
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            SPONSOR_ACCOUNT,
-            Address::Account(SPONSOR_ACCOUNT),
-            Energy::from(20000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                receive_name: OwnedReceiveName::new_unchecked("rwa_sponsor.permit".to_string()),
-                address: sponsor,
-                message: OwnedParameter::from_serial(&permit_param)
-                    .expect_report("Serializing permit message"),
-            },
+    sponsor.permit().update(&mut chain, &sponsor_account, &permit_param).expect("sponsor: permit");
+
+    let balance_of_token_owner = token_contract
+        .balance_of_single_invoke(&mut chain, &token_owner, token_id, token_owner.address.into())
+        .expect("nft: balance of token owner");
+    assert_eq!(balance_of_token_owner, 0.into());
+
+    let balance_of_token_receiver = token_contract
+        .balance_of_single_invoke(
+            &mut chain,
+            &token_receiver,
+            token_id,
+            token_receiver.address.into(),
         )
-        .expect_report("Sponsor: Permit");
-    let balance_of_token_owner =
-        nft_balance_of(&mut chain, nft_contract, nft_token, TOKEN_OWNER.into());
-    let balance_of_token_receiver =
-        nft_balance_of(&mut chain, nft_contract, nft_token, TOKEN_RECEIVER.into());
-    assert_eq!(balance_of_token_owner, TokenAmount::from(0));
-    assert_eq!(balance_of_token_receiver, TokenAmount::from(1));
+        .expect("nft: balance of token owner");
+    assert_eq!(balance_of_token_receiver, 1.into());
 }
 
 #[test]
 pub fn sponsored_sft_transfer() {
+    let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
     let mut chain = Chain::new();
-    create_accounts(
-        &mut chain,
-        vec![DEFAULT_INVOKER, ADMIN, TOKEN_RECEIVER, SPONSOR_ACCOUNT],
-        DEFAULT_ACC_BALANCE,
+    let admin = Account::new_with_keys(
+        AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
     );
-
-    // Create an account for the token owner
-    let token_owner_key_pairs = {
-        let rng = &mut rand::thread_rng();
-        let key_pairs = AccountKeys::singleton(rng);
-        chain.create_account(Account::new_with_keys(
-            TOKEN_OWNER,
-            AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-            (&key_pairs).into(),
-        ));
-        key_pairs
+    let token_receiver = Account::new_with_keys(
+        AccountAddress([1; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let rng = &mut rand::thread_rng();
+    let token_owner_key_pairs = AccountKeys::singleton(rng);
+    let token_owner = Account::new_with_keys(
+        AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        (&token_owner_key_pairs).into(),
+    );
+    let sponsor_account = Account::new_with_keys(
+        AccountAddress([3; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    vec![admin.clone(), token_receiver.clone(), sponsor_account.clone(), token_owner.clone()]
+        .iter()
+        .for_each(|a| {
+            chain.create_account(a.clone());
+        });
+    let (ir_contract, compliance_contract) =
+        init_identity_contracts(&mut chain, &admin, compliant_nationalities.to_vec());
+    let verifier = Verifier {
+        account:           admin.clone(),
+        identity_registry: ir_contract.clone(),
     };
-    let (ir_contract, _, compliance_contract) = init_identity_contracts(
+    verifier
+        .register_nationalities(&mut chain, vec![
+            (Address::Account(token_receiver.address), compliant_nationalities[0].clone()),
+            (Address::Account(token_owner.address), compliant_nationalities[1].clone()),
+        ])
+        .expect("Add Account identities");
+
+    let sponsor_module = SponsorModule {
+        module_path: SPONSOR_MODULE.to_owned(),
+    };
+    sponsor_module.deploy(&mut chain, &admin).expect("deploy sponsor module");
+    let sponsor = sponsor_module
+        .rwa_sponsor()
+        .init_without_params(&mut chain, &sponsor_account)
+        .map(|s| SponsorContract(s.contract_address))
+        .expect("Sponsor: init");
+    let (nft_contract, token_contract) = init_security_token_contracts(
         &mut chain,
-        ADMIN,
-        vec![NATIONALITY_INDIA.to_string(), NATIONALITY_USA.to_string()],
-    );
-    add_identities(
-        &mut chain,
-        ir_contract,
-        ADMIN,
-        vec![
-            (TOKEN_OWNER.into(), NATIONALITY_INDIA.to_string()),
-            (TOKEN_RECEIVER.into(), NATIONALITY_USA.to_string()),
-        ],
+        &admin,
+        &ir_contract,
+        &compliance_contract,
+        vec![sponsor.contract_address()],
     )
-    .expect_report("Add identities");
+    .expect("Init security token contracts");
+    verifier
+        .register_nationalities(&mut chain, vec![(
+            Address::Contract(token_contract.contract_address()),
+            "US".to_string(),
+        )])
+        .expect("Register nationalities");
+    let token_id = sft_mint(
+        &mut chain,
+        &admin,
+        &nft_contract,
+        &token_contract,
+        &token_owner,
+        concordium_rwa_security_nft::types::ContractMetadataUrl {
+            url:  "ipfs:nft".to_string(),
+            hash: None,
+        },
+        concordium_rwa_security_sft::types::ContractMetadataUrl {
+            url:  "ipfs:sft".to_string(),
+            hash: None,
+        },
+        1000,
+    );
+    let balance_of_token_owner = token_contract
+        .balance_of_single_invoke(&mut chain, &admin, token_id, token_owner.address.into())
+        .expect("sft: balance of token owner");
+    assert_eq!(balance_of_token_owner, 1000.into());
 
-    let sponsor = sponsor_deploy_and_init(&mut chain, SPONSOR_ACCOUNT);
-    let (sft_contract, sft_token) = {
-        let (nft_contract, sft_contract) = init_security_token_contracts(
-            &mut chain,
-            ADMIN,
-            ir_contract,
-            compliance_contract,
-            vec![sponsor],
-        );
-        add_identities(
-            &mut chain,
-            ir_contract,
-            ADMIN,
-            vec![(sft_contract.into(), NATIONALITY_INDIA.to_string())],
-        )
-        .expect_report("Add SFT identity");
-        let sft_token = sft_mint(&mut chain, ADMIN, nft_contract, sft_contract, TOKEN_OWNER);
-        (sft_contract, sft_token)
-    };
+    let balance_of_token_receiver = token_contract
+        .balance_of_single_invoke(&mut chain, &admin, token_id, token_receiver.address.into())
+        .expect("sft: balance of token receiver");
+    assert_eq!(balance_of_token_receiver, 0.into());
 
     // Payload for SFT contract
     let payload = {
         let payload: concordium_rwa_security_sft::types::ContractTransferParams =
             TransferParams(vec![Transfer {
-                from: TOKEN_OWNER.into(),
+                from: token_owner.address.into(),
                 amount: TokenAmountU32(100),
-                to: TOKEN_RECEIVER.into(),
-                token_id: sft_token,
+                to: token_receiver.address.into(),
+                token_id,
                 data: AdditionalData::empty(),
             }]);
         let mut payload_bytes = Vec::new();
@@ -207,10 +263,16 @@ pub fn sponsored_sft_transfer() {
 
     // Sponsor Contract Params
     let permit_param: PermitParam = {
-        let nonce = get_nonce(&mut chain, sponsor, TOKEN_OWNER);
+        let nonce = sponsor
+            .nonce()
+            .invoke(&mut chain, &token_owner, &concordium_rwa_sponsor::utils::NonceParam {
+                account: token_owner.address,
+            })
+            .map(|res| sponsor.nonce().parse_return_value(&res).expect("Parsing nonce"))
+            .expect("sponsor: nonce");
         let permit_message = PermitMessage {
-            contract_address: sft_contract,
-            entry_point: OwnedEntrypointName::new_unchecked("transfer".to_string()),
+            contract_address: token_contract.contract_address(),
+            entry_point: token_contract.transfer().entrypoint_name,
             nonce,
             timestamp: chain
                 .block_time()
@@ -218,33 +280,30 @@ pub fn sponsored_sft_transfer() {
                 .expect_report("Block time"),
             payload,
         };
-        let bytes_to_sign = get_bytes_to_sign(&mut chain, sponsor, TOKEN_OWNER, &permit_message);
+        let bytes_to_sign = sponsor
+            .bytes_to_sign()
+            .invoke(&mut chain, &token_owner, &permit_message)
+            .map(|res| {
+                sponsor.bytes_to_sign().parse_return_value(&res).expect("Parsing bytes to sign")
+            })
+            .expect("sponsor: bytes to sign");
+
         PermitParam {
             signature: token_owner_key_pairs.sign_message(&bytes_to_sign),
-            signer: TOKEN_OWNER,
-            message: permit_message,
+            signer:    token_owner.address,
+            message:   permit_message,
         }
     };
 
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            SPONSOR_ACCOUNT,
-            Address::Account(SPONSOR_ACCOUNT),
-            Energy::from(20000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                receive_name: OwnedReceiveName::new_unchecked("rwa_sponsor.permit".to_string()),
-                address: sponsor,
-                message: OwnedParameter::from_serial(&permit_param)
-                    .expect_report("Serializing permit message"),
-            },
-        )
-        .expect_report("Sponsor: Permit");
-    let balance_of_token_owner =
-        sft_balance_of(&mut chain, sft_contract, sft_token, TOKEN_OWNER.into());
-    let balance_of_token_receiver =
-        sft_balance_of(&mut chain, sft_contract, sft_token, TOKEN_RECEIVER.into());
+    sponsor.permit().update(&mut chain, &sponsor_account, &permit_param).expect("sponsor: permit");
+
+    let balance_of_token_owner = token_contract
+        .balance_of_single_invoke(&mut chain, &admin, token_id, token_owner.address.into())
+        .expect("sft: balance of token owner");
     assert_eq!(balance_of_token_owner, 900.into());
+
+    let balance_of_token_receiver = token_contract
+        .balance_of_single_invoke(&mut chain, &admin, token_id, token_receiver.address.into())
+        .expect("sft: balance of token receiver");
     assert_eq!(balance_of_token_receiver, 100.into());
 }

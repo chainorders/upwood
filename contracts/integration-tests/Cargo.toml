@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+concordium-std = { version = "8.1.0", default-features = false }
+concordium-cis2 = { version = "5.1.0", default-features = false }
 concordium-rwa-identity-registry = { path = "../identity-registry" }
 concordium-rwa-compliance = { path = "../compliance" }
 concordium-rwa-security-nft = { path = "../security-nft" }
@@ -11,12 +13,7 @@ concordium-rwa-security-sft = { path = "../security-sft" }
 concordium-rwa-market = { path = "../market" }
 concordium-rwa-sponsor = { path = "../sponsor" }
 euroe_stablecoin = { path = "../euroe" }
-concordium-std = { version = "8.1.0", default-features = false }
-concordium-cis2 = { version = "5.1.0", default-features = false }
-concordium-rwa-utils = { path = "../utils" }
 rand = "*"
-
-[dev-dependencies]
 concordium-smart-contract-testing = "3"
 
 [lib]

@@ -13,6 +13,7 @@ pub type NftTokenUId = cis2_schema_types::TokenUId<NftTokenId>;
 pub type NftTokenOwnerUId = cis2_schema_types::TokenOwnerUId<NftTokenId>;
 pub type ContractTransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
 pub type ContractBalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
+pub type ContractBalanceOfQuery = concordium_cis2::BalanceOfQuery<TokenId>;
 pub type ContractBalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 
 /// Represents the metadata URL and hash of a token.
