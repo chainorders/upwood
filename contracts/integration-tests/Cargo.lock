@@ -1267,7 +1267,6 @@ dependencies = [
  "concordium-rwa-security-nft",
  "concordium-rwa-security-sft",
  "concordium-rwa-sponsor",
- "concordium-rwa-utils",
  "concordium-smart-contract-testing",
  "concordium-std",
  "euroe_stablecoin",
