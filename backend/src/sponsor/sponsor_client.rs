@@ -45,7 +45,8 @@ impl SponsorClient {
     ///
     /// # Arguments
     ///
-    /// * `concordium_client` - The Concordium client used for interacting with the blockchain.
+    /// * `concordium_client` - The Concordium client used for interacting with
+    ///   the blockchain.
     /// * `sponsor_contract` - The address of the Sponsor contract.
     ///
     /// # Returns
@@ -76,8 +77,8 @@ impl SponsorClient {
     ///
     /// # Errors
     ///
-    /// Returns an error if there was a problem querying the account info, sending the transaction,
-    /// or if the parameter size exceeds the limit.
+    /// Returns an error if there was a problem querying the account info,
+    /// sending the transaction, or if the parameter size exceeds the limit.
     pub async fn permit(
         &mut self,
         sponsor: &WalletAccount,

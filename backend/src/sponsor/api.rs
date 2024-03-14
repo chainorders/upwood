@@ -153,10 +153,11 @@ pub struct Api {
 impl Api {
     /// Handles the HTTP POST request to permit a transaction.
     ///
-    /// This method takes a JSON payload containing the permit parameters and converts it into
-    /// a `PermitParam` struct. It then calls the `permit` method of the `SponsorClient` to
-    /// permit the transaction using the provided parameters. The resulting transaction hash is
-    /// returned as a JSON response.
+    /// This method takes a JSON payload containing the permit parameters and
+    /// converts it into a `PermitParam` struct. It then calls the `permit`
+    /// method of the `SponsorClient` to permit the transaction using the
+    /// provided parameters. The resulting transaction hash is returned as a
+    /// JSON response.
     ///
     /// # Arguments
     ///
@@ -164,8 +165,9 @@ impl Api {
     ///
     /// # Returns
     ///
-    /// A `Result` containing a JSON response with the transaction hash if successful, or an
-    /// `Error` if an error occurs during the permit process.
+    /// A `Result` containing a JSON response with the transaction hash if
+    /// successful, or an `Error` if an error occurs during the permit
+    /// process.
     #[oai(path = "/sponsor/permit", method = "post")]
     pub async fn permit(
         &self,

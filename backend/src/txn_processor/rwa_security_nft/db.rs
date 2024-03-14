@@ -81,7 +81,8 @@ pub struct TokenHolderOperator {
 }
 
 impl TokenHolderOperator {
-    /// Generates the key for a token holder operator based on the owner and operator addresses.
+    /// Generates the key for a token holder operator based on the owner and
+    /// operator addresses.
     pub fn key(owner: &DbAddress, operator: &DbAddress) -> Document {
         doc! {
             "owner": to_bson(owner).unwrap(),

@@ -44,7 +44,8 @@ impl Db {
     ///
     /// # Returns
     ///
-    /// Returns `Ok(())` if the insertion is successful, otherwise returns an `anyhow::Result` with an error.
+    /// Returns `Ok(())` if the insertion is successful, otherwise returns an
+    /// `anyhow::Result` with an error.
     pub async fn insert_challenge(&self, challenge: DbChallenge) -> anyhow::Result<()> {
         self.challenges().insert_one(challenge, None).await?;
         Ok(())
@@ -58,8 +59,9 @@ impl Db {
     ///
     /// # Returns
     ///
-    /// Returns `Ok(Some(challenge))` if a matching challenge is found, `Ok(None)` if no matching challenge is found,
-    /// otherwise returns an `anyhow::Result` with an error.
+    /// Returns `Ok(Some(challenge))` if a matching challenge is found,
+    /// `Ok(None)` if no matching challenge is found, otherwise returns an
+    /// `anyhow::Result` with an error.
     pub async fn find_challenge(
         &self,
         address: &AccountAddress,

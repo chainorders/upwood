@@ -1,18 +1,26 @@
 //! This module contains the API implementation for the RWA market.
 //!
-//! The `RwaMarketApi` struct provides methods to retrieve paged lists of tokens that are listed, unlisted, or deposited in the RWA market.
-//! It interacts with the `IRwaMarketDb` trait to fetch data from the database.
+//! The `RwaMarketApi` struct provides methods to retrieve paged lists of tokens
+//! that are listed, unlisted, or deposited in the RWA market. It interacts with
+//! the `IRwaMarketDb` trait to fetch data from the database.
 //!
-//! The API endpoints are defined using the `poem_openapi` and `poem` crates, and the responses are serialized as JSON using the `Json` type.
+//! The API endpoints are defined using the `poem_openapi` and `poem` crates,
+//! and the responses are serialized as JSON using the `Json` type.
 //!
-//! The `MarketToken` struct represents a token listed in the RWA market, containing information such as the token contract address, token ID, owner, deposited amount, listed amount, and unlisted amount.
+//! The `MarketToken` struct represents a token listed in the RWA market,
+//! containing information such as the token contract address, token ID, owner,
+//! deposited amount, listed amount, and unlisted amount.
 //!
 //! The `RwaMarketApi` struct has the following methods:
-//! - `listed`: Retrieves a paged list of tokens that are listed in the RWA market.
-//! - `unlisted`: Retrieves a paged list of tokens that are unlisted in the RWA market for a specific owner.
-//! - `deposited`: Retrieves a paged list of tokens that are deposited in the RWA market for a specific owner.
+//! - `listed`: Retrieves a paged list of tokens that are listed in the RWA
+//!   market.
+//! - `unlisted`: Retrieves a paged list of tokens that are unlisted in the RWA
+//!   market for a specific owner.
+//! - `deposited`: Retrieves a paged list of tokens that are deposited in the
+//!   RWA market for a specific owner.
 //!
-//! The `to_paged_response` method is a helper method used by the above methods to convert the query result into a paged response.
+//! The `to_paged_response` method is a helper method used by the above methods
+//! to convert the query result into a paged response.
 use crate::shared::{
     api::{ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
     db::{DbAccountAddress, DbTokenAmount, ICollection},
@@ -87,7 +95,8 @@ impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
         Ok(Json(res))
     }
 
-    /// Retrieves a paged list of tokens that are unlisted in the RWA market for a specific owner.
+    /// Retrieves a paged list of tokens that are unlisted in the RWA market for
+    /// a specific owner.
     ///
     /// # Parameters
     ///
@@ -121,7 +130,8 @@ impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
         Ok(Json(res))
     }
 
-    /// Retrieves a paged list of tokens that are deposited in the RWA market for a specific owner.
+    /// Retrieves a paged list of tokens that are deposited in the RWA market
+    /// for a specific owner.
     ///
     /// # Parameters
     ///

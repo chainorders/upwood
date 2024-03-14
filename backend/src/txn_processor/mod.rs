@@ -1,9 +1,11 @@
-//! This module contains the transaction processor for the Concordium RWA backend.
-//! It includes the definition of the database module, as well as the modules for the RWA identity registry,
-//! RWA market, RWA security NFT, and RWA security SFT.
-//! It also defines the listener and API configuration struct, as well as the contracts API configuration struct.
-//! The module provides functions to run the contracts API server and listener, as well as to generate the API client.
-//! It also includes helper functions to create the listener, server routes, and service for the contracts API.
+//! This module contains the transaction processor for the Concordium RWA
+//! backend. It includes the definition of the database module, as well as the
+//! modules for the RWA identity registry, RWA market, RWA security NFT, and RWA
+//! security SFT. It also defines the listener and API configuration struct, as
+//! well as the contracts API configuration struct. The module provides
+//! functions to run the contracts API server and listener, as well as to
+//! generate the API client. It also includes helper functions to create the
+//! listener, server routes, and service for the contracts API.
 
 mod db;
 pub mod rwa_identity_registry;
@@ -29,13 +31,16 @@ use rwa_security_sft::{api::*, db::*, processor::*};
 use std::{io::Write, str::FromStr};
 use tokio::{spawn, try_join};
 
-/// Implementation of the RWA identity registry database trait for the contract database.
+/// Implementation of the RWA identity registry database trait for the contract
+/// database.
 impl IRwaIdentityRegistryDb for ContractDb {}
 
-/// Implementation of the RWA security NFT database trait for the contract database.
+/// Implementation of the RWA security NFT database trait for the contract
+/// database.
 impl IRwaSecurityNftDb for ContractDb {}
 
-/// Implementation of the RWA security SFT database trait for the contract database.
+/// Implementation of the RWA security SFT database trait for the contract
+/// database.
 impl IRwaSecuritySftDb for ContractDb {}
 
 /// Implementation of the RWA market database trait for the contract database.
@@ -86,9 +91,9 @@ pub struct ListenerAndApiConfig {
 /// Configuration options for the Contracts API.
 pub struct ContractsApiConfig {
     /// The URI of the MongoDB instance.
-    pub mongodb_uri: String,
+    pub mongodb_uri:                    String,
     /// The name of the RWA market contract.
-    pub rwa_market_contract_name: String,
+    pub rwa_market_contract_name:       String,
     /// The name of the RWA security NFT contract.
     pub rwa_security_nft_contract_name: String,
     /// The name of the RWA security SFT contract.

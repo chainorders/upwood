@@ -24,7 +24,9 @@ pub struct RwaIdentityRegistryProcessor<TDb: IRwaIdentityRegistryDb> {
 }
 
 #[async_trait]
-impl<TDb: Sync + Send + IRwaIdentityRegistryDb> EventsProcessor for RwaIdentityRegistryProcessor<TDb> {
+impl<TDb: Sync + Send + IRwaIdentityRegistryDb> EventsProcessor
+    for RwaIdentityRegistryProcessor<TDb>
+{
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns

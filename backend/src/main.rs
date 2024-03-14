@@ -21,7 +21,7 @@ enum Command {
 
 /// Main entry point for the application.
 /// Parses the command line arguments and runs the appropriate subcommand.
-/// 
+///
 /// The subcommands are:
 /// - `generate-contracts-api-specs`: Generates the OpenAPI specs for the
 ///   contracts API.

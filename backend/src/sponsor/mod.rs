@@ -102,24 +102,25 @@ async fn create_service(config: ApiConfig) -> Result<OpenApiService<Api, ()>, an
 #[derive(Parser, Debug, Clone)]
 /// Configuration struct for OpenAPI.
 pub struct OpenApiConfig {
-    /// Output file path for the generated OpenAPI specs. Defaults to "sponsor-api-specs.json".
+    /// Output file path for the generated OpenAPI specs. Defaults to
+    /// "sponsor-api-specs.json".
     #[clap(env, default_value = "sponsor-api-specs.json")]
-    pub output: String,
+    pub output:                  String,
     /// URI of the Concordium node. Defaults to "http://node.testnet.concordium.com:20000".
     #[clap(env, default_value = "http://node.testnet.concordium.com:20000")]
-    pub concordium_node_uri: String,
+    pub concordium_node_uri:     String,
     /// Address of the sponsor web server. Defaults to "0.0.0.0:3001".
     #[clap(env, default_value = "0.0.0.0:3001")]
     pub sponsor_web_server_addr: String,
     /// Identity Registry Contract String.
     #[clap(env, default_value = "<7762,0>")]
-    pub sponsor_contract: String,
+    pub sponsor_contract:        String,
     /// Identity Registry Agent Wallet Path.
     #[clap(env, default_value = "agent_wallet.export")]
-    pub sponsor_wallet_path: PathBuf,
+    pub sponsor_wallet_path:     PathBuf,
     /// Maximum energy to use for registering identity. Defaults to "30000".
     #[clap(env, default_value = "30000")]
-    pub permit_max_energy: String,
+    pub permit_max_energy:       String,
 }
 
 impl From<OpenApiConfig> for ApiConfig {
@@ -136,8 +137,9 @@ impl From<OpenApiConfig> for ApiConfig {
 
 /// Generates an API client based on the OpenAPI specification.
 /// The client is generated based on the provided `OpenApiConfig`.
-/// The generated client is written to the file specified in the `OpenApiConfig`.
-/// The client is generated using the `create_service` function.
+/// The generated client is written to the file specified in the
+/// `OpenApiConfig`. The client is generated using the `create_service`
+/// function.
 pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
     let api_service = create_service(config.to_owned().into()).await?;
     let spec_json = api_service.spec();
