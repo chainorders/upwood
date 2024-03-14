@@ -85,7 +85,6 @@ async fn create_service(config: ApiConfig) -> Result<OpenApiService<Api, ()>, an
     let concordium_client = v2::Client::new(endpoint)
         .await
         .map_err(|_| anyhow::Error::msg("Failed to connect to Concordium Node"))?;
-    /// Represents the API service for RWA Contracts.
     let api_service = OpenApiService::new(
         Api {
             contract: config.sponsor_contract.parse()?,
