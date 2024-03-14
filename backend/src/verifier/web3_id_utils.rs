@@ -73,6 +73,24 @@ pub async fn verify_presentation(
     })
 }
 
+/// Retrieves the revealed identity attributes from a given
+/// `VerifyPresentationResponse`.
+///
+/// # Arguments
+///
+/// * `response` - A reference to the `VerifyPresentationResponse` from which to
+///   retrieve the attributes.
+///
+/// # Returns
+///
+/// * A Result containing a `HashMap` where the keys are the attribute names and
+///   the values are the revealed attributes, or an `Error`.
+///
+/// # Errors
+///
+/// This function will return an error if the `VerifyPresentationResponse` does
+/// not contain the expected data or if there is a problem decoding the
+/// attributes.
 fn get_revealed_id_attributes(presentation: &Presentation) -> Vec<(AttributeTag, Web3IdAttribute)> {
     presentation
         .verifiable_credential

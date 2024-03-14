@@ -14,6 +14,7 @@ use mongodb::{
 };
 use serde::{Deserialize, Serialize};
 
+/// Represents a processed block in the database.
 #[derive(Serialize, Deserialize)]
 pub struct DbProcessedBlock {
     block_hash:       String,
@@ -21,6 +22,7 @@ pub struct DbProcessedBlock {
     pub block_height: u64,
 }
 
+/// Represents a contract in the database.
 #[derive(Serialize, Deserialize)]
 pub struct DbContract {
     pub module_ref:    String,
@@ -34,6 +36,7 @@ pub struct DbContract {
 }
 
 impl DbContract {
+    /// Creates a new `DbContract` instance.
     pub fn new(
         module_ref: &ModuleReference,
         contract_name: &OwnedContractName,
@@ -48,22 +51,27 @@ impl DbContract {
     }
 }
 
+/// Represents a client for interacting with the database.
 #[derive(Debug)]
 pub struct DatabaseClient {
     pub client: mongodb::Client,
 }
 
 impl DatabaseClient {
+    /// Returns the `concordium` database.
     pub fn database(&self) -> mongodb::Database { self.client.database("concordium") }
 
+    /// Returns the `processed_blocks` collection.
     pub fn processed_blocks(&self) -> mongodb::Collection<DbProcessedBlock> {
         self.database().collection::<DbProcessedBlock>("processed_blocks")
     }
 
+    /// Returns the `contracts` collection.
     pub fn contracts(&self) -> mongodb::Collection<DbContract> {
         self.database().collection::<DbContract>("contracts")
     }
 
+    /// Retrieves the last processed block from the database.
     pub async fn get_last_processed_block(&self) -> anyhow::Result<Option<DbProcessedBlock>> {
         let collection = self.processed_blocks();
         let result = collection
@@ -73,6 +81,7 @@ impl DatabaseClient {
         Ok(result)
     }
 
+    /// Updates the last processed block in the database.
     pub async fn update_last_processed_block(
         &mut self,
         block: &FinalizedBlockInfo,
@@ -91,6 +100,7 @@ impl DatabaseClient {
         Ok(result)
     }
 
+    /// Adds a contract to the database.
     pub async fn add_contract(
         &self,
         address: concordium_rust_sdk::types::ContractAddress,
@@ -108,6 +118,7 @@ impl DatabaseClient {
         Ok(result)
     }
 
+    /// Finds a contract in the database based on its address.
     pub async fn find_contract(
         &self,
         contract_address: ContractAddress,

@@ -3,7 +3,7 @@ mod db;
 mod identity_registry_client;
 mod web3_id_utils;
 use self::{
-    api::Api, db::Db, identity_registry_client::IdentityRegistryClient,
+    api::VerifierApi, db::Db, identity_registry_client::IdentityRegistryClient,
     web3_id_utils::CredStatement,
 };
 use chrono::Datelike;
@@ -70,7 +70,7 @@ async fn create_server_routes(config: ApiConfig) -> anyhow::Result<CorsEndpoint<
     Ok(routes)
 }
 
-async fn create_service(config: ApiConfig) -> Result<OpenApiService<Api, ()>, anyhow::Error> {
+async fn create_service(config: ApiConfig) -> Result<OpenApiService<VerifierApi, ()>, anyhow::Error> {
     let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri)
         .await
         .map_err(|_| anyhow::Error::msg("Failed to connect to MongoDB"))?;
@@ -138,7 +138,7 @@ async fn create_service(config: ApiConfig) -> Result<OpenApiService<Api, ()>, an
     info!("Identity Providers: {:?}", identity_providers);
 
     let api_service = OpenApiService::new(
-        Api {
+        VerifierApi {
             id_statement,
             cred_statement,
             identity_registry,

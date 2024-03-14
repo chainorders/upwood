@@ -1,4 +1,11 @@
-use super::db::{DbToken, IContractDb, TokenHolder};
+//! This module contains the API implementation for the RWA security NFT.
+//! The `RwaSecurityNftApi` struct provides methods to retrieve paged lists of
+//! tokens and holders for a specific RWA security NFT contract. It interacts
+//! with the `IRwaSecurityNftDb` trait to fetch data from the database.
+//! The API endpoints are defined using the `poem_openapi` and `poem` crates,
+//! and the responses are serialized as JSON using the `Json` type.
+
+use super::db::{DbToken, IRwaSecurityNftDb, TokenHolder};
 use crate::shared::{
     api::{ApiAddress, Error, PagedResponse, PAGE_SIZE},
     db::{DbAddress, DbTokenAmount, ICollection},
@@ -8,8 +15,11 @@ use concordium_rust_sdk::types::ContractAddress;
 use futures::TryStreamExt;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
+/// The `ApiNftToken` struct represents a token in the RWA security NFT,
+/// containing information such as the token ID, whether it is paused, the
+/// metadata URL, the metadata URL hash, and the supply.
 #[derive(Object)]
-pub struct NftToken {
+pub struct ApiNftToken {
     pub token_id:          String,
     pub is_paused:         bool,
     pub metadata_url:      String,
@@ -17,7 +27,7 @@ pub struct NftToken {
     pub supply:            String,
 }
 
-impl From<DbToken> for NftToken {
+impl From<DbToken> for ApiNftToken {
     fn from(db_token: DbToken) -> Self {
         Self {
             token_id:          db_token.token_id.0.into(),
@@ -29,15 +39,16 @@ impl From<DbToken> for NftToken {
     }
 }
 
+/// A struct representing holder of a RWA security NFT.
 #[derive(Object)]
-pub struct NftHolder {
+pub struct ApiNftHolder {
     pub token_id:       String,
     pub address:        ApiAddress,
     pub balance:        String,
     pub frozen_balance: String,
 }
 
-impl From<TokenHolder> for NftHolder {
+impl From<TokenHolder> for ApiNftHolder {
     fn from(token_holder: TokenHolder) -> Self {
         Self {
             token_id:       token_holder.token_id.0.into(),
@@ -48,19 +59,30 @@ impl From<TokenHolder> for NftHolder {
     }
 }
 
-pub struct Api<TDb: IContractDb> {
+/// The RWA security NFT API.
+pub struct RwaSecurityNftApi<TDb: IRwaSecurityNftDb> {
     pub db: TDb,
 }
 
+/// API implementation for the RWA security NFT.
 #[OpenApi]
-impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
+impl<TDb: IRwaSecurityNftDb + Sync + Send + 'static> RwaSecurityNftApi<TDb> {
+    /// Get the list of tokens for a specific RWA security NFT contract.
+    ///
+    /// # Parameters
+    /// - `index`: The index of the RWA security NFT contract.
+    /// - `subindex`: The subindex of the RWA security NFT contract.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of tokens for the RWA security NFT contract.
     #[oai(path = "/rwa-security-nft/:index/:subindex/tokens/:page", method = "get")]
     pub async fn tokens(
         &self,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<NftToken>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiNftToken>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -74,6 +96,16 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
+    /// Get the list of holders for a specific RWA security NFT contract.
+    ///
+    /// # Parameters
+    /// - `index`: The index of the RWA security NFT contract.
+    /// - `subindex`: The subindex of the RWA security NFT contract.
+    /// - `address`: The address of the holder.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of holders for the RWA security NFT contract.
     #[oai(path = "/rwa-security-nft/:index/:subindex/holders/:address/:page", method = "get")]
     pub async fn holders(
         &self,
@@ -81,7 +113,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Path(subindex): Path<u64>,
         Path(address): Path<String>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<NftHolder>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiNftHolder>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -96,7 +128,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         let coll = self.db.holders(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<NftHolder> = data.into_iter().map(|holder| holder.into()).collect();
+        let data: Vec<ApiNftHolder> = data.into_iter().map(|holder| holder.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
         let res = PagedResponse {
@@ -108,6 +140,18 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
+    /// Get the list of holders of a specific token for a RWA security NFT
+    /// contract.
+    ///
+    /// # Parameters
+    /// - `index`: The index of the RWA security NFT contract.
+    /// - `subindex`: The subindex of the RWA security NFT contract.
+    /// - `token_id`: The ID of the token.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of holders of the specified token for the RWA security NFT
+    /// contract.
     #[oai(path = "/rwa-security-nft/:index/:subindex/holdersOf/:token_id/:page", method = "get")]
     pub async fn holders_of(
         &self,
@@ -115,7 +159,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Path(subindex): Path<u64>,
         Path(token_id): Path<String>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<NftHolder>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiNftHolder>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -126,7 +170,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         let coll = self.db.holders(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<NftHolder> = data.into_iter().map(|holder| holder.into()).collect();
+        let data: Vec<ApiNftHolder> = data.into_iter().map(|holder| holder.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
         let res = PagedResponse {
@@ -138,16 +182,25 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
+    /// Convert the query result to a paged token response.
+    ///
+    /// # Parameters
+    /// - `query`: The query to filter the tokens.
+    /// - `contract`: The contract address of the RWA security NFT contract.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A paged response containing the filtered tokens.
     pub async fn to_paged_token_response(
         &self,
         query: Document,
         contract: ContractAddress,
         page: u64,
-    ) -> anyhow::Result<PagedResponse<NftToken>> {
+    ) -> anyhow::Result<PagedResponse<ApiNftToken>> {
         let coll = self.db.tokens(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbToken> = cursor.try_collect().await?;
-        let data: Vec<NftToken> = data.into_iter().map(|token| token.into()).collect();
+        let data: Vec<ApiNftToken> = data.into_iter().map(|token| token.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
 

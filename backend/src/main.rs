@@ -3,6 +3,7 @@ mod sponsor;
 mod txn_listener;
 mod txn_processor;
 mod verifier;
+
 use anyhow::Ok;
 use clap::Parser;
 use dotenv::dotenv;
@@ -18,6 +19,25 @@ enum Command {
     SponsorApi(sponsor::ApiConfig),
 }
 
+/// Main entry point for the application.
+/// Parses the command line arguments and runs the appropriate subcommand.
+/// 
+/// The subcommands are:
+/// - `generate-contracts-api-specs`: Generates the OpenAPI specs for the
+///   contracts API.
+/// - `contracts-api`: Runs the contracts API server and the contracts events
+///   processor.
+/// - `generate-verifier-api-specs`: Generates the OpenAPI specs for the
+///   verifier API.
+/// - `verifier-api`: Runs the verifier API server.
+/// - `generate-sponsor-api-specs`: Generates the OpenAPI specs for the sponsor
+///   API.
+/// - `sponsor-api`: Runs the sponsor API server.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the subcommand runs successfully, otherwise returns an
+/// `anyhow::Result` with an error.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();

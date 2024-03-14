@@ -6,13 +6,13 @@ use concordium_rust_sdk::types::{
 };
 use concordium_rwa_market::event::{Event, PaymentAmount, PaymentTokenUId};
 
-use super::db::{DbDepositedToken, IContractDb};
+use super::db::{DbDepositedToken, IRwaMarketDb};
 use crate::{
     shared::db::{DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
     txn_listener::EventsProcessor,
 };
 
-pub struct Processor<TDb: IContractDb> {
+pub struct RwaMarketProcessor<TDb: IRwaMarketDb> {
     /// Client to interact with the MongoDB database.
     pub db:         TDb,
     /// Module reference of the contract.
@@ -20,7 +20,7 @@ pub struct Processor<TDb: IContractDb> {
 }
 
 #[async_trait]
-impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
+impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb> {
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns

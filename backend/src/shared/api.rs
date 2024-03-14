@@ -11,6 +11,7 @@ use super::db::{DbAddress, DbContractAddress};
 
 pub const PAGE_SIZE: u64 = 20;
 
+/// The error type for the API.
 #[derive(Debug, ApiResponse)]
 pub enum Error {
     #[oai(status = 400)]
@@ -34,6 +35,7 @@ impl From<AddressParseError> for Error {
     fn from(_: AddressParseError) -> Self { Self::ParseError }
 }
 
+/// A wrapper around the `ContractAddress` type that can be used in the API.
 #[derive(Object, Debug, Clone, Copy)]
 pub struct ApiContractAddress {
     index:    u64,
@@ -70,6 +72,7 @@ impl From<ApiContractAddress> for ContractAddress {
     }
 }
 
+/// A wrapper around the `Address` type that can be used in the API.
 #[derive(Object, Debug)]
 pub struct ApiAddress {
     pub account_address:  Option<String>,
@@ -90,6 +93,8 @@ impl From<DbAddress> for ApiAddress {
     }
 }
 
+/// Pages Response. This is a generic response that can be used to return a list
+/// of items with pagination.
 #[derive(Object)]
 pub struct PagedResponse<T: Sync + Send + Type + ToJSON + ParseFromJSON> {
     pub page_count: u64,
@@ -97,4 +102,5 @@ pub struct PagedResponse<T: Sync + Send + Type + ToJSON + ParseFromJSON> {
     pub data:       Vec<T>,
 }
 
+/// A wrapper around the `AccountAddress` type that can be used in the API.
 pub type ApiAccountAddress = String;
