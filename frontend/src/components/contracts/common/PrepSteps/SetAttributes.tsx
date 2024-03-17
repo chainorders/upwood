@@ -1,7 +1,17 @@
-import { Stack, TextField, Button } from "@mui/material";
+import {
+	Stack,
+	TextField,
+	Button,
+	FormControlLabel,
+	Checkbox,
+} from "@mui/material";
 import { useState } from "react";
 
 export type Attributes = {
+	constructionDate?: string;
+	longitude?: string;
+	latitude?: string;
+	unique?: boolean;
 	name?: string;
 	description?: string;
 	symbol?: string;
@@ -15,7 +25,7 @@ const SetAttributes = (props: {
 	const isValid = attrs.name && attrs.description;
 
 	return (
-		<Stack>
+		<Stack spacing={1}>
 			<TextField
 				label="Name"
 				value={attrs.name || ""}
@@ -30,6 +40,34 @@ const SetAttributes = (props: {
 				label="Symbol"
 				value={attrs.symbol || ""}
 				onChange={(e) => setAttrs({ ...attrs, symbol: e.target.value })}
+			/>
+			<FormControlLabel
+				control={
+					<Checkbox
+						defaultChecked
+						value={attrs.unique || false}
+						onChange={(e) => setAttrs({ ...attrs, unique: e.target.checked })}
+					/>
+				}
+				label="Is Unique"
+			/>
+			<TextField
+				label="Latitude"
+				value={attrs.latitude || ""}
+				onChange={(e) => setAttrs({ ...attrs, latitude: e.target.value })}
+			/>
+			<TextField
+				label="Longitude"
+				value={attrs.longitude || ""}
+				onChange={(e) => setAttrs({ ...attrs, longitude: e.target.value })}
+			/>
+			<TextField
+				type="date"
+				label="Construction Date"
+				value={attrs.constructionDate || ""}
+				onChange={(e) =>
+					setAttrs({ ...attrs, constructionDate: e.target.value })
+				}
 			/>
 			<Button onClick={() => props.onDone(attrs)} disabled={!isValid}>
 				{props.doneButtonText}
