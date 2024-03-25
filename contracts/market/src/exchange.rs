@@ -62,8 +62,6 @@ pub fn exchange(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let params: ExchangeParams = ctx.parameter_cursor().get()?;
-    ensure!(ctx.sender().matches_account(&params.payer), Error::Unauthorized);
-
     exchange_internal(ctx.self_address(), ctx.owner(), params, amount_paid, host, logger)
 }
 

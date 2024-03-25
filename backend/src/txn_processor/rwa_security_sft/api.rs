@@ -1,4 +1,10 @@
-use super::db::{DbDepositedToken, DbToken, IContractDb, TokenHolder};
+//! The API for the RWA Security SFT module.
+//!
+//! This module contains the API for the RWA Security SFT module, which allows
+//! users to retrieve paged lists of tokens, holders, and deposited tokens for
+//! a specific RWA Security SFT contract. It interacts with the
+//! `IRwaSecuritySftDb` trait to fetch data from the database.
+use super::db::{DbDepositedToken, DbToken, IRwaSecuritySftDb, TokenHolder};
 use crate::shared::{
     api::{ApiAddress, ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
     db::{DbAccountAddress, DbAddress, ICollection},
@@ -10,7 +16,7 @@ use log::debug;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
 #[derive(Object, Debug)]
-pub struct SftToken {
+pub struct ApiSftToken {
     pub token_id:          String,
     pub is_paused:         bool,
     pub metadata_url:      String,
@@ -18,7 +24,7 @@ pub struct SftToken {
     pub supply:            String,
 }
 
-impl From<DbToken> for SftToken {
+impl From<DbToken> for ApiSftToken {
     fn from(db_token: DbToken) -> Self {
         Self {
             token_id:          db_token.token_id.0.into(),
@@ -31,14 +37,14 @@ impl From<DbToken> for SftToken {
 }
 
 #[derive(Object)]
-pub struct SftHolder {
+pub struct ApiSftHolder {
     pub token_id:       String,
     pub address:        ApiAddress,
     pub balance:        String,
     pub frozen_balance: String,
 }
 
-impl From<TokenHolder> for SftHolder {
+impl From<TokenHolder> for ApiSftHolder {
     fn from(token_holder: TokenHolder) -> Self {
         Self {
             token_id:       token_holder.token_id.0.into(),
@@ -50,7 +56,7 @@ impl From<TokenHolder> for SftHolder {
 }
 
 #[derive(Object)]
-pub struct DepositedToken {
+pub struct ApiDepositedToken {
     pub token_contract:   ApiContractAddress,
     pub token_id:         String,
     pub owner:            String,
@@ -59,7 +65,7 @@ pub struct DepositedToken {
     pub un_locked_amount: String,
 }
 
-impl From<DbDepositedToken> for DepositedToken {
+impl From<DbDepositedToken> for ApiDepositedToken {
     fn from(db_deposited_token: DbDepositedToken) -> Self {
         Self {
             token_contract:   db_deposited_token.token_contract.into(),
@@ -72,19 +78,29 @@ impl From<DbDepositedToken> for DepositedToken {
     }
 }
 
-pub struct Api<TDb: IContractDb> {
+/// The API for the RWA Security SFT module.
+pub struct RwaSecuritySftApi<TDb: IRwaSecuritySftDb> {
     pub db: TDb,
 }
 
 #[OpenApi]
-impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
+impl<TDb: IRwaSecuritySftDb + Sync + Send + 'static> RwaSecuritySftApi<TDb> {
+    /// Get all tokens for a specific contract
+    ///
+    /// # Parameters
+    /// - `index`: The index of the contract.
+    /// - `subindex`: The subindex of the contract.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of tokens for the contract.
     #[oai(path = "/rwa-security-sft/:index/:subindex/tokens/:page", method = "get")]
     pub async fn tokens(
         &self,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<SftToken>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiSftToken>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -95,6 +111,16 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
+    /// Get all holders.
+    ///
+    /// # Parameters
+    /// - `index`: The index of the contract.
+    /// - `subindex`: The subindex of the contract.
+    /// - `address`: The address of the holder.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of holders for the token.
     #[oai(path = "/rwa-security-sft/:index/:subindex/holders/:address/:page", method = "get")]
     pub async fn holders(
         &self,
@@ -102,7 +128,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Path(subindex): Path<u64>,
         Path(address): Path<String>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<SftHolder>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiSftHolder>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -117,7 +143,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         let coll = self.db.holders(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<SftHolder> = data.into_iter().map(|holder| holder.into()).collect();
+        let data: Vec<ApiSftHolder> = data.into_iter().map(|holder| holder.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
         let res = PagedResponse {
@@ -129,6 +155,16 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
+    /// Get all holders of a specific token
+    ///
+    /// # Parameters
+    /// - `index`: The index of the contract.
+    /// - `subindex`: The subindex of the contract.
+    /// - `token_id`: The ID of the token.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of holders of the token.
     #[oai(path = "/rwa-security-sft/:index/:subindex/holdersOf/:token_id/:page", method = "get")]
     pub async fn holders_of(
         &self,
@@ -136,7 +172,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Path(subindex): Path<u64>,
         Path(token_id): Path<String>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<SftHolder>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiSftHolder>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -147,7 +183,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         let coll = self.db.holders(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<SftHolder> = data.into_iter().map(|holder| holder.into()).collect();
+        let data: Vec<ApiSftHolder> = data.into_iter().map(|holder| holder.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
         let res = PagedResponse {
@@ -159,6 +195,16 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
+    /// Get all deposited tokens for a specific owner
+    ///
+    /// # Parameters
+    /// - `index`: The index of the contract.
+    /// - `subindex`: The subindex of the contract.
+    /// - `owner`: The address of the owner.
+    /// - `page`: The page number of the results.
+    ///
+    /// # Returns
+    /// A list of deposited tokens for the owner.
     #[oai(path = "/rwa-security-sft/:index/:subindex/deposited/:owner/:page", method = "get")]
     pub async fn deposited(
         &self,
@@ -166,7 +212,7 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
         Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<DepositedToken>>, Error> {
+    ) -> Result<Json<PagedResponse<ApiDepositedToken>>, Error> {
         let contract = ContractAddress {
             index,
             subindex,
@@ -181,16 +227,16 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         Ok(Json(res))
     }
 
-    pub async fn to_paged_token_response(
+    async fn to_paged_token_response(
         &self,
         query: Document,
         contract: ContractAddress,
         page: u64,
-    ) -> anyhow::Result<PagedResponse<SftToken>> {
+    ) -> anyhow::Result<PagedResponse<ApiSftToken>> {
         let coll = self.db.tokens(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbToken> = cursor.try_collect().await?;
-        let data: Vec<SftToken> = data.into_iter().map(|token| token.into()).collect();
+        let data: Vec<ApiSftToken> = data.into_iter().map(|token| token.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
 
@@ -201,16 +247,16 @@ impl<TDb: IContractDb + Sync + Send + 'static> Api<TDb> {
         })
     }
 
-    pub async fn to_paged_deposited_token_response(
+    async fn to_paged_deposited_token_response(
         &self,
         query: Document,
         contract: ContractAddress,
         page: u64,
-    ) -> anyhow::Result<PagedResponse<DepositedToken>> {
+    ) -> anyhow::Result<PagedResponse<ApiDepositedToken>> {
         let coll = self.db.deposited_tokens(&contract);
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
-        let data: Vec<DepositedToken> = data.into_iter().map(|token| token.into()).collect();
+        let data: Vec<ApiDepositedToken> = data.into_iter().map(|token| token.into()).collect();
         let total_count = coll.count(query).await?;
         let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
 

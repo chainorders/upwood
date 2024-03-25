@@ -1,5 +1,5 @@
 use super::db::{
-    ContractConfig, DbToken, IContractDb, TokenHolder, TokenHolderOperator,
+    ContractConfig, DbToken, IRwaSecurityNftDb, TokenHolder, TokenHolderOperator,
     TokenHolderRecoveryRecord,
 };
 use crate::{
@@ -19,7 +19,7 @@ use concordium_rust_sdk::{
 use concordium_rwa_security_nft::event::Event;
 use tokio::try_join;
 
-pub struct Processor<TDb> {
+pub struct RwaSecurityNftProcessor<TDb> {
     /// Client to interact with the MongoDB database.
     pub db:         TDb,
     /// Module reference of the contract.
@@ -27,7 +27,7 @@ pub struct Processor<TDb> {
 }
 
 #[async_trait]
-impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
+impl<TDb: Send + Sync + IRwaSecurityNftDb> EventsProcessor for RwaSecurityNftProcessor<TDb> {
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns
@@ -192,15 +192,30 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
                         let token_amount = DbTokenAmount(e.amount.0.into());
                         let token_holders = self.db.holders(contract);
                         let tokens = self.db.tokens(contract);
+
                         try_join!(
-                            tokens.insert_one(DbToken {
-                                supply: token_amount.clone(),
-                                ..DbToken::default(token_id.clone())
+                            tokens.upsert_one(DbToken::key(&token_id), |t| {
+                                let mut token = match t {
+                                    None => DbToken::default(token_id.clone()),
+                                    Some(t) => t,
+                                };
+                                token.supply.add_assign(token_amount.clone());
+                                token
                             }),
-                            token_holders.insert_one(TokenHolder {
-                                balance: token_amount.clone(),
-                                ..TokenHolder::default(token_id, DbAddress(e.owner))
-                            },)
+                            token_holders.upsert_one(
+                                TokenHolder::key(&token_id, &DbAddress(e.owner)),
+                                |h| {
+                                    let mut token_holder = match h {
+                                        None => TokenHolder::default(
+                                            token_id.clone(),
+                                            DbAddress(e.owner),
+                                        ),
+                                        Some(h) => h,
+                                    };
+                                    token_holder.balance.add_assign(token_amount.clone());
+                                    token_holder
+                                }
+                            )
                         )?;
                     }
                     Cis2Event::TokenMetadata(e) => {
@@ -261,7 +276,10 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
                         try_join!(
                             tokens.upsert_one(DbToken::key(&token_id), |t| {
                                 let mut token = match t {
-                                    None => DbToken::default(token_id.clone()),
+                                    None => DbToken {
+                                        supply: token_amount.clone(),
+                                        ..DbToken::default(token_id.clone())
+                                    },
                                     Some(t) => t,
                                 };
                                 token.supply.sub_assign(token_amount.clone());
@@ -271,10 +289,13 @@ impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
                                 TokenHolder::key(&token_id, &DbAddress(e.owner)),
                                 |h| {
                                     let mut token_holder = match h {
-                                        None => TokenHolder::default(
-                                            token_id.clone(),
-                                            DbAddress(e.owner),
-                                        ),
+                                        None => TokenHolder {
+                                            balance: token_amount.clone(),
+                                            ..TokenHolder::default(
+                                                token_id.clone(),
+                                                DbAddress(e.owner),
+                                            )
+                                        },
                                         Some(h) => h,
                                     };
                                     token_holder.balance.sub_assign(token_amount.clone());

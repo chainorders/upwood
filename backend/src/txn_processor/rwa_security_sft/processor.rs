@@ -1,5 +1,5 @@
 use super::db::{
-    ContractConfig, DbToken, IContractDb, TokenHolder, TokenHolderOperator,
+    ContractConfig, DbToken, IRwaSecuritySftDb, TokenHolder, TokenHolderOperator,
     TokenHolderRecoveryRecord,
 };
 use crate::{
@@ -22,7 +22,7 @@ use concordium_rust_sdk::{
 use concordium_rwa_security_sft::event::Event;
 use tokio::try_join;
 
-pub struct Processor<TDb> {
+pub struct RwaSecuritySftProcessor<TDb> {
     /// Client to interact with the MongoDB database.
     pub db:         TDb,
     /// Module reference of the contract.
@@ -30,7 +30,7 @@ pub struct Processor<TDb> {
 }
 
 #[async_trait]
-impl<TDb: Send + Sync + IContractDb> EventsProcessor for Processor<TDb> {
+impl<TDb: Send + Sync + IRwaSecuritySftDb> EventsProcessor for RwaSecuritySftProcessor<TDb> {
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns

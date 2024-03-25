@@ -2,6 +2,25 @@
 
 ## Contracts
 
+### [Market Contract](./market/src/lib.rs) : Market Contract for trading RWA tokens
+
+Functions:
+
+- `addPaymentToken` - Adds a new payment token to the contract.
+- `addSellTokenContract` - Adds a new sell token contract to the contract. These tokens can be exchanged with the payment tokens.
+- `allowedToList` - Checks if a token is allowed to be listed / sold on the contract.
+- `balanceOfDeposited` - Returns the balance of deposited tokens for a user.
+- `balanceOfListed` - Returns the balance of listed tokens for a user. Balance which can be exchanged.
+- `balanceOfUnlisted` - Returns the balance of unlisted tokens for a user. Balance which can be withdrawn.
+- `calculateAmounts` - Calculates the amounts which are sent to the seller, buyer and contract owner as commission.
+- `deList` - Removes a token from the list of listed tokens.
+- `deposit` - Deposits a certain amount of tokens to the contract.
+- `exchange` - Exchanges one type of token for another.
+- `getListed` - Returns a list of all listed tokens.
+- `list` - Lists a new token in the contract.
+- `paymentTokens` - Returns a list of all payment tokens.
+- `withdraw` - Withdraws a certain amount of tokens from the contract.
+
 ### [Security Token Contract](./security-nft/src/lib.rs) : `rwa_security_nft` CIS2 compatible contract for security NFTs
 
 The `Security Token Contract` is a robust and flexible solution for managing security Non-Fungible Tokens (NFTs). It provides a comprehensive set of functionalities for managing the lifecycle of these tokens.

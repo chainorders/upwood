@@ -11,12 +11,12 @@ use crate::{
     txn_listener::EventsProcessor,
 };
 
-use super::db::IContractDb;
+use super::db::IRwaIdentityRegistryDb;
 
 /// `RwaIdentityRegistryProcessor` is a struct that processes events for the
 /// rwa-identity-registry contract. It maintains a connection to a MongoDB
 /// database and contains the module reference and name of the contract.
-pub struct Processor<TDb: IContractDb> {
+pub struct RwaIdentityRegistryProcessor<TDb: IRwaIdentityRegistryDb> {
     /// Client to interact with the MongoDB database.
     pub db:         TDb,
     /// Module reference of the contract.
@@ -24,7 +24,9 @@ pub struct Processor<TDb: IContractDb> {
 }
 
 #[async_trait]
-impl<TDb: Sync + Send + IContractDb> EventsProcessor for Processor<TDb> {
+impl<TDb: Sync + Send + IRwaIdentityRegistryDb> EventsProcessor
+    for RwaIdentityRegistryProcessor<TDb>
+{
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns

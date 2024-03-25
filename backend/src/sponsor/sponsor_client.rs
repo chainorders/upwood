@@ -15,6 +15,7 @@ use concordium_rwa_sponsor::types::PermitParam;
 
 const SPONSOR_CONTRACT_NAME: &str = "init_rwa_sponsor";
 
+/// Represents the possible errors that can occur in the SponsorClient.
 pub enum Error {
     AccountInfoQuery(v2::QueryError),
     Rpc(v2::RPCError),
@@ -34,11 +35,23 @@ impl From<ExceedsParameterSize> for Error {
     fn from(e: ExceedsParameterSize) -> Self { Error::ExceedsParameterSize(e) }
 }
 
+/// Represents a client for interacting with the Sponsor contract.
 pub struct SponsorClient {
     pub client: ContractClient<Self>,
 }
 
 impl SponsorClient {
+    /// Creates a new instance of SponsorClient.
+    ///
+    /// # Arguments
+    ///
+    /// * `concordium_client` - The Concordium client used for interacting with
+    ///   the blockchain.
+    /// * `sponsor_contract` - The address of the Sponsor contract.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of SponsorClient.
     pub fn new(concordium_client: v2::Client, sponsor_contract: ContractAddress) -> Self {
         let client = ContractClient::new(
             concordium_client,
@@ -50,6 +63,22 @@ impl SponsorClient {
         }
     }
 
+    /// Sends a permit transaction to the Sponsor contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `sponsor` - The wallet account of the sponsor.
+    /// * `energy` - The amount of energy to be used for the transaction.
+    /// * `param` - The permit parameters.
+    ///
+    /// # Returns
+    ///
+    /// The transaction hash of the permit transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was a problem querying the account info,
+    /// sending the transaction, or if the parameter size exceeds the limit.
     pub async fn permit(
         &mut self,
         sponsor: &WalletAccount,
@@ -87,6 +116,7 @@ impl SponsorClient {
     }
 }
 
+/// Returns the default expiry time for a transaction.
 fn default_expiry_time() -> TransactionTime {
     TransactionTime::from_seconds((Utc::now().timestamp() + 300) as u64)
 }

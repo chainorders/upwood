@@ -53,11 +53,22 @@ impl From<ExceedsParameterSize> for Error {
     fn from(e: ExceedsParameterSize) -> Self { Error::ExceedsParameterSize(e) }
 }
 
+/// A client for the Identity Registry contract.
 pub struct IdentityRegistryClient {
     pub client: ContractClient<Self>,
 }
 
 impl IdentityRegistryClient {
+    /// Create a new client for the Identity Registry contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `concordium_client` - Client to interact with the Concordium node.
+    /// * `identity_registry` - Address of the Identity Registry contract.
+    ///
+    /// # Returns
+    ///
+    /// * A new `IdentityRegistryClient`.
     pub fn new(concordium_client: v2::Client, identity_registry: ContractAddress) -> Self {
         let client = ContractClient::new(
             concordium_client,
@@ -69,6 +80,14 @@ impl IdentityRegistryClient {
         }
     }
 
+    /// Get the list of issuers.
+    ///
+    /// This is a view function and does not require a transaction.
+    ///
+    /// # Returns
+    ///
+    /// * A Result containing a vector of `ContractAddress`es representing the
+    ///   issuers, or an `Error`.
     pub async fn issuers(&mut self) -> Result<Vec<ContractAddress>, Error> {
         let res = self
             .client
@@ -82,6 +101,19 @@ impl IdentityRegistryClient {
         Ok(res)
     }
 
+    /// Register a new identity.
+    ///
+    /// # Arguments
+    ///
+    /// * `agent` - The account that will be registering the identity.
+    /// * `address` - The address of the identity to be registered.
+    /// * `verification_response` - Verification Presentation from Users wallet.
+    /// * `energy` - The amount of energy to use for the transaction.
+    ///
+    /// # Returns
+    ///
+    /// * A Result containing the `TransactionHash` of the transaction, or an
+    ///   `Error`.
     pub async fn register_identity(
         &mut self,
         agent: &WalletAccount,

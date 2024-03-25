@@ -37,7 +37,7 @@ import {
 	Token,
 } from "@mui/icons-material";
 import { grey } from "@mui/material/colors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	EventType,
 	WalletApi,
@@ -112,6 +112,12 @@ const MarketAppBar = (props: {
 		handleClose();
 		props.onLogout();
 	};
+
+	useEffect(() => { 
+		if (isLoggedIn) {
+			login();
+		}
+	}, [isLoggedIn]);
 
 	return (
 		<AppBar position="static" sx={{ bgcolor: grey[900] }}>

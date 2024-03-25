@@ -4,6 +4,7 @@ use concordium_rust_sdk::{smart_contracts::common::AccountAddress, types::Contra
 use mongodb::Collection;
 use serde::{Deserialize, Serialize};
 
+/// Represents a challenge stored in the database.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DbChallenge {
     pub challenge:  String,
@@ -11,6 +12,7 @@ pub struct DbChallenge {
     pub created_at: DateTime<Utc>,
 }
 
+/// Represents a database connection.
 pub struct Db {
     pub client:            mongodb::Client,
     pub identity_registry: ContractAddress,
@@ -18,6 +20,7 @@ pub struct Db {
 }
 
 impl Db {
+    /// Returns the MongoDB database associated with the verifier.
     fn database(&self) -> mongodb::Database {
         self.client.database(&format!(
             "verifier-{}-{}-{}",
@@ -28,15 +31,37 @@ impl Db {
         ))
     }
 
+    /// Returns the MongoDB collection for storing challenges.
     fn challenges(&self) -> Collection<DbChallenge> {
         self.database().collection::<DbChallenge>("challenges")
     }
 
+    /// Inserts a challenge into the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `challenge` - The challenge to be inserted.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the insertion is successful, otherwise returns an
+    /// `anyhow::Result` with an error.
     pub async fn insert_challenge(&self, challenge: DbChallenge) -> anyhow::Result<()> {
         self.challenges().insert_one(challenge, None).await?;
         Ok(())
     }
 
+    /// Finds a challenge in the database by address.
+    ///
+    /// # Arguments
+    ///
+    /// * `address` - The address of the challenge to be found.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Some(challenge))` if a matching challenge is found,
+    /// `Ok(None)` if no matching challenge is found, otherwise returns an
+    /// `anyhow::Result` with an error.
     pub async fn find_challenge(
         &self,
         address: &AccountAddress,

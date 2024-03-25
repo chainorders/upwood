@@ -54,6 +54,12 @@ const PrepareAndUploadMetadata = (props: {
 			symbol: attributes.symbol,
 			thumbnail: { url: imageUrl },
 			artifact: { url: artifactUrl },
+			unique: attributes.unique,
+			attributes: [
+				{name: "latitude", value: attributes.latitude, type: "string"},
+				{name: "longitude", value: attributes.longitude, type: "string"},
+				{name: "constructionDate", value: attributes.constructionDate, type: "string"},
+			]
 		});
 		setStep(PrepMetadataStep.UploadMetadata);
 	};

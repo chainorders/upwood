@@ -598,7 +598,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const rwaMarket = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"0a875067cb5c993d0f9bf9bc5c8941698ab34977eeb13c91b6b75024db33c61d",
+			"67655f7a28ec355cb5c33fb6cc53bf4f64d40d5a2b231610f7daa1b4f39fa96c",
 		),
 		ContractName.fromString("rwa_market"),
 		initRequestSchemaBase64,

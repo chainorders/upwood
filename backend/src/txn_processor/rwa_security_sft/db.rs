@@ -138,31 +138,95 @@ pub struct TokenHolderRecoveryRecord {
 }
 
 #[async_trait]
-pub trait IContractDb: IDb {
+pub trait IRwaSecuritySftDb: IDb {
+    /// Returns the collection of agents for a given contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of agents for the contract.
     fn agents(&self, contract: &ContractAddress) -> Collection<DbAddress> {
         self.database(contract).collection::<DbAddress>("agents").into()
     }
 
+    /// Returns the collection of contract configurations for a given contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of contract configurations for the contract.
     fn config(&self, contract: &ContractAddress) -> Collection<ContractConfig> {
         self.database(contract).collection::<ContractConfig>("config").into()
     }
 
+    /// Returns the collection of tokens for a given contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of tokens for the contract.
     fn tokens(&self, contract: &ContractAddress) -> Collection<DbToken> {
         self.database(contract).collection::<DbToken>("tokens").into()
     }
 
+    /// Returns the collection of deposited tokens for a given contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of deposited tokens for the contract.
     fn deposited_tokens(&self, contract: &ContractAddress) -> Collection<DbDepositedToken> {
         self.database(contract).collection::<DbDepositedToken>("deposited_tokens").into()
     }
 
+    /// Returns the collection of token holders for a given contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of token holders for the contract.
     fn holders(&self, contract: &ContractAddress) -> Collection<TokenHolder> {
         self.database(contract).collection::<TokenHolder>("holders").into()
     }
 
+    /// Returns the collection of token holder operators for a given contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of token holder operators for the contract.
     fn operators(&self, contract: &ContractAddress) -> Collection<TokenHolderOperator> {
         self.database(contract).collection::<TokenHolderOperator>("operators").into()
     }
 
+    /// Returns the collection of token holder recovery records for a given
+    /// contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    ///
+    /// # Returns
+    ///
+    /// The collection of token holder recovery records for the contract.
     fn recovery_records(
         &self,
         contract: &ContractAddress,
@@ -170,6 +234,18 @@ pub trait IContractDb: IDb {
         self.database(contract).collection::<TokenHolderRecoveryRecord>("recovery_records").into()
     }
 
+    /// Replaces a token holder's account address with a new account address.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - The contract address.
+    /// * `lost_account` - The address of the lost account.
+    /// * `new_account` - The address of the new account.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the operation is successful, otherwise returns an
+    /// `anyhow::Result` with an error.
     async fn replace_holder(
         &self,
         contract: &ContractAddress,
