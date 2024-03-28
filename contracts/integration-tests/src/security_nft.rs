@@ -37,6 +37,8 @@ pub trait ISecurityNftContract: ITestContract {
 }
 
 pub trait ISecurityNftContractExt: ISecurityNftContract {
+
+    /// Mint a single token and return the token id.
     fn mint_single_update(
         &self,
         chain: &mut Chain,
