@@ -26,6 +26,7 @@ use integration_tests::{
     market::{IMarketContract, IMarketModule, MarketContract, MarketModule},
     security_nft::{ISecurityNftContract, ISecurityNftContractExt},
     test_contract_client::{ITestContract, ITestModule},
+    utils::{to_token_amount_u64, to_token_id_vec},
     verifier::Verifier,
 };
 

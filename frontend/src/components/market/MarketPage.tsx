@@ -113,7 +113,7 @@ const MarketAppBar = (props: {
 		props.onLogout();
 	};
 
-	useEffect(() => { 
+	useEffect(() => {
 		if (isLoggedIn) {
 			login();
 		}
