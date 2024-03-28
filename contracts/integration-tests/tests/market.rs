@@ -1,6 +1,6 @@
 #![allow(clippy::diverging_sub_expression, clippy::too_many_arguments)]
 
-mod utils;
+pub mod utils;
 
 use crate::utils::{
     common::{init_identity_contracts, init_security_token_contracts},

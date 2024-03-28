@@ -1,5 +1,5 @@
 #![allow(clippy::diverging_sub_expression, clippy::too_many_arguments)]
-mod utils;
+pub mod utils;
 
 use concordium_cis2::TokenAmountU32;
 use concordium_smart_contract_testing::*;

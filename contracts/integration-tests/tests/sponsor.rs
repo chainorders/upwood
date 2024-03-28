@@ -1,4 +1,4 @@
-mod utils;
+pub mod utils;
 
 use concordium_cis2::{AdditionalData, Receiver, TokenAmountU32, Transfer, TransferParams};
 use concordium_rwa_sponsor::types::{PermitMessage, PermitParam};

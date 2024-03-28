@@ -1,4 +1,4 @@
-mod utils;
+pub mod utils;
 
 use concordium_smart_contract_testing::*;
 use concordium_std::AccountAddress;
