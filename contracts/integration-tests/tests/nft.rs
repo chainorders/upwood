@@ -18,28 +18,72 @@ use utils::{
     verifier::Verifier,
 };
 
+const ADMIN: AccountAddress = AccountAddress([0; ACCOUNT_ADDRESS_SIZE]);
+
 #[test]
 fn init() {
     let mut chain = Chain::new();
-    let admin = Account::new_with_keys(
-        AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
-        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
-        AccountAccessStructure::singleton(PublicKey::default()),
-    );
-    [admin.clone()].iter().for_each(|a| {
-        chain.create_account(a.clone());
-    });
-
+    let admin = &create_default_admin(&mut chain);
     let (identity_registry, compliance_contract) =
-        init_identity_contracts(&mut chain, &admin, vec!["IN".to_owned(), "US".to_owned()]);
+        init_identity_contracts(&mut chain, admin, vec!["IN".to_owned(), "US".to_owned()]);
 
-    let _ = init_security_nft_contract(
+    let nft_contract = init_security_nft_contract(
         &mut chain,
-        &admin,
+        admin,
         &identity_registry,
         &compliance_contract,
         vec![],
     );
+
+    // account initializing the contract is the default first agent of the contract
+    let is_agent: bool = nft_contract
+        .is_agent()
+        .invoke(&mut chain, admin, &Address::Account(admin.address))
+        .expect("Is Agent")
+        .parse_return_value()
+        .expect("Parse Is Agent");
+    assert!(is_agent);
+}
+
+#[test]
+fn remove_agent() {
+    let mut chain = Chain::new();
+    let admin = &create_default_admin(&mut chain);
+    let (nft_contract, agent, _) = setup_contract_with_admin(&mut chain, admin);
+    let agent_address = Address::Account(agent.address);
+
+    nft_contract.remove_agent().update(&mut chain, admin, &agent_address).expect("Remove Agent");
+
+    let agents: Vec<Address> = nft_contract
+        .agents()
+        .invoke(&mut chain, &agent, &())
+        .expect("Agents")
+        .parse_return_value()
+        .expect("Parse Agents");
+    assert!(!agents.contains(&agent_address));
+
+    let is_agent: bool = nft_contract
+        .is_agent()
+        .invoke(&mut chain, &agent, &Address::Account(agent.address))
+        .expect("Is Agent")
+        .parse_return_value()
+        .expect("Parse Is Agent");
+    assert!(!is_agent);
+}
+
+#[test]
+fn check_is_agent() {
+    let mut chain = Chain::new();
+    let admin = &create_default_admin(&mut chain);
+    let (nft_contract, agent, _) = setup_contract_with_admin(&mut chain, admin);
+
+    let is_agent: bool = nft_contract
+        .is_agent()
+        .invoke(&mut chain, &agent, &Address::Account(agent.address))
+        .expect("Is Agent")
+        .parse_return_value()
+        .expect("Parse Is Agent");
+    assert!(is_agent);
 }
 
 #[test]
@@ -52,9 +96,13 @@ fn mint() {
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
-    [owner.clone()].iter().for_each(|a| {
-        chain.create_account(a.clone());
-    });
+    let other_account = Account::new_with_keys(
+        AccountAddress([4; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    chain.create_account(other_account.clone());
+
     verifier
         .register_nationalities(&mut chain, vec![(
             Address::Account(owner.address),
@@ -73,19 +121,27 @@ fn mint() {
             },
         )
         .expect("Minting to registered account");
+
     let balances: BalanceOfQueryResponse<TokenAmount> = nft_contract
         .balance_of()
         .invoke(&mut chain, &agent, &BalanceOfQueryParams {
-            queries: vec![BalanceOfQuery {
-                address:  Address::Account(owner.address),
-                token_id: token,
-            }],
+            queries: vec![
+                BalanceOfQuery {
+                    address:  Address::Account(owner.address),
+                    token_id: token,
+                },
+                BalanceOfQuery {
+                    address:  Address::Account(other_account.address),
+                    token_id: token,
+                },
+            ],
         })
         .expect("Balance of Owner")
         .parse_return_value()
         .expect("Parse Balance of Owner");
 
     assert_eq!(balances.0[0], 1.into());
+    assert_eq!(balances.0[1], 0.into());
 }
 
 #[test]
@@ -779,6 +835,232 @@ fn transfer_frozen() {
     {
         assert_eq!(failure_kind, InvokeFailure::ContractReject {
             code: Reject::from(Error::InsufficientFunds).error_code.into(),
+            data: vec![],
+        });
+    } else {
+        fail!("Expected ContractInvokeErrorKind::ExecutionError");
+    }
+}
+
+#[test]
+fn forced_transfer() {
+    let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
+    let mut chain = Chain::new();
+    let (nft_contract, agent, verifier) = setup_contract(&mut chain);
+    let owner = Account::new_with_keys(
+        AccountAddress([3; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let receiver = Account::new_with_keys(
+        AccountAddress([4; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    [owner.clone(), receiver.clone()].iter().for_each(|a| {
+        chain.create_account(a.clone());
+    });
+    verifier
+        .register_nationalities(&mut chain, vec![
+            (Address::Account(owner.address), compliant_nationalities[0].clone()),
+            (Address::Account(receiver.address), compliant_nationalities[1].clone()),
+        ])
+        .expect("Add Account identities");
+
+    let token = nft_contract
+        .mint_single_update(
+            &mut chain,
+            &agent,
+            Receiver::Account(owner.address),
+            ContractMetadataUrl {
+                url:  "ipfs:nft".to_string(),
+                hash: None,
+            },
+        )
+        .expect("Minting to registered account");
+
+    nft_contract
+        .forced_transfer()
+        .update(
+            &mut chain,
+            &agent,
+            &TransferParams(vec![concordium_cis2::Transfer {
+                from:     Address::Account(owner.address),
+                to:       Receiver::Account(receiver.address),
+                token_id: token,
+                amount:   1.into(),
+                data:     AdditionalData::empty(),
+            }]),
+        )
+        .expect("Forced Transfer");
+
+    let balances: BalanceOfQueryResponse<TokenAmount> = nft_contract
+        .balance_of()
+        .invoke(&mut chain, &agent, &BalanceOfQueryParams {
+            queries: vec![
+                BalanceOfQuery {
+                    address:  Address::Account(owner.address),
+                    token_id: token,
+                },
+                BalanceOfQuery {
+                    address:  Address::Account(receiver.address),
+                    token_id: token,
+                },
+            ],
+        })
+        .expect("Balances")
+        .parse_return_value()
+        .expect("Parse Balances");
+
+    assert_eq!(balances.0[0], 0.into());
+    assert_eq!(balances.0[1], 1.into());
+}
+
+#[test]
+fn forced_transfer_frozen() {
+    let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
+    let mut chain = Chain::new();
+    let (nft_contract, agent, verifier) = setup_contract(&mut chain);
+    let owner = Account::new_with_keys(
+        AccountAddress([3; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let receiver = Account::new_with_keys(
+        AccountAddress([4; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    [owner.clone(), receiver.clone()].iter().for_each(|a| {
+        chain.create_account(a.clone());
+    });
+    verifier
+        .register_nationalities(&mut chain, vec![
+            (Address::Account(owner.address), compliant_nationalities[0].clone()),
+            (Address::Account(receiver.address), compliant_nationalities[1].clone()),
+        ])
+        .expect("Add Account identities");
+
+    let token = nft_contract
+        .mint_single_update(
+            &mut chain,
+            &agent,
+            Receiver::Account(owner.address),
+            ContractMetadataUrl {
+                url:  "ipfs:nft".to_string(),
+                hash: None,
+            },
+        )
+        .expect("Minting to registered account");
+    nft_contract
+        .freeze()
+        .update(&mut chain, &agent, &FreezeParams {
+            tokens: vec![FreezeParam {
+                token_id:     token,
+                token_amount: 1.into(),
+            }],
+            owner:  Address::Account(owner.address),
+        })
+        .expect("Freeze token");
+
+    nft_contract
+        .forced_transfer()
+        .update(
+            &mut chain,
+            &agent,
+            &TransferParams(vec![concordium_cis2::Transfer {
+                from:     Address::Account(owner.address),
+                to:       Receiver::Account(receiver.address),
+                token_id: token,
+                amount:   1.into(),
+                data:     AdditionalData::empty(),
+            }]),
+        )
+        .expect("Forced Transfer");
+
+    let balances: BalanceOfQueryResponse<TokenAmount> = nft_contract
+        .balance_of()
+        .invoke(&mut chain, &agent, &BalanceOfQueryParams {
+            queries: vec![
+                BalanceOfQuery {
+                    address:  Address::Account(owner.address),
+                    token_id: token,
+                },
+                BalanceOfQuery {
+                    address:  Address::Account(receiver.address),
+                    token_id: token,
+                },
+            ],
+        })
+        .expect("Balances")
+        .parse_return_value()
+        .expect("Parse Balances");
+
+    assert_eq!(balances.0[0], 0.into());
+    assert_eq!(balances.0[1], 1.into());
+}
+
+#[test]
+fn forced_transfer_non_agent() {
+    let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
+    let mut chain = Chain::new();
+    let (nft_contract, agent, verifier) = setup_contract(&mut chain);
+    let owner = Account::new_with_keys(
+        AccountAddress([3; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let receiver = Account::new_with_keys(
+        AccountAddress([4; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    [owner.clone(), receiver.clone()].iter().for_each(|a| {
+        chain.create_account(a.clone());
+    });
+    verifier
+        .register_nationalities(&mut chain, vec![
+            (Address::Account(owner.address), compliant_nationalities[0].clone()),
+            (Address::Account(receiver.address), compliant_nationalities[1].clone()),
+        ])
+        .expect("Add Account identities");
+
+    let token = nft_contract
+        .mint_single_update(
+            &mut chain,
+            &agent,
+            Receiver::Account(owner.address),
+            ContractMetadataUrl {
+                url:  "ipfs:nft".to_string(),
+                hash: None,
+            },
+        )
+        .expect("Minting to registered account");
+
+    let result = nft_contract
+        .forced_transfer()
+        .update(
+            &mut chain,
+            &owner,
+            &TransferParams(vec![concordium_cis2::Transfer {
+                from:     Address::Account(owner.address),
+                to:       Receiver::Account(receiver.address),
+                token_id: token,
+                amount:   1.into(),
+                data:     AdditionalData::empty(),
+            }]),
+        )
+        .expect_err("Forced Transfer");
+
+    if let ContractInvokeError {
+        kind: ContractInvokeErrorKind::ExecutionError {
+            failure_kind,
+        },
+        ..
+    } = result
+    {
+        assert_eq!(failure_kind, InvokeFailure::ContractReject {
+            code: Reject::from(Error::Unauthorized).error_code.into(),
             data: vec![],
         });
     } else {
@@ -2048,45 +2330,55 @@ fn un_freeze() {
 
 fn setup_contract(
     chain: &mut Chain,
-) -> (
-    SecurityNftContract,
-    Account,
-    Verifier<IdentityRegistryContract>,
-) {
+) -> (SecurityNftContract, Account, Verifier<IdentityRegistryContract>) {
+    let admin = create_default_admin(chain);
+    setup_contract_with_admin(chain, &admin)
+}
+
+fn create_default_admin(chain: &mut Chain) -> Account {
     let admin = Account::new_with_keys(
-        AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
+        ADMIN,
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
+    chain.create_account(admin.clone());
+    admin
+}
+
+fn setup_contract_with_admin(
+    chain: &mut Chain,
+    admin: &Account,
+) -> (SecurityNftContract, Account, Verifier<IdentityRegistryContract>) {
+    let (identity_registry, compliance_contract) =
+        init_identity_contracts(chain, admin, vec!["IN".to_owned(), "US".to_owned()]);
     let ir_agent = Account::new_with_keys(
         AccountAddress([1; ACCOUNT_ADDRESS_SIZE]),
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
+    chain.create_account(ir_agent.clone());
+    identity_registry
+        .add_agent()
+        .update(chain, admin, &Address::Account(ir_agent.address))
+        .expect("Add Agent identity");
+    let verifier = Verifier {
+        account:           ir_agent.clone(),
+        identity_registry: identity_registry.clone(),
+    };
+
+    let contract =
+        init_security_nft_contract(chain, admin, &identity_registry, &compliance_contract, vec![]);
+
     let nft_agent = Account::new_with_keys(
         AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
-    [admin.clone(), ir_agent.clone(), nft_agent.clone()].iter().for_each(|a| {
-        chain.create_account(a.clone());
-    });
-    let (identity_registry, compliance_contract) =
-        init_identity_contracts(chain, &admin, vec!["IN".to_owned(), "US".to_owned()]);
-    identity_registry
-        .add_agent()
-        .update(chain, &admin, &Address::Account(ir_agent.address))
-        .expect("Add Agent identity");
-    let contract =
-        init_security_nft_contract(chain, &admin, &identity_registry, &compliance_contract, vec![]);
+    chain.create_account(nft_agent.clone());
     contract
         .add_agent()
-        .update(chain, &admin, &Address::Account(nft_agent.address))
+        .update(chain, admin, &Address::Account(nft_agent.address))
         .expect("Adding Nft Agent");
-    let verifier = Verifier {
-        account:           ir_agent.clone(),
-        identity_registry: identity_registry.clone(),
-    };
 
     (contract, nft_agent, verifier)
 }

@@ -21,11 +21,47 @@ pub trait ISecurityNftContract: ITestContract {
         )
     }
 
+    fn agents(&self) -> GenericReceive<(), Vec<Address>, Event> {
+        GenericReceive::<(), Vec<Address>, Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "agents",
+            self.max_energy(),
+        )
+    }
+
+    fn remove_agent(&self) -> GenericReceive<Address, (), Event> {
+        GenericReceive::<Address, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "removeAgent",
+            self.max_energy(),
+        )
+    }
+
+    fn is_agent(&self) -> GenericReceive<Address, bool, Event> {
+        GenericReceive::<Address, bool, Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "isAgent",
+            self.max_energy(),
+        )
+    }
+
     fn mint(&self) -> GenericReceive<MintParams, (), Event> {
         GenericReceive::<MintParams, (), Event>::new(
             self.contract_address(),
             Self::contract_name(),
             "mint",
+            self.max_energy(),
+        )
+    }
+
+    fn forced_transfer(&self) -> GenericReceive<TransferParams, (), Event> {
+        GenericReceive::<TransferParams, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "forcedTransfer",
             self.max_energy(),
         )
     }
