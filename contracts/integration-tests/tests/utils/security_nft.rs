@@ -1,11 +1,6 @@
 use super::{cis2_test_contract::*, test_contract_client::*};
 use concordium_cis2::Receiver;
-use concordium_rwa_security_nft::{
-    event::Event,
-    init::InitParam,
-    mint::{MintParam, MintParams},
-    types::{ContractMetadataUrl, TokenAmount, TokenId},
-};
+use concordium_rwa_security_nft::{event::Event, types::*};
 use concordium_smart_contract_testing::*;
 
 pub const CONTRACT_NAME: &str = "init_rwa_security_nft";
@@ -34,10 +29,81 @@ pub trait ISecurityNftContract: ITestContract {
             self.max_energy(),
         )
     }
+
+    fn pause(&self) -> GenericReceive<PauseParams, (), Event> {
+        GenericReceive::<PauseParams, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "pause",
+            self.max_energy(),
+        )
+    }
+
+    fn un_pause(&self) -> GenericReceive<PauseParams, (), Event> {
+        GenericReceive::<PauseParams, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "unPause",
+            self.max_energy(),
+        )
+    }
+
+    fn is_paused(&self) -> GenericReceive<PauseParams, IsPausedResponse, Event> {
+        GenericReceive::<PauseParams, IsPausedResponse, Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "isPaused",
+            self.max_energy(),
+        )
+    }
+
+    fn burn(&self) -> GenericReceive<BurnParams, (), Event> {
+        GenericReceive::<BurnParams, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "burn",
+            self.max_energy(),
+        )
+    }
+
+    fn freeze(&self) -> GenericReceive<FreezeParams, (), Event> {
+        GenericReceive::<FreezeParams, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "freeze",
+            self.max_energy(),
+        )
+    }
+
+    fn un_freeze(&self) -> GenericReceive<FreezeParams, (), Event> {
+        GenericReceive::<FreezeParams, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "unFreeze",
+            self.max_energy(),
+        )
+    }
+
+    fn balance_of_frozen(&self) -> GenericReceive<FrozenParams, FrozenResponse, Event> {
+        GenericReceive::<FrozenParams, FrozenResponse, Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "balanceOfFrozen",
+            self.max_energy(),
+        )
+    }
+
+    fn balance_of_un_frozen(&self) -> GenericReceive<FrozenParams, FrozenResponse, Event> {
+        GenericReceive::<FrozenParams, FrozenResponse, Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "balanceOfUnFrozen",
+            self.max_energy(),
+        )
+    }
 }
 
 pub trait ISecurityNftContractExt: ISecurityNftContract {
-
     /// Mint a single token and return the token id.
     fn mint_single_update(
         &self,

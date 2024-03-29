@@ -1,19 +1,14 @@
 #![allow(clippy::too_many_arguments)]
 
-use super::{test_contract_client::*, utils::to_token_id_vec};
-use crate::{
+use super::{
     cis2_test_contract::{ICis2Contract, ICis2ContractExt},
     security_nft::{ISecurityNftContractExt, SecurityNftContract},
+    test_contract_client::*,
+    cis2_conversions::to_token_id_vec,
 };
 use concordium_cis2::{AdditionalData, Cis2Event, Receiver, TransferParams};
 use concordium_rwa_market::types::Rate;
-use concordium_rwa_security_sft::{
-    deposit::DepositParams,
-    event::Event,
-    init::InitParam,
-    mint::{AddParam, AddParams, MintParam},
-    types::{ContractMetadataUrl, NftTokenId, NftTokenUId, TokenAmount, TokenId},
-};
+use concordium_rwa_security_sft::{event::Event, types::*};
 use concordium_smart_contract_testing::*;
 
 pub const CONTRACT_NAME: &str = "init_rwa_security_sft";
@@ -25,6 +20,15 @@ pub trait ISecuritySftModule: ITestModule {
 }
 
 pub trait ISecuritySftContract: ITestContract + ICis2Contract<TokenId, TokenAmount, Event> {
+    fn add_agent(&self) -> GenericReceive<Address, (), Event> {
+        GenericReceive::<Address, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "addAgent",
+            self.max_energy(),
+        )
+    }
+
     fn add_tokens(&self) -> GenericReceive<AddParams, (), Event> {
         GenericReceive::<AddParams, (), Event>::new(
             self.contract_address(),
@@ -50,6 +54,7 @@ pub trait ISecuritySftContractExt: ISecuritySftContract {
         chain: &mut Chain,
         sender: &Account,
         nft_token_id: NftTokenId,
+        nft_contract_address: ContractAddress,
         metadata_url: ContractMetadataUrl,
         fractions_rate: Rate,
     ) -> Result<TokenId, ContractInvokeError> {
@@ -57,7 +62,7 @@ pub trait ISecuritySftContractExt: ISecuritySftContract {
             .update(chain, sender, &AddParams {
                 tokens: vec![AddParam {
                     deposit_token_id: NftTokenUId {
-                        contract: self.contract_address(),
+                        contract: nft_contract_address,
                         id:       to_token_id_vec(nft_token_id),
                     },
                     metadata_url,
@@ -125,6 +130,7 @@ pub fn sft_mint(
             chain,
             agent,
             to_token_id_vec(nft_token_id),
+            nft_contract.contract_address(),
             sft_metadata,
             Rate::new(fractions, 1).expect("Rate"),
         )

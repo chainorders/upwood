@@ -2,6 +2,7 @@
 	"name": "integration-tests",
 	"packageManager": "yarn@4.0.2",
 	"scripts": {
-		"test": "cargo concordium test"
+		"test": "cargo concordium test",
+		"test:cargo": "cargo test"
 	}
 }

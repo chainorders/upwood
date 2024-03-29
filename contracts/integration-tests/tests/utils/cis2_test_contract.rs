@@ -23,8 +23,8 @@ pub trait ICis2Contract<T: IsTokenId, A: IsTokenAmount, TEvent>: ITestContract {
         )
     }
 
-    fn update_operator(&self) -> GenericReceive<OperatorUpdate, (), TEvent> {
-        GenericReceive::<OperatorUpdate, (), TEvent>::new(
+    fn update_operator(&self) -> GenericReceive<UpdateOperatorParams, (), TEvent> {
+        GenericReceive::<UpdateOperatorParams, (), TEvent>::new(
             self.contract_address(),
             Self::contract_name(),
             "updateOperator",

@@ -1,4 +1,4 @@
-use crate::identity_registry::{IIdentityRegistryContract, NATIONALITY_ATTRIBUTE_TAG};
+use super::identity_registry::{IIdentityRegistryContract, NATIONALITY_ATTRIBUTE_TAG};
 use concordium_rwa_identity_registry::{identities::RegisterIdentityParams, types::*};
 use concordium_smart_contract_testing::*;
 

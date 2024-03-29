@@ -1,10 +1,9 @@
 use concordium_cis2::{TokenAmountU64, TokenIdUnit};
 use concordium_std::{ContractAddress, OwnedContractName};
 use euroe_stablecoin::{MintParams, RoleTypes};
-
-use crate::{
+use super::{
     cis2_test_contract::{ICis2Contract, ICis2ContractUnitTokenExt},
-    test_contract_client::*,
+    test_contract_client::*
 };
 
 pub const CONTRACT_NAME: &str = "init_euroe_stablecoin";
