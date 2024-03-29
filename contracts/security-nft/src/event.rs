@@ -1,8 +1,8 @@
 #![allow(clippy::manual_range_patterns)]
+use super::types::{TokenAmount, TokenId};
 use concordium_cis2::{Cis2Event, IsTokenAmount, IsTokenId};
 use concordium_std::{schema::SchemaType, *};
 
-use super::types::{TokenAmount, TokenId};
 /// Represents an event that is triggered when an agent is updated (Added /
 /// Removed).
 #[derive(Serialize, SchemaType, Debug)]

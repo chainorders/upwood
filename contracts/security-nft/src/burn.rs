@@ -1,34 +1,14 @@
-use concordium_cis2::{BurnEvent, Cis2Event, IsTokenId};
-use concordium_std::*;
-
+use super::{error::Error, event::Event, state::State, types::*};
+use concordium_cis2::{BurnEvent, Cis2Event};
 use concordium_rwa_utils::{
     clients::compliance_client::{ComplianceContract, IComplianceClient},
     compliance_types::Token,
     holders_security_state::IHoldersSecurityState,
     holders_state::IHoldersState,
     tokens_security_state::ITokensSecurityState,
-    tokens_state::{ITokensState, IsTokenAmount},
+    tokens_state::ITokensState,
 };
-
-use super::{
-    error::Error,
-    event::Event,
-    state::State,
-    types::{ContractResult, TokenAmount, TokenId},
-};
-
-#[derive(Debug, Serialize, Clone, SchemaType)]
-pub struct Burn<T: IsTokenId, A: IsTokenAmount> {
-    pub token_id: T,
-    pub amount:   A,
-    pub owner:    Address,
-}
-
-#[derive(Debug, Serialize, Clone, SchemaType)]
-#[concordium(transparent)]
-pub struct BurnParams<T: IsTokenId, A: IsTokenAmount>(
-    #[concordium(size_length = 2)] pub Vec<Burn<T, A>>,
-);
+use concordium_std::*;
 
 /// Burns the specified amount of the given token from the given owner's
 /// account.
@@ -47,7 +27,7 @@ pub struct BurnParams<T: IsTokenId, A: IsTokenAmount>(
 #[receive(
     contract = "rwa_security_nft",
     name = "burn",
-    parameter = "BurnParams<TokenId, TokenAmount>",
+    parameter = "BurnParams",
     error = "super::error::Error",
     enable_logger,
     mutable
@@ -58,13 +38,13 @@ pub fn burn(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let sender = ctx.sender();
+    let params: BurnParams = ctx.parameter_cursor().get()?;
 
-    let BurnParams(burns): BurnParams<TokenId, TokenAmount> = ctx.parameter_cursor().get()?;
     for Burn {
         token_id,
         amount,
         owner,
-    } in burns
+    } in params.0
     {
         let state = host.state();
         let is_authorized =

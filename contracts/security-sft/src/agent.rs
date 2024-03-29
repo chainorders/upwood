@@ -1,7 +1,6 @@
+use super::{error::*, event::*, state::State, types::*};
 use concordium_rwa_utils::agents_state::IsAgentsState;
 use concordium_std::*;
-
-use super::{error::*, event::*, state::State, types::*};
 
 /// Returns true if the given address is an agent.
 ///

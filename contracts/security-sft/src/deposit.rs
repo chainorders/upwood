@@ -1,16 +1,13 @@
-use concordium_cis2::{AdditionalData, Cis2Client, OnReceivingCis2Params, Receiver, Transfer};
-use concordium_rwa_utils::token_deposits_state::IDepositedTokensState;
-use concordium_std::*;
-
 use super::{
     error::*,
     event::{Event, TokenDeposited},
-    mint::{mint_internal, MintParam},
+    mint::mint_internal,
     state::State,
-    types::{ContractResult, NftTokenAmount, NftTokenId, NftTokenOwnerUId, NftTokenUId},
+    types::*,
 };
-
-pub type DepositParams = OnReceivingCis2Params<NftTokenId, NftTokenAmount>;
+use concordium_cis2::{AdditionalData, Cis2Client, Receiver, Transfer};
+use concordium_rwa_utils::token_deposits_state::IDepositedTokensState;
+use concordium_std::*;
 
 #[receive(
     contract = "rwa_security_sft",
@@ -69,13 +66,6 @@ pub fn deposit(
     Ok(())
 }
 
-#[derive(Serialize, SchemaType, Clone)]
-pub struct WithdrawParams {
-    pub token_id: NftTokenUId,
-    pub owner:    AccountAddress,
-    pub amount:   NftTokenAmount,
-}
-
 #[receive(
     contract = "rwa_security_sft",
     name = "withdraw",
@@ -110,12 +100,6 @@ pub fn withdraw(
     }))?;
 
     Ok(())
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct BalanceOfDepositParams {
-    pub token_id: NftTokenUId,
-    pub address:  AccountAddress,
 }
 
 #[receive(

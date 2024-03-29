@@ -1,3 +1,4 @@
+use super::types::{TokenAmount, TokenId};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     cis2_security_state::ICis2SecurityState,
@@ -10,8 +11,6 @@ use concordium_rwa_utils::{
     tokens_state::{ITokensState, TokenStateResult},
 };
 use concordium_std::*;
-
-use super::types::{TokenAmount, TokenId};
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]

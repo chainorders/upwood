@@ -1,7 +1,5 @@
 use super::{error::*, event::*, state::State, types::*};
-use concordium_cis2::{
-    Cis2Event, OnReceivingCis2Params, Receiver, Transfer, TransferEvent, TransferParams,
-};
+use concordium_cis2::{Cis2Event, OnReceivingCis2Params, Receiver, TransferEvent};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     clients::{
@@ -47,7 +45,7 @@ use concordium_std::*;
     name = "transfer",
     enable_logger,
     mutable,
-    parameter = "ContractTransferParams",
+    parameter = "TransferParams",
     error = "super::error::Error"
 )]
 pub fn transfer(
@@ -61,15 +59,14 @@ pub fn transfer(
         let sender = ctx.sender();
         if state.is_sponsor(&sender) {
             let params: SponsoredParamsRaw = ctx.parameter_cursor().get()?;
-            let params: SponsoredParams<ContractTransferParams> = params.try_into()?;
+            let params: SponsoredParams<TransferParams> = params.try_into()?;
             (Address::Account(params.signer), params.params)
         } else {
-            let params: ContractTransferParams = ctx.parameter_cursor().get()?;
+            let params: TransferParams = ctx.parameter_cursor().get()?;
             (sender, params)
         }
     };
 
-    let TransferParams(transfers): ContractTransferParams = params;
     let compliance = ComplianceContract(state.compliance());
 
     for Transfer {
@@ -78,7 +75,7 @@ pub fn transfer(
         amount,
         token_id,
         data,
-    } in transfers
+    } in params.0
     {
         let compliance_token = Token::new(token_id, ctx.self_address());
         let state = host.state();
@@ -155,7 +152,7 @@ pub fn transfer(
     name = "forcedTransfer",
     enable_logger,
     mutable,
-    parameter = "TransferParams<TokenId, TokenAmount>",
+    parameter = "TransferParams",
     error = "super::error::Error"
 )]
 pub fn forced_transfer(
@@ -163,8 +160,7 @@ pub fn forced_transfer(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let TransferParams(transfers): TransferParams<TokenId, TokenAmount> =
-        ctx.parameter_cursor().get()?;
+    let params: TransferParams = ctx.parameter_cursor().get()?;
 
     let state = host.state();
     ensure!(state.is_agent(&ctx.sender()), Error::Unauthorized);
@@ -175,7 +171,7 @@ pub fn forced_transfer(
         amount,
         token_id,
         data,
-    } in transfers
+    } in params.0
     {
         let state = host.state();
         state.ensure_token_exists(&token_id)?;

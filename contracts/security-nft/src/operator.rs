@@ -1,9 +1,7 @@
-use concordium_cis2::*;
-use concordium_std::*;
-
-use concordium_rwa_utils::holders_state::IHoldersState;
-
 use super::{error::Error, event::Event, state::State, types::ContractResult};
+use concordium_cis2::*;
+use concordium_rwa_utils::holders_state::IHoldersState;
+use concordium_std::*;
 
 /// Updates the operator status for the sender.
 ///

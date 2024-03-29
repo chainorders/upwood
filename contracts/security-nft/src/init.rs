@@ -1,22 +1,13 @@
-use concordium_std::*;
-
-use concordium_rwa_utils::{
-    agents_state::IsAgentsState, holders_security_state::IHoldersSecurityState,
-};
-
 use super::{
     error::Error,
     event::{ComplianceAdded, Event, IdentityRegistryAdded},
     state::State,
-    types::ContractResult,
+    types::{ContractResult, InitParam},
 };
-
-#[derive(Serialize, SchemaType)]
-pub struct InitParam {
-    pub identity_registry: ContractAddress,
-    pub compliance:        ContractAddress,
-    pub sponsors:          Vec<ContractAddress>,
-}
+use concordium_rwa_utils::{
+    agents_state::IsAgentsState, holders_security_state::IHoldersSecurityState,
+};
+use concordium_std::*;
 
 /// Initializes the contract with the given parameters.
 ///

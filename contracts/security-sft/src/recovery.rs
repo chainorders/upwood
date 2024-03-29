@@ -1,18 +1,15 @@
-use concordium_std::*;
-
+use super::{
+    error::*,
+    event::*,
+    state::State,
+    types::{ContractResult, RecoverParam},
+};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     clients::identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
     holders_security_state::IHoldersSecurityState,
 };
-
-use super::{error::*, event::*, state::State, types::ContractResult};
-
-#[derive(Serialize, SchemaType)]
-pub struct RecoverParam {
-    pub lost_account: Address,
-    pub new_account:  Address,
-}
+use concordium_std::*;
 
 #[receive(
     contract = "rwa_security_sft",
