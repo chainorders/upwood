@@ -137,6 +137,24 @@ pub trait ISecurityNftContract: ITestContract {
             self.max_energy(),
         )
     }
+
+    fn recover(&self) -> GenericReceive<RecoverParam, (), Event> {
+        GenericReceive::<RecoverParam, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "recover",
+            self.max_energy(),
+        )
+    }
+
+    fn recovery_address(&self) -> GenericReceive<Address, Option<Address>, Event> {
+        GenericReceive::<Address, Option<Address>, Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "recoveryAddress",
+            self.max_energy(),
+        )
+    }
 }
 
 pub trait ISecurityNftContractExt: ISecurityNftContract {
