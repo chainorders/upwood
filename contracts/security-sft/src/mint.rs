@@ -15,10 +15,11 @@ use concordium_rwa_utils::{
         identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
     },
     compliance_types::Token,
+    concordium_cis2_ext::IsTokenAmount,
     holders_security_state::IHoldersSecurityState,
     holders_state::IHoldersState,
     token_deposits_state::IDepositedTokensState,
-    tokens_state::{ITokensState, IsTokenAmount},
+    tokens_state::ITokensState,
 };
 use concordium_std::{ops::Sub, *};
 

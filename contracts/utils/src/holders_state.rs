@@ -1,6 +1,5 @@
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
-
-use super::tokens_state::IsTokenAmount;
 
 pub enum HolderStateError {
     AmountTooLarge,
@@ -13,8 +12,6 @@ pub type HolderStateResult<T> = Result<T, HolderStateError>;
 pub struct HolderBalances<T, A, S> {
     balances: StateMap<T, A, S>,
 }
-
-pub trait IsTokenId: concordium_cis2::IsTokenId + Clone {}
 
 impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderBalances<T, A, S> {
     pub fn new(state_builder: &mut StateBuilder<S>) -> Self {

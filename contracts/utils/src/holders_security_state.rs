@@ -1,9 +1,6 @@
+use super::holders_state::{HolderBalances, HolderStateError, IHoldersState};
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
-
-use super::{
-    holders_state::{HolderBalances, HolderStateError, IHoldersState, IsTokenId},
-    tokens_state::IsTokenAmount,
-};
 
 /// Represents the different types of errors that can occur in the holder's
 /// security state.

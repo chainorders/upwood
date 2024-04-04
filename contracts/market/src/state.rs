@@ -1,7 +1,7 @@
 use super::types::{ExchangeRate, *};
 use concordium_rwa_utils::{
+    concordium_cis2_ext::IsTokenAmount,
     token_deposits_state::{DepositedStateError, DepositedTokenState, IDepositedTokensState},
-    tokens_state::IsTokenAmount,
 };
 use concordium_std::*;
 

@@ -54,6 +54,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "concordium-protocols"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-std",
+]
+
+[[package]]
 name = "concordium-rwa-security-nft"
 version = "0.1.0"
 dependencies = [
@@ -68,6 +76,7 @@ name = "concordium-rwa-utils"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
+ "concordium-protocols",
  "concordium-std",
  "hex",
 ]

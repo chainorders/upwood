@@ -1,11 +1,9 @@
-use concordium_std::{HasStateApi, Serialize};
-
-use crate::clients::contract_client::IContractState;
-
 use super::{
-    holders_security_state::IHoldersSecurityState, holders_state::IsTokenId,
-    tokens_security_state::ITokensSecurityState, tokens_state::IsTokenAmount,
+    holders_security_state::IHoldersSecurityState, tokens_security_state::ITokensSecurityState,
 };
+use crate::clients::contract_client::IContractState;
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
+use concordium_std::{HasStateApi, Serialize};
 
 /// Trait representing the security state of the Cis2 contract.
 /// It combines the functionality of `ITokensSecurityState` and

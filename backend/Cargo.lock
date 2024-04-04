@@ -605,6 +605,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "concordium-protocols"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-std",
+]
+
+[[package]]
 name = "concordium-rust-sdk"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -697,6 +705,7 @@ name = "concordium-rwa-utils"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
+ "concordium-protocols",
  "concordium-std",
  "hex",
 ]
