@@ -2,18 +2,6 @@
 
 pub mod utils;
 
-use crate::utils::{
-    cis2_test_contract::{ICis2Contract, ICis2ContractExt, ICis2ContractUnitTokenExt},
-    common::{init_identity_contracts, init_security_token_contracts},
-    consts::*,
-    euroe::{EuroeContract, EuroeModule, IEuroeContract, IEuroeModule},
-    identity_registry::IIdentityRegistryContract,
-    market::{IMarketContract, IMarketModule, MarketContract, MarketModule},
-    security_nft::{ISecurityNftContract, ISecurityNftContractExt},
-    test_contract_client::{ITestContract, ITestModule},
-    cis2_conversions::{to_token_amount_u64, to_token_id_vec},
-    verifier::Verifier,
-};
 use concordium_cis2::{
     AdditionalData, Receiver, TokenAmountU64, TokenAmountU8, TokenIdUnit, TokenIdVec,
     TransferParams,
@@ -27,6 +15,19 @@ use concordium_rwa_market::{
 use concordium_smart_contract_testing::{ed25519::PublicKey, *};
 use concordium_std::{ops::Sub, ACCOUNT_ADDRESS_SIZE};
 use euroe_stablecoin::RoleTypes;
+use utils::{
+    cis2_conversions::{to_token_amount_u64, to_token_id_vec},
+    cis2_security_test_contract::ICis2SecurityTestContract,
+    cis2_test_contract::{ICis2Contract, ICis2ContractExt, ICis2ContractUnitTokenExt},
+    common::{init_identity_contracts, init_security_token_contracts},
+    consts::*,
+    euroe::{EuroeContract, EuroeModule, IEuroeContract, IEuroeModule},
+    identity_registry::IIdentityRegistryContract,
+    market::{IMarketContract, IMarketModule, MarketContract, MarketModule},
+    security_nft::ISecurityNftContractExt,
+    test_contract_client::{ITestContract, ITestModule},
+    verifier::Verifier,
+};
 
 #[test]
 fn market_buy_via_transfer_of_cis2() {

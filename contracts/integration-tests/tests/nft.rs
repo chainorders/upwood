@@ -16,6 +16,7 @@ use utils::{
     identity_registry::{IIdentityRegistryContract, IdentityRegistryContract},
     security_nft::{ISecurityNftContract, ISecurityNftContractExt, SecurityNftContract},
     verifier::Verifier,
+    cis2_security_test_contract::ICis2SecurityTestContract
 };
 
 const ADMIN: AccountAddress = AccountAddress([0; ACCOUNT_ADDRESS_SIZE]);
