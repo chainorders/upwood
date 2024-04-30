@@ -8,10 +8,13 @@
 
 ## API's
 
+### Listener
+
+- `debug:listener` : Runs the listener with debug logging enabled.
+- `watch:listener` : Watches for changes in the listener code and reruns it with debug logging enabled whenever a change is detected.
+
 ### Contracts API
 
-- `format`: Runs the Rust formatter on the codebase using a specific nightly version of Rust.
-- `build`: Builds the Rust project.
 - `debug:contracts-api`: Runs the contracts API with debug logging enabled.
 - `watch:contracts-api`: Watches for changes in the contracts API code and reruns it with debug logging enabled whenever a change is detected.
 - `generate:contracts-api-specs`: Generates an API specification for the contracts API and saves it to `contracts-api-specs.json`.
@@ -33,6 +36,8 @@
 
 ### General
 
+- `format`: Runs the Rust formatter on the codebase using a specific nightly version of Rust.
+- `build`: Builds the Rust project.
 - `generate:spec`: Runs all the `generate:*-api-specs` scripts.
 - `generate:client`: Runs all the `generate:*-api-client` scripts.
 
@@ -45,7 +50,7 @@
 | CONCORDIUM_NODE_URI | The URI of the Concordium node. |
 | MONGODB_URI | The URI of the MongoDB database. |
 | WEB_SERVER_ADDR | The address and port the web server is running on. |
-| STARTING_BLOCK_HASH | The starting block hash for the blockchain. |
+| DEFAULT_BLOCK_HEIGHT | The starting block height for the blockchain. |
 | NETWORK | The network the application is running on. |
 
 ### Module Refs
