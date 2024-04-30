@@ -6,7 +6,7 @@ import {
 } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { useContractsApi } from "../ContractsApiProvider";
-import { DepositedToken } from "../../lib/contracts-api-client";
+import { ApiDepositedToken as DepositedToken } from "../../lib/contracts-api-client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ActionButtonProps, Token } from "../common/TokenCardDisplay";
 import TokensGrid from "../common/TokensGrid";
