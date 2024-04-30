@@ -80,7 +80,7 @@ impl State<StateApi> {
         exchange_rates: Vec<ExchangeRate>,
     ) -> Result<(), DepositedStateError> {
         self.set_locked_deposits(&token_id, supply)?;
-        self.listed_tokens.insert(token_id, exchange_rates);
+        let _ = self.listed_tokens.insert(token_id, exchange_rates);
 
         Ok(())
     }

@@ -10,7 +10,6 @@ pub type TokenId = TokenIdVec;
 pub type Cis2TokenAmount = TokenAmountU64;
 pub type TokenUId = cis2_schema_types::TokenUId<TokenId>;
 pub type TokenOwnerUId = cis2_schema_types::TokenOwnerUId<TokenId>;
-
 pub type ContractResult<T> = Result<T, Error>;
 pub use concordium_rwa_utils::cis2_conversions::Rate;
 

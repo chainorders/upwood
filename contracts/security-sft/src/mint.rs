@@ -48,6 +48,8 @@ pub fn add_tokens(
     } in params.tokens
     {
         ensure!(fractions_rate.is_valid(), Error::InvalidFractionsRate);
+        // Enhancement: Check if the token exists via Token Metadata endpoint. Currently
+        // the token is added blindly.
         let metadata_url: MetadataUrl = metadata_url.into();
         let state = host.state_mut();
         let token_id = state.get_wrapped_id(&deposit_token_id).unwrap_or_else(|| {

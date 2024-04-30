@@ -37,7 +37,7 @@ pub fn register_identity(
     let (state, state_builder) = host.state_and_builder();
 
     // Register the identity and log the event.
-    state.identities.insert(address, IdentityState::new(identity, state_builder));
+    let _ = state.identities.insert(address, IdentityState::new(identity, state_builder));
     logger.log(&Event::IdentityRegistered(IdentityUpdatedEvent {
         address,
     }))?;

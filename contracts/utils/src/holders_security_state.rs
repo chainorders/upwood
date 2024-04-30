@@ -113,7 +113,7 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     /// * `address` - The address for which the recovery address is being set.
     /// * `recovery_address` - The recovery address to be set.
     fn set_recovery_address(&mut self, address: Address, recovery_address: Address) {
-        self.state_mut().recovery_addresses.insert(address, recovery_address);
+        let _ = self.state_mut().recovery_addresses.insert(address, recovery_address);
     }
 
     /// Removes the recovery address of the given address and sets it to the new
