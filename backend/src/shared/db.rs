@@ -5,7 +5,7 @@ use concordium_rust_sdk::{
     smart_contracts::common::AccountAddress,
     types::{Address, ContractAddress},
 };
-use mongodb::options::UpdateModifications;
+use mongodb::options::{FindOneOptions, UpdateModifications};
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -43,7 +43,7 @@ impl From<TokenId> for DbTokenId {
 
 /// A trait for Generic Mongodb Collection operations.
 #[async_trait]
-pub trait ICollection {
+pub trait ICollection: Send + Sync {
     type ItemType: Serialize + Send + Sync + Deserialize<'static> + DeserializeOwned + Unpin;
 
     fn collection(&self) -> &mongodb::Collection<Self::ItemType>;
@@ -55,7 +55,7 @@ pub trait ICollection {
     /// * `Result` - Ok(()) if the operation was successful.
     /// # Errors
     /// * `anyhow::Error` - If the operation failed.
-    async fn insert_one(&self, item: Self::ItemType) -> anyhow::Result<()> {
+    async fn insert_one(&mut self, item: Self::ItemType) -> anyhow::Result<()> {
         let collection = self.collection();
         let options = mongodb::options::InsertOneOptions::builder().build();
         collection.insert_one(item, options).await?;
@@ -69,7 +69,7 @@ pub trait ICollection {
     /// * `Result` - Ok(()) if the operation was successful.
     /// # Errors
     /// * `anyhow::Error` - If the operation failed.
-    async fn delete_one(&self, key: Document) -> anyhow::Result<()> {
+    async fn delete_one(&mut self, key: Document) -> anyhow::Result<()> {
         let collection = self.collection();
         let options = mongodb::options::DeleteOptions::builder().build();
         collection.delete_one(key, options).await?;
@@ -84,7 +84,7 @@ pub trait ICollection {
     /// * `Result` - Ok(()) if the operation was successful.
     /// # Errors
     /// * `anyhow::Error` - If the operation failed.
-    async fn update_one(&self, key: Document, update: Self::ItemType) -> anyhow::Result<()> {
+    async fn update_one(&mut self, key: Document, update: Self::ItemType) -> anyhow::Result<()> {
         let collection = self.collection();
         let options = mongodb::options::UpdateOptions::builder().build();
         collection
@@ -108,7 +108,7 @@ pub trait ICollection {
     /// # Errors
     /// * `anyhow::Error` - If the operation failed.
     async fn update_many(
-        &self,
+        &mut self,
         query: Document,
         update: impl Into<UpdateModifications> + Send + Sync,
     ) -> anyhow::Result<()> {
@@ -129,10 +129,7 @@ pub trait ICollection {
     /// # Errors
     /// * `anyhow::Error` - If the operation failed.
     async fn find_one(&self, key: Document) -> anyhow::Result<Option<Self::ItemType>> {
-        let collection = self.collection();
-        let options = mongodb::options::FindOneOptions::builder().build();
-        let result = collection.find_one(key, options).await?;
-        Ok(result)
+        self.collection().find_one(key, FindOneOptions::builder().build()).await.map_err(Into::into)
     }
 
     /// Upsert a single item in the collection.
@@ -144,7 +141,7 @@ pub trait ICollection {
     /// # Errors
     /// * `anyhow::Error` - If the operation failed.
     async fn upsert_one<TFn: Fn(Option<Self::ItemType>) -> Self::ItemType + Send + Sync>(
-        &self,
+        &mut self,
         key: Document,
         update: TFn,
     ) -> anyhow::Result<()> {
@@ -191,6 +188,8 @@ pub trait ICollection {
     }
 }
 
+/// A wrapper around `mongodb::Collection` that implements `ICollection`.
+#[derive(Clone)]
 pub struct Collection<T>(mongodb::Collection<T>);
 impl<T> Collection<T> {
     pub fn new(collection: mongodb::Collection<T>) -> Self { Self(collection) }

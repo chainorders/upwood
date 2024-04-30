@@ -1,10 +1,7 @@
-use crate::{
-    shared::db::{Collection, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
-    txn_processor::db::IDb,
+use crate::shared::db::{
+    Collection, DbAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection,
 };
-use async_trait::async_trait;
 use bson::{doc, to_bson, Document};
-use concordium_rust_sdk::types::ContractAddress;
 use serde::{Deserialize, Serialize};
 
 /// Represents the configuration of a contract.
@@ -106,50 +103,33 @@ pub struct TokenHolderRecoveryRecord {
     pub new_account:  DbAddress,
 }
 
-#[async_trait]
-pub trait IRwaSecurityNftDb: IDb {
-    /// Returns the collection of agents for a contract.
-    fn agents(&self, contract: &ContractAddress) -> Collection<DbAddress> {
-        self.database(contract).collection::<DbAddress>("agents").into()
+pub struct RwaSecurityNftDb {
+    pub agents:           Collection<DbAddress>,
+    pub config:           Collection<ContractConfig>,
+    pub tokens:           Collection<DbToken>,
+    pub holders:          Collection<TokenHolder>,
+    pub operators:        Collection<TokenHolderOperator>,
+    pub recovery_records: Collection<TokenHolderRecoveryRecord>,
+}
+
+impl RwaSecurityNftDb {
+    pub fn init(db: mongodb::Database) -> Self {
+        Self {
+            agents:           db.collection("agents").into(),
+            config:           db.collection("config").into(),
+            tokens:           db.collection("tokens").into(),
+            holders:          db.collection("holders").into(),
+            operators:        db.collection("operators").into(),
+            recovery_records: db.collection("recovery_records").into(),
+        }
     }
 
-    /// Returns the collection of contract configurations for a contract.
-    fn config(&self, contract: &ContractAddress) -> Collection<ContractConfig> {
-        self.database(contract).collection::<ContractConfig>("config").into()
-    }
-
-    /// Returns the collection of tokens for a contract.
-    fn tokens(&self, contract: &ContractAddress) -> Collection<DbToken> {
-        self.database(contract).collection::<DbToken>("tokens").into()
-    }
-
-    /// Returns the collection of token holders for a contract.
-    fn holders(&self, contract: &ContractAddress) -> Collection<TokenHolder> {
-        self.database(contract).collection::<TokenHolder>("holders").into()
-    }
-
-    /// Returns the collection of token holder operators for a contract.
-    fn operators(&self, contract: &ContractAddress) -> Collection<TokenHolderOperator> {
-        self.database(contract).collection::<TokenHolderOperator>("operators").into()
-    }
-
-    /// Returns the collection of token holder recovery records for a contract.
-    fn recovery_records(
-        &self,
-        contract: &ContractAddress,
-    ) -> Collection<TokenHolderRecoveryRecord> {
-        self.database(contract).collection::<TokenHolderRecoveryRecord>("recovery_records").into()
-    }
-
-    /// Replaces the holder of a token with a new account.
-    async fn replace_holder(
-        &self,
-        contract: &ContractAddress,
+    pub async fn replace_holder(
+        &mut self,
         lost_account: DbAddress,
         new_account: DbAddress,
     ) -> anyhow::Result<()> {
-        let token_holders = self.holders(contract);
-        token_holders
+        self.holders
             .update_many(
                 doc! {
                     "address": to_bson(&lost_account)?,

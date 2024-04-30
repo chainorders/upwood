@@ -1,3 +1,8 @@
+use super::db::{DbDepositedToken, RwaMarketDb};
+use crate::{
+    shared::db::{DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
+    txn_listener::EventsProcessor,
+};
 use async_trait::async_trait;
 use bson::doc;
 use concordium_rust_sdk::types::{
@@ -6,27 +11,33 @@ use concordium_rust_sdk::types::{
 };
 use concordium_rwa_market::event::{Event, PaymentAmount, PaymentTokenUId};
 
-use super::db::{DbDepositedToken, IRwaMarketDb};
-use crate::{
-    shared::db::{DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId, ICollection},
-    txn_listener::EventsProcessor,
-};
-
-pub struct RwaMarketProcessor<TDb: IRwaMarketDb> {
+pub struct RwaMarketProcessor {
     /// Client to interact with the MongoDB database.
-    pub db:         TDb,
+    pub client:        mongodb::Client,
     /// Module reference of the contract.
-    pub module_ref: ModuleReference,
+    pub module_ref:    ModuleReference,
+    /// Name of the contract.
+    pub contract_name: OwnedContractName,
+}
+
+impl RwaMarketProcessor {
+    pub fn database(&self, contract: &ContractAddress) -> RwaMarketDb {
+        let db = self
+            .client
+            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
+
+        RwaMarketDb::init(db)
+    }
 }
 
 #[async_trait]
-impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb> {
+impl EventsProcessor for RwaMarketProcessor {
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns
     ///
     /// * A reference to the `OwnedContractName` of the contract.
-    fn contract_name(&self) -> &OwnedContractName { self.db.contract_name() }
+    fn contract_name(&self) -> &OwnedContractName { &self.contract_name }
 
     /// Returns the module reference of the contract this processor is
     /// responsible for.
@@ -51,10 +62,12 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
         &self,
         contract: &ContractAddress,
         events: &[ContractEvent],
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<u64> {
+        let mut process_events_count = 0u64;
+        let mut db = self.database(contract);
         for event in events {
             let parsed_event = event.parse::<Event>()?;
-            log::info!("Event: {:?}", parsed_event);
+            log::debug!("Event: {}/{} {:?}", contract.index, contract.subindex, parsed_event);
 
             match parsed_event {
                 Event::Deposited(e) => {
@@ -63,8 +76,7 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                     let token_id = DbTokenId(e.token_id.id.to_string().parse()?);
                     let token_amount = DbTokenAmount(e.amount.0.into());
 
-                    self.db
-                        .deposited_tokens(contract)
+                    db.deposited_tokens
                         .upsert_one(
                             DbDepositedToken::key(&token_contract, &token_id, &owner)?,
                             |t| {
@@ -81,7 +93,8 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                                 t
                             },
                         )
-                        .await?
+                        .await?;
+                    process_events_count += 1;
                 }
                 Event::Withdraw(e) => {
                     let token_contract = DbContractAddress(e.token_id.contract);
@@ -89,8 +102,7 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                     let token_id = DbTokenId(e.token_id.id.to_string().parse()?);
                     let token_amount = DbTokenAmount(e.amount.0.into());
 
-                    self.db
-                        .deposited_tokens(contract)
+                    db.deposited_tokens
                         .upsert_one(
                             DbDepositedToken::key(&token_contract, &token_id, &owner)?,
                             |t| {
@@ -107,15 +119,15 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                                 t
                             },
                         )
-                        .await?
+                        .await?;
+                    process_events_count += 1;
                 }
                 Event::Listed(e) => {
                     let token_contract = DbContractAddress(e.token_id.contract);
                     let owner = DbAccountAddress(e.owner);
                     let token_id = DbTokenId(e.token_id.id.to_string().parse()?);
                     let token_amount = DbTokenAmount(e.supply.0.into());
-                    self.db
-                        .deposited_tokens(contract)
+                    db.deposited_tokens
                         .upsert_one(
                             DbDepositedToken::key(&token_contract, &token_id, &owner)?,
                             |t| {
@@ -133,14 +145,14 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                             },
                         )
                         .await?;
+                    process_events_count += 1;
                 }
                 Event::DeListed(e) => {
                     let token_contract = DbContractAddress(e.token_id.contract);
                     let owner = DbAccountAddress(e.owner);
                     let token_id = DbTokenId(e.token_id.id.to_string().parse()?);
 
-                    self.db
-                        .deposited_tokens(contract)
+                    db.deposited_tokens
                         .upsert_one(
                             DbDepositedToken::key(&token_contract, &token_id, &owner)?,
                             |t| {
@@ -158,6 +170,7 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                             },
                         )
                         .await?;
+                    process_events_count += 1;
                 }
                 Event::Exchanged(e) => {
                     let buy_token_contract = DbContractAddress(e.buy_token_id.contract);
@@ -165,8 +178,7 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                     let bought_from = DbAccountAddress(e.buy_token_owner);
                     let buy_token_amount = DbTokenAmount(e.buy_amount.0.into());
 
-                    self.db
-                        .deposited_tokens(contract)
+                    db.deposited_tokens
                         .upsert_one(
                             DbDepositedToken::key(
                                 &buy_token_contract,
@@ -195,8 +207,7 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                         let token_id = DbTokenId(token_id.id.to_string().parse()?);
                         let owner = DbAccountAddress(e.pay_token_owner);
                         let token_amount = DbTokenAmount(amount.0.into());
-                        self.db
-                            .deposited_tokens(contract)
+                        db.deposited_tokens
                             .upsert_one(
                                 DbDepositedToken::key(&token_contract, &token_id, &owner)?,
                                 |t| {
@@ -215,10 +226,11 @@ impl<TDb: Sync + Send + IRwaMarketDb> EventsProcessor for RwaMarketProcessor<TDb
                             )
                             .await?;
                     }
+                    process_events_count += 1;
                 }
             }
         }
 
-        Ok(())
+        Ok(process_events_count)
     }
 }

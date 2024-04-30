@@ -1,52 +1,22 @@
-use crate::{
-    shared::db::{Collection, DbAddress, DbContractAddress},
-    txn_processor::db::IDb,
-};
-use concordium_rust_sdk::types::ContractAddress;
+use crate::shared::db::{Collection, DbAddress, DbContractAddress};
+use mongodb::Database;
 
-/// `IRwaIdentityRegistryDb` is a trait that defines the necessary methods for
-/// interacting with the RWA Identity Registry database. It extends the `IDb`
-/// trait, which provides basic database functionality.
-pub trait IRwaIdentityRegistryDb: IDb {
-    /// Returns a MongoDB collection of `DbAddress` documents for a given
-    /// contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `contract` - A reference to the contract's address.
-    ///
-    /// # Returns
-    ///
-    /// * A MongoDB collection of `DbAddress` documents.
-    fn identities(&self, contract: &ContractAddress) -> Collection<DbAddress> {
-        self.database(contract).collection::<DbAddress>("identities").into()
-    }
+pub struct RwaIdentityRegistryDb {
+    pub identities: Collection<DbAddress>,
+    pub issuers:    Collection<DbContractAddress>,
+    pub agents:     Collection<DbAddress>,
+}
 
-    /// Returns a MongoDB collection of `DbContractAddress` documents for a
-    /// given contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `contract` - A reference to the contract's address.
-    ///
-    /// # Returns
-    ///
-    /// * A MongoDB collection of `DbContractAddress` documents.
-    fn issuers(&self, contract: &ContractAddress) -> Collection<DbContractAddress> {
-        self.database(contract).collection::<DbContractAddress>("issuers").into()
-    }
+impl RwaIdentityRegistryDb {
+    pub fn init(db: Database) -> Self {
+        let identities = db.collection::<DbAddress>("identities").into();
+        let issuers = db.collection::<DbContractAddress>("issuers").into();
+        let agents = db.collection::<DbAddress>("agents").into();
 
-    /// Returns a MongoDB collection of `DbAddress` documents for a given
-    /// contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `contract` - A reference to the contract's address.
-    ///
-    /// # Returns
-    ///
-    /// * A MongoDB collection of `DbAddress` documents.
-    fn agents(&self, contract: &ContractAddress) -> Collection<DbAddress> {
-        self.database(contract).collection::<DbAddress>("agents").into()
+        Self {
+            identities,
+            issuers,
+            agents,
+        }
     }
 }

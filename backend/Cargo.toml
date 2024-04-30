@@ -2,10 +2,10 @@
 name = "backend"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.72"
+rust-version = "1.74"
 
 [dependencies]
-concordium-cis2 = { version = "5.1.0", default-features = false }
+concordium-cis2 = { version = "6.1.0", default-features = false }
 concordium-rwa-identity-registry = { path = "../contracts/identity-registry" }
 concordium-rwa-security-nft = { path = "../contracts/security-nft" }
 concordium-rwa-security-sft = { path = "../contracts/security-sft" }
@@ -13,7 +13,7 @@ concordium-rwa-compliance = { path = "../contracts/compliance" }
 concordium-rwa-market = { path = "../contracts/market" }
 concordium-rwa-sponsor = { path = "../contracts/sponsor" }
 concordium-rwa-utils = { path = "../contracts/utils" }
-concordium-rust-sdk = "3.2.0"
+concordium-rust-sdk = "4.3.0"
 tokio = { version = "1.35.1", features = ["full"] }
 anyhow = "1.0.79"
 futures = "0.3"

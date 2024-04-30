@@ -8,4 +8,5 @@
 
 mod db;
 mod listener;
+pub use db::DatabaseClient;
 pub use listener::{EventsProcessor, TransactionsListener};

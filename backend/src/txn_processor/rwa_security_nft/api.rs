@@ -5,7 +5,7 @@
 //! The API endpoints are defined using the `poem_openapi` and `poem` crates,
 //! and the responses are serialized as JSON using the `Json` type.
 
-use super::db::{DbToken, IRwaSecurityNftDb, TokenHolder};
+use super::db::{DbToken, RwaSecurityNftDb, TokenHolder};
 use crate::shared::{
     api::{ApiAddress, Error, PagedResponse, PAGE_SIZE},
     db::{DbAddress, DbTokenAmount, ICollection},
@@ -60,13 +60,22 @@ impl From<TokenHolder> for ApiNftHolder {
 }
 
 /// The RWA security NFT API.
-pub struct RwaSecurityNftApi<TDb: IRwaSecurityNftDb> {
-    pub db: TDb,
+pub struct RwaSecurityNftApi {
+    pub client:        mongodb::Client,
+    pub contract_name: String,
 }
 
 /// API implementation for the RWA security NFT.
 #[OpenApi]
-impl<TDb: IRwaSecurityNftDb + Sync + Send + 'static> RwaSecurityNftApi<TDb> {
+impl RwaSecurityNftApi {
+    pub fn db(&self, contract: &ContractAddress) -> RwaSecurityNftDb {
+        let db = self
+            .client
+            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
+
+        RwaSecurityNftDb::init(db)
+    }
+
     /// Get the list of tokens for a specific RWA security NFT contract.
     ///
     /// # Parameters
@@ -125,7 +134,7 @@ impl<TDb: IRwaSecurityNftDb + Sync + Send + 'static> RwaSecurityNftApi<TDb> {
                 "$ne": "0",
             }
         };
-        let coll = self.db.holders(&contract);
+        let coll = self.db(&contract).holders;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
         let data: Vec<ApiNftHolder> = data.into_iter().map(|holder| holder.into()).collect();
@@ -167,7 +176,7 @@ impl<TDb: IRwaSecurityNftDb + Sync + Send + 'static> RwaSecurityNftApi<TDb> {
         let query = doc! {
             "token_id": token_id,
         };
-        let coll = self.db.holders(&contract);
+        let coll = self.db(&contract).holders;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
         let data: Vec<ApiNftHolder> = data.into_iter().map(|holder| holder.into()).collect();
@@ -197,7 +206,7 @@ impl<TDb: IRwaSecurityNftDb + Sync + Send + 'static> RwaSecurityNftApi<TDb> {
         contract: ContractAddress,
         page: u64,
     ) -> anyhow::Result<PagedResponse<ApiNftToken>> {
-        let coll = self.db.tokens(&contract);
+        let coll = self.db(&contract).tokens;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbToken> = cursor.try_collect().await?;
         let data: Vec<ApiNftToken> = data.into_iter().map(|token| token.into()).collect();

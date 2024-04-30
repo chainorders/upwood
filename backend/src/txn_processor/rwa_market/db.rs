@@ -1,11 +1,8 @@
-use bson::{doc, to_bson};
-use concordium_rust_sdk::types::ContractAddress;
-use serde::{Deserialize, Serialize};
-
-use crate::{
-    shared::db::{Collection, DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId},
-    txn_processor::db::IDb,
+use crate::shared::db::{
+    Collection, DbAccountAddress, DbContractAddress, DbTokenAmount, DbTokenId,
 };
+use bson::{doc, to_bson};
+use serde::{Deserialize, Serialize};
 
 /// Represents a deposited token in the database.
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -73,20 +70,26 @@ impl DbDepositedToken {
     }
 }
 
-/// Represents the database for the RWA market.
-pub trait IRwaMarketDb: IDb {
-    /// Retrieves the collection of deposited tokens for a given contract
-    /// address.
+pub struct RwaMarketDb {
+    pub deposited_tokens: Collection<DbDepositedToken>,
+}
+
+impl RwaMarketDb {
+    /// Initializes a new `RwaMarketDb` instance with the specified MongoDB
+    /// database.
     ///
     /// # Arguments
     ///
-    /// * `contract` - The contract address.
+    /// * `db` - The MongoDB database to use for the RWA market database.
     ///
     /// # Returns
     ///
-    /// A `Collection` of `DbDepositedToken` instances for the given contract
-    /// address.
-    fn deposited_tokens(&self, contract: &ContractAddress) -> Collection<DbDepositedToken> {
-        self.database(contract).collection::<DbDepositedToken>("deposited_tokens").into()
+    /// A new `RwaMarketDb` instance.
+    pub fn init(db: mongodb::Database) -> Self {
+        let deposited_tokens = db.collection("deposited_tokens").into();
+
+        Self {
+            deposited_tokens,
+        }
     }
 }

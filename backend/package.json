@@ -6,6 +6,8 @@
 		"build": "cargo build",
 		"generate:spec": "yarn run generate:contracts-api-specs && yarn run generate:verifier-api-specs && yarn run generate:sponsor-api-specs",
 		"generate:client": "yarn run generate:contracts-api-client && yarn run generate:verifier-api-client && yarn run generate:sponsor-api-client",
+		"debug:listener": "RUST_LOG=debug cargo run --release listener",
+		"watch:listener": "RUST_LOG=debug cargo watch -x 'run listener'",
 		"debug:contracts-api": "RUST_LOG=debug cargo run contracts-api",
 		"watch:contracts-api": "RUST_LOG=debug cargo watch -x 'run contracts-api'",
 		"generate:contracts-api-specs": "cargo run generate-contracts-api-specs contracts-api-specs.json",
