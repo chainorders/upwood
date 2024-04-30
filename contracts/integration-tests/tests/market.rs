@@ -14,7 +14,6 @@ use concordium_rwa_market::{
 };
 use concordium_smart_contract_testing::{ed25519::PublicKey, *};
 use concordium_std::{ops::Sub, ACCOUNT_ADDRESS_SIZE};
-use euroe_stablecoin::RoleTypes;
 use utils::{
     cis2_conversions::{to_token_amount_u64, to_token_id_vec},
     cis2_security_test_contract::ICis2SecurityTestContract,
@@ -28,6 +27,8 @@ use utils::{
     test_contract_client::{ITestContract, ITestModule},
     verifier::Verifier,
 };
+
+use crate::utils::euroe::{MintParams, RoleTypes};
 
 #[test]
 fn market_buy_via_transfer_of_cis2() {
@@ -252,7 +253,7 @@ fn market_buy_via_transfer_of_cis2() {
     let init_euroe_balance = TokenAmountU64(400_000_000);
     euroe
         .mint()
-        .update(&mut chain, &admin, &euroe_stablecoin::MintParams {
+        .update(&mut chain, &admin, &MintParams {
             owner:  Address::Account(buyer.address),
             amount: init_euroe_balance,
         })

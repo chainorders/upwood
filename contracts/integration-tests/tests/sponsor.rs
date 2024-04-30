@@ -8,11 +8,12 @@ use utils::{
     common::{init_identity_contracts, init_security_token_contracts},
     consts::{DEFAULT_ACC_BALANCE, SPONSOR_MODULE},
     security_nft::ISecurityNftContractExt,
-    security_sft::sft_mint,
     sponsor::{ISponsorContract, ISponsorModule, SponsorContract, SponsorModule},
     test_contract_client::{ITestContract, ITestModule},
     verifier::Verifier,
 };
+
+use crate::utils::security_sft::ISecuritySftContractExt;
 
 #[test]
 fn sponsored_nft_transfer() {
@@ -203,7 +204,7 @@ pub fn sponsored_sft_transfer() {
         .init_without_params(&mut chain, &sponsor_account)
         .map(|s| SponsorContract(s.contract_address))
         .expect("Sponsor: init");
-    let (nft_contract, token_contract) = init_security_token_contracts(
+    let (nft_contract, sft_contract) = init_security_token_contracts(
         &mut chain,
         &admin,
         &ir_contract,
@@ -213,15 +214,14 @@ pub fn sponsored_sft_transfer() {
     .expect("Init security token contracts");
     verifier
         .register_nationalities(&mut chain, vec![(
-            Address::Contract(token_contract.contract_address()),
+            Address::Contract(sft_contract.contract_address()),
             "US".to_string(),
         )])
         .expect("Register nationalities");
-    let token_id = sft_mint(
+    let (_, token_id) = sft_contract.mint_via_transfer(
         &mut chain,
         &admin,
         &nft_contract,
-        &token_contract,
         &token_owner,
         concordium_rwa_security_nft::types::ContractMetadataUrl {
             url:  "ipfs:nft".to_string(),
@@ -233,12 +233,12 @@ pub fn sponsored_sft_transfer() {
         },
         1000,
     );
-    let balance_of_token_owner = token_contract
+    let balance_of_token_owner = sft_contract
         .balance_of_single_invoke(&mut chain, &admin, token_id, token_owner.address.into())
         .expect("sft: balance of token owner");
     assert_eq!(balance_of_token_owner, 1000.into());
 
-    let balance_of_token_receiver = token_contract
+    let balance_of_token_receiver = sft_contract
         .balance_of_single_invoke(&mut chain, &admin, token_id, token_receiver.address.into())
         .expect("sft: balance of token receiver");
     assert_eq!(balance_of_token_receiver, 0.into());
@@ -268,8 +268,8 @@ pub fn sponsored_sft_transfer() {
             .map(|res| sponsor.nonce().parse_return_value(&res).expect("Parsing nonce"))
             .expect("sponsor: nonce");
         let permit_message = PermitMessage {
-            contract_address: token_contract.contract_address(),
-            entry_point: token_contract.transfer().entrypoint_name,
+            contract_address: sft_contract.contract_address(),
+            entry_point: sft_contract.transfer().entrypoint_name,
             nonce,
             timestamp: chain
                 .block_time()
@@ -294,12 +294,12 @@ pub fn sponsored_sft_transfer() {
 
     sponsor.permit().update(&mut chain, &sponsor_account, &permit_param).expect("sponsor: permit");
 
-    let balance_of_token_owner = token_contract
+    let balance_of_token_owner = sft_contract
         .balance_of_single_invoke(&mut chain, &admin, token_id, token_owner.address.into())
         .expect("sft: balance of token owner");
     assert_eq!(balance_of_token_owner, 900.into());
 
-    let balance_of_token_receiver = token_contract
+    let balance_of_token_receiver = sft_contract
         .balance_of_single_invoke(&mut chain, &admin, token_id, token_receiver.address.into())
         .expect("sft: balance of token receiver");
     assert_eq!(balance_of_token_receiver, 100.into());
