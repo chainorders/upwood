@@ -169,6 +169,7 @@ impl TransactionsListener {
         summary: &concordium_rust_sdk::types::BlockItemSummary,
     ) -> Result<u64, anyhow::Error> {
         let events_count = if let Some(init) = summary.contract_init() {
+            self.process_contract_init(init).await?;
             self.process_contract_events(init.address, init.events.to_vec()).await?
         } else if let Some(update) = summary.contract_update_logs() {
             let updates = update.into_iter().fold(BTreeMap::new(), |mut map, update| {
@@ -241,5 +242,28 @@ impl TransactionsListener {
         let processor =
             self.processors.iter().find(|processor| processor.matches(origin_ref, init_name));
         processor.map(|processor| processor.as_ref())
+    }
+
+    async fn process_contract_init(
+        &self,
+        init: &concordium_rust_sdk::types::ContractInitializedEvent,
+    ) -> anyhow::Result<()> {
+        let contract = self.database.find_contract(&init.address).await?.is_none();
+        if contract {
+            let processor = self.find_processor(&init.origin_ref, &init.init_name).is_some();
+            if processor {
+                self.database
+                    .add_contract(&init.address, &init.origin_ref, &init.init_name)
+                    .await?;
+                log::info!(
+                    "Listening to contract {}-{}-{}",
+                    init.origin_ref,
+                    init.init_name,
+                    init.address
+                );
+            }
+        }
+
+        Ok(())
     }
 }

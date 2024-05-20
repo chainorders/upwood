@@ -38,6 +38,20 @@ pub struct DbContract {
 }
 
 impl DbContract {
+    /// Creates a new `DbContract` instance.
+    pub fn new(
+        module_ref: &ModuleReference,
+        contract_name: &OwnedContractName,
+        address: &ContractAddress,
+    ) -> Self {
+        Self {
+            module_ref:       module_ref.to_string(),
+            contract_name:    contract_name.to_string(),
+            address_index:    address.index,
+            address_subindex: address.subindex,
+        }
+    }
+
     pub fn mongodb_index_key() -> bson::Document {
         doc! {
             "address_index": 1,
@@ -136,6 +150,24 @@ impl DatabaseClient {
                     block_hash:   block.block_hash.to_string(),
                     block_height: block.height.height,
                 },
+                InsertOneOptions::builder().build(),
+            )
+            .await?;
+
+        Ok(result)
+    }
+
+    /// Adds a contract to the database.
+    pub async fn add_contract(
+        &self,
+        address: &concordium_rust_sdk::types::ContractAddress,
+        origin_ref: &ModuleReference,
+        init_name: &OwnedContractName,
+    ) -> anyhow::Result<InsertOneResult> {
+        let result = self
+            .contracts
+            .insert_one(
+                DbContract::new(origin_ref, init_name, address),
                 InsertOneOptions::builder().build(),
             )
             .await?;
