@@ -1,8 +1,7 @@
+use super::{error::Error, state::State, types::*};
 use concordium_cis2::*;
 use concordium_rwa_utils::{holders_state::IHoldersState, tokens_state::ITokensState};
 use concordium_std::*;
-
-use super::{error::Error, state::State, types::*};
 
 // Returns the balance of the given token for the given addresses.
 ///

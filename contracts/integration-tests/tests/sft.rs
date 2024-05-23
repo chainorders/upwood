@@ -1,37 +1,48 @@
 #![allow(clippy::diverging_sub_expression, clippy::too_many_arguments)]
-mod utils;
+pub mod utils;
 
 use concordium_cis2::TokenAmountU32;
-use concordium_smart_contract_testing::*;
-use integration_tests::{
+use concordium_smart_contract_testing::{ed25519::PublicKey, *};
+use concordium_std::ACCOUNT_ADDRESS_SIZE;
+use utils::{
     cis2_test_contract::ICis2Contract,
+    common::{init_identity_contracts, init_security_token_contracts},
+    consts::*,
     identity_registry::IIdentityRegistryContract,
     security_sft::sft_mint,
     test_contract_client::ITestContract,
     verifier::Verifier,
 };
-use utils::{
-    chain::create_accounts,
-    common::{init_identity_contracts, init_security_token_contracts},
-    consts::*,
-};
-
-const ADMIN: AccountAddress = AccountAddress([0; 32]);
-const AGENT: AccountAddress = AccountAddress([1; 32]);
-const TOKEN_OWNER: AccountAddress = AccountAddress([2; 32]);
 
 #[test]
 fn sft_fractionalize_via_transfer() {
+    let admin = Account::new_with_keys(
+        AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let agent = Account::new_with_keys(
+        AccountAddress([1; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+    let owner = Account::new_with_keys(
+        AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),
+        AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
+        AccountAccessStructure::singleton(PublicKey::default()),
+    );
+
     let mut chain = Chain::new();
-    let accounts =
-        create_accounts(&mut chain, vec![(ADMIN), (AGENT), (TOKEN_OWNER)], DEFAULT_ACC_BALANCE);
-    let admin = accounts.first().expect("Admin account");
-    let agent = accounts.get(1).expect("Agent account");
-    let owner = accounts.get(2).expect("Owner account");
+    [admin.clone(), agent.clone(), owner.clone()].iter().for_each(|a| {
+        chain.create_account(a.clone());
+    });
 
     let (ir_contract, compliance_contract) =
-        init_identity_contracts(&mut chain, admin, vec!["IN".to_owned(), "US".to_owned()]);
-    ir_contract.add_agent().update(&mut chain, admin, &Address::Account(AGENT)).expect("Add agent");
+        init_identity_contracts(&mut chain, &admin, vec!["IN".to_owned(), "US".to_owned()]);
+    ir_contract
+        .add_agent()
+        .update(&mut chain, &admin, &Address::Account(agent.address))
+        .expect("Add agent");
     let verifier = Verifier {
         account:           agent.clone(),
         identity_registry: ir_contract.clone(),
@@ -39,7 +50,7 @@ fn sft_fractionalize_via_transfer() {
 
     let (nft_contract, sft_contract) = init_security_token_contracts(
         &mut chain,
-        admin,
+        &admin,
         &ir_contract,
         &compliance_contract,
         vec![],
@@ -48,17 +59,17 @@ fn sft_fractionalize_via_transfer() {
 
     verifier
         .register_nationalities(&mut chain, vec![
-            (Address::Account(TOKEN_OWNER), "US".to_string()),
+            (Address::Account(owner.address), "US".to_string()),
             (Address::Contract(sft_contract.contract_address()), "US".to_string()),
         ])
         .expect("Register nationalities");
 
     let sft_token = sft_mint(
         &mut chain,
-        admin,
+        &admin,
         &nft_contract,
         &sft_contract,
-        owner,
+        &owner,
         concordium_rwa_security_nft::types::ContractMetadataUrl {
             url:  "ipfs:nft".to_string(),
             hash: None,
@@ -73,7 +84,7 @@ fn sft_fractionalize_via_transfer() {
         .balance_of()
         .invoke(
             &mut chain,
-            owner,
+            &owner,
             &concordium_rwa_security_sft::types::ContractBalanceOfQueryParams {
                 queries: vec![concordium_rwa_security_sft::types::ContractBalanceOfQuery {
                     token_id: sft_token,

@@ -1,13 +1,11 @@
-use std::num::NonZeroI32;
-
-use concordium_std::*;
-
 use concordium_rwa_utils::{
     cis2_state::Cis2StateError, clients::contract_client::ContractClientError,
     holders_security_state::HolderSecurityStateError, holders_state::HolderStateError,
     token_deposits_state::DepositedStateError, tokens_security_state::TokenSecurityError,
     tokens_state::TokenStateError,
 };
+use concordium_std::*;
+use std::num::NonZeroI32;
 
 #[derive(SchemaType)]
 pub enum Error {

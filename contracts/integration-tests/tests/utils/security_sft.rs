@@ -1,19 +1,14 @@
 #![allow(clippy::too_many_arguments)]
 
-use super::{test_contract_client::*, utils::to_token_id_vec};
-use crate::{
+use super::{
     cis2_test_contract::{ICis2Contract, ICis2ContractExt},
-    security_nft::{ISecurityNftContract, SecurityNftContract},
+    security_nft::{ISecurityNftContractExt, SecurityNftContract},
+    test_contract_client::*,
+    cis2_conversions::to_token_id_vec,
 };
 use concordium_cis2::{AdditionalData, Cis2Event, Receiver, TransferParams};
 use concordium_rwa_market::types::Rate;
-use concordium_rwa_security_sft::{
-    deposit::DepositParams,
-    event::Event,
-    init::InitParam,
-    mint::{AddParam, AddParams, MintParam},
-    types::{NftTokenUId, TokenAmount, TokenId},
-};
+use concordium_rwa_security_sft::{event::Event, types::*};
 use concordium_smart_contract_testing::*;
 
 pub const CONTRACT_NAME: &str = "init_rwa_security_sft";
@@ -24,7 +19,16 @@ pub trait ISecuritySftModule: ITestModule {
     }
 }
 
-pub trait IContract: ITestContract + ICis2Contract<TokenId, TokenAmount, Event> {
+pub trait ISecuritySftContract: ITestContract + ICis2Contract<TokenId, TokenAmount, Event> {
+    fn add_agent(&self) -> GenericReceive<Address, (), Event> {
+        GenericReceive::<Address, (), Event>::new(
+            self.contract_address(),
+            Self::contract_name(),
+            "addAgent",
+            self.max_energy(),
+        )
+    }
+
     fn add_tokens(&self) -> GenericReceive<AddParams, (), Event> {
         GenericReceive::<AddParams, (), Event>::new(
             self.contract_address(),
@@ -44,6 +48,49 @@ pub trait IContract: ITestContract + ICis2Contract<TokenId, TokenAmount, Event> 
     }
 }
 
+pub trait ISecuritySftContractExt: ISecuritySftContract {
+    fn add_single_token_update(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        nft_token_id: NftTokenId,
+        nft_contract_address: ContractAddress,
+        metadata_url: ContractMetadataUrl,
+        fractions_rate: Rate,
+    ) -> Result<TokenId, ContractInvokeError> {
+        self.add_tokens()
+            .update(chain, sender, &AddParams {
+                tokens: vec![AddParam {
+                    deposit_token_id: NftTokenUId {
+                        contract: nft_contract_address,
+                        id:       to_token_id_vec(nft_token_id),
+                    },
+                    metadata_url,
+                    fractions_rate,
+                }],
+            })
+            .map(|r| {
+                let sft_token_ids: Vec<_> = self
+                    .add_tokens()
+                    .parse_events(&r)
+                    .expect("SFT: Add Tokens parsing events")
+                    .iter()
+                    .filter_map(|e| {
+                        if let concordium_rwa_security_sft::event::Event::Cis2(
+                            Cis2Event::TokenMetadata(e),
+                        ) = e
+                        {
+                            Some(e.token_id)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                *sft_token_ids.first().expect("SFT: First Token Id")
+            })
+    }
+}
+
 pub struct SecuritySftModule {
     pub module_path: String,
 }
@@ -60,7 +107,8 @@ impl ITestContract for SecuritySftContract {
 
     fn contract_address(&self) -> ContractAddress { self.0 }
 }
-impl IContract for SecuritySftContract {}
+impl ISecuritySftContract for SecuritySftContract {}
+impl ISecuritySftContractExt for SecuritySftContract {}
 impl ICis2Contract<TokenId, TokenAmount, Event> for SecuritySftContract {}
 impl ICis2ContractExt<TokenId, TokenAmount, Event> for SecuritySftContract {}
 
@@ -74,66 +122,19 @@ pub fn sft_mint(
     sft_metadata: concordium_rwa_security_sft::types::ContractMetadataUrl,
     fractions: u64,
 ) -> concordium_cis2::TokenIdU32 {
-    // Mint Nft Token
-    let nft_token_id = {
-        let nft_mint_res = nft_contract
-            .mint()
-            .update(chain, agent, &concordium_rwa_security_nft::mint::MintParams {
-                owner:  Receiver::Account(owner.address),
-                tokens: vec![concordium_rwa_security_nft::mint::MintParam {
-                    metadata_url: nft_metadata,
-                }],
-            })
-            .expect("NFT: Mint");
-        let nft_token_ids: Vec<_> = nft_contract
-            .mint()
-            .parse_events(&nft_mint_res)
-            .expect("NFT: Mint parsing events")
-            .iter()
-            .filter_map(|e| {
-                if let concordium_rwa_security_nft::event::Event::Cis2(Cis2Event::Mint(e)) = e {
-                    Some(e.token_id)
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        *nft_token_ids.first().expect("NFT: First Token Id")
-    };
-    // Add Nft token to Sft contract
-    let sft_added_token_id = {
-        let sft_add_res = sft_contract
-            .add_tokens()
-            .update(chain, agent, &AddParams {
-                tokens: vec![AddParam {
-                    deposit_token_id: NftTokenUId {
-                        contract: nft_contract.contract_address(),
-                        id:       to_token_id_vec(nft_token_id),
-                    },
-                    metadata_url:     sft_metadata,
-                    fractions_rate:   Rate::new(fractions, 1).expect("Rate"),
-                }],
-            })
-            .expect("SFT: Add Tokens");
-        let sft_token_ids: Vec<_> = sft_contract
-            .add_tokens()
-            .parse_events(&sft_add_res)
-            .expect("SFT: Add Tokens parsing events")
-            .iter()
-            .filter_map(|e| {
-                if let concordium_rwa_security_sft::event::Event::Cis2(Cis2Event::TokenMetadata(
-                    e,
-                )) = e
-                {
-                    Some(e.token_id)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        *sft_token_ids.first().expect("SFT: First Token Id")
-    };
+    let nft_token_id = nft_contract
+        .mint_single_update(chain, agent, Receiver::Account(owner.address), nft_metadata)
+        .expect("NFT: Mint");
+    let sft_added_token_id = sft_contract
+        .add_single_token_update(
+            chain,
+            agent,
+            to_token_id_vec(nft_token_id),
+            nft_contract.contract_address(),
+            sft_metadata,
+            Rate::new(fractions, 1).expect("Rate"),
+        )
+        .expect("SFT: Add Single Token");
     // Transfer Nft token to Sft contract and mint Sft token
     let sft_minted_token_id = {
         let nft_transfer_res = nft_contract

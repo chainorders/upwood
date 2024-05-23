@@ -1,14 +1,12 @@
+use super::{state::State, types::ContractResult};
 use concordium_cis2::{
     StandardIdentifier, SupportResult, SupportsQueryParams, SupportsQueryResponse,
     CIS0_STANDARD_IDENTIFIER, CIS2_STANDARD_IDENTIFIER,
 };
-use concordium_std::*;
-
 use concordium_rwa_utils::{
     concordium_cis3::CIS3_STANDARD_IDENTIFIER, sponsors_state::ISponsorsState,
 };
-
-use super::{state::State, types::ContractResult};
+use concordium_std::*;
 
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =
     [CIS0_STANDARD_IDENTIFIER, CIS2_STANDARD_IDENTIFIER];

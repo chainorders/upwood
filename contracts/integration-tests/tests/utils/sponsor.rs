@@ -3,7 +3,7 @@ use concordium_rwa_sponsor::{
     types::{PermitMessage, PermitParam},
     utils::NonceParam,
 };
-use concordium_smart_contract_testing::*;
+use concordium_std::{ContractAddress, OwnedContractName};
 
 pub const MODULE_PATH: &str = "../sponsor/contract.wasm.v1";
 pub const CONTRACT_NAME: &str = "init_rwa_sponsor";

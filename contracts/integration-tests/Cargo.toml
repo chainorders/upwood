@@ -13,7 +13,9 @@ concordium-rwa-security-sft = { path = "../security-sft" }
 concordium-rwa-market = { path = "../market" }
 concordium-rwa-sponsor = { path = "../sponsor" }
 euroe_stablecoin = { path = "../euroe" }
-rand = "*"
+rand_core = "0.5.1"
+
+[dev-dependencies]
 concordium-smart-contract-testing = "3"
 
 [lib]

@@ -1,3 +1,14 @@
 pub mod chain;
-pub mod consts;
 pub mod common;
+pub mod consts;
+pub mod cis2_test_contract;
+pub mod compliance;
+pub mod euroe;
+pub mod identity_registry;
+pub mod market;
+pub mod security_nft;
+pub mod security_sft;
+pub mod sponsor;
+pub mod test_contract_client;
+pub mod cis2_conversions;
+pub mod verifier;

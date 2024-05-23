@@ -1,20 +1,17 @@
-mod utils;
-
+pub mod utils;
 use concordium_cis2::{AdditionalData, Receiver, TokenAmountU32, Transfer, TransferParams};
 use concordium_rwa_sponsor::types::{PermitMessage, PermitParam};
 use concordium_smart_contract_testing::{ed25519::PublicKey, *};
 use concordium_std::{ExpectReport, Serial, ACCOUNT_ADDRESS_SIZE};
-use integration_tests::{
+use utils::{
     cis2_test_contract::{ICis2Contract, ICis2ContractExt},
+    common::{init_identity_contracts, init_security_token_contracts},
+    consts::{DEFAULT_ACC_BALANCE, SPONSOR_MODULE},
     security_nft::ISecurityNftContractExt,
     security_sft::sft_mint,
     sponsor::{ISponsorContract, ISponsorModule, SponsorContract, SponsorModule},
     test_contract_client::{ITestContract, ITestModule},
     verifier::Verifier,
-};
-use utils::{
-    common::{init_identity_contracts, init_security_token_contracts},
-    consts::{DEFAULT_ACC_BALANCE, SPONSOR_MODULE},
 };
 
 #[test]
@@ -31,7 +28,7 @@ fn sponsored_nft_transfer() {
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand_core::OsRng;
     let token_owner_key_pairs = AccountKeys::singleton(rng);
     let token_owner = Account::new_with_keys(
         AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),
@@ -93,7 +90,7 @@ fn sponsored_nft_transfer() {
         .expect("nft: mint token");
 
     // Payload for NFT contract
-    let payload: concordium_rwa_security_nft::types::ContractTransferParams =
+    let payload: concordium_rwa_security_nft::types::TransferParams =
         TransferParams(vec![Transfer {
             from: token_owner.address.into(),
             amount: 1.into(),
@@ -167,7 +164,7 @@ pub fn sponsored_sft_transfer() {
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
-    let rng = &mut rand::thread_rng();
+    let rng = &mut rand_core::OsRng;
     let token_owner_key_pairs = AccountKeys::singleton(rng);
     let token_owner = Account::new_with_keys(
         AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),

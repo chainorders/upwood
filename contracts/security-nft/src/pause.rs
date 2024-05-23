@@ -1,22 +1,9 @@
-use concordium_cis2::IsTokenId;
-use concordium_std::*;
-
+use super::{error::*, event::*, state::State, types::*};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState, tokens_security_state::ITokensSecurityState,
     tokens_state::ITokensState,
 };
-
-use super::{error::*, event::*, state::State, types::*};
-
-#[derive(Serialize, SchemaType)]
-pub struct PauseParams<T: IsTokenId> {
-    tokens: Vec<T>,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct IsPausedResponse {
-    tokens: Vec<bool>,
-}
+use concordium_std::*;
 
 /// Pauses the given tokenIds.
 ///
@@ -35,7 +22,7 @@ pub struct IsPausedResponse {
     name = "pause",
     mutable,
     enable_logger,
-    parameter = "PauseParams<TokenId>",
+    parameter = "PauseParams",
     error = "super::error::Error"
 )]
 pub fn pause(
@@ -48,7 +35,7 @@ pub fn pause(
 
     let PauseParams {
         tokens,
-    }: PauseParams<TokenId> = ctx.parameter_cursor().get()?;
+    }: PauseParams = ctx.parameter_cursor().get()?;
     for token_id in tokens {
         state.ensure_token_exists(&token_id)?;
         state.pause(token_id);
@@ -77,7 +64,7 @@ pub fn pause(
     name = "unPause",
     mutable,
     enable_logger,
-    parameter = "PauseParams<TokenId>",
+    parameter = "PauseParams",
     error = "super::error::Error"
 )]
 pub fn un_pause(
@@ -90,7 +77,7 @@ pub fn un_pause(
 
     let PauseParams {
         tokens,
-    }: PauseParams<TokenId> = ctx.parameter_cursor().get()?;
+    }: PauseParams = ctx.parameter_cursor().get()?;
     for token_id in tokens {
         state.ensure_token_exists(&token_id)?;
         state.un_pause(token_id);
@@ -116,14 +103,14 @@ pub fn un_pause(
 #[receive(
     contract = "rwa_security_nft",
     name = "isPaused",
-    parameter = "PauseParams<TokenId>",
+    parameter = "PauseParams",
     return_value = "IsPausedResponse",
     error = "super::error::Error"
 )]
 pub fn is_paused(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<IsPausedResponse> {
     let PauseParams {
         tokens,
-    }: PauseParams<TokenId> = ctx.parameter_cursor().get()?;
+    }: PauseParams = ctx.parameter_cursor().get()?;
 
     let mut res = IsPausedResponse {
         tokens: Vec::with_capacity(tokens.len()),

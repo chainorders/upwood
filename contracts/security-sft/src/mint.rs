@@ -1,11 +1,13 @@
-use std::ops::Sub;
-
+use super::{
+    error::*,
+    event::*,
+    state::{State, TokenState},
+    types::*,
+};
 use concordium_cis2::{
     AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver, TokenAmountU32,
     TokenAmountU8, TokenMetadataEvent,
 };
-use concordium_std::*;
-
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     clients::{
@@ -18,25 +20,7 @@ use concordium_rwa_utils::{
     token_deposits_state::IDepositedTokensState,
     tokens_state::{ITokensState, IsTokenAmount},
 };
-
-use super::{
-    error::*,
-    event::*,
-    state::{State, TokenState},
-    types::*,
-};
-
-#[derive(Serialize, SchemaType)]
-pub struct AddParam {
-    pub deposit_token_id: NftTokenUId,
-    pub metadata_url:     ContractMetadataUrl,
-    pub fractions_rate:   Rate,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct AddParams {
-    pub tokens: Vec<AddParam>,
-}
+use concordium_std::{ops::Sub, *};
 
 /// Add a new token to the contract.
 /// The token is then identified by the wrapped token id and the metadata url.
@@ -89,18 +73,6 @@ pub fn add_tokens(
     }
 
     Ok(())
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct MintParam {
-    /// The token id of the deposited token.
-    pub deposited_token_id:    NftTokenUId,
-    /// The owner of the deposited token.
-    pub deposited_token_owner: AccountAddress,
-    /// The amount of the deposited token.
-    pub deposited_amount:      NftTokenAmount,
-    /// The owner of the minted token.
-    pub owner:                 Receiver,
 }
 
 /// Mint the given amount of tokens to the owner. Locking the deposited tokens.

@@ -1,9 +1,8 @@
+use super::{error::*, event::*, state::State, types::*};
 use concordium_cis2::{
     AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver, TokenAmountU8,
     TokenMetadataEvent,
 };
-use concordium_std::*;
-
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     clients::{
@@ -14,19 +13,7 @@ use concordium_rwa_utils::{
     holders_security_state::IHoldersSecurityState,
     holders_state::IHoldersState,
 };
-
-use super::{error::*, event::*, state::State, types::*};
-
-#[derive(Serialize, SchemaType)]
-pub struct MintParam {
-    pub metadata_url: ContractMetadataUrl,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct MintParams {
-    pub owner:  Receiver,
-    pub tokens: Vec<MintParam>,
-}
+use concordium_std::*;
 
 const TOKEN_AMOUNT_1: TokenAmountU8 = TokenAmountU8(1);
 

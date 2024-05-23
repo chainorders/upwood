@@ -1,36 +1,10 @@
-use concordium_cis2::{IsTokenAmount, IsTokenId};
-use concordium_std::*;
-
+use super::{error::*, event::*, state::State, types::*};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     holders_security_state::IHoldersSecurityState,
     tokens_state::{ITokensState, TokenStateResult},
 };
-
-use super::{error::*, event::*, state::State, types::*};
-
-#[derive(Serialize, SchemaType)]
-pub struct FreezeParam<T: IsTokenId, A: IsTokenAmount> {
-    pub token_id:     T,
-    pub token_amount: A,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct FreezeParams<T: IsTokenId, A: IsTokenAmount> {
-    pub owner:  Address,
-    pub tokens: Vec<FreezeParam<T, A>>,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct FrozenParams<T: IsTokenId> {
-    pub owner:  Address,
-    pub tokens: Vec<T>,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct FrozenResponse<T: IsTokenAmount> {
-    pub tokens: Vec<T>,
-}
+use concordium_std::*;
 
 /// Freezes the given amount of given tokenIds for the given address.
 ///
@@ -50,7 +24,7 @@ pub struct FrozenResponse<T: IsTokenAmount> {
     name = "freeze",
     mutable,
     enable_logger,
-    parameter = "FreezeParams<TokenId, TokenAmount>",
+    parameter = "FreezeParams",
     error = "super::error::Error"
 )]
 pub fn freeze(
@@ -65,7 +39,7 @@ pub fn freeze(
     let FreezeParams {
         owner,
         tokens,
-    }: FreezeParams<TokenId, TokenAmount> = ctx.parameter_cursor().get()?;
+    }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
         state.ensure_token_exists(&token.token_id)?;
         state.ensure_has_sufficient_unfrozen_balance(
@@ -101,7 +75,7 @@ pub fn freeze(
     name = "unFreeze",
     mutable,
     enable_logger,
-    parameter = "FreezeParams<TokenId, TokenAmount>",
+    parameter = "FreezeParams",
     error = "super::error::Error"
 )]
 pub fn un_freeze(
@@ -116,7 +90,7 @@ pub fn un_freeze(
     let FreezeParams {
         owner,
         tokens,
-    }: FreezeParams<TokenId, TokenAmount> = ctx.parameter_cursor().get()?;
+    }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
         state.un_freeze(owner, token.token_id, token.token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
@@ -133,7 +107,7 @@ pub fn un_freeze(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<FrozenResponse<TokenAmount>>` containing the frozen
+/// Returns `ContractResult<FrozenResponse>` containing the frozen
 /// balance of the given token for the given addresses.
 ///
 /// # Errors
@@ -143,19 +117,19 @@ pub fn un_freeze(
 #[receive(
     contract = "rwa_security_nft",
     name = "balanceOfFrozen",
-    parameter = "FrozenParams<TokenId>",
-    return_value = "FrozenResponse<TokenAmount>",
+    parameter = "FrozenParams",
+    return_value = "FrozenResponse",
     error = "super::error::Error"
 )]
 pub fn balance_of_frozen(
     ctx: &ReceiveContext,
     host: &Host<State>,
-) -> ContractResult<FrozenResponse<TokenAmount>> {
+) -> ContractResult<FrozenResponse> {
     let state = host.state();
     let FrozenParams {
         owner,
         tokens: token_ids,
-    }: FrozenParams<TokenId> = ctx.parameter_cursor().get()?;
+    }: FrozenParams = ctx.parameter_cursor().get()?;
 
     let tokens = token_ids
         .iter()
@@ -173,26 +147,26 @@ pub fn balance_of_frozen(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<FrozenResponse<TokenAmount>>` containing the
+/// Returns `ContractResult<FrozenResponse>` containing the
 /// unfrozen balance of the given token for the given addresses.
 /// Returns `Error::TokenDoesNotExist` if the token does not exist.
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
     contract = "rwa_security_nft",
     name = "balanceOfUnFrozen",
-    parameter = "FrozenParams<TokenId>",
-    return_value = "FrozenResponse<TokenAmount>",
+    parameter = "FrozenParams",
+    return_value = "FrozenResponse",
     error = "super::error::Error"
 )]
 pub fn balance_of_un_frozen(
     ctx: &ReceiveContext,
     host: &Host<State>,
-) -> ContractResult<FrozenResponse<TokenAmount>> {
+) -> ContractResult<FrozenResponse> {
     let state = host.state();
     let FrozenParams {
         owner,
         tokens: token_ids,
-    }: FrozenParams<TokenId> = ctx.parameter_cursor().get()?;
+    }: FrozenParams = ctx.parameter_cursor().get()?;
 
     let tokens = token_ids
         .iter()
