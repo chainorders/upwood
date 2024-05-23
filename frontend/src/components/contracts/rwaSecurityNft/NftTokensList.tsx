@@ -1,7 +1,7 @@
 import { ContractAddress } from "@concordium/web-sdk";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { NftToken } from "../../../lib/contracts-api-client";
+import { ApiNftToken as NftToken } from "../../../lib/contracts-api-client";
 import { useContractsApi } from "../../ContractsApiProvider";
 import TokensList from "../../common/TokensList";
 

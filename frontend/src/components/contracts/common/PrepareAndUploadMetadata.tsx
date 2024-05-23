@@ -56,11 +56,15 @@ const PrepareAndUploadMetadata = (props: {
 			artifact: { url: artifactUrl },
 			unique: attributes.unique,
 			attributes: [
-				{ name: "latitude", value: attributes.latitude, type: "string" },
-				{ name: "longitude", value: attributes.longitude, type: "string" },
+				{ name: "latitude", value: attributes.latitude || "", type: "string" },
+				{
+					name: "longitude",
+					value: attributes.longitude || "",
+					type: "string",
+				},
 				{
 					name: "constructionDate",
-					value: attributes.constructionDate,
+					value: attributes.constructionDate || "",
 					type: "string",
 				},
 			],

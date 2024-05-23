@@ -98,7 +98,7 @@ impl<S: HasStateApi> IdentityState<S> {
             value,
         } in identity.attributes
         {
-            ret.attributes.insert(tag, value);
+            let _ = ret.attributes.insert(tag, value);
         }
 
         for IdentityCredential {
@@ -106,7 +106,7 @@ impl<S: HasStateApi> IdentityState<S> {
             key,
         } in identity.credentials
         {
-            ret.credentials.insert(issuer, key);
+            let _ = ret.credentials.insert(issuer, key);
         }
 
         ret

@@ -1,6 +1,5 @@
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_std::{bail, ensure, Deletable, HasStateApi, Serialize, StateMap};
-
-use crate::tokens_state::IsTokenAmount;
 
 /// An error that can occur when interacting with the deposited state.
 pub enum DepositedStateError {

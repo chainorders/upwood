@@ -14,7 +14,7 @@ use concordium_rust_sdk::{
         id_proof_types::{AtomicStatement, AttributeInRangeStatement, RevealAttributeStatement},
         types::AttributeTag,
     },
-    types::{ContractAddress, Energy, WalletAccount},
+    types::{Address, ContractAddress, Energy, WalletAccount},
     v2::BlockIdentifier,
     web3id::{did::Network, Web3IdAttribute},
 };
@@ -118,11 +118,23 @@ async fn create_service(
         },
     }];
 
-    let issuers = IdentityRegistryClient::new(concordium_client.clone(), identity_registry)
-        .issuers()
-        .await
-        .map_err(|_| anyhow::Error::msg("Failed to retrieve issuers from identity registry"))?;
+    let mut identity_registry_client =
+        IdentityRegistryClient::new(concordium_client.clone(), identity_registry);
+    let issuers = identity_registry_client.issuers().await.map_err(|e| {
+        anyhow::Error::msg(format!("Failed to retrieve issuers from identity registry: {:?}", e))
+    })?;
     info!("Issuers: {:?}", issuers);
+
+    let is_agent = identity_registry_client
+        .is_agent(&Address::Account(agent_wallet.address))
+        .await
+        .map_err(|e| {
+            anyhow::Error::msg(format!(
+                "Failed to check if agent is an agent in identity registry: {:?}",
+                e
+            ))
+        })?;
+    assert!(is_agent, "provided agent wallet is not an agent in identity registry");
 
     let identity_providers = concordium_client
         .get_identity_providers(BlockIdentifier::LastFinal)

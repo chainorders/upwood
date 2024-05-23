@@ -1,18 +1,15 @@
+use crate::txn_listener::db::DatabaseClient;
 use anyhow::Ok;
 use async_trait::async_trait;
 use concordium_rust_sdk::{
     types::{
-        hashes::BlockHash,
         smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
-        transactions::BlockItem,
-        AbsoluteBlockHeight, BlockItemSummary, ContractAddress,
+        AbsoluteBlockHeight, ContractAddress,
     },
-    v2::FinalizedBlockInfo,
+    v2::{self, FinalizedBlockInfo},
 };
-use futures::StreamExt;
-use log::{info, warn};
-
-use crate::txn_listener::db::DatabaseClient;
+use futures::{future::join_all, StreamExt, TryFutureExt};
+use std::{collections::BTreeMap, ops::AddAssign};
 
 /// `EventsProcessor` is a trait that defines the necessary methods for
 /// processing events of a specific contract. It is designed to be implemented
@@ -67,7 +64,7 @@ pub trait EventsProcessor: Send + Sync {
         &self,
         contract: &ContractAddress,
         events: &[ContractEvent],
-    ) -> anyhow::Result<()>;
+    ) -> anyhow::Result<u64>;
 }
 
 /// `TransactionsListener` is a struct that listens to transactions from a
@@ -75,33 +72,28 @@ pub trait EventsProcessor: Send + Sync {
 /// and a MongoDB database, and uses a set of processors to process the
 /// transactions.
 pub struct TransactionsListener {
-    node:       concordium_rust_sdk::v2::Client, // Client to interact with the Concordium node
-    database:   DatabaseClient,                  // Client to interact with the MongoDB database
-    processors: Vec<Box<dyn EventsProcessor>>,   // Set of processors to process the transactions
+    database:             DatabaseClient, // Client to interact with the MongoDB database
+    processors:           Vec<Box<dyn EventsProcessor>>, // Processors to process transactions
+    default_block_height: AbsoluteBlockHeight, // Default block height to start from
+    client:               v2::Client,
 }
 
 impl TransactionsListener {
     /// Constructs a new `TransactionsListener`.
-    ///
-    /// # Arguments
-    ///
-    /// * `concordium_node_uri` - URI of the Concordium node.
-    /// * `mongodb_uri` - URI of the MongoDB database.
-    ///
     /// # Returns
     ///
     /// * A new `TransactionsListener`.
     pub async fn new(
-        concordium_client: concordium_rust_sdk::v2::Client,
-        mongo_client: mongodb::Client,
+        client: v2::Client,
+        database: DatabaseClient,
         processors: Vec<Box<dyn EventsProcessor>>,
+        default_block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            node: concordium_client,
-            database: DatabaseClient {
-                client: mongo_client,
-            },
+            client,
+            database,
             processors,
+            default_block_height,
         })
     }
 
@@ -110,63 +102,31 @@ impl TransactionsListener {
     /// # Returns
     ///
     /// * A Result indicating the success or failure of the operation.
-    pub async fn listen(&mut self, starting_block_hash: Option<BlockHash>) -> anyhow::Result<()> {
-        let starting_block_height = match starting_block_hash {
-            Some(hash) => {
-                let block_info = self.node.get_block_info(hash).await?;
-                Some(block_info.response.block_height)
-            }
-            None => None,
-        };
-        let db_block_height = self.database.get_last_processed_block().await?.map(|b| {
-            AbsoluteBlockHeight {
-                height: b.block_height,
-            }
-            .next()
-        });
+    pub async fn listen(mut self) -> anyhow::Result<()> {
+        let block_height = self.get_block_height().await?;
+        let mut finalized_block_stream =
+            self.client.get_finalized_blocks_from(block_height).await?;
 
-        let block_height: AbsoluteBlockHeight = match (starting_block_height, db_block_height) {
-            (Some(_), Some(db_block_height)) => {
-                warn!(
-                    "Both starting block height and db block height are set. Using the db block \
-                     height: {}",
-                    db_block_height.height
-                );
-                db_block_height
-            }
-            (Some(starting_block_height), None) => {
-                info!(
-                    "Starting from config start block height block height: {}",
-                    starting_block_height.height
-                );
-                starting_block_height
-            }
-            (None, Some(db_block_height)) => {
-                info!(
-                    "Starting block height not set. Using the db block height: {}",
-                    db_block_height.height
-                );
-                db_block_height
-            }
-            (None, None) => {
-                let consensus_info = self.node.get_consensus_info().await?;
-                info!(
-                    "Starting from best block height: {:?}",
-                    consensus_info.best_block_height.height
-                );
-                consensus_info.best_block_height
-            }
-        };
-
-        let mut finalized_block_stream = self.node.get_finalized_blocks_from(block_height).await?;
         while let Some(block) = finalized_block_stream.next().await {
-            log::info!("Processing block {}", block.height.height);
             self.process_block(&block).await?;
-            self.database.update_last_processed_block(&block).await?;
-            log::trace!("Processed block {}", block.height.height)
+            log::debug!("Processed block {}", block.height.height);
         }
 
-        Ok(())
+        anyhow::bail!("Finalized block stream ended unexpectedly")
+    }
+
+    async fn get_block_height(&mut self) -> Result<AbsoluteBlockHeight, anyhow::Error> {
+        let block_height = self
+            .database
+            .get_last_processed_block()
+            .map_ok(|db_block| match db_block {
+                Some(db_block) => AbsoluteBlockHeight::next(AbsoluteBlockHeight {
+                    height: db_block.block_height,
+                }),
+                None => self.default_block_height,
+            })
+            .await?;
+        Ok(block_height)
     }
 
     /// Processes a block of transactions.
@@ -178,59 +138,88 @@ impl TransactionsListener {
     /// # Returns
     ///
     /// * A Result indicating the success or failure of the operation.
-    async fn process_block(&mut self, block: &FinalizedBlockInfo) -> anyhow::Result<()> {
-        let mut block_items_stream = self.node.get_block_items(block.block_hash).await?;
-        while let Some(block_item) = block_items_stream.response.next().await {
-            let block_item = &block_item?;
-            match block_item {
-                BlockItem::AccountTransaction(_) => {
-                    let block_item_hash = block_item.hash();
-                    let block_item_status =
-                        self.node.get_block_item_status(&block_item_hash).await?;
-                    // Can unwrap because we know the block item exists and is finalized
-                    let (_, summary) = block_item_status.is_finalized().unwrap();
-                    self.process_block_item(summary).await?;
-                }
-                _ => continue,
-            }
+    async fn process_block(&mut self, block: &FinalizedBlockInfo) -> anyhow::Result<u64> {
+        let mut b_events_count = 0u64;
+        let mut summaries = self
+            .client
+            .get_block_transaction_events(block.block_hash)
+            .await
+            .expect("block not found")
+            .response;
+
+        while let Some(summary) =
+            summaries.next().await.transpose().expect("error getting block item summary")
+        {
+            let events_count = self.process_block_item_summary(&summary).await?;
+            b_events_count += events_count;
         }
 
-        Ok(())
+        log::info!("Processed block {}, events: {}", block.height.height, b_events_count);
+        if b_events_count > 0 {
+            self.database
+                .update_last_processed_block(block)
+                .await
+                .expect("error updating block in db");
+        }
+        Ok(b_events_count)
     }
 
-    /// Processes a block item.
-    ///
-    /// # Arguments
-    ///
-    /// * `summary` - The summary of the block item to be processed.
-    ///
-    /// # Returns
-    ///
-    /// * A Result indicating the success or failure of the operation.
-    async fn process_block_item(&self, summary: &BlockItemSummary) -> anyhow::Result<()> {
-        if let Some(init) = summary.contract_init() {
-            if let Some(processor) = self.find_processor(&init.origin_ref, &init.init_name) {
-                processor.process_events(&init.address, &init.events).await?;
-                self.database.add_contract(init.address, &init.origin_ref, &init.init_name).await?;
-                log::info!(
-                    "Started Listening to {:?} at address: {:?}",
-                    processor.contract_name(),
-                    init.address
-                )
-            }
-        } else if let Some(mut update) = summary.contract_update_logs() {
-            for (contract_address, events) in update.by_ref() {
-                if let Some((module_ref, contract_name)) =
-                    self.database.find_contract(contract_address).await?
-                {
-                    if let Some(processor) = self.find_processor(&module_ref, &contract_name) {
-                        processor.process_events(&contract_address, events).await?;
-                    }
-                }
-            }
-        }
+    async fn process_block_item_summary(
+        &mut self,
+        summary: &concordium_rust_sdk::types::BlockItemSummary,
+    ) -> Result<u64, anyhow::Error> {
+        let events_count = if let Some(init) = summary.contract_init() {
+            self.process_contract_init(init).await?;
+            self.process_contract_events(init.address, init.events.to_vec()).await?
+        } else if let Some(update) = summary.contract_update_logs() {
+            let updates = update.into_iter().fold(BTreeMap::new(), |mut map, update| {
+                map.entry(update.0)
+                    .and_modify(|e: &mut Vec<_>| e.extend(update.1.to_vec()))
+                    .or_insert(update.1.to_vec());
+                map
+            });
+            let events_count = self.process_events(updates).await?;
+            log::info!("Processed block item: {}, events: {}", summary.hash, events_count);
+            events_count
+        } else {
+            0
+        };
+        Ok(events_count)
+    }
 
-        Ok(())
+    async fn process_events(
+        &mut self,
+        updates: BTreeMap<ContractAddress, Vec<ContractEvent>>,
+    ) -> Result<u64, anyhow::Error> {
+        let mut events_count = 0u64;
+        let processor_futures = updates
+            .into_iter()
+            .map(|(contract_address, events)| {
+                self.process_contract_events(contract_address, events)
+            })
+            .collect::<Vec<_>>();
+        let events_count_vec: Vec<Result<u64, anyhow::Error>> = join_all(processor_futures).await;
+        for count in events_count_vec {
+            events_count.add_assign(count?);
+        }
+        Ok(events_count)
+    }
+
+    async fn process_contract_events(
+        &self,
+        contract_address: ContractAddress,
+        events: Vec<ContractEvent>,
+    ) -> anyhow::Result<u64> {
+        let contract = self.database.find_contract(&contract_address).await?;
+        if let Some((origin_ref, init_name)) = contract {
+            if let Some(processor) = self.find_processor(&origin_ref, &init_name) {
+                processor.process_events(&contract_address, events.as_slice()).await
+            } else {
+                Ok(0)
+            }
+        } else {
+            Ok(0)
+        }
     }
 
     /// Finds a processor that matches the given origin reference and contract
@@ -252,7 +241,29 @@ impl TransactionsListener {
     ) -> Option<&dyn EventsProcessor> {
         let processor =
             self.processors.iter().find(|processor| processor.matches(origin_ref, init_name));
-
         processor.map(|processor| processor.as_ref())
+    }
+
+    async fn process_contract_init(
+        &self,
+        init: &concordium_rust_sdk::types::ContractInitializedEvent,
+    ) -> anyhow::Result<()> {
+        let contract = self.database.find_contract(&init.address).await?.is_none();
+        if contract {
+            let processor = self.find_processor(&init.origin_ref, &init.init_name).is_some();
+            if processor {
+                self.database
+                    .add_contract(&init.address, &init.origin_ref, &init.init_name)
+                    .await?;
+                log::info!(
+                    "Listening to contract {}-{}-{}",
+                    init.origin_ref,
+                    init.init_name,
+                    init.address
+                );
+            }
+        }
+
+        Ok(())
     }
 }

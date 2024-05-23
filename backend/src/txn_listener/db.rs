@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use bson::{doc, serde_helpers::u64_as_f64};
 use concordium_rust_sdk::{
     types::{
@@ -9,10 +7,14 @@ use concordium_rust_sdk::{
     v2::FinalizedBlockInfo,
 };
 use mongodb::{
-    options::{FindOneOptions, InsertOneOptions},
+    options::{
+        CreateCollectionOptions, CreateIndexOptions, FindOneOptions, IndexOptions, InsertOneOptions,
+    },
     results::InsertOneResult,
+    IndexModel,
 };
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 /// Represents a processed block in the database.
 #[derive(Serialize, Deserialize)]
@@ -49,32 +51,87 @@ impl DbContract {
             address_subindex: address.subindex,
         }
     }
+
+    pub fn mongodb_index_key() -> bson::Document {
+        doc! {
+            "address_index": 1,
+            "address_subindex": 1,
+        }
+    }
+
+    pub fn mongodb_find_one_query(address: &ContractAddress) -> bson::Document {
+        doc! {
+            "address_index": address.index as f64,
+            "address_subindex": address.subindex as f64,
+        }
+    }
 }
 
+const DATABASE_NAME: &str = "concordium";
+const CONTRACTS_COLLECTION: &str = "contracts";
+const PROCESSED_BLOCKS_COLLECTION: &str = "processed_blocks";
+
 /// Represents a client for interacting with the database.
-#[derive(Debug)]
 pub struct DatabaseClient {
-    pub client: mongodb::Client,
+    contracts:        mongodb::Collection<DbContract>,
+    processed_blocks: mongodb::Collection<DbProcessedBlock>,
 }
 
 impl DatabaseClient {
-    /// Returns the `concordium` database.
-    pub fn database(&self) -> mongodb::Database { self.client.database("concordium") }
+    /// Creates a new `DatabaseClient` instance.
+    pub async fn init(client: mongodb::Client) -> anyhow::Result<Self> {
+        let coll_names = client.database(DATABASE_NAME).list_collection_names(None).await?;
+        if !coll_names.contains(&PROCESSED_BLOCKS_COLLECTION.to_owned()) {
+            client
+                .database(DATABASE_NAME)
+                .create_collection(
+                    PROCESSED_BLOCKS_COLLECTION,
+                    CreateCollectionOptions::builder().capped(true).size(1000).build(),
+                )
+                .await?;
+            let processed_blocks = client
+                .database(DATABASE_NAME)
+                .collection::<DbProcessedBlock>(PROCESSED_BLOCKS_COLLECTION);
+            processed_blocks
+                .create_index(
+                    IndexModel::builder()
+                        .keys(doc! { "block_height": -1 })
+                        .options(IndexOptions::builder().unique(true).build())
+                        .build(),
+                    Some(CreateIndexOptions::builder().build()),
+                )
+                .await?;
+        }
 
-    /// Returns the `processed_blocks` collection.
-    pub fn processed_blocks(&self) -> mongodb::Collection<DbProcessedBlock> {
-        self.database().collection::<DbProcessedBlock>("processed_blocks")
-    }
+        if !coll_names.contains(&CONTRACTS_COLLECTION.to_owned()) {
+            client.database(DATABASE_NAME).create_collection(CONTRACTS_COLLECTION, None).await?;
+            let contracts =
+                client.database(DATABASE_NAME).collection::<DbContract>(CONTRACTS_COLLECTION);
+            contracts
+                .create_index(
+                    IndexModel::builder()
+                        .keys(DbContract::mongodb_index_key())
+                        .options(IndexOptions::builder().unique(true).build())
+                        .build(),
+                    Some(CreateIndexOptions::builder().build()),
+                )
+                .await?;
+        }
 
-    /// Returns the `contracts` collection.
-    pub fn contracts(&self) -> mongodb::Collection<DbContract> {
-        self.database().collection::<DbContract>("contracts")
+        Ok(Self {
+            contracts:        client
+                .database(DATABASE_NAME)
+                .collection::<DbContract>(CONTRACTS_COLLECTION),
+            processed_blocks: client
+                .database(DATABASE_NAME)
+                .collection::<DbProcessedBlock>(PROCESSED_BLOCKS_COLLECTION),
+        })
     }
 
     /// Retrieves the last processed block from the database.
     pub async fn get_last_processed_block(&self) -> anyhow::Result<Option<DbProcessedBlock>> {
-        let collection = self.processed_blocks();
-        let result = collection
+        let result = self
+            .processed_blocks
             .find_one(None, FindOneOptions::builder().sort(doc! { "block_height": -1 }).build())
             .await?;
 
@@ -86,8 +143,8 @@ impl DatabaseClient {
         &mut self,
         block: &FinalizedBlockInfo,
     ) -> anyhow::Result<InsertOneResult> {
-        let collection = self.processed_blocks();
-        let result = collection
+        let result = self
+            .processed_blocks
             .insert_one(
                 DbProcessedBlock {
                     block_hash:   block.block_hash.to_string(),
@@ -103,14 +160,14 @@ impl DatabaseClient {
     /// Adds a contract to the database.
     pub async fn add_contract(
         &self,
-        address: concordium_rust_sdk::types::ContractAddress,
+        address: &concordium_rust_sdk::types::ContractAddress,
         origin_ref: &ModuleReference,
         init_name: &OwnedContractName,
     ) -> anyhow::Result<InsertOneResult> {
         let result = self
-            .contracts()
+            .contracts
             .insert_one(
-                DbContract::new(origin_ref, init_name, &address),
+                DbContract::new(origin_ref, init_name, address),
                 InsertOneOptions::builder().build(),
             )
             .await?;
@@ -121,17 +178,11 @@ impl DatabaseClient {
     /// Finds a contract in the database based on its address.
     pub async fn find_contract(
         &self,
-        contract_address: ContractAddress,
+        contract_address: &ContractAddress,
     ) -> anyhow::Result<Option<(ModuleReference, OwnedContractName)>> {
         let result = self
-            .contracts()
-            .find_one(
-                doc! {
-                    "address_index": contract_address.index as f64,
-                    "address_subindex": contract_address.subindex as f64,
-                },
-                None,
-            )
+            .contracts
+            .find_one(DbContract::mongodb_find_one_query(contract_address), None)
             .await?;
 
         match result {

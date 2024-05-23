@@ -1,9 +1,6 @@
+use super::holders_state::{HolderBalances, HolderStateError, IHoldersState};
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
-
-use super::{
-    holders_state::{HolderBalances, HolderStateError, IHoldersState, IsTokenId},
-    tokens_state::IsTokenAmount,
-};
 
 /// Represents the different types of errors that can occur in the holder's
 /// security state.
@@ -116,7 +113,7 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     /// * `address` - The address for which the recovery address is being set.
     /// * `recovery_address` - The recovery address to be set.
     fn set_recovery_address(&mut self, address: Address, recovery_address: Address) {
-        self.state_mut().recovery_addresses.insert(address, recovery_address);
+        let _ = self.state_mut().recovery_addresses.insert(address, recovery_address);
     }
 
     /// Removes the recovery address of the given address and sets it to the new

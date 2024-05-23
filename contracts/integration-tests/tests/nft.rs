@@ -10,6 +10,7 @@ use concordium_rwa_security_nft::{error::Error, types::*};
 use concordium_smart_contract_testing::{ed25519::PublicKey, *};
 use concordium_std::{fail, AccountAddress, MetadataUrl, Reject, ACCOUNT_ADDRESS_SIZE};
 use utils::{
+    cis2_security_test_contract::ICis2SecurityTestContract,
     cis2_test_contract::ICis2Contract,
     common::{init_identity_contracts, init_security_nft_contract},
     consts::DEFAULT_ACC_BALANCE,
@@ -18,7 +19,12 @@ use utils::{
     verifier::Verifier,
 };
 
+/// The address of the admin account
 const ADMIN: AccountAddress = AccountAddress([0; ACCOUNT_ADDRESS_SIZE]);
+/// Identity Registry Agent
+const IR_AGENT: AccountAddress = AccountAddress([1; ACCOUNT_ADDRESS_SIZE]);
+/// Token Contract Agent
+const AGENT: AccountAddress = AccountAddress([2; ACCOUNT_ADDRESS_SIZE]);
 
 #[test]
 fn init() {
@@ -2679,7 +2685,7 @@ fn setup_contract_with_admin(
     let (identity_registry, compliance_contract) =
         init_identity_contracts(chain, admin, vec!["IN".to_owned(), "US".to_owned()]);
     let ir_agent = Account::new_with_keys(
-        AccountAddress([1; ACCOUNT_ADDRESS_SIZE]),
+        IR_AGENT,
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
@@ -2696,16 +2702,16 @@ fn setup_contract_with_admin(
     let contract =
         init_security_nft_contract(chain, admin, &identity_registry, &compliance_contract, vec![]);
 
-    let nft_agent = Account::new_with_keys(
-        AccountAddress([2; ACCOUNT_ADDRESS_SIZE]),
+    let agent = Account::new_with_keys(
+        AGENT,
         AccountBalance::new(DEFAULT_ACC_BALANCE, Amount::zero(), Amount::zero()).unwrap(),
         AccountAccessStructure::singleton(PublicKey::default()),
     );
-    chain.create_account(nft_agent.clone());
+    chain.create_account(agent.clone());
     contract
         .add_agent()
-        .update(chain, admin, &Address::Account(nft_agent.address))
+        .update(chain, admin, &Address::Account(agent.address))
         .expect("Adding Nft Agent");
 
-    (contract, nft_agent, verifier)
+    (contract, agent, verifier)
 }

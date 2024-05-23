@@ -21,6 +21,7 @@
 //!
 //! The `to_paged_response` method is a helper method used by the above methods
 //! to convert the query result into a paged response.
+use super::db::{DbDepositedToken, RwaMarketDb};
 use crate::shared::{
     api::{ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
     db::{DbAccountAddress, DbTokenAmount, ICollection},
@@ -30,8 +31,6 @@ use concordium_rust_sdk::types::ContractAddress;
 use futures::TryStreamExt;
 use poem::Result;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
-
-use super::db::{DbDepositedToken, IRwaMarketDb};
 
 #[derive(Object)]
 pub struct MarketToken {
@@ -57,13 +56,22 @@ impl From<DbDepositedToken> for MarketToken {
 }
 
 /// Represents the RWA Market API.
-pub struct RwaMarketApi<TDb: IRwaMarketDb> {
-    pub db: TDb,
+pub struct RwaMarketApi {
+    pub client:        mongodb::Client,
+    pub contract_name: String,
 }
 
 /// API implementation for the RWA market.
 #[OpenApi]
-impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
+impl RwaMarketApi {
+    pub fn db(&self, contract: &ContractAddress) -> RwaMarketDb {
+        let db = self
+            .client
+            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
+
+        RwaMarketDb::init(db)
+    }
+
     /// Retrieves a paged list of tokens that are listed in the RWA market.
     ///
     /// # Parameters
@@ -82,7 +90,7 @@ impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
         Path(subindex): Path<u64>,
         Path(page): Path<u64>,
     ) -> Result<Json<PagedResponse<MarketToken>>, Error> {
-        let contract = ContractAddress {
+        let contract = &ContractAddress {
             index,
             subindex,
         };
@@ -116,7 +124,7 @@ impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
         Path(owner): Path<String>,
         Path(page): Path<u64>,
     ) -> Result<Json<PagedResponse<MarketToken>>, Error> {
-        let contract = ContractAddress {
+        let contract = &ContractAddress {
             index,
             subindex,
         };
@@ -151,7 +159,7 @@ impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
         Path(owner): Path<String>,
         Path(page): Path<u64>,
     ) -> Result<Json<PagedResponse<MarketToken>>, Error> {
-        let contract = ContractAddress {
+        let contract = &ContractAddress {
             index,
             subindex,
         };
@@ -179,10 +187,10 @@ impl<TDb: IRwaMarketDb + Sync + Send + 'static> RwaMarketApi<TDb> {
     pub async fn to_paged_response(
         &self,
         query: Document,
-        contract: ContractAddress,
+        contract: &ContractAddress,
         page: u64,
     ) -> anyhow::Result<PagedResponse<MarketToken>> {
-        let coll = self.db.deposited_tokens(&contract);
+        let coll = self.db(contract).deposited_tokens;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
         let data: Vec<MarketToken> = data.into_iter().map(|token| token.into()).collect();

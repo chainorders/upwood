@@ -16,6 +16,8 @@ use concordium_rwa_utils::common_types::{IdentityAttribute, IdentityCredential};
 
 use super::web3_id_utils::VerifyPresentationResponse;
 
+/// Errors that can occur when interacting with the Identity Registry contract.
+#[derive(Debug)]
 pub enum Error {
     ParamsSerialization,
     AccountInfoQuery(v2::QueryError),
@@ -78,6 +80,19 @@ impl IdentityRegistryClient {
         Self {
             client,
         }
+    }
+
+    pub async fn is_agent(&mut self, agent: &Address) -> Result<bool, Error> {
+        let res = self
+            .client
+            .view_raw::<bool, Error>(
+                "isAgent",
+                OwnedParameter::from_serial(agent).unwrap(),
+                BlockIdentifier::LastFinal,
+            )
+            .await?;
+
+        Ok(res)
     }
 
     /// Get the list of issuers.

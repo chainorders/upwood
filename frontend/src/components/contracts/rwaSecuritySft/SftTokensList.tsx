@@ -1,7 +1,7 @@
 import { ContractAddress } from "@concordium/web-sdk";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { NftToken } from "../../../lib/contracts-api-client";
+import { ApiSftToken as SftToken } from "../../../lib/contracts-api-client";
 import { useContractsApi } from "../../ContractsApiProvider";
 import TokensList from "../../common/TokensList";
 
@@ -16,7 +16,7 @@ export default function SftTokensList(props: Props) {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const { provider: backendApi } = useContractsApi();
-	const [tokens, setTokens] = useState<NftToken[]>([]);
+	const [tokens, setTokens] = useState<SftToken[]>([]);
 
 	useEffect(() => {
 		setLoading(true);

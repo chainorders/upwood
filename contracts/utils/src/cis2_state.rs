@@ -1,11 +1,10 @@
-use concordium_std::*;
-
-use crate::clients::contract_client::IContractState;
-
 use super::{
-    holders_state::{HolderStateError, IHoldersState, IsTokenId},
-    tokens_state::{ITokensState, IsTokenAmount, TokenStateError},
+    holders_state::{HolderStateError, IHoldersState},
+    tokens_state::{ITokensState, TokenStateError},
 };
+use crate::clients::contract_client::IContractState;
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
+use concordium_std::*;
 
 pub type Cis2Result<R> = Result<R, Cis2StateError>;
 

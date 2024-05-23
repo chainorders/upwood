@@ -1,3 +1,8 @@
+use super::db::RwaIdentityRegistryDb;
+use crate::{
+    shared::db::{DbAddress, DbContractAddress, ICollection},
+    txn_listener::EventsProcessor,
+};
 use async_trait::async_trait;
 use bson::{doc, to_document};
 use concordium_rust_sdk::types::{
@@ -6,33 +11,34 @@ use concordium_rust_sdk::types::{
 };
 use concordium_rwa_identity_registry::event::Event;
 
-use crate::{
-    shared::db::{DbAddress, DbContractAddress, ICollection},
-    txn_listener::EventsProcessor,
-};
-
-use super::db::IRwaIdentityRegistryDb;
-
 /// `RwaIdentityRegistryProcessor` is a struct that processes events for the
 /// rwa-identity-registry contract. It maintains a connection to a MongoDB
 /// database and contains the module reference and name of the contract.
-pub struct RwaIdentityRegistryProcessor<TDb: IRwaIdentityRegistryDb> {
-    /// Client to interact with the MongoDB database.
-    pub db:         TDb,
+pub struct RwaIdentityRegistryProcessor {
     /// Module reference of the contract.
-    pub module_ref: ModuleReference,
+    pub module_ref:    ModuleReference,
+    pub contract_name: OwnedContractName,
+    pub client:        mongodb::Client,
+}
+
+impl RwaIdentityRegistryProcessor {
+    pub fn database(&self, contract: &ContractAddress) -> RwaIdentityRegistryDb {
+        let db = self
+            .client
+            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
+
+        RwaIdentityRegistryDb::init(db)
+    }
 }
 
 #[async_trait]
-impl<TDb: Sync + Send + IRwaIdentityRegistryDb> EventsProcessor
-    for RwaIdentityRegistryProcessor<TDb>
-{
+impl EventsProcessor for RwaIdentityRegistryProcessor {
     /// Returns the name of the contract this processor is responsible for.
     ///
     /// # Returns
     ///
     /// * A reference to the `OwnedContractName` of the contract.
-    fn contract_name(&self) -> &OwnedContractName { self.db.contract_name() }
+    fn contract_name(&self) -> &OwnedContractName { &self.contract_name }
 
     /// Returns the module reference of the contract this processor is
     /// responsible for.
@@ -57,39 +63,41 @@ impl<TDb: Sync + Send + IRwaIdentityRegistryDb> EventsProcessor
         &self,
         contract: &ContractAddress,
         events: &[ContractEvent],
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<u64> {
+        let mut process_events_count = 0u64;
+        let mut db = self.database(contract);
         for event in events {
             let parsed_event = event.parse::<Event>()?;
-            log::info!("Event: {:?}", parsed_event);
+            log::debug!("Event: {}/{} {:?}", contract.index, contract.subindex, parsed_event);
 
             match parsed_event {
                 Event::AgentAdded(e) => {
-                    self.db.agents(contract).insert_one(DbAddress(e.agent)).await?;
+                    db.agents.insert_one(DbAddress(e.agent)).await?;
+                    process_events_count += 1;
                 }
                 Event::AgentRemoved(e) => {
-                    self.db.agents(contract).delete_one(to_document(&DbAddress(e.agent))?).await?;
+                    db.agents.delete_one(to_document(&DbAddress(e.agent))?).await?;
+                    process_events_count += 1;
                 }
                 Event::IdentityRegistered(e) => {
-                    self.db.identities(contract).insert_one(DbAddress(e.address)).await?;
+                    db.identities.insert_one(DbAddress(e.address)).await?;
+                    process_events_count += 1;
                 }
                 Event::IdentityRemoved(e) => {
-                    self.db
-                        .identities(contract)
-                        .delete_one(to_document(&DbAddress(e.address))?)
-                        .await?;
+                    db.identities.delete_one(to_document(&DbAddress(e.address))?).await?;
+                    process_events_count += 1;
                 }
                 Event::IssuerAdded(e) => {
-                    self.db.issuers(contract).insert_one(DbContractAddress(e.issuer)).await?;
+                    db.issuers.insert_one(DbContractAddress(e.issuer)).await?;
+                    process_events_count += 1;
                 }
                 Event::IssuerRemoved(e) => {
-                    self.db
-                        .issuers(contract)
-                        .delete_one(to_document(&DbContractAddress(e.issuer))?)
-                        .await?;
+                    db.issuers.delete_one(to_document(&DbContractAddress(e.issuer))?).await?;
+                    process_events_count += 1;
                 }
             }
         }
 
-        Ok(())
+        Ok(process_events_count)
     }
 }

@@ -1,6 +1,5 @@
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::{Address, ContractAddress, SchemaType, Serialize};
-
-use crate::{holders_state::IsTokenId, tokens_state::IsTokenAmount};
 
 #[derive(Serialize, SchemaType, Copy, Clone)]
 pub struct Token<T: IsTokenId> {

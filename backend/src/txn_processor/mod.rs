@@ -7,16 +7,18 @@
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
 
-mod db;
 pub mod rwa_identity_registry;
 pub mod rwa_market;
 pub mod rwa_security_nft;
 pub mod rwa_security_sft;
 
-use self::db::ContractDb;
-use crate::txn_listener::{EventsProcessor, TransactionsListener};
+use crate::txn_listener::{DatabaseClient, EventsProcessor, TransactionsListener};
 use clap::Parser;
-use concordium_rust_sdk::{types::smart_contracts::OwnedContractName, v2::Endpoint};
+use concordium_rust_sdk::{
+    types::{smart_contracts::OwnedContractName, AbsoluteBlockHeight},
+    v2::{self, Endpoint},
+};
+use futures::TryFutureExt;
 use log::{debug, info};
 use poem::{
     listener::TcpListener,
@@ -24,40 +26,21 @@ use poem::{
     EndpointExt, Route, Server,
 };
 use poem_openapi::OpenApiService;
-use rwa_identity_registry::{db::*, processor::*};
-use rwa_market::{api::*, db::*, processor::*};
-use rwa_security_nft::{api::*, db::*, processor::*};
-use rwa_security_sft::{api::*, db::*, processor::*};
-use std::{io::Write, str::FromStr};
-use tokio::{spawn, try_join};
+use rwa_identity_registry::processor::*;
+use rwa_market::{api::*, processor::*};
+use rwa_security_nft::{api::*, processor::*};
+use rwa_security_sft::{api::*, processor::*};
+use std::{io::Write, str::FromStr, time::Duration};
+use tokio::spawn;
 
-/// Implementation of the RWA identity registry database trait for the contract
-/// database.
-impl IRwaIdentityRegistryDb for ContractDb {}
-
-/// Implementation of the RWA security NFT database trait for the contract
-/// database.
-impl IRwaSecurityNftDb for ContractDb {}
-
-/// Implementation of the RWA security SFT database trait for the contract
-/// database.
-impl IRwaSecuritySftDb for ContractDb {}
-
-/// Implementation of the RWA market database trait for the contract database.
-impl IRwaMarketDb for ContractDb {}
-
-/// Configuration struct for the listener and API.
 #[derive(Parser, Debug, Clone)]
-pub struct ListenerAndApiConfig {
+pub struct ListenerConfig {
     /// The MongoDB URI.
     #[clap(env)]
     pub mongodb_uri: String,
     /// The Concordium node URI.
     #[clap(env)]
     pub concordium_node_uri: String,
-    /// The web server address.
-    #[clap(env)]
-    pub web_server_addr: String,
     /// The reference to the RWA identity registry module.
     #[clap(env)]
     pub rwa_identity_registry_module_ref: String,
@@ -72,7 +55,11 @@ pub struct ListenerAndApiConfig {
     pub rwa_market_module_ref: String,
     /// The starting block hash.
     #[clap(env, default_value = "")]
-    pub starting_block_hash: String,
+    pub default_block_height: u64,
+    #[clap(env, default_value = "100")]
+    pub node_rate_limit: u64,
+    #[clap(env, default_value = "1")]
+    pub node_rate_limit_duration_secs: u64,
     /// The name of the RWA security NFT contract.
     #[clap(env, default_value = "init_rwa_security_nft")]
     pub rwa_security_nft_contract_name: String,
@@ -89,99 +76,80 @@ pub struct ListenerAndApiConfig {
 
 /// Configuration struct for the contracts API.
 /// Configuration options for the Contracts API.
+#[derive(Parser, Debug, Clone)]
 pub struct ContractsApiConfig {
     /// The URI of the MongoDB instance.
+    #[clap(env)]
     pub mongodb_uri:                    String,
-    /// The name of the RWA market contract.
+    #[clap(env, default_value = "init_rwa_market")]
     pub rwa_market_contract_name:       String,
     /// The name of the RWA security NFT contract.
+    #[clap(env, default_value = "init_rwa_security_nft")]
     pub rwa_security_nft_contract_name: String,
     /// The name of the RWA security SFT contract.
+    #[clap(env, default_value = "init_rwa_security_sft")]
     pub rwa_security_sft_contract_name: String,
+    #[clap(env)]
+    pub web_server_addr:                String,
 }
 
-/// Conversion from ListenerAndApiConfig to ContractsApiConfig.
-impl From<ListenerAndApiConfig> for ContractsApiConfig {
-    fn from(config: ListenerAndApiConfig) -> Self {
-        Self {
-            mongodb_uri:                    config.mongodb_uri,
-            rwa_market_contract_name:       config.rwa_market_contract_name,
-            rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
-            rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
-        }
-    }
-}
+pub async fn run_listener(config: ListenerConfig) -> anyhow::Result<()> {
+    debug!("Starting contracts listener with config: {:?}", config);
 
-/// Runs the contracts API server and contracts events processor.
-pub async fn run_api_server_and_listener(config: ListenerAndApiConfig) -> anyhow::Result<()> {
-    debug!("Starting contracts API server with config: {:?}", config);
-
-    let mut listener = create_listener(config.to_owned()).await?;
-    let starting_block_hash = if config.starting_block_hash.is_empty() {
-        None
-    } else {
-        Some(config.starting_block_hash.parse()?)
-    };
-    let listener_handle = spawn(async move { listener.listen(starting_block_hash).await });
+    let listener_handle = spawn(create_listener(config).and_then(TransactionsListener::listen));
     info!("Listening for transactions...");
+    listener_handle.await?
+}
 
-    let routes = create_server_routes(config.to_owned().into()).await?;
-    let server_handle = spawn(async move {
-        Server::new(TcpListener::bind(config.web_server_addr))
-            .run(routes)
-            .await
-            .map_err(|e| e.into())
-    });
-    info!("Listening for web requests...");
-    let (listener_handle, server_handle) = try_join!(listener_handle, server_handle)?;
-    vec![listener_handle, server_handle].into_iter().for_each(|handle| {
-        if let Err(err) = handle {
-            log::error!("Error: {:?}", err);
-        }
-    });
-    info!("Shutting down...");
-    Ok(())
+pub async fn run_api(config: ContractsApiConfig) -> anyhow::Result<()> {
+    let routes = create_server_routes(config.to_owned()).await?;
+    let web_server_addr = config.web_server_addr.clone();
+    let server_handle = spawn(Server::new(TcpListener::bind(web_server_addr)).run(routes));
+    info!("Listening for web requests at {}...", config.web_server_addr);
+    server_handle.await?.map_err(|e| e.into())
 }
 
 /// Creates the listener for processing transactions.
-async fn create_listener(config: ListenerAndApiConfig) -> anyhow::Result<TransactionsListener> {
+async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsListener> {
     let client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
-    let concordium_client =
-        concordium_rust_sdk::v2::Client::new(Endpoint::from_str(&config.concordium_node_uri)?)
-            .await?;
     let processors: Vec<Box<dyn EventsProcessor>> = vec![
         Box::new(RwaIdentityRegistryProcessor {
-            db:         ContractDb {
-                client:        client.to_owned(),
-                contract_name: config.rwa_identity_registry_contract_name.try_into()?,
-            },
-            module_ref: config.rwa_identity_registry_module_ref.parse()?,
+            module_ref:    config.rwa_identity_registry_module_ref.parse()?,
+            contract_name: OwnedContractName::new(config.rwa_identity_registry_contract_name)?,
+            client:        client.to_owned(),
         }),
         Box::new(RwaSecurityNftProcessor {
-            db:         ContractDb {
-                client:        client.to_owned(),
-                contract_name: config.rwa_security_nft_contract_name.try_into()?,
-            },
-            module_ref: config.rwa_security_nft_module_ref.parse()?,
+            module_ref:    config.rwa_security_nft_module_ref.parse()?,
+            client:        client.clone(),
+            contract_name: OwnedContractName::new(config.rwa_security_nft_contract_name)?,
         }),
         Box::new(RwaSecuritySftProcessor {
-            db:         ContractDb {
-                client:        client.to_owned(),
-                contract_name: config.rwa_security_sft_contract_name.try_into()?,
-            },
-            module_ref: config.rwa_security_sft_module_ref.parse()?,
+            module_ref:    config.rwa_security_sft_module_ref.parse()?,
+            client:        client.clone(),
+            contract_name: OwnedContractName::new(config.rwa_security_sft_contract_name)?,
         }),
         Box::new(RwaMarketProcessor {
-            db:         ContractDb {
-                client:        client.to_owned(),
-                contract_name: config.rwa_market_contract_name.try_into()?,
-            },
-            module_ref: config.rwa_market_module_ref.parse()?,
+            module_ref:    config.rwa_market_module_ref.parse()?,
+            client:        client.clone(),
+            contract_name: OwnedContractName::new(config.rwa_market_contract_name)?,
         }),
     ];
 
-    let listener =
-        TransactionsListener::new(concordium_client, client.to_owned(), processors).await?;
+    let endpoint = Endpoint::from_str(&config.concordium_node_uri)?;
+    let endpoint = endpoint.rate_limit(
+        config.node_rate_limit,
+        Duration::from_secs(config.node_rate_limit_duration_secs),
+    );
+
+    let listener = TransactionsListener::new(
+        v2::Client::new(endpoint).await?,
+        DatabaseClient::init(client).await?,
+        processors,
+        AbsoluteBlockHeight {
+            height: config.default_block_height,
+        },
+    )
+    .await?;
     Ok(listener)
 }
 
@@ -226,6 +194,7 @@ impl From<OpenApiConfig> for ContractsApiConfig {
             rwa_market_contract_name:       config.rwa_market_contract_name,
             rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
             rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
+            web_server_addr:                "anything.com".to_owned(),
         }
     }
 }
@@ -242,39 +211,22 @@ pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
 /// Creates the service for the contracts API.
 async fn create_service(
     config: ContractsApiConfig,
-) -> Result<
-    OpenApiService<
-        (RwaMarketApi<ContractDb>, RwaSecurityNftApi<ContractDb>, RwaSecuritySftApi<ContractDb>),
-        (),
-    >,
-    anyhow::Error,
-> {
+) -> Result<OpenApiService<(RwaMarketApi, RwaSecurityNftApi, RwaSecuritySftApi), ()>, anyhow::Error>
+{
     let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
     let api_service = OpenApiService::new(
         (
             RwaMarketApi {
-                db: ContractDb {
-                    client:        mongo_client.to_owned(),
-                    contract_name: OwnedContractName::new(
-                        config.rwa_market_contract_name.to_owned(),
-                    )?,
-                },
+                client:        mongo_client.to_owned(),
+                contract_name: config.rwa_market_contract_name,
             },
             RwaSecurityNftApi {
-                db: ContractDb {
-                    client:        mongo_client.to_owned(),
-                    contract_name: OwnedContractName::new(
-                        config.rwa_security_nft_contract_name.to_owned(),
-                    )?,
-                },
+                client:        mongo_client.to_owned(),
+                contract_name: config.rwa_security_nft_contract_name,
             },
             RwaSecuritySftApi {
-                db: ContractDb {
-                    client:        mongo_client,
-                    contract_name: OwnedContractName::new(
-                        config.rwa_security_sft_contract_name.to_owned(),
-                    )?,
-                },
+                client:        mongo_client.to_owned(),
+                contract_name: config.rwa_security_sft_contract_name,
             },
         ),
         "RWA Contracts API",

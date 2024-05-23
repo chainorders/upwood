@@ -12,7 +12,8 @@ use dotenv::dotenv;
 #[clap(version, about, long_about = None)]
 enum Command {
     GenerateContractsApiSpecs(txn_processor::OpenApiConfig),
-    ContractsApi(txn_processor::ListenerAndApiConfig),
+    Listener(txn_processor::ListenerConfig),
+    ContractsApi(txn_processor::ContractsApiConfig),
     GenerateVerifierApiSpecs(verifier::OpenApiConfig),
     VerifierApi(verifier::ApiConfig),
     GenerateSponsorApiSpecs(sponsor::OpenApiConfig),
@@ -38,16 +39,17 @@ enum Command {
 ///
 /// Returns `Ok(())` if the subcommand runs successfully, otherwise returns an
 /// `anyhow::Result` with an error.
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
     env_logger::init();
 
     match Command::parse() {
+        Command::Listener(config) => txn_processor::run_listener(config).await?,
+        Command::ContractsApi(config) => txn_processor::run_api(config).await?,
         Command::GenerateContractsApiSpecs(config) => {
             txn_processor::generate_api_client(config).await?
         }
-        Command::ContractsApi(config) => txn_processor::run_api_server_and_listener(config).await?,
         Command::VerifierApi(config) => verifier::run_api_server(config).await?,
         Command::GenerateVerifierApiSpecs(config) => verifier::generate_api_client(config).await?,
         Command::SponsorApi(config) => sponsor::run_api_server(config).await?,

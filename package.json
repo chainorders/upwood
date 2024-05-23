@@ -29,7 +29,8 @@
 		"run:backend:verifier-api": "yarn workspace backend debug:verifier-api",
 		"generate:backend:contracts-api-client": "yarn workspace backend generate:contracts-api-client",
 		"generate:backend:verifier-api-client": "yarn workspace backend generate:verifier-api-client",
-		"generate:backend:client": "yarn generate:backend:contracts-api-client && yarn generate:backend:verifier-api-client",
+		"generate:backend:sponsor-api-client": "yarn workspace backend generate:sponsor-api-client",
+		"generate:backend:client": "yarn generate:backend:contracts-api-client && yarn generate:backend:verifier-api-client && yarn generate:backend:sponsor-api-client",
 		"run:frontend": "yarn workspace frontend dev",
 		"format:frontend": "yarn workspace frontend format",
 		"build:frontend": "yarn workspace frontend build"

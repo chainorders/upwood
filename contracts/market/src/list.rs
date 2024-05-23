@@ -42,7 +42,7 @@ pub fn list_internal(
 ) -> ContractResult<()> {
     ensure!(params.supply.ge(&0u64.into()), Error::InvalidSupply);
     ensure!(params.exchange_rates.len().ge(&1), Error::InvalidExchangeRates);
-    ensure!(params.exchange_rates.len().le(&u8::max_value().into()), Error::InvalidExchangeRates);
+    ensure!(params.exchange_rates.len().le(&u8::MAX.into()), Error::InvalidExchangeRates);
 
     let state = host.state();
     ensure!(state.can_list(&params.token_id), Error::InvalidListToken);

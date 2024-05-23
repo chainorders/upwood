@@ -1,9 +1,8 @@
-use concordium_cis2::StandardIdentifier;
-use concordium_std::{Address, ContractAddress, EntrypointName, Host};
-
-use crate::{compliance_types::*, holders_state::IsTokenId, tokens_state::IsTokenAmount};
-
 use super::contract_client::{ContractClientError, IContractClient, IContractState};
+use crate::compliance_types::*;
+use concordium_cis2::StandardIdentifier;
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
+use concordium_std::{Address, ContractAddress, EntrypointName, Host};
 
 const COMPLIANCE_CAN_TRANSFER_ENTRYPOINT: EntrypointName =
     EntrypointName::new_unchecked("canTransfer");

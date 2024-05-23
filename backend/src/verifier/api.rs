@@ -222,6 +222,8 @@ impl VerifierApi {
 
                 if contract_owner != account {
                     debug!("Contract owner: {} does not match", contract_owner.to_string());
+                    // Enhancement: Return a more specific error. Include debug message as error
+                    // message
                     return Err(VerifierApiError::BadRequest);
                 }
 
