@@ -81,6 +81,8 @@ pub struct ContractsApiConfig {
     /// The URI of the MongoDB instance.
     #[clap(env)]
     pub mongodb_uri:                    String,
+    #[clap(env)]
+    pub web_server_addr:                String,
     #[clap(env, default_value = "init_rwa_market")]
     pub rwa_market_contract_name:       String,
     /// The name of the RWA security NFT contract.
@@ -89,8 +91,6 @@ pub struct ContractsApiConfig {
     /// The name of the RWA security SFT contract.
     #[clap(env, default_value = "init_rwa_security_sft")]
     pub rwa_security_sft_contract_name: String,
-    #[clap(env)]
-    pub web_server_addr:                String,
 }
 
 pub async fn run_listener(config: ListenerConfig) -> anyhow::Result<()> {
