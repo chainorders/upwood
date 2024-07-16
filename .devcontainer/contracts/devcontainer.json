@@ -1,5 +1,3 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
 	"name": "contracts",
 	"dockerFile": "Dockerfile",
@@ -20,14 +18,7 @@
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached", 
 	"workspaceFolder": "/workspace/contracts",
 	"remoteUser": "root",
-	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {}
 	}
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Configure tool-specific properties.
-	// "customizations": {},
 }
