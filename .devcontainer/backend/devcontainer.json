@@ -1,0 +1,24 @@
+{
+	"name": "backend",
+	"dockerFile": "Dockerfile",
+	"context": ".",
+	"postCreateCommand": "corepack enable && corepack install --global yarn@4.3.1 && yarn set version stable && rustc --version",
+	"mounts": [
+		{
+			"source": "devcontainer-cargo-cache-${devcontainerId}",
+			"target": "/usr/local/cargo",
+			"type": "volume"
+		}
+	],
+	"containerEnv": {
+		"CONTRACT_DEPLOY_SENDER_ACCOUNT": "",
+		"CONTRACT_DEPLOY_GRPC_IP": "",
+		"CONTRACT_DEPLOY_GRPC_PORT": ""
+	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached", 
+	"workspaceFolder": "/workspace/backend",
+	"remoteUser": "root",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {}
+	}
+}
