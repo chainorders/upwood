@@ -1,0 +1,25 @@
+{
+  "name": "contracts",
+  "packageManager": "yarn@4.3.1",
+  "version": "1.0.0",
+  "repository": "git@github.com:chainorders/concordium-rwa.git",
+  "author": "Parv Sharma <parv0888@gmail.com>",
+  "private": true,
+  "workspaces": [
+    "compliance",
+    "sponsor",
+    "identity-registry",
+    "security-nft",
+    "security-sft",
+    "market",
+    "sponsor",
+    "integration-tests",
+    "utils"
+  ],
+  "scripts": {
+    "format": "yarn workspaces foreach -Ap --include 'contracts/*' run format",
+    "deploy": "yarn workspaces foreach -A --include 'contracts/*' run deploy",
+    "build": "yarn && yarn workspaces foreach -Ap --include 'contracts/*' run build",
+		"test": "yarn workspaces foreach -Ap --include 'contracts/*' run test"
+  }
+}
