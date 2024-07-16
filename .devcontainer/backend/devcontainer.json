@@ -20,5 +20,19 @@
 	"remoteUser": "root",
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"shardulm94.trailing-spaces",
+				"spikespaz.vscode-smoothtype",
+				"eamodio.gitlens",
+				"ms-azuretools.vscode-docker",
+				"Gruntfuggly.todo-tree",
+				"streetsidesoftware.code-spell-checker",
+				"rust-lang.rust-analyzer",
+				"swellaby.rust-pack"
+			]
+		}
 	}
 }
