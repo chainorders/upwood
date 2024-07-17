@@ -20,6 +20,6 @@
     "format": "yarn workspaces foreach -Ap --include 'contracts/*' run format",
     "deploy": "yarn workspaces foreach -A --include 'contracts/*' run deploy",
     "build": "yarn && yarn workspaces foreach -Ap --include 'contracts/*' run build",
-		"test": "yarn workspaces foreach -Ap --include 'contracts/*' run test"
+    "test": "yarn workspaces foreach -Ap --include 'contracts/*' run test"
   }
 }
