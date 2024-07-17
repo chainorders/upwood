@@ -1,0 +1,10 @@
+{
+    "rust-analyzer.cargo.autoreload": true,
+    "rust-analyzer.checkOnSave": true,
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.checkOnSave.command": "clippy",
+    "rust-analyzer.linkedProjects": ["Cargo.toml"],
+    "rust-analyzer.files.excludeDirs": ["target"],
+    "rust-analyzer.diagnostics.styleLints.enable": true,
+    "rust-analyzer.check.overrideCommand": ["cargo", "check", "--message-format=json"]
+}

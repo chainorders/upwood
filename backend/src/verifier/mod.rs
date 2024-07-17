@@ -125,6 +125,8 @@ async fn create_service(
     })?;
     info!("Issuers: {:?}", issuers);
 
+    // todo: this code is called even when generating the api specs for frontend
+    // remove dependency on checking agent while generating
     let is_agent = identity_registry_client
         .is_agent(&Address::Account(agent_wallet.address))
         .await
