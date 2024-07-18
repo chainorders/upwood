@@ -27,9 +27,9 @@ use crate::shared::{
     db::{DbAccountAddress, DbTokenAmount, ICollection},
 };
 use bson::{doc, to_bson, Document};
-use concordium_rust_sdk::types::ContractAddress;
+use concordium_rust_sdk::{base::smart_contracts::OwnedContractName, types::ContractAddress};
 use futures::TryStreamExt;
-use poem::Result;
+use poem::{web::Data, Result};
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
 #[derive(Object)]
@@ -56,18 +56,18 @@ impl From<DbDepositedToken> for MarketToken {
 }
 
 /// Represents the RWA Market API.
-pub struct RwaMarketApi {
-    pub client:        mongodb::Client,
-    pub contract_name: String,
-}
+pub struct RwaMarketApi(pub OwnedContractName);
 
 /// API implementation for the RWA market.
 #[OpenApi]
 impl RwaMarketApi {
-    pub fn db(&self, contract: &ContractAddress) -> RwaMarketDb {
-        let db = self
-            .client
-            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
+    pub fn db(
+        client: &mongodb::Client,
+        contract_name: &OwnedContractName,
+        contract: &ContractAddress,
+    ) -> RwaMarketDb {
+        let db =
+            client.database(&format!("{}-{}-{}", contract_name, contract.index, contract.subindex));
 
         RwaMarketDb::init(db)
     }
@@ -86,6 +86,7 @@ impl RwaMarketApi {
     #[oai(path = "/rwa-market/:index/:subindex/listed/:page", method = "get")]
     pub async fn listed(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(page): Path<u64>,
@@ -99,7 +100,7 @@ impl RwaMarketApi {
                 "$ne": to_bson(&DbTokenAmount::zero())?,
             }
         };
-        let res = self.to_paged_response(query, contract, page).await?;
+        let res = Self::to_paged_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
@@ -119,6 +120,7 @@ impl RwaMarketApi {
     #[oai(path = "/rwa-market/:index/:subindex/unlisted/:owner/:page", method = "get")]
     pub async fn unlisted(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
@@ -134,7 +136,7 @@ impl RwaMarketApi {
                 "$ne": to_bson(&DbTokenAmount::zero())?,
             }
         };
-        let res = self.to_paged_response(query, contract, page).await?;
+        let res = Self::to_paged_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
@@ -154,6 +156,7 @@ impl RwaMarketApi {
     #[oai(path = "/rwa-market/:index/:subindex/deposited/:owner/:page", method = "get")]
     pub async fn deposited(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
@@ -169,7 +172,7 @@ impl RwaMarketApi {
                 "$ne": to_bson(&DbTokenAmount::zero())?,
             }
         };
-        let res = self.to_paged_response(query, contract, page).await?;
+        let res = Self::to_paged_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
@@ -185,12 +188,13 @@ impl RwaMarketApi {
     ///
     /// A `PagedResponse` containing a list of `MarketToken` objects.
     pub async fn to_paged_response(
-        &self,
+        client: &mongodb::Client,
+        contract_name: &OwnedContractName,
         query: Document,
         contract: &ContractAddress,
         page: u64,
     ) -> anyhow::Result<PagedResponse<MarketToken>> {
-        let coll = self.db(contract).deposited_tokens;
+        let coll = Self::db(client, contract_name, contract).deposited_tokens;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
         let data: Vec<MarketToken> = data.into_iter().map(|token| token.into()).collect();

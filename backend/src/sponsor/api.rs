@@ -11,6 +11,7 @@ use concordium_rust_sdk::{
 };
 use concordium_rwa_sponsor::types::{PermitMessage, PermitParam};
 use log::debug;
+use poem::web::Data;
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
 
 #[derive(Debug, ApiResponse)]
@@ -143,10 +144,7 @@ pub struct ApiPermitResponse {
 }
 
 pub struct Api {
-    pub contract:          ContractAddress,
-    pub wallet:            WalletAccount,
-    pub concordium_client: concordium_rust_sdk::v2::Client,
-    pub max_energy:        Energy,
+    pub wallet: WalletAccount,
 }
 
 #[OpenApi]
@@ -171,13 +169,16 @@ impl Api {
     #[oai(path = "/sponsor/permit", method = "post")]
     pub async fn permit(
         &self,
+        Data(max_energy): Data<&Energy>,
+        Data(contract): Data<&ContractAddress>,
+        Data(concordium_client): Data<&concordium_rust_sdk::v2::Client>,
         request: Json<ApiPermitParam>,
     ) -> Result<Json<ApiPermitResponse>, Error> {
         let permit_param: PermitParam = request.0.try_into().map_err(|_| Error::BadRequest)?;
         debug!("Permitting with {:?}", permit_param);
 
-        let txn_hash = SponsorClient::new(self.concordium_client.clone(), self.contract)
-            .permit(&self.wallet, self.max_energy, permit_param)
+        let txn_hash = SponsorClient::new(concordium_client.clone(), *contract)
+            .permit(&self.wallet, *max_energy, permit_param)
             .await?;
 
         Ok(Json(ApiPermitResponse {

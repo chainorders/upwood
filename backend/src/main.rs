@@ -24,21 +24,14 @@ enum Command {
 /// Parses the command line arguments and runs the appropriate subcommand.
 ///
 /// The subcommands are:
-/// - `generate-contracts-api-specs`: Generates the OpenAPI specs for the
-///   contracts API.
-/// - `contracts-api`: Runs the contracts API server and the contracts events
-///   processor.
-/// - `generate-verifier-api-specs`: Generates the OpenAPI specs for the
-///   verifier API.
-/// - `verifier-api`: Runs the verifier API server.
-/// - `generate-sponsor-api-specs`: Generates the OpenAPI specs for the sponsor
-///   API.
-/// - `sponsor-api`: Runs the sponsor API server.
-///
-/// # Returns
-///
-/// Returns `Ok(())` if the subcommand runs successfully, otherwise returns an
-/// `anyhow::Result` with an error.
+/// - `listener`: Runs Indexer / Listener
+/// - `contracts-api`: Runs Contracts API server & Contracts events processor
+/// - `generate-contracts-api-specs`: Generates OpenAPI specs Contracts API
+/// - `generate-verifier-api-specs`: Generates OpenAPI specs for verifier API
+/// - `verifier-api`: Runs verifier API server
+/// - `generate-sponsor-api-specs`: Generates OpenAPI specs for Sponsor API
+/// - `sponsor-api`: Runs the sponsor API server
+/// - `generate-sponsor-api-specs`: Generates OpenApi specs for Sponsor API
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
@@ -46,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     match Command::parse() {
         Command::Listener(config) => txn_processor::run_listener(config).await?,
-        Command::ContractsApi(config) => txn_processor::run_api(config).await?,
+        Command::ContractsApi(config) => txn_processor::run_api_server(config).await?,
         Command::GenerateContractsApiSpecs(config) => {
             txn_processor::generate_api_client(config).await?
         }

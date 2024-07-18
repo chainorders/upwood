@@ -13,13 +13,14 @@ pub struct DbChallenge {
 }
 
 /// Represents a database connection.
-pub struct Db {
+#[derive(Clone)]
+pub struct VerifierDb {
     pub client:            mongodb::Client,
     pub identity_registry: ContractAddress,
     pub agent_address:     AccountAddress,
 }
 
-impl Db {
+impl VerifierDb {
     /// Returns the MongoDB database associated with the verifier.
     fn database(&self) -> mongodb::Database {
         self.client.database(&format!(
