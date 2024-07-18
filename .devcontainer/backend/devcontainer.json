@@ -1,28 +1,32 @@
 {
 	"name": "backend",
-	"dockerFile": "Dockerfile",
-	"context": ".",
-	"postCreateCommand": "corepack enable && corepack install --global yarn@4.3.1 && yarn set version stable && rustc --version",
-	"mounts": [
-		{
-			"source": "devcontainer-cargo-cache-${devcontainerId}",
-			"target": "/usr/local/cargo",
-			"type": "volume"
-		}
-	],
-	"containerEnv": {
-		"CONTRACT_DEPLOY_SENDER_ACCOUNT": "",
-		"CONTRACT_DEPLOY_GRPC_IP": "",
-		"CONTRACT_DEPLOY_GRPC_PORT": ""
-	},
-	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached", 
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "backend",
 	"workspaceFolder": "/workspace/backend",
 	"remoteUser": "root",
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {}
 	},
+	"forwardPorts": [
+		5432
+	],
+	"postCreateCommand": "/post-create.sh",
 	"customizations": {
 		"vscode": {
+			"settings": {
+				"lldb.executable": "/usr/bin/lldb",
+				// VS Code don't watch files under ./target
+				"files.watcherExclude": {
+					"**/target/**": true
+				},
+				"rust-analyzer.checkOnSave.command": "clippy",
+				"[markdown]": {
+					"editor.formatOnSave": true,
+					"editor.wordWrap": "on",
+					"editor.renderWhitespace": "all",
+					"editor.acceptSuggestionOnEnter": "off"
+				}
+			},
 			"extensions": [
 				"shardulm94.trailing-spaces",
 				"spikespaz.vscode-smoothtype",
@@ -31,7 +35,20 @@
 				"Gruntfuggly.todo-tree",
 				"streetsidesoftware.code-spell-checker",
 				"rust-lang.rust-analyzer",
-				"swellaby.rust-pack"
+				"swellaby.rust-pack",
+				"vadimcn.vscode-lldb",
+				"mutantdino.resourcemonitor",
+				"tamasfe.even-better-toml",
+				"fill-labs.dependi",
+				"esbenp.prettier-vscode",
+				"DavidAnson.vscode-markdownlint",
+				"bierner.markdown-emoji",
+				"bierner.github-markdown-preview",
+				"formulahendry.docker-extension-pack",
+				"inferrinizzard.prettier-sql-vscode",
+				"ms-ossdata.vscode-postgresql",
+				"ckolkman.vscode-postgres",
+				"MS-CST-E.vscode-devskim"
 			]
 		}
 	}
