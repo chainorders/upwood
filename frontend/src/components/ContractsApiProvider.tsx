@@ -9,6 +9,7 @@ const ContractsApiContext = createContext<ContractsApiContext>({
 	provider: contractsApi,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useContractsApi = () => {
 	return useContext(ContractsApiContext);
 };

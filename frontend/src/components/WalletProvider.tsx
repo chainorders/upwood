@@ -33,6 +33,7 @@ const createWalletContext = async (): Promise<WalletContext> => {
 };
 const defaultWalletContext: WalletContext = {};
 const WalletContext = createContext<WalletContext>(defaultWalletContext);
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWallet = () => {
 	return useContext(WalletContext);
 };

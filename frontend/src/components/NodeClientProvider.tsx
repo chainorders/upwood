@@ -10,6 +10,7 @@ const NodeClientContext = createContext<NodeClientContext>({
 	provider: defaultNodeClient,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNodeClient = () => {
 	return useContext(NodeClientContext);
 };

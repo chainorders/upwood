@@ -9,6 +9,7 @@ const VerifierApiContext = createContext<VerifierApiContext>({
 	provider: verifierApi,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useVerifierApi = () => {
 	return useContext(VerifierApiContext);
 };
