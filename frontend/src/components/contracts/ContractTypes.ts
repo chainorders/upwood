@@ -8,12 +8,19 @@ import { CONTRACT_NAME as rwaSponsorContractName } from "../../lib/rwaSponsor";
 import { CONTRACT_NAME as rwaMarketContractName } from "../../lib/rwaMarket";
 
 export const enum ContractType {
+	//@ts-expect-error TS18055
 	RwaIdentityRegistry = rwaIdentityRegistryContractName,
+	//@ts-expect-error TS18055
 	RwaCompliance = rwaComplianceContractName,
+	//@ts-expect-error TS18055
 	RwaComplianceModule = rwaComplianceModuleContractName,
+	//@ts-expect-error TS18055
 	RwaSecurityNft = rwaSecurityNftContractName,
+	//@ts-expect-error TS18055
 	RwaSecuritySft = rwaSecuritySftContractName,
+	//@ts-expect-error TS18055
 	RwaSponsor = rwaSponsorContractName,
+	//@ts-expect-error TS18055
 	RwaMarket = rwaMarketContractName,
 }
 
