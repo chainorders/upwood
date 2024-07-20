@@ -185,7 +185,7 @@ pub struct OpenApiConfig {
     pub output: String,
 }
 
-pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
+pub async fn generate_open_api_specs(config: OpenApiConfig) -> anyhow::Result<()> {
     let dummy_wallet = WalletAccount {
         address: AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
         keys:    AccountKeys {

@@ -41,12 +41,16 @@ async fn main() -> anyhow::Result<()> {
         Command::Listener(config) => txn_processor::run_listener(config).await?,
         Command::ContractsApi(config) => txn_processor::run_api_server(config).await?,
         Command::GenerateContractsApiSpecs(config) => {
-            txn_processor::generate_api_client(config).await?
+            txn_processor::generate_open_api_specs(config).await?
         }
         Command::VerifierApi(config) => verifier::run_api_server(config).await?,
-        Command::GenerateVerifierApiSpecs(config) => verifier::generate_api_client(config).await?,
+        Command::GenerateVerifierApiSpecs(config) => {
+            verifier::generate_open_api_specs(config).await?
+        }
         Command::SponsorApi(config) => sponsor::run_api_server(config).await?,
-        Command::GenerateSponsorApiSpecs(config) => sponsor::generate_api_client(config).await?,
+        Command::GenerateSponsorApiSpecs(config) => {
+            sponsor::generate_open_api_specs(config).await?
+        }
     }
     Ok(())
 }

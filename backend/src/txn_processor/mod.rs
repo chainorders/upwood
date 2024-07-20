@@ -155,9 +155,7 @@ async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsL
         v2::Client::new(endpoint).await?,
         DatabaseClient::init(client).await?,
         processors,
-        AbsoluteBlockHeight {
-            height: config.default_block_height,
-        },
+        config.default_block_height.into(),
     )
     .await?;
     Ok(listener)
@@ -204,7 +202,7 @@ pub struct OpenApiConfig {
 }
 
 /// Generates the API client based on the OpenAPI configuration.
-pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
+pub async fn generate_open_api_specs(config: OpenApiConfig) -> anyhow::Result<()> {
     let api_service = create_service(
         OwnedContractName::new_unchecked(config.rwa_market_contract_name),
         OwnedContractName::new_unchecked(config.rwa_security_nft_contract_name),

@@ -121,7 +121,7 @@ pub struct OpenApiConfig {
 /// The generated client is written to the file specified in the
 /// `OpenApiConfig`. The client is generated using the `create_service`
 /// function.
-pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
+pub async fn generate_open_api_specs(config: OpenApiConfig) -> anyhow::Result<()> {
     let dummy_wallet = WalletAccount {
         address: AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
         keys:    AccountKeys {
