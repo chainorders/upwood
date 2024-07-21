@@ -4,7 +4,6 @@ use crate::{
     txn_listener::EventsProcessor,
 };
 use async_trait::async_trait;
-use bson::doc;
 use concordium_rust_sdk::types::{
     smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
     ContractAddress,
@@ -59,7 +58,7 @@ impl EventsProcessor for RwaMarketProcessor {
     ///
     /// * A Result indicating the success or failure of the operation.
     async fn process_events(
-        &self,
+        &mut self,
         contract: &ContractAddress,
         events: &[ContractEvent],
     ) -> anyhow::Result<u64> {

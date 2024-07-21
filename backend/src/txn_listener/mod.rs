@@ -8,5 +8,5 @@
 
 mod db;
 mod listener;
-pub use db::DatabaseClient;
+mod schema;
 pub use listener::{EventsProcessor, TransactionsListener};

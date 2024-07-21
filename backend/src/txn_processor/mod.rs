@@ -6,17 +6,20 @@
 //! functions to run the contracts API server and listener, as well as to
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
-
 pub mod rwa_identity_registry;
 pub mod rwa_market;
 pub mod rwa_security_nft;
 pub mod rwa_security_sft;
 
-use crate::txn_listener::{DatabaseClient, EventsProcessor, TransactionsListener};
+use crate::txn_listener::{EventsProcessor, TransactionsListener};
 use clap::Parser;
 use concordium_rust_sdk::{
-    types::{smart_contracts::OwnedContractName, AbsoluteBlockHeight},
+    types::smart_contracts::OwnedContractName,
     v2::{self, Endpoint},
+};
+use diesel::{
+    r2d2::{ConnectionManager, Pool},
+    PgConnection,
 };
 use futures::TryFutureExt;
 use log::{debug, info};
@@ -30,48 +33,53 @@ use rwa_identity_registry::processor::*;
 use rwa_market::{api::*, processor::*};
 use rwa_security_nft::{api::*, processor::*};
 use rwa_security_sft::{api::*, processor::*};
-use std::{io::Write, str::FromStr, time::Duration};
-use tokio::spawn;
+use std::{io::Write, str::FromStr, sync::Arc, time::Duration};
+use tokio::{spawn, sync::RwLock};
 
 #[derive(Parser, Debug, Clone)]
 pub struct ListenerConfig {
     /// The MongoDB URI.
     #[clap(env)]
     pub mongodb_uri: String,
+    /// Postrgres Database Url
+    #[clap(env)]
+    pub database_url: String,
+    #[clap(env)]
+    pub db_pool_max_size: u32,
     /// The Concordium node URI.
     #[clap(env)]
-    pub concordium_node_uri: String,
+    pub concordium_node_uri:                 String,
     /// The reference to the RWA identity registry module.
     #[clap(env)]
-    pub rwa_identity_registry_module_ref: String,
+    pub rwa_identity_registry_module_ref:    String,
     /// The reference to the RWA security NFT module.
     #[clap(env)]
-    pub rwa_security_nft_module_ref: String,
+    pub rwa_security_nft_module_ref:         String,
     /// The reference to the RWA security SFT module.
     #[clap(env)]
-    pub rwa_security_sft_module_ref: String,
+    pub rwa_security_sft_module_ref:         String,
     /// The reference to the RWA market module.
     #[clap(env)]
-    pub rwa_market_module_ref: String,
+    pub rwa_market_module_ref:               String,
     /// The starting block hash.
     #[clap(env, default_value = "")]
-    pub default_block_height: u64,
+    pub default_block_height:                u64,
     #[clap(env, default_value = "100")]
-    pub node_rate_limit: u64,
+    pub node_rate_limit:                     u64,
     #[clap(env, default_value = "1")]
-    pub node_rate_limit_duration_secs: u64,
+    pub node_rate_limit_duration_secs:       u64,
     /// The name of the RWA security NFT contract.
     #[clap(env, default_value = "init_rwa_security_nft")]
-    pub rwa_security_nft_contract_name: String,
+    pub rwa_security_nft_contract_name:      String,
     /// The name of the RWA security SFT contract.
     #[clap(env, default_value = "init_rwa_security_sft")]
-    pub rwa_security_sft_contract_name: String,
+    pub rwa_security_sft_contract_name:      String,
     /// The name of the RWA identity registry contract.
     #[clap(env, default_value = "init_rwa_identity_registry")]
     pub rwa_identity_registry_contract_name: String,
     /// The name of the RWA market contract.
     #[clap(env, default_value = "init_rwa_market")]
-    pub rwa_market_contract_name: String,
+    pub rwa_market_contract_name:            String,
 }
 
 /// Configuration struct for the contracts API.
@@ -122,27 +130,32 @@ pub async fn run_api_server(config: ContractsApiConfig) -> anyhow::Result<()> {
 /// Creates the listener for processing transactions.
 async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsListener> {
     let client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
-    let processors: Vec<Box<dyn EventsProcessor>> = vec![
-        Box::new(RwaIdentityRegistryProcessor {
+
+    let manager = ConnectionManager::<PgConnection>::new(&config.database_url);
+    let pool: Pool<ConnectionManager<PgConnection>> =
+        Pool::builder().max_size(config.db_pool_max_size).build(manager).unwrap();
+
+    let processors: Vec<Arc<RwLock<dyn EventsProcessor>>> = vec![
+        Arc::new(RwLock::new(RwaIdentityRegistryProcessor {
             module_ref:    config.rwa_identity_registry_module_ref.parse()?,
             contract_name: OwnedContractName::new(config.rwa_identity_registry_contract_name)?,
             client:        client.to_owned(),
-        }),
-        Box::new(RwaSecurityNftProcessor {
+        })),
+        Arc::new(RwLock::new(RwaSecurityNftProcessor {
             module_ref:    config.rwa_security_nft_module_ref.parse()?,
             client:        client.clone(),
             contract_name: OwnedContractName::new(config.rwa_security_nft_contract_name)?,
-        }),
-        Box::new(RwaSecuritySftProcessor {
+        })),
+        Arc::new(RwLock::new(RwaSecuritySftProcessor {
             module_ref:    config.rwa_security_sft_module_ref.parse()?,
             client:        client.clone(),
             contract_name: OwnedContractName::new(config.rwa_security_sft_contract_name)?,
-        }),
-        Box::new(RwaMarketProcessor {
+        })),
+        Arc::new(RwLock::new(RwaMarketProcessor {
             module_ref:    config.rwa_market_module_ref.parse()?,
             client:        client.clone(),
             contract_name: OwnedContractName::new(config.rwa_market_contract_name)?,
-        }),
+        })),
     ];
 
     let endpoint = Endpoint::from_str(&config.concordium_node_uri)?;
@@ -153,7 +166,7 @@ async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsL
 
     let listener = TransactionsListener::new(
         v2::Client::new(endpoint).await?,
-        DatabaseClient::init(client).await?,
+        pool.clone(),
         processors,
         config.default_block_height.into(),
     )

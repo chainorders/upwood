@@ -1,198 +1,130 @@
-use bson::{doc, serde_helpers::u64_as_f64};
-use concordium_rust_sdk::{
-    types::{
-        smart_contracts::{ModuleReference, OwnedContractName},
-        ContractAddress,
-    },
-    v2::FinalizedBlockInfo,
-};
-use mongodb::{
-    options::{
-        CreateCollectionOptions, CreateIndexOptions, FindOneOptions, IndexOptions, InsertOneOptions,
-    },
-    results::InsertOneResult,
-    IndexModel,
-};
-use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+pub mod listener_config {
+    use crate::txn_listener::schema::{self, listener_config::dsl::*};
+    use bigdecimal::BigDecimal;
+    use concordium_rust_sdk::{types::AbsoluteBlockHeight, v2::FinalizedBlockInfo};
+    use diesel::{
+        dsl::*,
+        prelude::*,
+        r2d2::{ConnectionManager, PooledConnection},
+    };
+    use num_traits::ToPrimitive;
 
-/// Represents a processed block in the database.
-#[derive(Serialize, Deserialize)]
-pub struct DbProcessedBlock {
-    block_hash:       String,
-    #[serde(with = "u64_as_f64")]
-    pub block_height: u64,
-}
+    type Conn = PooledConnection<ConnectionManager<PgConnection>>;
 
-/// Represents a contract in the database.
-#[derive(Serialize, Deserialize)]
-pub struct DbContract {
-    pub module_ref:    String,
-    pub contract_name: String,
-
-    #[serde(with = "u64_as_f64")]
-    pub address_index: u64,
-
-    #[serde(with = "u64_as_f64")]
-    pub address_subindex: u64,
-}
-
-impl DbContract {
-    /// Creates a new `DbContract` instance.
-    pub fn new(
-        module_ref: &ModuleReference,
-        contract_name: &OwnedContractName,
-        address: &ContractAddress,
-    ) -> Self {
-        Self {
-            module_ref:       module_ref.to_string(),
-            contract_name:    contract_name.to_string(),
-            address_index:    address.index,
-            address_subindex: address.subindex,
-        }
+    #[derive(Selectable, Queryable, Identifiable)]
+    #[diesel(table_name = schema::listener_config)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    pub struct ListenerConfig {
+        pub id:                i32,
+        pub last_block_height: BigDecimal,
+        pub last_block_hash:   Vec<u8>,
     }
 
-    pub fn mongodb_index_key() -> bson::Document {
-        doc! {
-            "address_index": 1,
-            "address_subindex": 1,
-        }
-    }
-
-    pub fn mongodb_find_one_query(address: &ContractAddress) -> bson::Document {
-        doc! {
-            "address_index": address.index as f64,
-            "address_subindex": address.subindex as f64,
-        }
-    }
-}
-
-const DATABASE_NAME: &str = "concordium";
-const CONTRACTS_COLLECTION: &str = "contracts";
-const PROCESSED_BLOCKS_COLLECTION: &str = "processed_blocks";
-
-/// Represents a client for interacting with the database.
-pub struct DatabaseClient {
-    contracts:        mongodb::Collection<DbContract>,
-    processed_blocks: mongodb::Collection<DbProcessedBlock>,
-}
-
-impl DatabaseClient {
-    /// Creates a new `DatabaseClient` instance.
-    pub async fn init(client: mongodb::Client) -> anyhow::Result<Self> {
-        let coll_names = client.database(DATABASE_NAME).list_collection_names(None).await?;
-        if !coll_names.contains(&PROCESSED_BLOCKS_COLLECTION.to_owned()) {
-            client
-                .database(DATABASE_NAME)
-                .create_collection(
-                    PROCESSED_BLOCKS_COLLECTION,
-                    CreateCollectionOptions::builder().capped(true).size(1000).build(),
-                )
-                .await?;
-            let processed_blocks = client
-                .database(DATABASE_NAME)
-                .collection::<DbProcessedBlock>(PROCESSED_BLOCKS_COLLECTION);
-            processed_blocks
-                .create_index(
-                    IndexModel::builder()
-                        .keys(doc! { "block_height": -1 })
-                        .options(IndexOptions::builder().unique(true).build())
-                        .build(),
-                    Some(CreateIndexOptions::builder().build()),
-                )
-                .await?;
-        }
-
-        if !coll_names.contains(&CONTRACTS_COLLECTION.to_owned()) {
-            client.database(DATABASE_NAME).create_collection(CONTRACTS_COLLECTION, None).await?;
-            let contracts =
-                client.database(DATABASE_NAME).collection::<DbContract>(CONTRACTS_COLLECTION);
-            contracts
-                .create_index(
-                    IndexModel::builder()
-                        .keys(DbContract::mongodb_index_key())
-                        .options(IndexOptions::builder().unique(true).build())
-                        .build(),
-                    Some(CreateIndexOptions::builder().build()),
-                )
-                .await?;
-        }
-
-        Ok(Self {
-            contracts:        client
-                .database(DATABASE_NAME)
-                .collection::<DbContract>(CONTRACTS_COLLECTION),
-            processed_blocks: client
-                .database(DATABASE_NAME)
-                .collection::<DbProcessedBlock>(PROCESSED_BLOCKS_COLLECTION),
-        })
+    #[derive(Insertable)]
+    #[diesel(table_name = schema::listener_config)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    pub struct ListenerConfigInsert {
+        pub last_block_height: BigDecimal,
+        pub last_block_hash:   Vec<u8>,
     }
 
     /// Retrieves the last processed block from the database.
-    pub async fn get_last_processed_block(&self) -> anyhow::Result<Option<DbProcessedBlock>> {
-        let result = self
-            .processed_blocks
-            .find_one(None, FindOneOptions::builder().sort(doc! { "block_height": -1 }).build())
-            .await?;
+    pub async fn get_last_processed_block(
+        conn: &mut Conn,
+    ) -> anyhow::Result<Option<AbsoluteBlockHeight>> {
+        let config = listener_config
+            .order(last_block_height.desc())
+            .limit(1)
+            .select(last_block_height)
+            .first(conn)
+            .optional()?
+            .map(|block_height: BigDecimal| AbsoluteBlockHeight {
+                height: block_height.to_u64().expect("Block height should convert to u64"),
+            });
 
-        Ok(result)
+        Ok(config)
     }
 
     /// Updates the last processed block in the database.
     pub async fn update_last_processed_block(
-        &mut self,
+        conn: &mut Conn,
         block: &FinalizedBlockInfo,
-    ) -> anyhow::Result<InsertOneResult> {
-        let result = self
-            .processed_blocks
-            .insert_one(
-                DbProcessedBlock {
-                    block_hash:   block.block_hash.to_string(),
-                    block_height: block.height.height,
-                },
-                InsertOneOptions::builder().build(),
-            )
-            .await?;
+    ) -> anyhow::Result<i32> {
+        let created_id: i32 = insert_into(listener_config)
+            .values(ListenerConfigInsert {
+                last_block_hash:   block.block_hash.bytes.to_vec(),
+                last_block_height: block.height.height.into(),
+            })
+            .returning(id)
+            .get_result(conn)?;
 
-        Ok(result)
+        Ok(created_id)
+    }
+}
+
+pub mod listener_contracts {
+    use bigdecimal::BigDecimal;
+    use concordium_rust_sdk::{
+        base::{hashes::ModuleReference, smart_contracts::OwnedContractName},
+        types::ContractAddress,
+    };
+    use diesel::{
+        dsl::*,
+        prelude::*,
+        r2d2::{ConnectionManager, PooledConnection},
+    };
+
+    use crate::txn_listener::schema::{self, listener_contracts::dsl::*};
+    type Conn = PooledConnection<ConnectionManager<PgConnection>>;
+
+    #[derive(Selectable, Queryable, Identifiable, Insertable)]
+    #[diesel(primary_key(index))]
+    #[diesel(table_name = schema::listener_contracts)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    pub struct ListenerContract {
+        pub module_ref:    Vec<u8>,
+        pub contract_name: String,
+        pub index:         BigDecimal,
+        pub sub_index:     BigDecimal,
     }
 
     /// Adds a contract to the database.
     pub async fn add_contract(
-        &self,
+        conn: &mut Conn,
         address: &concordium_rust_sdk::types::ContractAddress,
         origin_ref: &ModuleReference,
         init_name: &OwnedContractName,
-    ) -> anyhow::Result<InsertOneResult> {
-        let result = self
-            .contracts
-            .insert_one(
-                DbContract::new(origin_ref, init_name, address),
-                InsertOneOptions::builder().build(),
-            )
-            .await?;
+    ) -> anyhow::Result<()> {
+        insert_into(listener_contracts)
+            .values(ListenerContract {
+                index:         address.index.into(),
+                sub_index:     address.subindex.into(),
+                contract_name: init_name.to_string(),
+                module_ref:    origin_ref.bytes.to_vec(),
+            })
+            .execute(conn)?;
 
-        Ok(result)
+        Ok(())
     }
 
     /// Finds a contract in the database based on its address.
     pub async fn find_contract(
-        &self,
+        conn: &mut Conn,
         contract_address: &ContractAddress,
     ) -> anyhow::Result<Option<(ModuleReference, OwnedContractName)>> {
-        let result = self
-            .contracts
-            .find_one(DbContract::mongodb_find_one_query(contract_address), None)
-            .await?;
+        let contract = listener_contracts
+            .filter(index.eq::<BigDecimal>(contract_address.index.into()))
+            .select((module_ref, contract_name))
+            .get_result(conn)
+            .optional()?
+            .map(|c: (Vec<u8>, String)| {
+                (to_module_ref(c.0), OwnedContractName::new_unchecked(c.1))
+            });
 
-        match result {
-            Some(db_contract) => {
-                let module_ref = ModuleReference::from_str(&db_contract.module_ref)?;
-                let contract_name = OwnedContractName::new_unchecked(db_contract.contract_name);
+        Ok(contract)
+    }
 
-                Ok(Some((module_ref, contract_name)))
-            }
-            None => Ok(None),
-        }
+    fn to_module_ref(vec: Vec<u8>) -> ModuleReference {
+        ModuleReference::new(vec.as_slice().try_into().expect("Should convert vec to module ref"))
     }
 }

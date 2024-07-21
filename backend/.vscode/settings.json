@@ -1,0 +1,16 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "concordium_rwa",
+            "database": "concordium_rwa_dev",
+            "username": "concordium_rwa_dev_user",
+            "password": "concordium_rwa_dev_pswd"
+        }
+    ],
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true
+}

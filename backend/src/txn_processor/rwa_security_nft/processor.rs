@@ -67,7 +67,7 @@ impl EventsProcessor for RwaSecurityNftProcessor {
     ///
     /// * A Result indicating the success or failure of the operation.
     async fn process_events(
-        &self,
+        &mut self,
         contract: &ContractAddress,
         events: &[ContractEvent],
     ) -> anyhow::Result<u64> {
