@@ -13,6 +13,7 @@ use dotenv::dotenv;
 enum Command {
     GenerateContractsApiSpecs(txn_processor::OpenApiConfig),
     Listener(txn_processor::ListenerConfig),
+    ListenerDbSetup(txn_listener::MigrationsConfig),
     ContractsApi(txn_processor::ContractsApiConfig),
     GenerateVerifierApiSpecs(verifier::OpenApiConfig),
     VerifierApi(verifier::ApiConfig),
@@ -25,6 +26,7 @@ enum Command {
 ///
 /// The subcommands are:
 /// - `listener`: Runs Indexer / Listener
+/// - `listener-db-setup`: Runs the init migrations for listener postgres db
 /// - `contracts-api`: Runs Contracts API server & Contracts events processor
 /// - `generate-contracts-api-specs`: Generates OpenAPI specs Contracts API
 /// - `generate-verifier-api-specs`: Generates OpenAPI specs for verifier API
@@ -39,6 +41,9 @@ async fn main() -> anyhow::Result<()> {
 
     match Command::parse() {
         Command::Listener(config) => txn_processor::run_listener(config).await?,
+        Command::ListenerDbSetup(config) => {
+            txn_listener::run_migrations(&config).expect("Error running migrations")
+        }
         Command::ContractsApi(config) => txn_processor::run_api_server(config).await?,
         Command::GenerateContractsApiSpecs(config) => {
             txn_processor::generate_open_api_specs(config).await?
