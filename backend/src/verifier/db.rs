@@ -2,7 +2,9 @@ pub mod verifier_challenges {
     use crate::schema::{self, verifier_challenges::dsl::*};
     use bigdecimal::BigDecimal;
     use chrono::{NaiveDateTime, Utc};
-    use concordium_rust_sdk::{id::types::AccountAddress, types::ContractAddress};
+    use concordium_rust_sdk::{
+        base::hashes::TransactionHash, id::types::AccountAddress, types::ContractAddress,
+    };
     use diesel::{
         dsl::*,
         prelude::*,
@@ -12,15 +14,46 @@ pub mod verifier_challenges {
     type Conn = PooledConnection<ConnectionManager<PgConnection>>;
     type Result<T> = std::result::Result<T, diesel::result::Error>;
 
-    pub async fn find_challenge(
+    #[derive(Selectable, Queryable, Identifiable)]
+    #[diesel(primary_key(id))]
+    #[diesel(table_name = schema::verifier_challenges)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    pub struct ChallengeSelect {
+        pub id:          i32,
+        pub challenge:   Vec<u8>,
+        pub create_time: NaiveDateTime,
+        pub update_time: NaiveDateTime,
+    }
+
+    #[derive(Debug)]
+    pub struct DbChallenge {
+        pub id:        i32,
+        pub challenge: [u8; 32],
+    }
+
+    impl From<ChallengeSelect> for DbChallenge {
+        fn from(value: ChallengeSelect) -> Self {
+            DbChallenge {
+                id:        value.id,
+                challenge: value
+                    .challenge
+                    .try_into()
+                    .expect("could not de serialize challenge stored in db"),
+            }
+        }
+    }
+
+    /// Finds a challenge without null txn hash. Denoting an unconsumed
+    /// challenge
+    pub async fn find_challenge_wo_txn(
         conn: &mut Conn,
         for_account: &AccountAddress,
         verifier: &AccountAddress,
         identity_registry: &ContractAddress,
-    ) -> Result<Option<[u8; 32]>> {
+    ) -> Result<Option<DbChallenge>> {
         let for_accnt_str = for_account.0.to_vec();
         let verifier_str = verifier.0.to_vec();
-        let db_challenge: Option<Vec<u8>> = verifier_challenges
+        let db_challenge = verifier_challenges
             .filter(
                 account_address
                     .eq(for_accnt_str)
@@ -29,13 +62,14 @@ pub mod verifier_challenges {
                     .and(
                         identity_registry_sub_index
                             .eq::<BigDecimal>(identity_registry.subindex.into()),
-                    ),
+                    )
+                    .and(txn_hash.is_null()),
             )
-            .select(challenge)
-            .get_result::<Vec<u8>>(conn)
+            .select(ChallengeSelect::as_select())
+            .get_result(conn)
             .optional()?;
-        let ret: Option<[u8; 32]> = db_challenge
-            .map(|c| c.try_into().expect("could not de serialize challenge stored in db"));
+
+        let ret: Option<DbChallenge> = db_challenge.map(|c| c.into());
 
         Ok(ret)
     }
@@ -50,6 +84,7 @@ pub mod verifier_challenges {
         pub identity_registry_sub_index: BigDecimal,
         pub challenge:                   Vec<u8>,
         pub create_time:                 NaiveDateTime,
+        pub update_time:                 NaiveDateTime,
     }
 
     impl ChallengeInsert {
@@ -66,12 +101,30 @@ pub mod verifier_challenges {
                 identity_registry_sub_index: identity_registry.subindex.into(),
                 challenge:                   db_challenge.to_vec(),
                 create_time:                 Utc::now().naive_utc(),
+                update_time:                 Utc::now().naive_utc(),
             }
         }
     }
 
-    pub async fn insert_challenge(conn: &mut Conn, value: ChallengeInsert) -> Result<i32> {
-        let res = insert_into(verifier_challenges).values(value).returning(id).get_result(conn)?;
-        Ok(res)
+    pub async fn insert_challenge(conn: &mut Conn, value: ChallengeInsert) -> Result<DbChallenge> {
+        let res = insert_into(verifier_challenges)
+            .values(value)
+            .returning(ChallengeSelect::as_returning())
+            .get_result(conn)?;
+        Ok(res.into())
+    }
+
+    pub async fn update_challenge_add_txn_hash(
+        conn: &mut Conn,
+        challenge_db_id: i32,
+        challenge_txn_hash: TransactionHash,
+    ) -> Result<usize> {
+        update(verifier_challenges)
+            .filter(id.eq(challenge_db_id).and(txn_hash.is_null()))
+            .set((
+                txn_hash.eq(challenge_txn_hash.bytes.to_vec()),
+                update_time.eq(Utc::now().naive_utc()),
+            ))
+            .execute(conn)
     }
 }

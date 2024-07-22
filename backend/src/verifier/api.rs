@@ -123,7 +123,7 @@ impl VerifierApi {
     ) -> Result<Json<GenerateChallengeResponse>, VerifierApiError> {
         let mut conn = db.get()?;
         let account: AccountAddress = request.account.parse()?;
-        let challenge = verifier_challenges::find_challenge(
+        let challenge = verifier_challenges::find_challenge_wo_txn(
             &mut conn,
             &account,
             verifier_account,
@@ -144,14 +144,12 @@ impl VerifierApi {
                         challenge,
                     ),
                 )
-                .await?;
-
-                challenge
+                .await?
             }
         };
 
         Ok(Json(GenerateChallengeResponse {
-            challenge:          encode(challenge),
+            challenge:          encode(challenge.challenge),
             cred_statement:     serde_json::to_value(cred_statement)?,
             id_statement:       serde_json::to_value(id_statement)?,
             identity_providers: identity_providers.iter().map(|ip| ip.0).collect(),
@@ -195,7 +193,7 @@ impl VerifierApi {
         // Convert the proof to Presentation type
         let proof: Presentation = request.proof.clone().try_into()?;
         let mut conn = db.get()?;
-        let challenge = verifier_challenges::find_challenge(
+        let challenge = verifier_challenges::find_challenge_wo_txn(
             &mut conn,
             &account,
             verifier_account,
@@ -212,7 +210,7 @@ impl VerifierApi {
             &mut concordium_client,
             global_context,
             &proof,
-            challenge,
+            challenge.challenge,
         )
         .await?;
         debug!("Revealed Id Attributes: {:?}", verification_response.revealed_attributes);
@@ -258,8 +256,9 @@ impl VerifierApi {
                 *max_energy,
             )
             .await?;
-
         debug!("Register Identity Transaction Hash: {}", txn.to_string());
+        verifier_challenges::update_challenge_add_txn_hash(&mut conn, challenge.id, txn).await?;
+
         Ok(Json(RegisterIdentityResponse {
             txn_hash: txn.to_string(),
         }))
