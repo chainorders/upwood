@@ -48,38 +48,38 @@ pub struct ListenerConfig {
     pub db_pool_max_size: u32,
     /// The Concordium node URI.
     #[clap(env)]
-    pub concordium_node_uri:                 String,
+    pub concordium_node_uri: String,
     /// The reference to the RWA identity registry module.
     #[clap(env)]
-    pub rwa_identity_registry_module_ref:    String,
+    pub rwa_identity_registry_module_ref: String,
     /// The reference to the RWA security NFT module.
     #[clap(env)]
-    pub rwa_security_nft_module_ref:         String,
+    pub rwa_security_nft_module_ref: String,
     /// The reference to the RWA security SFT module.
     #[clap(env)]
-    pub rwa_security_sft_module_ref:         String,
+    pub rwa_security_sft_module_ref: String,
     /// The reference to the RWA market module.
     #[clap(env)]
-    pub rwa_market_module_ref:               String,
+    pub rwa_market_module_ref: String,
     /// The starting block hash.
     #[clap(env, default_value = "")]
-    pub default_block_height:                u64,
+    pub default_block_height: u64,
     #[clap(env, default_value = "100")]
-    pub node_rate_limit:                     u64,
+    pub node_rate_limit: u64,
     #[clap(env, default_value = "1")]
-    pub node_rate_limit_duration_secs:       u64,
+    pub node_rate_limit_duration_secs: u64,
     /// The name of the RWA security NFT contract.
     #[clap(env, default_value = "init_rwa_security_nft")]
-    pub rwa_security_nft_contract_name:      String,
+    pub rwa_security_nft_contract_name: String,
     /// The name of the RWA security SFT contract.
     #[clap(env, default_value = "init_rwa_security_sft")]
-    pub rwa_security_sft_contract_name:      String,
+    pub rwa_security_sft_contract_name: String,
     /// The name of the RWA identity registry contract.
     #[clap(env, default_value = "init_rwa_identity_registry")]
     pub rwa_identity_registry_contract_name: String,
     /// The name of the RWA market contract.
     #[clap(env, default_value = "init_rwa_market")]
-    pub rwa_market_contract_name:            String,
+    pub rwa_market_contract_name: String,
 }
 
 /// Configuration struct for the contracts API.
