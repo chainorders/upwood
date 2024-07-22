@@ -1,3 +1,5 @@
+mod db_setup;
+mod schema;
 mod shared;
 mod sponsor;
 mod txn_listener;
@@ -13,7 +15,7 @@ use dotenv::dotenv;
 enum Command {
     GenerateContractsApiSpecs(txn_processor::OpenApiConfig),
     Listener(txn_processor::ListenerConfig),
-    ListenerDbSetup(txn_listener::MigrationsConfig),
+    ListenerDbSetup(db_setup::MigrationsConfig),
     ContractsApi(txn_processor::ContractsApiConfig),
     GenerateVerifierApiSpecs(verifier::OpenApiConfig),
     VerifierApi(verifier::ApiConfig),
@@ -42,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     match Command::parse() {
         Command::Listener(config) => txn_processor::run_listener(config).await?,
         Command::ListenerDbSetup(config) => {
-            txn_listener::run_migrations(&config).expect("Error running migrations")
+            db_setup::run_migrations(&config).expect("Error running migrations")
         }
         Command::ContractsApi(config) => txn_processor::run_api_server(config).await?,
         Command::GenerateContractsApiSpecs(config) => {

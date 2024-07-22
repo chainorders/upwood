@@ -8,6 +8,4 @@
 
 mod db;
 mod listener;
-mod schema;
-pub use db::migrations::{run_migrations, MigrationsConfig};
 pub use listener::{EventsProcessor, TransactionsListener};
