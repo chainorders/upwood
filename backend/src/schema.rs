@@ -17,7 +17,20 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    verifier_challenges (id) {
+        id -> Int4,
+        create_time -> Timestamp,
+        challenge -> Bytea,
+        account_address -> Bytea,
+        verifier_account_address -> Bytea,
+        identity_registry_index -> Numeric,
+        identity_registry_sub_index -> Numeric,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     listener_config,
     listener_contracts,
+    verifier_challenges,
 );

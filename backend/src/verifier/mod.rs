@@ -3,7 +3,7 @@ mod db;
 mod identity_registry_client;
 mod web3_id_utils;
 use self::{
-    api::VerifierApi, db::VerifierDb, identity_registry_client::IdentityRegistryClient,
+    api::VerifierApi, identity_registry_client::IdentityRegistryClient,
     web3_id_utils::CredStatement,
 };
 use chrono::Datelike;
@@ -19,6 +19,10 @@ use concordium_rust_sdk::{
     v2::BlockIdentifier,
     web3id::{did::Network, Web3IdAttribute},
 };
+use diesel::{
+    r2d2::{ConnectionManager, Pool},
+    PgConnection,
+};
 use futures::{StreamExt, TryStreamExt};
 use log::{debug, info};
 use poem::{
@@ -31,14 +35,19 @@ use std::{collections::BTreeMap, io::Write, path::PathBuf, str::FromStr};
 use tokio::spawn;
 use web3_id_utils::IdStatement;
 
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
 #[derive(Parser, Debug, Clone)]
 pub struct ApiConfig {
     #[clap(env)]
     pub concordium_node_uri: String,
     #[clap(env)]
     pub verifier_web_server_addr: String,
+    /// Postrgres Database Url
     #[clap(env)]
-    pub mongodb_uri: String,
+    pub database_url: String,
+    #[clap(env)]
+    pub db_pool_max_size: u32,
     #[clap(env)]
     pub identity_registry: String,
     #[clap(env)]
@@ -66,9 +75,6 @@ pub async fn run_api_server(config: ApiConfig) -> anyhow::Result<()> {
 }
 
 async fn create_server_routes(config: ApiConfig) -> anyhow::Result<impl poem::Endpoint> {
-    let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri)
-        .await
-        .map_err(|_| anyhow::Error::msg("Failed to connect to MongoDB"))?;
     let agent_wallet = WalletAccount::from_json_file(config.agent_wallet_path)?;
     let agent_address = agent_wallet.address;
     let identity_registry = ContractAddress::from_str(&config.identity_registry)?;
@@ -140,6 +146,8 @@ async fn create_server_routes(config: ApiConfig) -> anyhow::Result<impl poem::En
             attribute_tag: "degreeType".to_string(),
         },
     }];
+    let manager = ConnectionManager::<PgConnection>::new(&config.database_url);
+    let pool: DbPool = Pool::builder().max_size(config.db_pool_max_size).build(manager).unwrap();
 
     let api_service = create_service(agent_wallet).await?;
     let ui = api_service.swagger_ui();
@@ -147,11 +155,7 @@ async fn create_server_routes(config: ApiConfig) -> anyhow::Result<impl poem::En
     let routes = Route::new()
         .nest("/", api_service)
         .nest("/ui", ui)
-        .with(AddData::new(VerifierDb {
-            client: mongo_client,
-            agent_address,
-            identity_registry,
-        }))
+        .with(AddData::new(pool))
         .with(AddData::new(global_context))
         .with(AddData::new(identity_providers))
         .with(AddData::new(issuers))
@@ -161,6 +165,7 @@ async fn create_server_routes(config: ApiConfig) -> anyhow::Result<impl poem::En
         .with(AddData::new(identity_registry))
         .with(AddData::new(Network::from_str(&config.network)?))
         .with(AddData::new(Energy::from_str(&config.register_identity_max_energy)?))
+        .with(AddData::new(agent_address))
         .with(Cors::new());
 
     Ok(routes)

@@ -1,82 +1,77 @@
-use bson::{doc, to_bson};
-use chrono::{DateTime, Utc};
-use concordium_rust_sdk::{smart_contracts::common::AccountAddress, types::ContractAddress};
-use mongodb::Collection;
-use serde::{Deserialize, Serialize};
+pub mod verifier_challenges {
+    use crate::schema::{self, verifier_challenges::dsl::*};
+    use bigdecimal::BigDecimal;
+    use chrono::{NaiveDateTime, Utc};
+    use concordium_rust_sdk::{id::types::AccountAddress, types::ContractAddress};
+    use diesel::{
+        dsl::*,
+        prelude::*,
+        r2d2::{ConnectionManager, PooledConnection},
+    };
 
-/// Represents a challenge stored in the database.
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DbChallenge {
-    pub challenge:  String,
-    pub address:    AccountAddress,
-    pub created_at: DateTime<Utc>,
-}
+    type Conn = PooledConnection<ConnectionManager<PgConnection>>;
+    type Result<T> = std::result::Result<T, diesel::result::Error>;
 
-/// Represents a database connection.
-#[derive(Clone)]
-pub struct VerifierDb {
-    pub client:            mongodb::Client,
-    pub identity_registry: ContractAddress,
-    pub agent_address:     AccountAddress,
-}
-
-impl VerifierDb {
-    /// Returns the MongoDB database associated with the verifier.
-    fn database(&self) -> mongodb::Database {
-        self.client.database(&format!(
-            "verifier-{}-{}-{}",
-            self.identity_registry.index,
-            self.identity_registry.subindex,
-            // truncated due to mongodb collection name length limit
-            &self.agent_address.to_string()[0..6]
-        ))
-    }
-
-    /// Returns the MongoDB collection for storing challenges.
-    fn challenges(&self) -> Collection<DbChallenge> {
-        self.database().collection::<DbChallenge>("challenges")
-    }
-
-    /// Inserts a challenge into the database.
-    ///
-    /// # Arguments
-    ///
-    /// * `challenge` - The challenge to be inserted.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(())` if the insertion is successful, otherwise returns an
-    /// `anyhow::Result` with an error.
-    pub async fn insert_challenge(&self, challenge: DbChallenge) -> anyhow::Result<()> {
-        self.challenges().insert_one(challenge, None).await?;
-        Ok(())
-    }
-
-    /// Finds a challenge in the database by address.
-    ///
-    /// # Arguments
-    ///
-    /// * `address` - The address of the challenge to be found.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(Some(challenge))` if a matching challenge is found,
-    /// `Ok(None)` if no matching challenge is found, otherwise returns an
-    /// `anyhow::Result` with an error.
     pub async fn find_challenge(
-        &self,
-        address: &AccountAddress,
-    ) -> anyhow::Result<Option<DbChallenge>> {
-        let challenge = self
-            .challenges()
-            .find_one(
-                doc! {
-                    "address": to_bson(&address.to_string())?
-                },
-                None,
+        conn: &mut Conn,
+        for_account: &AccountAddress,
+        verifier: &AccountAddress,
+        identity_registry: &ContractAddress,
+    ) -> Result<Option<[u8; 32]>> {
+        let for_accnt_str = for_account.0.to_vec();
+        let verifier_str = verifier.0.to_vec();
+        let db_challenge: Option<Vec<u8>> = verifier_challenges
+            .filter(
+                account_address
+                    .eq(for_accnt_str)
+                    .and(verifier_account_address.eq(verifier_str))
+                    .and(identity_registry_index.eq::<BigDecimal>(identity_registry.index.into()))
+                    .and(
+                        identity_registry_sub_index
+                            .eq::<BigDecimal>(identity_registry.subindex.into()),
+                    ),
             )
-            .await?;
+            .select(challenge)
+            .get_result::<Vec<u8>>(conn)
+            .optional()?;
+        let ret: Option<[u8; 32]> = db_challenge
+            .map(|c| c.try_into().expect("could not de serialize challenge stored in db"));
 
-        Ok(challenge)
+        Ok(ret)
+    }
+
+    #[derive(Insertable)]
+    #[diesel(table_name = schema::verifier_challenges)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    pub struct ChallengeInsert {
+        pub account_address:             Vec<u8>,
+        pub verifier_account_address:    Vec<u8>,
+        pub identity_registry_index:     BigDecimal,
+        pub identity_registry_sub_index: BigDecimal,
+        pub challenge:                   Vec<u8>,
+        pub create_time:                 NaiveDateTime,
+    }
+
+    impl ChallengeInsert {
+        pub fn new(
+            accnt: &AccountAddress,
+            verifier_accnt: &AccountAddress,
+            identity_registry: &ContractAddress,
+            db_challenge: [u8; 32],
+        ) -> Self {
+            ChallengeInsert {
+                account_address:             accnt.0.into(),
+                verifier_account_address:    verifier_accnt.0.into(),
+                identity_registry_index:     identity_registry.index.into(),
+                identity_registry_sub_index: identity_registry.subindex.into(),
+                challenge:                   db_challenge.to_vec(),
+                create_time:                 Utc::now().naive_utc(),
+            }
+        }
+    }
+
+    pub async fn insert_challenge(conn: &mut Conn, value: ChallengeInsert) -> Result<i32> {
+        let res = insert_into(verifier_challenges).values(value).returning(id).get_result(conn)?;
+        Ok(res)
     }
 }

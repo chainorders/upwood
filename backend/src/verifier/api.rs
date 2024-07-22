@@ -1,22 +1,22 @@
 use super::{
-    db::{DbChallenge, VerifierDb},
     identity_registry_client::{Error as IdentityRegistryError, IdentityRegistryClient},
     web3_id_utils::{
         verify_presentation, CredStatement, GlobalContext, IdStatement, Presentation,
         VerifyPresentationError,
     },
+    DbPool,
 };
-use crate::shared::api::ApiContractAddress;
+use crate::{shared::api::ApiContractAddress, verifier::db::verifier_challenges};
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     common::to_bytes,
-    constants::SHA256,
     id::types::IpIdentity,
     smart_contracts::common::{AccountAddress, AccountAddressParseError},
     types::{smart_contracts::InstanceInfo, Address, ContractAddress, Energy, WalletAccount},
     v2::{BlockIdentifier, QueryError},
     web3id::did::Network,
 };
+use hex::encode;
 use log::debug;
 use poem::web::Data;
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
@@ -31,6 +31,18 @@ pub enum VerifierApiError {
     InternalServer,
     #[oai(status = 404)]
     NotFound,
+}
+impl From<concordium_rust_sdk::base::contracts_common::ParseError> for VerifierApiError {
+    fn from(_: concordium_rust_sdk::base::contracts_common::ParseError) -> Self { Self::BadRequest }
+}
+impl From<diesel::result::Error> for VerifierApiError {
+    fn from(_: diesel::result::Error) -> Self { Self::InternalServer }
+}
+impl From<r2d2::Error> for VerifierApiError {
+    fn from(_: r2d2::Error) -> Self { Self::InternalServer }
+}
+impl From<serde_json::Error> for VerifierApiError {
+    fn from(_: serde_json::Error) -> Self { Self::InternalServer }
 }
 impl From<mongodb::error::Error> for VerifierApiError {
     fn from(_: mongodb::error::Error) -> Self { Self::InternalServer }
@@ -100,36 +112,53 @@ impl VerifierApi {
     #[oai(path = "/verifier/generateChallenge", method = "post")]
     pub async fn generate_challenge(
         &self,
-        Data(db): Data<&VerifierDb>,
+        Data(db): Data<&DbPool>,
+        Data(verifier_account): Data<&AccountAddress>,
         Data(identity_providers): Data<&Vec<IpIdentity>>,
         Data(issuers): Data<&Vec<ContractAddress>>,
         Data(id_statement): Data<&IdStatement>,
         Data(cred_statement): Data<&CredStatement>,
         Data(identity_registry): Data<&ContractAddress>,
-        request: Json<GenerateChallengeRequest>,
+        Json(request): Json<GenerateChallengeRequest>,
     ) -> Result<Json<GenerateChallengeResponse>, VerifierApiError> {
-        // Generate challenge for the specified account
+        let mut conn = db.get()?;
         let account: AccountAddress = request.account.parse()?;
-        debug!("Generating challenge for account: {}", account.to_string());
-        let challenge =
-            get_or_create_db_challenge(db, id_statement, identity_registry, account).await?;
+        let challenge = verifier_challenges::find_challenge(
+            &mut conn,
+            &account,
+            verifier_account,
+            identity_registry,
+        )
+        .await?;
+        let challenge = match challenge {
+            Some(challenge) => challenge,
+            None => {
+                let challenge =
+                    create_new_challenge(account, Utc::now(), id_statement, identity_registry);
+                verifier_challenges::insert_challenge(
+                    &mut conn,
+                    verifier_challenges::ChallengeInsert::new(
+                        &account,
+                        verifier_account,
+                        identity_registry,
+                        challenge,
+                    ),
+                )
+                .await?;
 
-        // Convert id_statement and cred_statement to JSON values
-        let id_statement =
-            serde_json::to_value(id_statement).map_err(|_| VerifierApiError::InternalServer)?;
-        let cred_statement =
-            serde_json::to_value(cred_statement).map_err(|_| VerifierApiError::InternalServer)?;
+                challenge
+            }
+        };
 
-        // Return the challenge along with other response data
         Ok(Json(GenerateChallengeResponse {
-            challenge: challenge.challenge,
-            id_statement,
-            cred_statement,
-            issuers: issuers
+            challenge:          encode(challenge),
+            cred_statement:     serde_json::to_value(cred_statement)?,
+            id_statement:       serde_json::to_value(id_statement)?,
+            identity_providers: identity_providers.iter().map(|ip| ip.0).collect(),
+            issuers:            issuers
                 .iter()
                 .map(|c| ApiContractAddress::from_contract_address(*c))
                 .collect(),
-            identity_providers: identity_providers.iter().map(|i| i.0).collect(),
         }))
     }
 
@@ -146,7 +175,8 @@ impl VerifierApi {
     #[oai(path = "/verifier/registerIdentity", method = "post")]
     pub async fn register_identity(
         &self,
-        Data(db): Data<&VerifierDb>,
+        Data(db): Data<&DbPool>,
+        Data(verifier_account): Data<&AccountAddress>,
         Data(global_context): Data<&GlobalContext>,
         Data(concordium_client): Data<&concordium_rust_sdk::v2::Client>,
         Data(identity_registry): Data<&ContractAddress>,
@@ -164,16 +194,15 @@ impl VerifierApi {
 
         // Convert the proof to Presentation type
         let proof: Presentation = request.proof.clone().try_into()?;
-        let challenge = db
-            .find_challenge(&account)
-            .await?
-            .map(|db_challenge| {
-                let mut challenge = [0u8; SHA256];
-                hex::decode_to_slice(db_challenge.challenge, &mut challenge)
-                    .map_err(|_| VerifierApiError::InternalServer)?;
-                Result::<_, VerifierApiError>::Ok(challenge)
-            })
-            .ok_or(VerifierApiError::NotFound)??;
+        let mut conn = db.get()?;
+        let challenge = verifier_challenges::find_challenge(
+            &mut conn,
+            &account,
+            verifier_account,
+            identity_registry,
+        )
+        .await?
+        .ok_or(VerifierApiError::NotFound)?;
         debug!("Challenge: {:?}", challenge);
 
         // Verify the presentation and get the verification response
@@ -235,34 +264,6 @@ impl VerifierApi {
             txn_hash: txn.to_string(),
         }))
     }
-}
-
-async fn get_or_create_db_challenge(
-    db: &VerifierDb,
-    id_statement: &IdStatement,
-    identity_registry: &ContractAddress,
-    account: AccountAddress,
-) -> Result<DbChallenge, VerifierApiError> {
-    // Get the challenge from the database or create a new one
-    let challenge = db.find_challenge(&account).await?;
-    debug!("Challenge: {:?}", challenge);
-    let challenge = match challenge {
-        Some(challenge) => challenge,
-        None => {
-            let now = Utc::now();
-            let challenge =
-                hex::encode(create_new_challenge(account, now, id_statement, identity_registry));
-            let challenge = DbChallenge {
-                challenge,
-                address: account,
-                created_at: now,
-            };
-            db.insert_challenge(challenge.clone()).await?;
-            challenge
-        }
-    };
-
-    Ok(challenge)
 }
 
 fn create_new_challenge(
