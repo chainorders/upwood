@@ -1,5 +1,5 @@
 pub mod verifier_challenges {
-    use crate::schema::{self, verifier_challenges::dsl::*};
+    use crate::{schema::{self, verifier_challenges::dsl::*}, shared::db::{DbConn, DbResult}};
     use bigdecimal::BigDecimal;
     use chrono::{NaiveDateTime, Utc};
     use concordium_rust_sdk::{
@@ -8,11 +8,7 @@ pub mod verifier_challenges {
     use diesel::{
         dsl::*,
         prelude::*,
-        r2d2::{ConnectionManager, PooledConnection},
     };
-
-    type Conn = PooledConnection<ConnectionManager<PgConnection>>;
-    type Result<T> = std::result::Result<T, diesel::result::Error>;
 
     #[derive(Selectable, Queryable, Identifiable)]
     #[diesel(primary_key(id))]
@@ -46,11 +42,11 @@ pub mod verifier_challenges {
     /// Finds a challenge without null txn hash. Denoting an unconsumed
     /// challenge
     pub async fn find_challenge_wo_txn(
-        conn: &mut Conn,
+        conn: &mut DbConn,
         for_account: &AccountAddress,
         verifier: &AccountAddress,
         identity_registry: &ContractAddress,
-    ) -> Result<Option<DbChallenge>> {
+    ) -> DbResult<Option<DbChallenge>> {
         let for_accnt_str = for_account.0.to_vec();
         let verifier_str = verifier.0.to_vec();
         let db_challenge = verifier_challenges
@@ -106,7 +102,7 @@ pub mod verifier_challenges {
         }
     }
 
-    pub async fn insert_challenge(conn: &mut Conn, value: ChallengeInsert) -> Result<DbChallenge> {
+    pub async fn insert_challenge(conn: &mut DbConn, value: ChallengeInsert) -> DbResult<DbChallenge> {
         let res = insert_into(verifier_challenges)
             .values(value)
             .returning(ChallengeSelect::as_returning())
@@ -115,10 +111,10 @@ pub mod verifier_challenges {
     }
 
     pub async fn update_challenge_add_txn_hash(
-        conn: &mut Conn,
+        conn: &mut DbConn,
         challenge_db_id: i32,
         challenge_txn_hash: TransactionHash,
-    ) -> Result<usize> {
+    ) -> DbResult<usize> {
         update(verifier_challenges)
             .filter(id.eq(challenge_db_id).and(txn_hash.is_null()))
             .set((

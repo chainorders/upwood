@@ -5,10 +5,22 @@ use concordium_rust_sdk::{
     smart_contracts::common::AccountAddress,
     types::{Address, ContractAddress},
 };
+use diesel::PgConnection;
 use mongodb::options::{FindOneOptions, UpdateModifications};
 use num_bigint::BigUint;
 use num_traits::identities::Zero;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnection>>;
+pub type DbConn = r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>>;
+pub type DbResult<T> = Result<T, diesel::result::Error>;
+
+pub fn address_to_sql_string(addr: &Address) -> String {
+    match addr {
+        Address::Account(account) => format!("acc:{}", account.to_string()),
+        Address::Contract(contract) => format!("con:{}/{}", contract.index, contract.subindex),
+    }
+}
 
 /// A wrapper around `ContractAddress` that can be used in the database.
 #[derive(Serialize, Deserialize, Clone, Debug)]

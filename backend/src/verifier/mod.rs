@@ -2,6 +2,8 @@ mod api;
 mod db;
 mod identity_registry_client;
 mod web3_id_utils;
+use crate::shared::db::DbPool;
+
 use self::{
     api::VerifierApi, identity_registry_client::IdentityRegistryClient,
     web3_id_utils::CredStatement,
@@ -34,8 +36,6 @@ use poem_openapi::OpenApiService;
 use std::{collections::BTreeMap, io::Write, path::PathBuf, str::FromStr};
 use tokio::spawn;
 use web3_id_utils::IdStatement;
-
-pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Parser, Debug, Clone)]
 pub struct ApiConfig {

@@ -1,15 +1,10 @@
 pub mod listener_config {
+    use crate::shared::db::DbConn;
     use crate::schema::{self, listener_config::dsl::*};
     use bigdecimal::BigDecimal;
     use concordium_rust_sdk::{types::AbsoluteBlockHeight, v2::FinalizedBlockInfo};
-    use diesel::{
-        dsl::*,
-        prelude::*,
-        r2d2::{ConnectionManager, PooledConnection},
-    };
+    use diesel::{dsl::*, prelude::*};
     use num_traits::ToPrimitive;
-
-    type Conn = PooledConnection<ConnectionManager<PgConnection>>;
 
     #[derive(Selectable, Queryable, Identifiable)]
     #[diesel(table_name = schema::listener_config)]
@@ -30,7 +25,7 @@ pub mod listener_config {
 
     /// Retrieves the last processed block from the database.
     pub async fn get_last_processed_block(
-        conn: &mut Conn,
+        conn: &mut DbConn,
     ) -> anyhow::Result<Option<AbsoluteBlockHeight>> {
         let config = listener_config
             .order(last_block_height.desc())
@@ -47,7 +42,7 @@ pub mod listener_config {
 
     /// Updates the last processed block in the database.
     pub async fn update_last_processed_block(
-        conn: &mut Conn,
+        conn: &mut DbConn,
         block: &FinalizedBlockInfo,
     ) -> anyhow::Result<i32> {
         let created_id: i32 = insert_into(listener_config)
