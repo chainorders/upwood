@@ -10,9 +10,10 @@ use crate::shared::{
     db::{DbAccountAddress, DbAddress, ICollection},
 };
 use bson::{doc, to_bson, Document};
-use concordium_rust_sdk::types::ContractAddress;
+use concordium_rust_sdk::{base::smart_contracts::OwnedContractName, types::ContractAddress};
 use futures::TryStreamExt;
 use log::debug;
+use poem::web::Data;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
 #[derive(Object, Debug)]
@@ -79,17 +80,17 @@ impl From<DbDepositedToken> for ApiDepositedToken {
 }
 
 /// The API for the RWA Security SFT module.
-pub struct RwaSecuritySftApi {
-    pub client:        mongodb::Client,
-    pub contract_name: String,
-}
+pub struct RwaSecuritySftApi(pub OwnedContractName);
 
 #[OpenApi]
 impl RwaSecuritySftApi {
-    pub fn db(&self, contract: &ContractAddress) -> RwaSecuritySftDb {
-        let db = self
-            .client
-            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
+    pub fn db(
+        client: &mongodb::Client,
+        contract_name: &OwnedContractName,
+        contract: &ContractAddress,
+    ) -> RwaSecuritySftDb {
+        let db =
+            client.database(&format!("{}-{}-{}", contract_name, contract.index, contract.subindex));
 
         RwaSecuritySftDb::init(db)
     }
@@ -106,6 +107,7 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/tokens/:page", method = "get")]
     pub async fn tokens(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(page): Path<u64>,
@@ -115,7 +117,7 @@ impl RwaSecuritySftApi {
             subindex,
         };
         let query = doc! {};
-        let res = self.to_paged_token_response(query, contract, page).await?;
+        let res = Self::to_paged_token_response(client, &self.0, query, contract, page).await?;
         debug!("tokens contract: {:?}, res: {:?}", contract, res.data);
         Ok(Json(res))
     }
@@ -133,6 +135,7 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/holders/:address/:page", method = "get")]
     pub async fn holders(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(address): Path<String>,
@@ -149,7 +152,7 @@ impl RwaSecuritySftApi {
                 "$ne": "0",
             }
         };
-        let coll = self.db(contract).holders;
+        let coll = Self::db(client, &self.0, contract).holders;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
         let data: Vec<ApiSftHolder> = data.into_iter().map(|holder| holder.into()).collect();
@@ -177,6 +180,7 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/holdersOf/:token_id/:page", method = "get")]
     pub async fn holders_of(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(token_id): Path<String>,
@@ -189,7 +193,7 @@ impl RwaSecuritySftApi {
         let query = doc! {
             "token_id": token_id,
         };
-        let coll = self.db(contract).holders;
+        let coll = Self::db(client, &self.0, contract).holders;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<TokenHolder> = cursor.try_collect().await?;
         let data: Vec<ApiSftHolder> = data.into_iter().map(|holder| holder.into()).collect();
@@ -217,6 +221,7 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/deposited/:owner/:page", method = "get")]
     pub async fn deposited(
         &self,
+        Data(client): Data<&mongodb::Client>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
@@ -232,17 +237,19 @@ impl RwaSecuritySftApi {
                 "$ne": "0",
             }
         };
-        let res = self.to_paged_deposited_token_response(query, contract, page).await?;
+        let res =
+            Self::to_paged_deposited_token_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
     async fn to_paged_token_response(
-        &self,
+        client: &mongodb::Client,
+        contract_name: &OwnedContractName,
         query: Document,
         contract: &ContractAddress,
         page: u64,
     ) -> anyhow::Result<PagedResponse<ApiSftToken>> {
-        let coll = &self.db(contract).tokens;
+        let coll = Self::db(client, contract_name, contract).tokens;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbToken> = cursor.try_collect().await?;
         let data: Vec<ApiSftToken> = data.into_iter().map(|token| token.into()).collect();
@@ -257,12 +264,13 @@ impl RwaSecuritySftApi {
     }
 
     async fn to_paged_deposited_token_response(
-        &self,
+        client: &mongodb::Client,
+        contract_name: &OwnedContractName,
         query: Document,
         contract: &ContractAddress,
         page: u64,
     ) -> anyhow::Result<PagedResponse<ApiDepositedToken>> {
-        let coll = &self.db(contract).deposited_tokens;
+        let coll = Self::db(client, contract_name, contract).deposited_tokens;
         let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
         let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
         let data: Vec<ApiDepositedToken> = data.into_iter().map(|token| token.into()).collect();

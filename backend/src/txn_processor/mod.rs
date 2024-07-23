@@ -22,7 +22,7 @@ use futures::TryFutureExt;
 use log::{debug, info};
 use poem::{
     listener::TcpListener,
-    middleware::{Cors, CorsEndpoint},
+    middleware::{AddData, Cors},
     EndpointExt, Route, Server,
 };
 use poem_openapi::OpenApiService;
@@ -94,19 +94,29 @@ pub struct ContractsApiConfig {
 }
 
 pub async fn run_listener(config: ListenerConfig) -> anyhow::Result<()> {
-    debug!("Starting contracts listener with config: {:?}", config);
+    info!("Listener: Starting");
+    debug!("{:#?}", config);
 
     let listener_handle = spawn(create_listener(config).and_then(TransactionsListener::listen));
-    info!("Listening for transactions...");
-    listener_handle.await?
+    info!("Listener: Listening");
+
+    let ret = listener_handle.await?;
+    info!("Listener: Shutting down");
+
+    ret
 }
 
-pub async fn run_api(config: ContractsApiConfig) -> anyhow::Result<()> {
+pub async fn run_api_server(config: ContractsApiConfig) -> anyhow::Result<()> {
+    info!("Contract Api: Starting Server");
+    debug!("{:#?}", config);
     let routes = create_server_routes(config.to_owned()).await?;
     let web_server_addr = config.web_server_addr.clone();
     let server_handle = spawn(Server::new(TcpListener::bind(web_server_addr)).run(routes));
-    info!("Listening for web requests at {}...", config.web_server_addr);
-    server_handle.await?.map_err(|e| e.into())
+    info!("Contract Api: Listening for web requests at {}...", config.web_server_addr);
+    let ret = server_handle.await?.map_err(|e| e.into());
+    info!("Contracts API: Shutting down");
+
+    ret
 }
 
 /// Creates the listener for processing transactions.
@@ -154,10 +164,20 @@ async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsL
 }
 
 /// Creates the server routes for the contracts API.
-async fn create_server_routes(config: ContractsApiConfig) -> anyhow::Result<CorsEndpoint<Route>> {
-    let api_service = create_service(config).await?;
+async fn create_server_routes(config: ContractsApiConfig) -> anyhow::Result<impl poem::Endpoint> {
+    let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
+
+    let api_service = create_service(
+        OwnedContractName::new_unchecked(config.rwa_market_contract_name),
+        OwnedContractName::new_unchecked(config.rwa_security_nft_contract_name),
+        OwnedContractName::new_unchecked(config.rwa_security_sft_contract_name),
+    );
     let ui = api_service.swagger_ui();
-    let routes = Route::new().nest("/", api_service).nest("/ui", ui).with(Cors::new());
+    let routes = Route::new()
+        .nest("/", api_service)
+        .nest("/ui", ui)
+        .with(AddData::new(mongo_client))
+        .with(Cors::new());
 
     Ok(routes)
 }
@@ -169,9 +189,6 @@ pub struct OpenApiConfig {
     /// The output file path for the OpenAPI specification.
     #[clap(env, default_value = "processor-openapi-spec.json")]
     pub output: String,
-    /// The URI for the MongoDB connection.
-    #[clap(env, default_value = "mongodb://root:example@localhost:27017")]
-    pub mongodb_uri: String,
     /// The contract name for the RWA identity registry.
     #[clap(env, default_value = "init_rwa_identity_registry")]
     pub rwa_identity_registry_contract_name: String,
@@ -186,22 +203,13 @@ pub struct OpenApiConfig {
     pub rwa_market_contract_name: String,
 }
 
-/// Conversion from OpenApiConfig to ContractsApiConfig.
-impl From<OpenApiConfig> for ContractsApiConfig {
-    fn from(config: OpenApiConfig) -> Self {
-        Self {
-            mongodb_uri:                    config.mongodb_uri,
-            rwa_market_contract_name:       config.rwa_market_contract_name,
-            rwa_security_nft_contract_name: config.rwa_security_nft_contract_name,
-            rwa_security_sft_contract_name: config.rwa_security_sft_contract_name,
-            web_server_addr:                "anything.com".to_owned(),
-        }
-    }
-}
-
 /// Generates the API client based on the OpenAPI configuration.
 pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
-    let api_service = create_service(config.to_owned().into()).await?;
+    let api_service = create_service(
+        OwnedContractName::new_unchecked(config.rwa_market_contract_name),
+        OwnedContractName::new_unchecked(config.rwa_security_nft_contract_name),
+        OwnedContractName::new_unchecked(config.rwa_security_sft_contract_name),
+    );
     let spec_json = api_service.spec();
     let mut file = std::fs::File::create(config.output)?;
     file.write_all(spec_json.as_bytes())?;
@@ -209,28 +217,18 @@ pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
 }
 
 /// Creates the service for the contracts API.
-async fn create_service(
-    config: ContractsApiConfig,
-) -> Result<OpenApiService<(RwaMarketApi, RwaSecurityNftApi, RwaSecuritySftApi), ()>, anyhow::Error>
-{
-    let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
-    let api_service = OpenApiService::new(
+fn create_service(
+    rwa_market_contract_name: OwnedContractName,
+    rwa_security_nft_contract_name: OwnedContractName,
+    rwa_security_sft_contract_name: OwnedContractName,
+) -> OpenApiService<(RwaMarketApi, RwaSecurityNftApi, RwaSecuritySftApi), ()> {
+    OpenApiService::new(
         (
-            RwaMarketApi {
-                client:        mongo_client.to_owned(),
-                contract_name: config.rwa_market_contract_name,
-            },
-            RwaSecurityNftApi {
-                client:        mongo_client.to_owned(),
-                contract_name: config.rwa_security_nft_contract_name,
-            },
-            RwaSecuritySftApi {
-                client:        mongo_client.to_owned(),
-                contract_name: config.rwa_security_sft_contract_name,
-            },
+            RwaMarketApi(rwa_market_contract_name),
+            RwaSecurityNftApi(rwa_security_nft_contract_name),
+            RwaSecuritySftApi(rwa_security_sft_contract_name),
         ),
         "RWA Contracts API",
         "1.0.0",
-    );
-    Ok(api_service)
+    )
 }

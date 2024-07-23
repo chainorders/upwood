@@ -11,15 +11,20 @@
 
 use self::api::Api;
 use clap::Parser;
-use concordium_rust_sdk::{types::WalletAccount, v2};
+use concordium_rust_sdk::{
+    base::contracts_common::NonZeroThresholdU8,
+    id::types::{AccountAddress, AccountKeys, ACCOUNT_ADDRESS_SIZE},
+    types::{ContractAddress, Energy, WalletAccount},
+    v2,
+};
 use log::{debug, info};
 use poem::{
     listener::TcpListener,
-    middleware::{Cors, CorsEndpoint},
+    middleware::{AddData, Cors},
     EndpointExt, Route, Server,
 };
 use poem_openapi::OpenApiService;
-use std::{io::Write, path::PathBuf};
+use std::{collections::BTreeMap, io::Write, path::PathBuf, str::FromStr};
 use tokio::spawn;
 
 pub mod api;
@@ -60,78 +65,55 @@ pub struct ApiConfig {
 /// Returns `Ok(())` if the server runs successfully, otherwise returns an
 /// `anyhow::Result` with an error.
 pub async fn run_api_server(config: ApiConfig) -> anyhow::Result<()> {
-    debug!("Starting Sponsor API Server with config: {:?}", config);
+    info!("Sponsor API: Starting Server");
+    debug!("{:#?}", config);
 
     let routes = create_server_routes(config.to_owned()).await?;
     let web_server_addr = config.sponsor_web_server_addr.clone();
     let server_handle =
         spawn(async move { Server::new(TcpListener::bind(web_server_addr)).run(routes).await });
-    info!("Listening for web requests at {}", config.sponsor_web_server_addr);
+    info!("Sponsor API: Listening for web requests at {}", config.sponsor_web_server_addr);
     server_handle.await??;
-    info!("Shutting Down...");
+    info!("Sponsor API: Shutting Down");
     Ok(())
 }
 
-async fn create_server_routes(config: ApiConfig) -> anyhow::Result<CorsEndpoint<Route>> {
-    let api_service = create_service(config).await?;
-    let ui = api_service.swagger_ui();
-    let routes = Route::new().nest("/", api_service).nest("/ui", ui).with(Cors::new());
-
-    Ok(routes)
-}
-
-async fn create_service(config: ApiConfig) -> Result<OpenApiService<Api, ()>, anyhow::Error> {
+async fn create_server_routes(config: ApiConfig) -> anyhow::Result<impl poem::Endpoint> {
+    let wallet = WalletAccount::from_json_file(config.sponsor_wallet_path)?;
     let endpoint: v2::Endpoint = config.concordium_node_uri.parse()?;
     let concordium_client = v2::Client::new(endpoint)
         .await
         .map_err(|_| anyhow::Error::msg("Failed to connect to Concordium Node"))?;
-    let api_service = OpenApiService::new(
+
+    let api_service = create_service(wallet);
+    let ui = api_service.swagger_ui();
+    let routes = Route::new()
+        .nest("/", api_service)
+        .nest("/ui", ui)
+        .with(Cors::new())
+        .with(AddData::new(Energy::from_str(&config.permit_max_energy)?))
+        .with(AddData::new(ContractAddress::from_str(&config.sponsor_contract)?))
+        .with(AddData::new(concordium_client));
+
+    Ok(routes)
+}
+
+fn create_service(wallet: WalletAccount) -> OpenApiService<Api, ()> {
+    OpenApiService::new(
         Api {
-            contract: config.sponsor_contract.parse()?,
-            wallet: WalletAccount::from_json_file(config.sponsor_wallet_path)?,
-            concordium_client,
-            max_energy: config.permit_max_energy.parse()?,
+            wallet,
         },
         "RWA Contracts API",
         "1.0.0",
-    );
-    Ok(api_service)
+    )
 }
 
 #[derive(Parser, Debug, Clone)]
 /// Configuration struct for OpenAPI.
 pub struct OpenApiConfig {
-    /// Output file path for the generated OpenAPI specs. Defaults to
-    /// "sponsor-api-specs.json".
+    /// Output file path for the generated OpenAPI specs
     #[clap(env, default_value = "sponsor-api-specs.json")]
-    pub output:                  String,
-    /// URI of the Concordium node. Defaults to "http://node.testnet.concordium.com:20000".
-    #[clap(env, default_value = "http://node.testnet.concordium.com:20000")]
-    pub concordium_node_uri:     String,
-    /// Address of the sponsor web server. Defaults to "0.0.0.0:3001".
-    #[clap(env, default_value = "0.0.0.0:3001")]
-    pub sponsor_web_server_addr: String,
-    /// Identity Registry Contract String.
-    #[clap(env, default_value = "<7762,0>")]
-    pub sponsor_contract:        String,
-    /// Identity Registry Agent Wallet Path.
-    #[clap(env, default_value = "agent_wallet.export")]
-    pub sponsor_wallet_path:     PathBuf,
-    /// Maximum energy to use for registering identity. Defaults to "30000".
-    #[clap(env, default_value = "30000")]
-    pub permit_max_energy:       String,
-}
-
-impl From<OpenApiConfig> for ApiConfig {
-    fn from(config: OpenApiConfig) -> Self {
-        Self {
-            concordium_node_uri:     config.concordium_node_uri,
-            sponsor_web_server_addr: config.sponsor_web_server_addr,
-            sponsor_contract:        config.sponsor_contract,
-            permit_max_energy:       config.permit_max_energy,
-            sponsor_wallet_path:     config.sponsor_wallet_path,
-        }
-    }
+    pub output: String,
 }
 
 /// Generates an API client based on the OpenAPI specification.
@@ -140,7 +122,15 @@ impl From<OpenApiConfig> for ApiConfig {
 /// `OpenApiConfig`. The client is generated using the `create_service`
 /// function.
 pub async fn generate_api_client(config: OpenApiConfig) -> anyhow::Result<()> {
-    let api_service = create_service(config.to_owned().into()).await?;
+    let dummy_wallet = WalletAccount {
+        address: AccountAddress([0; ACCOUNT_ADDRESS_SIZE]),
+        keys:    AccountKeys {
+            threshold: NonZeroThresholdU8::ONE,
+            keys:      BTreeMap::new(),
+        },
+    };
+
+    let api_service = create_service(dummy_wallet);
     let spec_json = api_service.spec();
     let mut file = std::fs::File::create(config.output)?;
     file.write_all(spec_json.as_bytes())?;
