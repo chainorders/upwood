@@ -1,4 +1,4 @@
-use super::db::*;
+use super::db;
 use anyhow::Ok;
 use async_trait::async_trait;
 use concordium_rust_sdk::{
@@ -132,9 +132,8 @@ impl TransactionsListener {
 
     async fn get_block_height(&self) -> Result<AbsoluteBlockHeight, anyhow::Error> {
         let mut conn = self.database.get()?;
-        let block_height = listener_config::get_last_processed_block(&mut conn)
-            .await?
-            .unwrap_or(self.default_block_height);
+        let block_height =
+            db::get_last_processed_block(&mut conn)?.unwrap_or(self.default_block_height);
 
         Ok(block_height)
     }
@@ -167,9 +166,7 @@ impl TransactionsListener {
         info!("Processed block {}, events: {}", block.height.height, b_events_count);
         let mut conn = self.database.get()?;
         if b_events_count > 0 {
-            listener_config::update_last_processed_block(&mut conn, block)
-                .await
-                .expect("error updating block in db");
+            db::update_last_processed_block(&mut conn, block)?;
         }
         Ok(b_events_count)
     }
@@ -271,13 +268,12 @@ impl TransactionsListener {
                 let processor = self.find_processor(&module_ref, &contract_name).await?;
                 match processor {
                     Some(processor) => {
-                        listener_contracts::add_contract(
+                        db::add_contract(
                             &mut conn,
                             &contract_address,
                             &module_ref,
                             &contract_name,
-                        )
-                        .await?;
+                        )?;
                         info!(
                             "[{}/{}], hash:{hash} contract: {contract_address} added",
                             block.height.height, index.index,
@@ -311,8 +307,7 @@ impl TransactionsListener {
             ProcessedBlockItem::Update(updates) => {
                 let mut event_counts = 0;
                 for (contract_address, events) in updates.into_iter() {
-                    let contract =
-                        listener_contracts::find_contract(&mut conn, &contract_address).await?;
+                    let contract = db::find_contract(&mut conn, &contract_address)?;
                     let processor = match contract {
                         Some((module_ref, contract_name)) => {
                             self.find_processor(&module_ref, &contract_name).await?
