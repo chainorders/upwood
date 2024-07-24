@@ -1,14 +1,14 @@
 pub mod verifier_challenges {
-    use crate::{schema::{self, verifier_challenges::dsl::*}, shared::db::{DbConn, DbResult}};
+    use crate::{
+        schema::{self, verifier_challenges::dsl::*},
+        shared::db::{DbConn, DbResult},
+    };
     use bigdecimal::BigDecimal;
     use chrono::{NaiveDateTime, Utc};
     use concordium_rust_sdk::{
         base::hashes::TransactionHash, id::types::AccountAddress, types::ContractAddress,
     };
-    use diesel::{
-        dsl::*,
-        prelude::*,
-    };
+    use diesel::{dsl::*, prelude::*};
 
     #[derive(Selectable, Queryable, Identifiable)]
     #[diesel(primary_key(id))]
@@ -102,7 +102,10 @@ pub mod verifier_challenges {
         }
     }
 
-    pub async fn insert_challenge(conn: &mut DbConn, value: ChallengeInsert) -> DbResult<DbChallenge> {
+    pub async fn insert_challenge(
+        conn: &mut DbConn,
+        value: ChallengeInsert,
+    ) -> DbResult<DbChallenge> {
         let res = insert_into(verifier_challenges)
             .values(value)
             .returning(ChallengeSelect::as_returning())

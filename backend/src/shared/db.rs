@@ -17,7 +17,7 @@ pub type DbResult<T> = Result<T, diesel::result::Error>;
 
 pub fn address_to_sql_string(addr: &Address) -> String {
     match addr {
-        Address::Account(account) => format!("acc:{}", account.to_string()),
+        Address::Account(account) => format!("acc:{}", account),
         Address::Contract(contract) => format!("con:{}/{}", contract.index, contract.subindex),
     }
 }

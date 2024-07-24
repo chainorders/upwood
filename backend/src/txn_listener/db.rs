@@ -1,6 +1,8 @@
 pub mod listener_config {
-    use crate::shared::db::DbConn;
-    use crate::schema::{self, listener_config::dsl::*};
+    use crate::{
+        schema::{self, listener_config::dsl::*},
+        shared::db::DbConn,
+    };
     use bigdecimal::BigDecimal;
     use concordium_rust_sdk::{types::AbsoluteBlockHeight, v2::FinalizedBlockInfo};
     use diesel::{dsl::*, prelude::*};
