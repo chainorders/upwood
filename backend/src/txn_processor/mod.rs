@@ -139,7 +139,7 @@ async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsL
         Arc::new(RwLock::new(RwaIdentityRegistryProcessor {
             module_ref:    config.rwa_identity_registry_module_ref.parse()?,
             contract_name: OwnedContractName::new(config.rwa_identity_registry_contract_name)?,
-            client:        client.to_owned(),
+            pool:          pool.clone(),
         })),
         Arc::new(RwLock::new(RwaSecurityNftProcessor {
             module_ref:    config.rwa_security_nft_module_ref.parse()?,

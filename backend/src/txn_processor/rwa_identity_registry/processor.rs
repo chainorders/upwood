@@ -1,15 +1,13 @@
-use super::db::RwaIdentityRegistryDb;
-use crate::{
-    shared::db::{DbAddress, DbContractAddress, ICollection},
-    txn_listener::EventsProcessor,
-};
+use super::db::{self};
+use crate::{shared::db::DbPool, txn_listener::EventsProcessor};
 use async_trait::async_trait;
-use bson::to_document;
+use chrono::Utc;
 use concordium_rust_sdk::types::{
     smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
     ContractAddress,
 };
 use concordium_rwa_identity_registry::event::Event;
+use log::{debug, info};
 
 /// `RwaIdentityRegistryProcessor` is a struct that processes events for the
 /// rwa-identity-registry contract. It maintains a connection to a MongoDB
@@ -18,17 +16,7 @@ pub struct RwaIdentityRegistryProcessor {
     /// Module reference of the contract.
     pub module_ref:    ModuleReference,
     pub contract_name: OwnedContractName,
-    pub client:        mongodb::Client,
-}
-
-impl RwaIdentityRegistryProcessor {
-    pub fn database(&self, contract: &ContractAddress) -> RwaIdentityRegistryDb {
-        let db = self
-            .client
-            .database(&format!("{}-{}-{}", self.contract_name, contract.index, contract.subindex));
-
-        RwaIdentityRegistryDb::init(db)
-    }
+    pub pool:          DbPool,
 }
 
 #[async_trait]
@@ -65,34 +53,45 @@ impl EventsProcessor for RwaIdentityRegistryProcessor {
         events: &[ContractEvent],
     ) -> anyhow::Result<u64> {
         let mut process_events_count = 0u64;
-        let mut db = self.database(contract);
+        let mut conn = self.pool.get()?;
+
         for event in events {
             let parsed_event = event.parse::<Event>()?;
-            log::debug!("Event: {}/{} {:?}", contract.index, contract.subindex, parsed_event);
+            debug!("Event: {}/{}", contract.index, contract.subindex);
+            debug!("{:#?}", parsed_event);
 
             match parsed_event {
                 Event::AgentAdded(e) => {
-                    db.agents.insert_one(DbAddress(e.agent)).await?;
+                    let agent = db::Agent::new(e.agent, Utc::now(), contract);
+                    db::insert_agent(&mut conn, agent)?;
+                    info!("Identity Registry agent added: {}", e.agent);
                     process_events_count += 1;
                 }
                 Event::AgentRemoved(e) => {
-                    db.agents.delete_one(to_document(&DbAddress(e.agent))?).await?;
+                    db::remove_agent(&mut conn, &e.agent)?;
+                    info!("Identity Registry agent removed: {}", e.agent);
                     process_events_count += 1;
                 }
                 Event::IdentityRegistered(e) => {
-                    db.identities.insert_one(DbAddress(e.address)).await?;
+                    let identity = db::Identity::new(e.address, Utc::now(), contract);
+                    db::insert_identity(&mut conn, identity)?;
+                    info!("Identity Registry identity added: {}", e.address);
                     process_events_count += 1;
                 }
                 Event::IdentityRemoved(e) => {
-                    db.identities.delete_one(to_document(&DbAddress(e.address))?).await?;
+                    db::remove_identity(&mut conn, &e.address)?;
+                    info!("Identity Registry identity removed: {}", e.address);
                     process_events_count += 1;
                 }
                 Event::IssuerAdded(e) => {
-                    db.issuers.insert_one(DbContractAddress(e.issuer)).await?;
+                    let issuer = db::Issuer::new(e.issuer, Utc::now(), contract);
+                    db::insert_issuer(&mut conn, issuer)?;
+                    info!("Identity Registry issuer added: {}", e.issuer);
                     process_events_count += 1;
                 }
                 Event::IssuerRemoved(e) => {
-                    db.issuers.delete_one(to_document(&DbContractAddress(e.issuer))?).await?;
+                    db::remove_issuer(&mut conn, e.issuer)?;
+                    info!("Identity Registry issuer removed: {}", e.issuer);
                     process_events_count += 1;
                 }
             }
