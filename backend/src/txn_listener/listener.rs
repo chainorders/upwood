@@ -4,7 +4,9 @@ use async_trait::async_trait;
 use concordium_rust_sdk::{
     types::{
         smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
-        AbsoluteBlockHeight, ContractAddress,
+        AbsoluteBlockHeight, AccountTransactionDetails, AccountTransactionEffects,
+        BlockItemSummary, BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent,
+        ContractTraceElement, InstanceUpdatedEvent,
     },
     v2::{self, FinalizedBlockInfo},
 };
@@ -12,7 +14,8 @@ use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
 };
-use futures::{future::join_all, StreamExt};
+use futures::StreamExt;
+use log::{debug, info, warn};
 use std::{collections::BTreeMap, ops::AddAssign, sync::Arc};
 use tokio::sync::RwLock;
 
@@ -70,6 +73,12 @@ pub trait EventsProcessor: Send + Sync {
         contract: &ContractAddress,
         events: &[ContractEvent],
     ) -> anyhow::Result<u64>;
+}
+
+pub enum ProcessedBlockItem {
+    Init((ContractAddress, ModuleReference, OwnedContractName, Vec<ContractEvent>)),
+    Update(BTreeMap<ContractAddress, Vec<ContractEvent>>),
+    WithNoEvents,
 }
 
 /// `TransactionsListener` is a struct that listens to transactions from a
@@ -151,11 +160,11 @@ impl TransactionsListener {
         while let Some(summary) =
             summaries.next().await.transpose().expect("error getting block item summary")
         {
-            let events_count = self.process_block_item_summary(&summary).await?;
+            let events_count = self.process_block_item_summary(block, &summary).await?;
             b_events_count += events_count;
         }
 
-        log::info!("Processed block {}, events: {}", block.height.height, b_events_count);
+        info!("Processed block {}, events: {}", block.height.height, b_events_count);
         let mut conn = self.database.get()?;
         if b_events_count > 0 {
             listener_config::update_last_processed_block(&mut conn, block)
@@ -167,70 +176,189 @@ impl TransactionsListener {
 
     async fn process_block_item_summary(
         &mut self,
-        summary: &concordium_rust_sdk::types::BlockItemSummary,
+        block: &FinalizedBlockInfo,
+        summary: &BlockItemSummary,
     ) -> Result<u64, anyhow::Error> {
-        let events_count = if let Some(init) = summary.contract_init() {
-            self.process_contract_init(init).await?;
-            let mut updates = BTreeMap::new();
-            updates.entry(init.address).or_insert(init.events.clone());
-            let events_count = self.process_events(updates).await?;
-            log::info!("Processed block item: {}, events: {}", summary.hash, events_count);
-            events_count
-        } else if let Some(update) = summary.contract_update_logs() {
-            let updates = update.into_iter().fold(BTreeMap::new(), |mut map, update| {
-                map.entry(update.0)
-                    .and_modify(|e: &mut Vec<_>| e.extend(update.1.to_vec()))
-                    .or_insert(update.1.to_vec());
-                map
-            });
-            let events_count = self.process_events(updates).await?;
-            log::info!("Processed block item: {}, events: {}", summary.hash, events_count);
-            events_count
-        } else {
-            0
-        };
-        Ok(events_count)
-    }
+        let BlockItemSummary {
+            index,
+            hash,
+            details,
+            ..
+        } = summary;
 
-    async fn process_events(
-        &mut self,
-        updates: BTreeMap<ContractAddress, Vec<ContractEvent>>,
-    ) -> Result<u64, anyhow::Error> {
-        let mut events_count = 0u64;
-        let contract_updates: std::collections::btree_map::IntoIter<
-            ContractAddress,
-            Vec<ContractEvent>,
-        > = updates.into_iter();
-        let mut processor_futures = vec![];
-        for (contract_address, events) in contract_updates {
-            processor_futures.push(self.process_contract_events(contract_address, events));
-        }
-        let events_count_vec = join_all(processor_futures).await;
-        for count in events_count_vec {
-            events_count.add_assign(count?);
-        }
-        Ok(events_count)
-    }
+        let summary = match details {
+            BlockItemSummaryDetails::AccountTransaction(details) => {
+                let AccountTransactionDetails {
+                    effects,
+                    ..
+                } = details;
+                match effects {
+                    AccountTransactionEffects::ContractInitialized {
+                        data:
+                            ContractInitializedEvent {
+                                address,
+                                events,
+                                init_name,
+                                origin_ref,
+                                ..
+                            },
+                    } => ProcessedBlockItem::Init((
+                        *address,
+                        *origin_ref,
+                        init_name.clone(),
+                        events.to_vec(),
+                    )),
+                    AccountTransactionEffects::ContractUpdateIssued {
+                        effects,
+                    } => {
+                        let mut updates = BTreeMap::<ContractAddress, Vec<ContractEvent>>::new();
+                        for trace_event in effects {
+                            let (address, events) = match trace_event {
+                                ContractTraceElement::Updated {
+                                    data:
+                                        InstanceUpdatedEvent {
+                                            address,
+                                            events,
+                                            ..
+                                        },
+                                } => (*address, events.clone()),
+                                ContractTraceElement::Transferred {
+                                    from,
+                                    ..
+                                } => (*from, vec![]),
+                                ContractTraceElement::Interrupted {
+                                    address,
+                                    events,
+                                } => (*address, events.clone()),
+                                ContractTraceElement::Resumed {
+                                    address,
+                                    ..
+                                } => (*address, vec![]),
+                                ContractTraceElement::Upgraded {
+                                    address,
+                                    from,
+                                    to,
+                                } => {
+                                    warn!(
+                                        "NOT SUPPORTED: Contract: {} Upgrated from module: {} to \
+                                         module: {}",
+                                        address, from, to
+                                    );
+                                    (*address, vec![])
+                                }
+                            };
 
-    async fn process_contract_events(
-        &self,
-        contract_address: ContractAddress,
-        events: Vec<ContractEvent>,
-    ) -> anyhow::Result<u64> {
-        let mut conn = self.database.get()?;
-        let db_contract = listener_contracts::find_contract(&mut conn, &contract_address).await?;
-        let processor = match db_contract {
-            Some((module_ref, contract_name)) => {
-                match self.find_processor(&module_ref, &contract_name).await? {
-                    Some(processor) => processor.clone(),
-                    None => return Ok(0),
+                            match updates.get_mut(&address) {
+                                Some(existing_events) => existing_events.extend(events),
+                                None => {
+                                    updates.insert(address, events);
+                                }
+                            };
+                        }
+
+                        ProcessedBlockItem::Update(updates)
+                    }
+                    _ => ProcessedBlockItem::WithNoEvents,
                 }
             }
-            None => return Ok(0),
+            _ => ProcessedBlockItem::WithNoEvents,
         };
 
-        async move { processor.write().await.process_events(&contract_address, &events).await }
-            .await
+        let mut conn = self.database.get()?;
+        let events_count = match summary {
+            ProcessedBlockItem::WithNoEvents => 0u64,
+            ProcessedBlockItem::Init((contract_address, module_ref, contract_name, events)) => {
+                let processor = self.find_processor(&module_ref, &contract_name).await?;
+                match processor {
+                    Some(processor) => {
+                        listener_contracts::add_contract(
+                            &mut conn,
+                            &contract_address,
+                            &module_ref,
+                            &contract_name,
+                        )
+                        .await?;
+                        info!(
+                            "[{}/{}], hash:{hash} contract: {contract_address} added",
+                            block.height.height, index.index,
+                        );
+
+                        let mut processor = processor.write().await;
+                        debug!(
+                            "[{}/{}], hash:{} processing init events, count: {}, processor: {}",
+                            block.height.height,
+                            index.index,
+                            hash,
+                            events.len(),
+                            processor.contract_name(),
+                        );
+                        let events_count =
+                            processor.process_events(&contract_address, &events).await?;
+                        debug!(
+                            "[{}/{}], hash:{} processed init events, count: {}, processor: {}",
+                            block.height.height,
+                            index.index,
+                            hash,
+                            events.len(),
+                            processor.contract_name(),
+                        );
+
+                        events_count
+                    }
+                    None => 0u64,
+                }
+            }
+            ProcessedBlockItem::Update(updates) => {
+                let mut event_counts = 0;
+                for (contract_address, events) in updates.into_iter() {
+                    let contract =
+                        listener_contracts::find_contract(&mut conn, &contract_address).await?;
+                    let processor = match contract {
+                        Some((module_ref, contract_name)) => {
+                            self.find_processor(&module_ref, &contract_name).await?
+                        }
+                        None => None,
+                    };
+                    let contract_events_counts = match processor {
+                        Some(processor) => {
+                            let mut processor = processor.write().await;
+                            debug!(
+                                "[{}/{}], hash:{} processing update events, count: {}, processor: \
+                                 {}",
+                                block.height.height,
+                                index.index,
+                                hash,
+                                events.len(),
+                                processor.contract_name(),
+                            );
+                            // Processing Update events
+                            let processed_count =
+                                processor.process_events(&contract_address, &events).await?;
+                            debug!(
+                                "[{}/{}], hash:{} processed update events, count: {}, processor: \
+                                 {}",
+                                block.height.height,
+                                index.index,
+                                hash,
+                                events.len(),
+                                processor.contract_name(),
+                            );
+                            processed_count
+                        }
+                        None => 0u64,
+                    };
+                    event_counts.add_assign(contract_events_counts);
+                }
+
+                event_counts
+            }
+        };
+
+        info!(
+            "[{}/{}], hash:{} events count: {}",
+            block.height.height, index.index, hash, events_count
+        );
+        Ok(events_count)
     }
 
     /// Finds a processor that matches the given origin reference and contract
@@ -259,31 +387,5 @@ impl TransactionsListener {
         }
 
         Ok(None)
-    }
-
-    async fn process_contract_init(
-        &mut self,
-        init: &concordium_rust_sdk::types::ContractInitializedEvent,
-    ) -> anyhow::Result<()> {
-        let processor_exists =
-            self.find_processor(&init.origin_ref, &init.init_name).await?.is_some();
-        if processor_exists {
-            let mut conn = self.database.get()?;
-            listener_contracts::add_contract(
-                &mut conn,
-                &init.address,
-                &init.origin_ref,
-                &init.init_name,
-            )
-            .await?;
-            log::info!(
-                "Listening to contract {}-{}-{}",
-                init.origin_ref,
-                init.init_name,
-                init.address
-            );
-        }
-
-        Ok(())
     }
 }
