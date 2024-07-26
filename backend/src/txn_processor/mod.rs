@@ -153,8 +153,8 @@ async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsL
         })),
         Arc::new(RwLock::new(RwaMarketProcessor {
             module_ref:    config.rwa_market_module_ref.parse()?,
-            client:        client.clone(),
             contract_name: OwnedContractName::new(config.rwa_market_contract_name)?,
+            pool:          pool.clone(),
         })),
     ];
 
@@ -179,7 +179,6 @@ async fn create_server_routes(config: ContractsApiConfig) -> anyhow::Result<impl
     let mongo_client = mongodb::Client::with_uri_str(&config.mongodb_uri).await?;
 
     let api_service = create_service(
-        OwnedContractName::new_unchecked(config.rwa_market_contract_name),
         OwnedContractName::new_unchecked(config.rwa_security_nft_contract_name),
         OwnedContractName::new_unchecked(config.rwa_security_sft_contract_name),
     );
@@ -217,7 +216,6 @@ pub struct OpenApiConfig {
 /// Generates the API client based on the OpenAPI configuration.
 pub async fn generate_open_api_specs(config: OpenApiConfig) -> anyhow::Result<()> {
     let api_service = create_service(
-        OwnedContractName::new_unchecked(config.rwa_market_contract_name),
         OwnedContractName::new_unchecked(config.rwa_security_nft_contract_name),
         OwnedContractName::new_unchecked(config.rwa_security_sft_contract_name),
     );
@@ -229,13 +227,12 @@ pub async fn generate_open_api_specs(config: OpenApiConfig) -> anyhow::Result<()
 
 /// Creates the service for the contracts API.
 fn create_service(
-    rwa_market_contract_name: OwnedContractName,
     rwa_security_nft_contract_name: OwnedContractName,
     rwa_security_sft_contract_name: OwnedContractName,
 ) -> OpenApiService<(RwaMarketApi, RwaSecurityNftApi, RwaSecuritySftApi), ()> {
     OpenApiService::new(
         (
-            RwaMarketApi(rwa_market_contract_name),
+            RwaMarketApi,
             RwaSecurityNftApi(rwa_security_nft_contract_name),
             RwaSecuritySftApi(rwa_security_sft_contract_name),
         ),

@@ -21,14 +21,19 @@
 //!
 //! The `to_paged_response` method is a helper method used by the above methods
 //! to convert the query result into a paged response.
-use super::db::{DbDepositedToken, RwaMarketDb};
+use std::ops::Add;
+
+use super::db::{self};
 use crate::shared::{
     api::{ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbAccountAddress, DbTokenAmount, ICollection},
+    db::{address_from_sql_string, DbPool},
 };
-use bson::{doc, to_bson, Document};
-use concordium_rust_sdk::{base::smart_contracts::OwnedContractName, types::ContractAddress};
-use futures::TryStreamExt;
+use concordium_rust_sdk::{
+    id::types::AccountAddress,
+    types::{Address, ContractAddress},
+};
+use itertools::Itertools;
+use num_traits::ToPrimitive;
 use poem::{web::Data, Result};
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
@@ -42,36 +47,35 @@ pub struct MarketToken {
     pub unlisted_amount:  String,
 }
 
-impl From<DbDepositedToken> for MarketToken {
-    fn from(db_deposited_token: DbDepositedToken) -> Self {
+impl From<db::MarketToken> for MarketToken {
+    fn from(value: db::MarketToken) -> Self {
+        let owner = address_from_sql_string(&value.token_owner).expect("Invalid token owner value");
+        let owner = match owner {
+            Address::Account(acc) => acc.to_string(),
+            Address::Contract(_) => unreachable!(),
+        };
+        let deposited_amount = value.token_listed_amount.clone().add(&value.token_unlisted_amount);
+
         Self {
-            token_contract:   db_deposited_token.token_contract.into(),
-            token_id:         db_deposited_token.token_id.0.into(),
-            owner:            db_deposited_token.owner.0.to_string(),
-            deposited_amount: db_deposited_token.deposited_amount.0.to_string(),
-            listed_amount:    db_deposited_token.listed_amount.0.to_string(),
-            unlisted_amount:  db_deposited_token.unlisted_amount.0.to_string(),
+            token_contract: ApiContractAddress {
+                index:    value.token_contract_index.to_u64().unwrap(),
+                subindex: value.token_contract_sub_index.to_u64().unwrap(),
+            },
+            deposited_amount: deposited_amount.to_string(),
+            listed_amount: value.token_listed_amount.to_string(),
+            unlisted_amount: value.token_unlisted_amount.to_string(),
+            owner,
+            token_id: value.token_id.to_string(),
         }
     }
 }
 
 /// Represents the RWA Market API.
-pub struct RwaMarketApi(pub OwnedContractName);
+pub struct RwaMarketApi;
 
 /// API implementation for the RWA market.
 #[OpenApi]
 impl RwaMarketApi {
-    pub fn db(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        contract: &ContractAddress,
-    ) -> RwaMarketDb {
-        let db =
-            client.database(&format!("{}-{}-{}", contract_name, contract.index, contract.subindex));
-
-        RwaMarketDb::init(db)
-    }
-
     /// Retrieves a paged list of tokens that are listed in the RWA market.
     ///
     /// # Parameters
@@ -86,21 +90,24 @@ impl RwaMarketApi {
     #[oai(path = "/rwa-market/:index/:subindex/listed/:page", method = "get")]
     pub async fn listed(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
-        Path(page): Path<u64>,
+        Path(page): Path<i64>,
     ) -> Result<Json<PagedResponse<MarketToken>>, Error> {
-        let contract = &ContractAddress {
+        let market_contract = &ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "listed_amount": {
-                "$ne": to_bson(&DbTokenAmount::zero())?,
-            }
+        let mut conn = pool.get()?;
+        let (tokens, page_count) =
+            db::list_tokens(&mut conn, market_contract, PAGE_SIZE as i64, page)?;
+        let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let res = PagedResponse {
+            data:       tokens,
+            page:       page as u64,
+            page_count: page_count as u64,
         };
-        let res = Self::to_paged_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
@@ -120,23 +127,26 @@ impl RwaMarketApi {
     #[oai(path = "/rwa-market/:index/:subindex/unlisted/:owner/:page", method = "get")]
     pub async fn unlisted(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
-        Path(page): Path<u64>,
+        Path(page): Path<i64>,
     ) -> Result<Json<PagedResponse<MarketToken>>, Error> {
-        let contract = &ContractAddress {
+        let market_contract = &ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "owner": to_bson(&DbAccountAddress(owner.parse()?))?,
-            "unlisted_amount": {
-                "$ne": to_bson(&DbTokenAmount::zero())?,
-            }
+        let owner: AccountAddress = owner.parse()?;
+        let mut conn = pool.get()?;
+        let (tokens, page_count) =
+            db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE as i64, page)?;
+        let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let res = PagedResponse {
+            data:       tokens,
+            page:       page as u64,
+            page_count: page_count as u64,
         };
-        let res = Self::to_paged_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
@@ -156,55 +166,26 @@ impl RwaMarketApi {
     #[oai(path = "/rwa-market/:index/:subindex/deposited/:owner/:page", method = "get")]
     pub async fn deposited(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
-        Path(page): Path<u64>,
+        Path(page): Path<i64>,
     ) -> Result<Json<PagedResponse<MarketToken>>, Error> {
-        let contract = &ContractAddress {
+        let market_contract = &ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "owner": to_bson(&DbAccountAddress(owner.parse()?))?,
-            "deposited_amount": {
-                "$ne": to_bson(&DbTokenAmount::zero())?,
-            }
+        let owner: AccountAddress = owner.parse()?;
+        let mut conn = pool.get()?;
+        let (tokens, page_count) =
+            db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE as i64, page)?;
+        let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let res = PagedResponse {
+            data:       tokens,
+            page:       page as u64,
+            page_count: page_count as u64,
         };
-        let res = Self::to_paged_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
-    }
-
-    /// Converts the query result into a paged response.
-    ///
-    /// # Parameters
-    ///
-    /// - `query`: The query document.
-    /// - `contract`: The contract address.
-    /// - `page`: The page number.
-    ///
-    /// # Returns
-    ///
-    /// A `PagedResponse` containing a list of `MarketToken` objects.
-    pub async fn to_paged_response(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        query: Document,
-        contract: &ContractAddress,
-        page: u64,
-    ) -> anyhow::Result<PagedResponse<MarketToken>> {
-        let coll = Self::db(client, contract_name, contract).deposited_tokens;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
-        let data: Vec<MarketToken> = data.into_iter().map(|token| token.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-
-        Ok(PagedResponse {
-            page_count,
-            page,
-            data,
-        })
     }
 }

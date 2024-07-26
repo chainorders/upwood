@@ -45,6 +45,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    token_market (market_contract_index, market_contract_sub_index, token_contract_index, token_contract_sub_index, token_id, token_owner) {
+        market_contract_index -> Numeric,
+        market_contract_sub_index -> Numeric,
+        token_contract_index -> Numeric,
+        token_contract_sub_index -> Numeric,
+        token_id -> Numeric,
+        token_owner -> Varchar,
+        token_listed_amount -> Numeric,
+        token_unlisted_amount -> Numeric,
+    }
+}
+
+diesel::table! {
     verifier_challenges (id) {
         id -> Int4,
         create_time -> Timestamp,
@@ -64,5 +77,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     identity_registry_issuers,
     listener_config,
     listener_contracts,
+    token_market,
     verifier_challenges,
 );

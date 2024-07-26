@@ -19,6 +19,12 @@ pub enum Error {
     #[oai(status = 500)]
     InternalServerError,
 }
+impl From<diesel::result::Error> for Error {
+    fn from(_: diesel::result::Error) -> Self { Self::InternalServerError }
+}
+impl From<r2d2::Error> for Error {
+    fn from(_: r2d2::Error) -> Self { Self::InternalServerError }
+}
 impl From<mongodb::error::Error> for Error {
     fn from(_: mongodb::error::Error) -> Self { Self::InternalServerError }
 }
@@ -38,8 +44,8 @@ impl From<AddressParseError> for Error {
 /// A wrapper around the `ContractAddress` type that can be used in the API.
 #[derive(Object, Debug, Clone, Copy)]
 pub struct ApiContractAddress {
-    index:    u64,
-    subindex: u64,
+    pub index:    u64,
+    pub subindex: u64,
 }
 
 impl ApiContractAddress {
