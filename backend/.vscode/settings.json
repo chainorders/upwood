@@ -12,5 +12,8 @@
         }
     ],
     "files.insertFinalNewline": true,
-    "files.trimFinalNewlines": true
+    "files.trimFinalNewlines": true,
+    "rust-analyzer.check.overrideCommand": [
+        "cargo", "clippy", "--no-deps", "--message-format=json"
+    ]
 }
