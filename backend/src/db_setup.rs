@@ -13,8 +13,12 @@ pub struct MigrationsConfig {
 
 pub fn run_migrations(config: &MigrationsConfig) -> anyhow::Result<()> {
     let mut conn = PgConnection::establish(&config.database_url)?;
-    info!("Transaction Listener Database Migrating...");
     debug!("Running migrations on url: {}", &config.database_url);
+    run_migrations_on_conn(&mut conn)
+}
+
+pub fn run_migrations_on_conn(conn: &mut PgConnection) -> Result<(), anyhow::Error> {
+    info!("Transaction Listener Database Migrating...");
     conn.applied_migrations()
         .expect("Error checking for applied migrations")
         .iter()

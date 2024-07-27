@@ -5,11 +5,11 @@ use crate::{
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use diesel::{dsl::*, prelude::*};
+use diesel::prelude::*;
 
-#[derive(Selectable, Queryable, Identifiable, Insertable)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = identity_registry_identities)]
-#[diesel(primary_key(identity_address))]
+#[diesel(primary_key(contract_index, contract_sub_index, identity_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Identity {
     identity_address:   String,
@@ -29,12 +29,38 @@ impl Identity {
     }
 }
 
+#[allow(dead_code)]
+pub fn list_identities(
+    conn: &mut DbConn,
+    identity_registry_contract: &ContractAddress,
+    page_size: i64,
+    page: i64,
+) -> DbResult<(Vec<Identity>, i64)> {
+    let select_filter = identity_registry_identities::contract_index
+        .eq::<BigDecimal>(identity_registry_contract.index.into())
+        .and(
+            identity_registry_identities::contract_sub_index
+                .eq::<BigDecimal>(identity_registry_contract.subindex.into()),
+        );
+    let res: Vec<Identity> = identity_registry_identities::table
+        .filter(select_filter.clone())
+        .select(Identity::as_select())
+        .limit(page_size)
+        .offset(page_size * page)
+        .get_results(conn)?;
+    let count: i64 =
+        identity_registry_identities::table.filter(select_filter).count().get_result(conn)?;
+    let page_count = (count + page_size - 1) / page_size;
+
+    Ok((res, page_count))
+}
+
 pub fn insert_identity(conn: &mut DbConn, identity: Identity) -> DbResult<usize> {
-    insert_into(identity_registry_identities::table).values(identity).execute(conn)
+    diesel::insert_into(identity_registry_identities::table).values(identity).execute(conn)
 }
 
 pub fn remove_identity(conn: &mut DbConn, address: &Address) -> DbResult<usize> {
-    delete(QueryDsl::filter(
+    diesel::delete(QueryDsl::filter(
         identity_registry_identities::table,
         identity_registry_identities::identity_address.eq(address_to_sql_string(address)),
     ))
@@ -43,7 +69,7 @@ pub fn remove_identity(conn: &mut DbConn, address: &Address) -> DbResult<usize> 
 
 #[derive(Selectable, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = identity_registry_issuers)]
-#[diesel(primary_key(issuer_address))]
+#[diesel(primary_key(contract_index, contract_sub_index, issuer_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Issuer {
     issuer_address:     String,
@@ -64,11 +90,11 @@ impl Issuer {
 }
 
 pub fn insert_issuer(conn: &mut DbConn, agent: Issuer) -> DbResult<usize> {
-    insert_into(identity_registry_issuers::table).values(agent).execute(conn)
+    diesel::insert_into(identity_registry_issuers::table).values(agent).execute(conn)
 }
 
 pub fn remove_issuer(conn: &mut DbConn, address: ContractAddress) -> DbResult<usize> {
-    delete(QueryDsl::filter(
+    diesel::delete(QueryDsl::filter(
         identity_registry_issuers::table,
         identity_registry_issuers::issuer_address
             .eq(address_to_sql_string(&Address::Contract(address))),
@@ -78,7 +104,7 @@ pub fn remove_issuer(conn: &mut DbConn, address: ContractAddress) -> DbResult<us
 
 #[derive(Selectable, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = identity_registry_agents)]
-#[diesel(primary_key(agent_address))]
+#[diesel(primary_key(contract_index, contract_sub_index, agent_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Agent {
     pub agent_address:      String,
@@ -99,11 +125,11 @@ impl Agent {
 }
 
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<usize> {
-    insert_into(identity_registry_agents::table).values(agent).execute(conn)
+    diesel::insert_into(identity_registry_agents::table).values(agent).execute(conn)
 }
 
 pub fn remove_agent(conn: &mut DbConn, address: &Address) -> DbResult<usize> {
-    delete(QueryDsl::filter(
+    diesel::delete(QueryDsl::filter(
         identity_registry_agents::table,
         identity_registry_agents::agent_address.eq(address_to_sql_string(address)),
     ))

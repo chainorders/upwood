@@ -1,29 +1,29 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    identity_registry_agents (agent_address) {
+    identity_registry_agents (contract_index, contract_sub_index, agent_address) {
+        contract_index -> Numeric,
+        contract_sub_index -> Numeric,
         agent_address -> Varchar,
         create_time -> Timestamp,
-        contract_index -> Numeric,
-        contract_sub_index -> Numeric,
     }
 }
 
 diesel::table! {
-    identity_registry_identities (identity_address) {
+    identity_registry_identities (contract_index, contract_sub_index, identity_address) {
+        contract_index -> Numeric,
+        contract_sub_index -> Numeric,
         identity_address -> Varchar,
         create_time -> Timestamp,
-        contract_index -> Numeric,
-        contract_sub_index -> Numeric,
     }
 }
 
 diesel::table! {
-    identity_registry_issuers (issuer_address) {
-        issuer_address -> Varchar,
-        create_time -> Timestamp,
+    identity_registry_issuers (contract_index, contract_sub_index, issuer_address) {
         contract_index -> Numeric,
         contract_sub_index -> Numeric,
+        issuer_address -> Varchar,
+        create_time -> Timestamp,
     }
 }
 
