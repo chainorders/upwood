@@ -12,7 +12,7 @@ use concordium_rust_sdk::types::{
 use concordium_rwa_identity_registry::event::{
     AgentUpdatedEvent, Event, IdentityUpdatedEvent, IssuerUpdatedEvent,
 };
-use log::{debug, info};
+use log::debug;
 
 /// `RwaIdentityRegistryProcessor` is a struct that processes events for the
 /// rwa-identity-registry contract. It maintains a connection to a MongoDB
@@ -58,7 +58,7 @@ impl EventsProcessor for RwaIdentityRegistryProcessor {
         events: &[ContractEvent],
     ) -> anyhow::Result<u64> {
         let mut conn = self.pool.get()?;
-        let count = process_events(&mut conn, Utc::now(), contract, events)?;
+        process_events(&mut conn, Utc::now(), contract, events)?;
         Ok(events.len() as u64)
     }
 }
