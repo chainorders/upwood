@@ -67,7 +67,7 @@ pub fn remove_identity(conn: &mut DbConn, address: &Address) -> DbResult<usize> 
     .execute(conn)
 }
 
-#[derive(Selectable, Queryable, Identifiable, Insertable)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = identity_registry_issuers)]
 #[diesel(primary_key(contract_index, contract_sub_index, issuer_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -89,6 +89,32 @@ impl Issuer {
     }
 }
 
+#[allow(dead_code)]
+pub fn list_issuers(
+    conn: &mut DbConn,
+    identity_registry_contract: &ContractAddress,
+    page_size: i64,
+    page: i64,
+) -> DbResult<(Vec<Issuer>, i64)> {
+    let select_filter = identity_registry_issuers::contract_index
+        .eq::<BigDecimal>(identity_registry_contract.index.into())
+        .and(
+            identity_registry_issuers::contract_sub_index
+                .eq::<BigDecimal>(identity_registry_contract.subindex.into()),
+        );
+    let res: Vec<Issuer> = identity_registry_issuers::table
+        .filter(select_filter.clone())
+        .select(Issuer::as_select())
+        .limit(page_size)
+        .offset(page_size * page)
+        .get_results(conn)?;
+    let count: i64 =
+        identity_registry_issuers::table.filter(select_filter).count().get_result(conn)?;
+    let page_count = (count + page_size - 1) / page_size;
+
+    Ok((res, page_count))
+}
+
 pub fn insert_issuer(conn: &mut DbConn, agent: Issuer) -> DbResult<usize> {
     diesel::insert_into(identity_registry_issuers::table).values(agent).execute(conn)
 }
@@ -102,7 +128,7 @@ pub fn remove_issuer(conn: &mut DbConn, address: ContractAddress) -> DbResult<us
     .execute(conn)
 }
 
-#[derive(Selectable, Queryable, Identifiable, Insertable)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = identity_registry_agents)]
 #[diesel(primary_key(contract_index, contract_sub_index, agent_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -122,6 +148,32 @@ impl Agent {
             contract_sub_index: contract.subindex.into(),
         }
     }
+}
+
+#[allow(dead_code)]
+pub fn list_agents(
+    conn: &mut DbConn,
+    identity_registry_contract: &ContractAddress,
+    page_size: i64,
+    page: i64,
+) -> DbResult<(Vec<Agent>, i64)> {
+    let select_filter = identity_registry_agents::contract_index
+        .eq::<BigDecimal>(identity_registry_contract.index.into())
+        .and(
+            identity_registry_agents::contract_sub_index
+                .eq::<BigDecimal>(identity_registry_contract.subindex.into()),
+        );
+    let res: Vec<Agent> = identity_registry_agents::table
+        .filter(select_filter.clone())
+        .select(Agent::as_select())
+        .limit(page_size)
+        .offset(page_size * page)
+        .get_results(conn)?;
+    let count: i64 =
+        identity_registry_agents::table.filter(select_filter).count().get_result(conn)?;
+    let page_count = (count + page_size - 1) / page_size;
+
+    Ok((res, page_count))
 }
 
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<usize> {
