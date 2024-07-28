@@ -9,7 +9,9 @@ use concordium_rust_sdk::types::{
     smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
     ContractAddress,
 };
-use concordium_rwa_identity_registry::event::Event;
+use concordium_rwa_identity_registry::event::{
+    AgentUpdatedEvent, Event, IdentityUpdatedEvent, IssuerUpdatedEvent,
+};
 use log::{debug, info};
 
 /// `RwaIdentityRegistryProcessor` is a struct that processes events for the
@@ -57,58 +59,54 @@ impl EventsProcessor for RwaIdentityRegistryProcessor {
     ) -> anyhow::Result<u64> {
         let mut conn = self.pool.get()?;
         let count = process_events(&mut conn, Utc::now(), contract, events)?;
-        Ok(count as u64)
+        Ok(events.len() as u64)
     }
 }
 
 pub fn process_events(
     conn: &mut DbConn,
     now: DateTime<Utc>,
-    contract: &ContractAddress,
+    identity_registry_address: &ContractAddress,
     events: &[ContractEvent],
-) -> anyhow::Result<usize> {
-    let mut process_events_count: usize = 0;
+) -> anyhow::Result<()> {
     for event in events {
         let parsed_event = event.parse::<Event>()?;
-        debug!("Event: {}/{}", contract.index, contract.subindex);
+        debug!("Event: {}/{}", identity_registry_address.index, identity_registry_address.subindex);
         debug!("{:#?}", parsed_event);
-
         match parsed_event {
-            Event::AgentAdded(e) => {
-                let agent = db::Agent::new(e.agent, now, contract);
-                db::insert_agent(conn, agent)?;
-                info!("Identity Registry agent added: {}", e.agent);
-                process_events_count += 1;
+            Event::AgentAdded(AgentUpdatedEvent {
+                agent,
+            }) => {
+                db::insert_agent(conn, db::Agent::new(agent, now, identity_registry_address))?;
             }
-            Event::AgentRemoved(e) => {
-                db::remove_agent(conn, &e.agent)?;
-                info!("Identity Registry agent removed: {}", e.agent);
-                process_events_count += 1;
+            Event::AgentRemoved(AgentUpdatedEvent {
+                agent,
+            }) => {
+                db::remove_agent(conn, identity_registry_address, &agent)?;
             }
-            Event::IdentityRegistered(e) => {
-                let identity = db::Identity::new(e.address, now, contract);
+            Event::IdentityRegistered(IdentityUpdatedEvent {
+                address,
+            }) => {
+                let identity = db::Identity::new(&address, now, identity_registry_address);
                 db::insert_identity(conn, identity)?;
-                info!("Identity Registry identity added: {}", e.address);
-                process_events_count += 1;
             }
-            Event::IdentityRemoved(e) => {
-                db::remove_identity(conn, &e.address)?;
-                info!("Identity Registry identity removed: {}", e.address);
-                process_events_count += 1;
+            Event::IdentityRemoved(IdentityUpdatedEvent {
+                address,
+            }) => {
+                db::remove_identity(conn, &address)?;
             }
-            Event::IssuerAdded(e) => {
-                let issuer = db::Issuer::new(e.issuer, now, contract);
-                db::insert_issuer(conn, issuer)?;
-                info!("Identity Registry issuer added: {}", e.issuer);
-                process_events_count += 1;
+            Event::IssuerAdded(IssuerUpdatedEvent {
+                issuer,
+            }) => {
+                db::insert_issuer(conn, db::Issuer::new(&issuer, now, identity_registry_address))?;
             }
-            Event::IssuerRemoved(e) => {
-                db::remove_issuer(conn, e.issuer)?;
-                info!("Identity Registry issuer removed: {}", e.issuer);
-                process_events_count += 1;
+            Event::IssuerRemoved(IssuerUpdatedEvent {
+                issuer,
+            }) => {
+                db::remove_issuer(conn, identity_registry_address, &issuer)?;
             }
         }
     }
 
-    Ok(process_events_count)
+    Ok(())
 }

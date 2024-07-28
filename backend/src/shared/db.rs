@@ -7,85 +7,17 @@ use concordium_rust_sdk::{
     types::{Address, ContractAddress},
 };
 use diesel::PgConnection;
-use itertools::Itertools;
 use mongodb::options::{FindOneOptions, UpdateModifications};
 use num_bigint::{BigInt, BigUint};
-use num_traits::{identities::Zero, Num};
+use num_traits::identities::Zero;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnection>>;
 pub type DbConn = r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>>;
 pub type DbResult<T> = Result<T, diesel::result::Error>;
 
-pub fn address_to_sql_string(addr: &Address) -> String {
-    match addr {
-        Address::Account(account) => format!("acc:{}", account),
-        Address::Contract(contract) => format!("con:{}/{}", contract.index, contract.subindex),
-    }
-}
-
-pub fn address_from_sql_string(addr: &str) -> anyhow::Result<Address> {
-    let prefix = &addr[0..3];
-    let addr_str = &addr[4..];
-    match prefix {
-        "acc" => Ok(Address::Account(addr_str.parse()?)),
-        "con" => {
-            let parts = addr_str.split('/').collect_vec();
-            if parts.len() != 2 {
-                Err(anyhow::Error::msg(format!("Error parsing Contract Address: {}", addr_str)))
-            } else {
-                let index_str = parts[0];
-                let sub_index_str = parts[1];
-                let index: u64 = index_str.parse().map_err(|_| {
-                    anyhow::Error::msg(format!("Error parsing contract index: {}", index_str))
-                })?;
-                let subindex: u64 = sub_index_str.parse().map_err(|_| {
-                    anyhow::Error::msg(format!(
-                        "Error parsing contract sub index: {}",
-                        sub_index_str
-                    ))
-                })?;
-                Ok(Address::Contract(ContractAddress {
-                    index,
-                    subindex,
-                }))
-            }
-        }
-        _ => Err(anyhow::Error::msg(format!("Error parsing prefix: {}", prefix))),
-    }
-}
-
-pub fn token_id_to_sql(token_id: &cis2::TokenId) -> BigDecimal {
-    BigInt::from_str_radix(&token_id.to_string(), 16)
-        .expect("Error converting from Cis2 TokenId to BigInt")
-        .into()
-}
-
 pub fn token_amount_to_sql(amount: &cis2::TokenAmount) -> BigDecimal {
     BigInt::from_bytes_le(num_bigint::Sign::NoSign, &amount.0.to_bytes_le()).into()
-}
-
-#[cfg(test)]
-mod test {
-    use concordium_rust_sdk::types::{Address, ContractAddress};
-
-    use super::{address_from_sql_string, address_to_sql_string};
-
-    #[test]
-    pub fn address_to_sql_conversions() {
-        let con_addr = Address::Contract(ContractAddress::new(19, 20));
-        let str = address_to_sql_string(&con_addr);
-        assert_eq!(str, "con:19/20");
-        let con_addr_2 = address_from_sql_string(&str).unwrap();
-        assert_eq!(con_addr, con_addr_2);
-
-        let account_addr =
-            Address::Account("47fb97YAZtEEYNpaWz3ccrUCwqEnNfm2qQXiUGHEJ52Fiu7AVi".parse().unwrap());
-        let str = address_to_sql_string(&account_addr);
-        assert_eq!(str, "acc:47fb97YAZtEEYNpaWz3ccrUCwqEnNfm2qQXiUGHEJ52Fiu7AVi");
-        let account_addr_2 = address_from_sql_string(&str).unwrap();
-        assert_eq!(account_addr_2, account_addr);
-    }
 }
 
 /// A wrapper around `ContractAddress` that can be used in the database.

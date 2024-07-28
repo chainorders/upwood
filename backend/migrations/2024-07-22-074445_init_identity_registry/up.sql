@@ -1,34 +1,23 @@
 create table
     identity_registry_identities (
-        contract_index numeric(20) not null,
-        contract_sub_index numeric(20) not null,
+        identity_registry_address varchar not null,
         identity_address varchar not null,
         create_time timestamp not null default (now () at time zone 'utc'),
-        primary key (
-            contract_index,
-            contract_sub_index,
-            identity_address
-        )
+        primary key (identity_registry_address, identity_address)
     );
 
 create table
     identity_registry_issuers (
-        contract_index numeric(20) not null,
-        contract_sub_index numeric(20) not null,
+        identity_registry_address varchar not null,
         issuer_address varchar not null,
         create_time timestamp not null default (now () at time zone 'utc'),
-        primary key (
-            contract_index,
-            contract_sub_index,
-            issuer_address
-        )
+        primary key (identity_registry_address, issuer_address)
     );
 
 create table
     identity_registry_agents (
-        contract_index numeric(20) not null,
-        contract_sub_index numeric(20) not null,
+        identity_registry_address varchar not null,
         agent_address varchar not null,
         create_time timestamp not null default (now () at time zone 'utc'),
-        primary key (contract_index, contract_sub_index, agent_address)
+        primary key (identity_registry_address, agent_address)
     );

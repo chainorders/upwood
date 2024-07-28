@@ -142,6 +142,7 @@ impl VerifierApi {
                         verifier_account,
                         identity_registry,
                         challenge,
+                        Utc::now(),
                     ),
                 )
                 .await?

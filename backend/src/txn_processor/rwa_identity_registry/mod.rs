@@ -85,16 +85,16 @@ mod integration_tests {
             db_setup::run_migrations_on_conn(conn)?;
 
             //execution
-            let count = processor::process_events(conn, now, &contract_address, &events)
-                .expect("Error inserting events for second contract");
-            let _ = processor::process_events(conn, now, &ContractAddress::new(1, 0), &events)
+            processor::process_events(conn, now, &contract_address, &events)
+                .expect("Error inserting events for first contract");
+            processor::process_events(conn, now, &ContractAddress::new(1, 0), &events)
                 .expect("Error inserting events for second contract");
 
             //assertion
             let (identities, page_count) = db::list_identities(conn, &contract_address, 10, 0)
                 .expect("Error Listing Identitites");
             assert_eq!(identities, vec![db::Identity::new(
-                Address::Account(AccountAddress([1; ACCOUNT_ADDRESS_SIZE])),
+                &Address::Account(AccountAddress([1; ACCOUNT_ADDRESS_SIZE])),
                 now,
                 &contract_address
             )]);
@@ -112,7 +112,7 @@ mod integration_tests {
             let (issuers, page_count) =
                 db::list_issuers(conn, &contract_address, 10, 0).expect("Error Listing Agents");
             assert_eq!(issuers, vec![db::Issuer::new(
-                ContractAddress {
+                &ContractAddress {
                     index:    1001,
                     subindex: 0,
                 },
@@ -120,9 +120,6 @@ mod integration_tests {
                 &contract_address
             )]);
             assert_eq!(page_count, 1);
-
-            assert_eq!(count, events.len());
-
             Ok(())
         });
     }

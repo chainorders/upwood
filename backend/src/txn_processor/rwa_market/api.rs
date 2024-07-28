@@ -23,17 +23,13 @@
 //! to convert the query result into a paged response.
 use std::ops::Add;
 
-use super::db::{self};
+use super::db;
 use crate::shared::{
     api::{ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{address_from_sql_string, DbPool},
+    db::DbPool,
 };
-use concordium_rust_sdk::{
-    id::types::AccountAddress,
-    types::{Address, ContractAddress},
-};
+use concordium_rust_sdk::{id::types::AccountAddress, types::ContractAddress};
 use itertools::Itertools;
-use num_traits::ToPrimitive;
 use poem::{web::Data, Result};
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
@@ -49,23 +45,17 @@ pub struct MarketToken {
 
 impl From<db::MarketToken> for MarketToken {
     fn from(value: db::MarketToken) -> Self {
-        let owner = address_from_sql_string(&value.token_owner).expect("Invalid token owner value");
-        let owner = match owner {
-            Address::Account(acc) => acc.to_string(),
-            Address::Contract(_) => unreachable!(),
-        };
         let deposited_amount = value.token_listed_amount.clone().add(&value.token_unlisted_amount);
+        let token_contract: ContractAddress =
+            value.token_contract_address.parse().expect("Error parsing token contract address");
 
         Self {
-            token_contract: ApiContractAddress {
-                index:    value.token_contract_index.to_u64().unwrap(),
-                subindex: value.token_contract_sub_index.to_u64().unwrap(),
-            },
+            token_contract:   ApiContractAddress::from_contract_address(token_contract),
             deposited_amount: deposited_amount.to_string(),
-            listed_amount: value.token_listed_amount.to_string(),
-            unlisted_amount: value.token_unlisted_amount.to_string(),
-            owner,
-            token_id: value.token_id.to_string(),
+            listed_amount:    value.token_listed_amount.to_string(),
+            unlisted_amount:  value.token_unlisted_amount.to_string(),
+            owner:            value.token_owner_address,
+            token_id:         value.token_id.to_string(),
         }
     }
 }

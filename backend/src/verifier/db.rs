@@ -3,8 +3,7 @@ pub mod verifier_challenges {
         schema::{self, verifier_challenges::dsl::*},
         shared::db::{DbConn, DbResult},
     };
-    use bigdecimal::BigDecimal;
-    use chrono::{NaiveDateTime, Utc};
+    use chrono::{DateTime, NaiveDateTime, Utc};
     use concordium_rust_sdk::{
         base::hashes::TransactionHash, id::types::AccountAddress, types::ContractAddress,
     };
@@ -47,18 +46,12 @@ pub mod verifier_challenges {
         verifier: &AccountAddress,
         identity_registry: &ContractAddress,
     ) -> DbResult<Option<DbChallenge>> {
-        let for_accnt_str = for_account.0.to_vec();
-        let verifier_str = verifier.0.to_vec();
         let db_challenge = verifier_challenges
             .filter(
                 account_address
-                    .eq(for_accnt_str)
-                    .and(verifier_account_address.eq(verifier_str))
-                    .and(identity_registry_index.eq::<BigDecimal>(identity_registry.index.into()))
-                    .and(
-                        identity_registry_sub_index
-                            .eq::<BigDecimal>(identity_registry.subindex.into()),
-                    )
+                    .eq(for_account.to_string())
+                    .and(verifier_address.eq(verifier.to_string()))
+                    .and(identity_registry_address.eq(identity_registry.to_string()))
                     .and(txn_hash.is_null()),
             )
             .select(ChallengeSelect::as_select())
@@ -74,13 +67,12 @@ pub mod verifier_challenges {
     #[diesel(table_name = schema::verifier_challenges)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
     pub struct ChallengeInsert {
-        pub account_address:             Vec<u8>,
-        pub verifier_account_address:    Vec<u8>,
-        pub identity_registry_index:     BigDecimal,
-        pub identity_registry_sub_index: BigDecimal,
-        pub challenge:                   Vec<u8>,
-        pub create_time:                 NaiveDateTime,
-        pub update_time:                 NaiveDateTime,
+        pub account_address:           String,
+        pub verifier_address:          String,
+        pub identity_registry_address: String,
+        pub challenge:                 Vec<u8>,
+        pub create_time:               NaiveDateTime,
+        pub update_time:               NaiveDateTime,
     }
 
     impl ChallengeInsert {
@@ -89,15 +81,15 @@ pub mod verifier_challenges {
             verifier_accnt: &AccountAddress,
             identity_registry: &ContractAddress,
             db_challenge: [u8; 32],
+            now_time: DateTime<Utc>,
         ) -> Self {
             ChallengeInsert {
-                account_address:             accnt.0.into(),
-                verifier_account_address:    verifier_accnt.0.into(),
-                identity_registry_index:     identity_registry.index.into(),
-                identity_registry_sub_index: identity_registry.subindex.into(),
-                challenge:                   db_challenge.to_vec(),
-                create_time:                 Utc::now().naive_utc(),
-                update_time:                 Utc::now().naive_utc(),
+                account_address:           accnt.to_string(),
+                verifier_address:          verifier_accnt.to_string(),
+                identity_registry_address: identity_registry.to_string(),
+                challenge:                 db_challenge.to_vec(),
+                create_time:               now_time.naive_utc(),
+                update_time:               now_time.naive_utc(),
             }
         }
     }
