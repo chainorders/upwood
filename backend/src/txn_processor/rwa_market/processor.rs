@@ -1,7 +1,11 @@
-use super::db::{self};
-use crate::{shared::db::DbPool, txn_listener::EventsProcessor};
+use super::db;
+use crate::{
+    shared::db::{DbConn, DbPool},
+    txn_listener::EventsProcessor,
+};
 use anyhow::Ok;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     cis2::{self},
     types::{
@@ -56,100 +60,110 @@ impl EventsProcessor for RwaMarketProcessor {
         contract: &ContractAddress,
         events: &[ContractEvent],
     ) -> anyhow::Result<u64> {
-        let mut process_events_count = 0u64;
         let mut conn = self.pool.get()?;
+        let count = process_events(&mut conn, Utc::now(), contract, events)?;
+        Ok(count as u64)
+    }
+}
 
-        for event in events {
-            let parsed_event = event.parse::<Event>()?;
-            debug!("Event: {}/{} {:?}", contract.index, contract.subindex, parsed_event);
+pub fn process_events(
+    conn: &mut DbConn,
+    _now: DateTime<Utc>,
+    contract: &ContractAddress,
+    events: &[ContractEvent],
+) -> anyhow::Result<usize> {
+    let mut process_events_count: usize = 0;
+    for event in events {
+        let parsed_event = event.parse::<Event>()?;
+        debug!("Event: {}/{}", contract.index, contract.subindex);
+        debug!("{:#?}", parsed_event);
 
-            match parsed_event {
-                Event::Deposited(e) => {
-                    let token = db::MarketToken::new(
-                        *contract,
-                        e.token_id.contract,
-                        e.token_id.id.to_string().parse()?,
-                        e.owner,
-                        e.amount.0.into(),
-                        cis2::TokenAmount(BigUint::zero()),
-                    );
-                    db::insert_or_inc_unlisted_supply(&mut conn, &token)?;
+        match parsed_event {
+            Event::Deposited(e) => {
+                let token = db::MarketToken::new(
+                    *contract,
+                    e.token_id.contract,
+                    e.token_id.id.to_string().parse()?,
+                    e.owner,
+                    e.amount.0.into(),
+                    cis2::TokenAmount(BigUint::zero()),
+                );
+                db::insert_or_inc_unlisted_supply(conn, &token)?;
 
-                    debug!("Deposited Market Token");
-                    debug!("{:#?}", token);
-                    process_events_count += 1;
-                }
-                Event::Withdraw(e) => {
-                    db::update_dec_unlisted_supply(
-                        &mut conn,
+                debug!("Deposited Market Token");
+                debug!("{:#?}", token);
+                process_events_count += 1;
+            }
+            Event::Withdraw(e) => {
+                db::update_dec_unlisted_supply(
+                    conn,
+                    contract,
+                    &e.token_id.contract,
+                    &e.token_id.id.to_string().parse()?,
+                    e.owner,
+                    e.amount.0.into(),
+                )?;
+
+                debug!("Withdraw Market Token");
+                process_events_count += 1;
+            }
+            Event::Listed(e) => {
+                db::update_unlisted_to_listed_supply(
+                    conn,
+                    contract,
+                    &e.token_id.contract,
+                    &e.token_id.id.to_string().parse()?,
+                    e.owner,
+                    e.supply.0.into(),
+                )?;
+
+                debug!("Listed Market Token");
+                process_events_count += 1;
+            }
+            Event::DeListed(e) => {
+                db::update_listed_all_to_unlisted_supply(
+                    conn,
+                    contract,
+                    &e.token_id.contract,
+                    &e.token_id.id.to_string().parse()?,
+                    e.owner,
+                )?;
+
+                debug!("DeListed Market Token");
+                process_events_count += 1;
+            }
+            Event::Exchanged(e) => {
+                conn.transaction(|conn| {
+                    db::update_dec_listed_supply(
+                        conn,
                         contract,
-                        &e.token_id.contract,
-                        &e.token_id.id.to_string().parse()?,
-                        e.owner,
-                        e.amount.0.into(),
+                        &e.buy_token_id.contract,
+                        &e.buy_token_id.id.to_string().parse()?,
+                        e.buy_token_owner,
+                        e.buy_amount.0.into(),
                     )?;
 
-                    debug!("Withdraw Market Token");
-                    process_events_count += 1;
-                }
-                Event::Listed(e) => {
-                    db::update_unlisted_to_listed_supply(
-                        &mut conn,
-                        contract,
-                        &e.token_id.contract,
-                        &e.token_id.id.to_string().parse()?,
-                        e.owner,
-                        e.supply.0.into(),
-                    )?;
-
-                    debug!("Listed Market Token");
-                    process_events_count += 1;
-                }
-                Event::DeListed(e) => {
-                    db::update_listed_all_to_unlisted_supply(
-                        &mut conn,
-                        contract,
-                        &e.token_id.contract,
-                        &e.token_id.id.to_string().parse()?,
-                        e.owner,
-                    )?;
-
-                    debug!("DeListed Market Token");
-                    process_events_count += 1;
-                }
-                Event::Exchanged(e) => {
-                    conn.transaction(|conn| {
-                        db::update_dec_listed_supply(
+                    if let (PaymentTokenUId::Cis2(token_id), PaymentAmount::Cis2(amount)) =
+                        (e.pay_token_id, e.pay_amount)
+                    {
+                        // If the amount to buy has been paid in another cis2 token
+                        db::update_dec_unlisted_supply(
                             conn,
                             contract,
-                            &e.buy_token_id.contract,
-                            &e.buy_token_id.id.to_string().parse()?,
-                            e.buy_token_owner,
-                            e.buy_amount.0.into(),
+                            &token_id.contract,
+                            &token_id.id.to_string().parse()?,
+                            e.pay_token_owner,
+                            amount.0.into(),
                         )?;
+                    }
 
-                        if let (PaymentTokenUId::Cis2(token_id), PaymentAmount::Cis2(amount)) =
-                            (e.pay_token_id, e.pay_amount)
-                        {
-                            // If the amount to buy has been paid in another cis2 token
-                            db::update_dec_unlisted_supply(
-                                conn,
-                                contract,
-                                &token_id.contract,
-                                &token_id.id.to_string().parse()?,
-                                e.pay_token_owner,
-                                amount.0.into(),
-                            )?;
-                        }
-
-                        Ok(())
-                    })?;
-
-                    process_events_count += 1;
-                }
+                    Ok(())
+                })?;
+                debug!("Exchanged Market Token");
+                process_events_count += 1;
             }
         }
-
-        Ok(process_events_count)
     }
+
+    Ok(process_events_count)
 }
