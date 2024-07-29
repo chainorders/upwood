@@ -1,4 +1,5 @@
 use concordium_rust_sdk::{
+    cis2,
     smart_contracts::common::{AccountAddressParseError, AddressParseError},
     types::{Address, ContractAddress},
 };
@@ -24,6 +25,9 @@ impl From<diesel::result::Error> for Error {
 }
 impl From<r2d2::Error> for Error {
     fn from(_: r2d2::Error) -> Self { Self::InternalServerError }
+}
+impl From<cis2::ParseTokenIdVecError> for Error {
+    fn from(_: cis2::ParseTokenIdVecError) -> Self { Self::ParseError }
 }
 impl From<mongodb::error::Error> for Error {
     fn from(_: mongodb::error::Error) -> Self { Self::InternalServerError }
@@ -84,6 +88,22 @@ pub struct ApiAddress {
     pub account_address:  Option<String>,
     pub contract_address: Option<ApiContractAddress>,
 }
+
+impl From<Address> for ApiAddress {
+    fn from(value: Address) -> Self {
+        match value {
+            Address::Account(value) => ApiAddress {
+                account_address:  Some(value.to_string()),
+                contract_address: None,
+            },
+            Address::Contract(value) => ApiAddress {
+                account_address:  None,
+                contract_address: Some(value.into()),
+            },
+        }
+    }
+}
+
 impl From<DbAddress> for ApiAddress {
     fn from(value: DbAddress) -> Self {
         match value.0 {

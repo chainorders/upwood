@@ -5,14 +5,16 @@
 //! The API endpoints are defined using the `poem_openapi` and `poem` crates,
 //! and the responses are serialized as JSON using the `Json` type.
 
-use super::db::{DbToken, RwaSecurityNftDb, TokenHolder};
+use super::db;
 use crate::shared::{
     api::{ApiAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbAddress, DbTokenAmount, ICollection},
+    db::DbPool,
 };
-use bson::{doc, to_bson, Document};
-use concordium_rust_sdk::{base::smart_contracts::OwnedContractName, types::ContractAddress};
-use futures::TryStreamExt;
+use concordium_rust_sdk::{
+    cis2,
+    types::{Address, ContractAddress},
+};
+use itertools::Itertools;
 use poem::web::Data;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 
@@ -28,14 +30,14 @@ pub struct ApiNftToken {
     pub supply:            String,
 }
 
-impl From<DbToken> for ApiNftToken {
-    fn from(db_token: DbToken) -> Self {
-        Self {
-            token_id:          db_token.token_id.0.into(),
-            is_paused:         db_token.is_paused,
-            metadata_url:      db_token.metadata_url.unwrap_or_default(),
-            metadata_url_hash: db_token.metadata_url_hash.unwrap_or_default(),
-            supply:            db_token.supply.0.to_string(),
+impl From<db::SecurityCis2Token> for ApiNftToken {
+    fn from(value: db::SecurityCis2Token) -> Self {
+        ApiNftToken {
+            is_paused:         value.is_paused,
+            metadata_url:      value.metadata_url,
+            metadata_url_hash: value.metadata_hash.map(hex::encode).unwrap_or_default(),
+            supply:            value.supply.to_string(),
+            token_id:          value.token_id,
         }
     }
 }
@@ -49,34 +51,29 @@ pub struct ApiNftHolder {
     pub frozen_balance: String,
 }
 
-impl From<TokenHolder> for ApiNftHolder {
-    fn from(token_holder: TokenHolder) -> Self {
+impl From<db::SecurityCis2TokenHolder> for ApiNftHolder {
+    fn from(token_holder: db::SecurityCis2TokenHolder) -> Self {
+        let address: ApiAddress = token_holder
+            .holder_address
+            .parse::<Address>()
+            .expect("Error parsing holder address to address")
+            .into();
+
         Self {
-            token_id:       token_holder.token_id.0.into(),
-            address:        token_holder.address.into(),
-            balance:        token_holder.balance.0.to_string(),
-            frozen_balance: token_holder.frozen_balance.0.to_string(),
+            token_id: token_holder.token_id,
+            address,
+            balance: token_holder.balance.to_string(),
+            frozen_balance: token_holder.frozen_balance.to_string(),
         }
     }
 }
 
 /// The RWA security NFT API.
-pub struct RwaSecurityNftApi(pub OwnedContractName);
+pub struct RwaSecurityNftApi;
 
 /// API implementation for the RWA security NFT.
 #[OpenApi]
 impl RwaSecurityNftApi {
-    pub fn db(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        contract: &ContractAddress,
-    ) -> RwaSecurityNftDb {
-        let db =
-            client.database(&format!("{}-{}-{}", contract_name, contract.index, contract.subindex));
-
-        RwaSecurityNftDb::init(db)
-    }
-
     /// Get the list of tokens for a specific RWA security NFT contract.
     ///
     /// # Parameters
@@ -89,21 +86,24 @@ impl RwaSecurityNftApi {
     #[oai(path = "/rwa-security-nft/:index/:subindex/tokens/:page", method = "get")]
     pub async fn tokens(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
-        Path(page): Path<u64>,
+        Path(page): Path<i64>,
     ) -> Result<Json<PagedResponse<ApiNftToken>>, Error> {
-        let contract = ContractAddress {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "supply": {
-                "$ne": to_bson(&DbTokenAmount::zero())?,
-            }
+        let mut conn = pool.get()?;
+        let (tokens, page_count) =
+            db::list_tokens_for_contract(&mut conn, &cis2_address, PAGE_SIZE as i64, page)?;
+        let tokens: Vec<ApiNftToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let res = PagedResponse {
+            data:       tokens,
+            page:       page as u64,
+            page_count: page_count as u64,
         };
-        let res = Self::to_paged_token_response(client, &self.0, query, contract, page).await?;
         Ok(Json(res))
     }
 
@@ -120,35 +120,33 @@ impl RwaSecurityNftApi {
     #[oai(path = "/rwa-security-nft/:index/:subindex/holders/:address/:page", method = "get")]
     pub async fn holders(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(address): Path<String>,
-        Path(page): Path<u64>,
+        Path(page): Path<i64>,
     ) -> Result<Json<PagedResponse<ApiNftHolder>>, Error> {
-        let contract = ContractAddress {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let address: DbAddress = DbAddress(address.parse()?);
-        let query = doc! {
-            "address": to_bson(&address)?,
-            "balance": {
-                "$ne": "0",
-            }
-        };
-        let coll = Self::db(client, &self.0, &contract).holders;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<ApiNftHolder> = data.into_iter().map(|holder| holder.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-        let res = PagedResponse {
-            page_count,
-            page: 0,
-            data,
-        };
+        let holder_address: Address = address.parse()?;
 
+        let mut conn = pool.get()?;
+        let (tokens, page_count) = db::list_tokens_by_holder(
+            &mut conn,
+            &cis2_address,
+            &holder_address,
+            PAGE_SIZE as i64,
+            page,
+        )?;
+
+        let tokens: Vec<ApiNftHolder> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let res = PagedResponse {
+            data:       tokens,
+            page:       page as u64,
+            page_count: page_count as u64,
+        };
         Ok(Json(res))
     }
 
@@ -167,61 +165,28 @@ impl RwaSecurityNftApi {
     #[oai(path = "/rwa-security-nft/:index/:subindex/holdersOf/:token_id/:page", method = "get")]
     pub async fn holders_of(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(token_id): Path<String>,
-        Path(page): Path<u64>,
+        Path(page): Path<i64>,
     ) -> Result<Json<PagedResponse<ApiNftHolder>>, Error> {
-        let contract = ContractAddress {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "token_id": token_id,
-        };
-        let coll = Self::db(client, &self.0, &contract).holders;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<ApiNftHolder> = data.into_iter().map(|holder| holder.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
+        let token_id: cis2::TokenId = token_id.parse()?;
+
+        let mut conn = pool.get()?;
+        let (tokens, page_count) =
+            db::list_holders_by_token(&mut conn, &cis2_address, &token_id, PAGE_SIZE as i64, page)?;
+
+        let tokens: Vec<ApiNftHolder> = tokens.into_iter().map(|t| t.into()).collect_vec();
         let res = PagedResponse {
-            page_count,
-            page: 0,
-            data,
+            data:       tokens,
+            page:       page as u64,
+            page_count: page_count as u64,
         };
-
         Ok(Json(res))
-    }
-
-    /// Convert the query result to a paged token response.
-    ///
-    /// # Parameters
-    /// - `query`: The query to filter the tokens.
-    /// - `contract`: The contract address of the RWA security NFT contract.
-    /// - `page`: The page number of the results.
-    ///
-    /// # Returns
-    /// A paged response containing the filtered tokens.
-    pub async fn to_paged_token_response(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        query: Document,
-        contract: ContractAddress,
-        page: u64,
-    ) -> anyhow::Result<PagedResponse<ApiNftToken>> {
-        let coll = Self::db(client, contract_name, &contract).tokens;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<DbToken> = cursor.try_collect().await?;
-        let data: Vec<ApiNftToken> = data.into_iter().map(|token| token.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-
-        Ok(PagedResponse {
-            page_count,
-            page,
-            data,
-        })
     }
 }
