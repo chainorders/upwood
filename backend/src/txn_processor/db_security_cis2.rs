@@ -60,19 +60,25 @@ pub fn list_agents(
     Ok((res, page_count))
 }
 
-pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<usize> {
-    diesel::insert_into(security_cis2_contract_agents::table).values(agent).execute(conn)
+pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<()> {
+    let updated_rows =
+        diesel::insert_into(security_cis2_contract_agents::table).values(agent).execute(conn)?;
+    assert_eq!(updated_rows, 1, "error {} rows were updated", updated_rows);
+    Ok(())
 }
 
 pub fn remove_agent(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
     agent_address: &Address,
-) -> DbResult<usize> {
+) -> DbResult<()> {
     let delete_filter = security_cis2_contract_agents::cis2_address
         .eq(cis2_address.to_string())
         .and(security_cis2_contract_agents::agent_address.eq(agent_address.to_string()));
-    diesel::delete(security_cis2_contract_agents::table).filter(delete_filter).execute(conn)
+    let updated_rows =
+        diesel::delete(security_cis2_contract_agents::table).filter(delete_filter).execute(conn)?;
+    assert_eq!(updated_rows, 1, "error {} rows were updated", updated_rows);
+    Ok(())
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq)]
