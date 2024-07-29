@@ -222,7 +222,7 @@ pub fn list_tokens_by_owner(
         .eq(market_contract.to_string())
         .and(token_market::token_owner_address.eq(token_owner.to_string()));
     let tokens: Vec<MarketToken> = token_market::table
-        .filter(filter.clone())
+        .filter(&filter)
         .order((token_market::token_contract_address, token_market::token_id))
         .offset(page * page_size)
         .limit(page_size)
