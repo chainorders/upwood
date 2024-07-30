@@ -19,11 +19,14 @@ use crate::{
     shared::db::DbPool,
     txn_listener::{EventsProcessor, TransactionsListener},
 };
+use cis2_processor::RwaSecurityCIS2Processor;
 use clap::Parser;
 use concordium_rust_sdk::{
     types::smart_contracts::OwnedContractName,
     v2::{self, Endpoint},
 };
+use concordium_rwa_security_sft::types::NftTokenId;
+use concordium_rwa_utils::cis2_types::{NftTokenAmount, SftTokenAmount, SftTokenId};
 use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
@@ -38,8 +41,8 @@ use poem::{
 use poem_openapi::OpenApiService;
 use rwa_identity_registry::processor::*;
 use rwa_market::{api::*, processor::*};
-use rwa_security_nft::{api::*, processor::*};
-use rwa_security_sft::{api::*, processor::*};
+use rwa_security_nft::api::*;
+use rwa_security_sft::api::*;
 use std::{io::Write, str::FromStr, sync::Arc, time::Duration};
 use tokio::{spawn, sync::RwLock};
 
@@ -145,16 +148,16 @@ async fn create_listener(config: ListenerConfig) -> anyhow::Result<TransactionsL
             contract_name: OwnedContractName::new(config.rwa_identity_registry_contract_name)?,
             pool:          pool.clone(),
         })),
-        Arc::new(RwLock::new(RwaSecurityNftProcessor {
-            module_ref:    config.rwa_security_nft_module_ref.parse()?,
-            contract_name: OwnedContractName::new(config.rwa_security_nft_contract_name)?,
-            pool:          pool.clone(),
-        })),
-        Arc::new(RwLock::new(RwaSecuritySftProcessor {
-            module_ref:    config.rwa_security_sft_module_ref.parse()?,
-            contract_name: OwnedContractName::new(config.rwa_security_sft_contract_name)?,
-            pool:          pool.clone(),
-        })),
+        Arc::new(RwLock::new(RwaSecurityCIS2Processor::<NftTokenId, NftTokenAmount>::new(
+            pool.clone(),
+            config.rwa_security_nft_module_ref.parse()?,
+            OwnedContractName::new(config.rwa_security_nft_contract_name)?,
+        ))),
+        Arc::new(RwLock::new(RwaSecurityCIS2Processor::<SftTokenId, SftTokenAmount>::new(
+            pool.clone(),
+            config.rwa_security_sft_module_ref.parse()?,
+            OwnedContractName::new(config.rwa_security_sft_contract_name)?,
+        ))),
         Arc::new(RwLock::new(RwaMarketProcessor {
             module_ref:    config.rwa_market_module_ref.parse()?,
             contract_name: OwnedContractName::new(config.rwa_market_contract_name)?,

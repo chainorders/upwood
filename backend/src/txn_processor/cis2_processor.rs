@@ -1,19 +1,33 @@
+use std::marker::PhantomData;
+
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use concordium_cis2::{
     BurnEvent, Cis2Event, IsTokenAmount, IsTokenId, MintEvent, OperatorUpdate, TokenMetadataEvent,
     TransferEvent, UpdateOperatorEvent,
 };
 use concordium_rust_sdk::{
-    base::contracts_common::{Cursor, Serial},
+    base::{
+        contracts_common::{Cursor, Serial},
+        hashes::ModuleReference,
+        smart_contracts::{ContractEvent, OwnedContractName},
+    },
     cis2,
     types::{Address, ContractAddress},
+};
+use concordium_rwa_utils::concordium_cis2_security::{
+    AgentUpdatedEvent, Cis2SecurityEvent, ComplianceAdded, IdentityRegistryAdded, Paused,
+    RecoverEvent, TokenDeposited, TokenFrozen,
 };
 use diesel::Connection;
 use log::debug;
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-use crate::shared::db::{DbConn, DbResult};
+use crate::{
+    shared::db::{DbConn, DbPool, DbResult},
+    txn_listener::EventsProcessor,
+};
 
 use super::cis2_db::{self as db};
 
@@ -310,4 +324,152 @@ where
     T: IsTokenId + ToString, {
     let token_id = token_id.to_string().parse()?;
     Ok(token_id)
+}
+
+type Event<T, A> = Cis2SecurityEvent<T, A>;
+pub fn process_events<T, A>(
+    conn: &mut DbConn,
+    now: DateTime<Utc>,
+    cis2_address: &ContractAddress,
+    events: &[ContractEvent],
+) -> anyhow::Result<()>
+where
+    T: IsTokenId + std::fmt::Debug + ToString,
+    A: IsTokenAmount + std::fmt::Debug, {
+    for event in events {
+        let parsed_event = event.parse::<Event<T, A>>()?;
+        debug!("Event: {}/{}", cis2_address.index, cis2_address.subindex);
+        debug!("{:#?}", parsed_event);
+
+        match parsed_event {
+            Event::Deposited(TokenDeposited {
+                token_id,
+                owner,
+                amount,
+            }) => cis2_deposited(
+                conn,
+                cis2_address,
+                &token_id.contract,
+                &token_id.id,
+                &Address::Account(owner),
+                &amount,
+            )?,
+            Event::Withdraw(TokenDeposited {
+                token_id,
+                owner,
+                amount,
+            }) => cis2_withdrawn(
+                conn,
+                cis2_address,
+                &token_id.contract,
+                &token_id.id,
+                &Address::Account(owner),
+                &amount,
+            )?,
+            Event::AgentAdded(AgentUpdatedEvent {
+                agent,
+            }) => agent_added(conn, agent, now, cis2_address)?,
+            Event::AgentRemoved(AgentUpdatedEvent {
+                agent,
+            }) => agent_removed(conn, cis2_address, agent)?,
+            Event::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
+                compliance_updated(conn, cis2_address, compliance_contract)?
+            }
+            Event::IdentityRegistryAdded(IdentityRegistryAdded(identity_registry_contract)) => {
+                identity_registry_updated(conn, cis2_address, identity_registry_contract)?
+            }
+            Event::Paused(Paused {
+                token_id,
+            }) => token_paused(conn, cis2_address, token_id)?,
+            Event::UnPaused(Paused {
+                token_id,
+            }) => token_unpaused(conn, cis2_address, token_id)?,
+            Event::Recovered(RecoverEvent {
+                lost_account,
+                new_account,
+            }) => account_recovered(conn, cis2_address, lost_account, new_account)?,
+            Event::TokenFrozen(TokenFrozen {
+                address,
+                amount,
+                token_id,
+            }) => token_frozen(conn, cis2_address, token_id, address, amount)?,
+            Event::TokenUnFrozen(TokenFrozen {
+                address,
+                amount,
+                token_id,
+            }) => token_un_frozen(conn, cis2_address, token_id, address, amount)?,
+            Event::Cis2(e) => cis2(conn, now, cis2_address, e)?,
+        }
+    }
+
+    Ok(())
+}
+
+pub struct RwaSecurityCIS2Processor<T, A> {
+    pub pool:                  DbPool,
+    /// Module reference of the contract.
+    pub module_ref:            ModuleReference,
+    /// Name of the contract.
+    pub contract_name:         OwnedContractName,
+    pub _phantom_token_id:     PhantomData<T>,
+    pub _phantom_token_amount: PhantomData<A>,
+}
+
+impl<T, A> RwaSecurityCIS2Processor<T, A> {
+    pub fn new(
+        pool: DbPool,
+        module_ref: ModuleReference,
+        contract_name: OwnedContractName,
+    ) -> Self {
+        Self {
+            pool,
+            module_ref,
+            contract_name,
+            _phantom_token_id: Default::default(),
+            _phantom_token_amount: Default::default(),
+        }
+    }
+}
+
+#[async_trait]
+impl<T, A> EventsProcessor for RwaSecurityCIS2Processor<T, A>
+where
+    T: IsTokenId + Send + Sync + std::fmt::Debug + ToString,
+    A: IsTokenAmount + Send + Sync + std::fmt::Debug,
+{
+    /// Returns the name of the contract this processor is responsible for.
+    ///
+    /// # Returns
+    ///
+    /// * A reference to the `OwnedContractName` of the contract.
+    fn contract_name(&self) -> &OwnedContractName { &self.contract_name }
+
+    /// Returns the module reference of the contract this processor is
+    /// responsible for.
+    ///
+    /// # Returns
+    ///
+    /// * A reference to the `ModuleReference` of the contract.
+    fn module_ref(&self) -> &ModuleReference { &self.module_ref }
+
+    /// Processes the events of the contract.
+    ///
+    /// # Arguments
+    ///
+    /// * `contract` - A reference to the `ContractAddress` of the contract
+    ///   whose events are to be processed.
+    /// * `events` - A slice of `ContractEvent`s to be processed.
+    ///
+    /// # Returns
+    ///
+    /// * A Result indicating the success or failure of the operation.
+    async fn process_events(
+        &mut self,
+        contract: &ContractAddress,
+        events: &[ContractEvent],
+    ) -> anyhow::Result<u64> {
+        let mut conn = self.pool.get()?;
+        process_events::<T, A>(&mut conn, Utc::now(), contract, events)?;
+        Ok(events.len() as u64)
+    }
 }

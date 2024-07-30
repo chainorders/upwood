@@ -9,5 +9,4 @@
 //! `IRwaSecurityNftDb` trait to fetch data from the database
 
 pub mod api;
-pub mod processor;
 use super::cis2_api;
