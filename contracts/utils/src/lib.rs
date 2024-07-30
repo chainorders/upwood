@@ -1,6 +1,5 @@
 pub mod agents_state;
 pub mod cis2_conversions;
-pub mod cis2_schema_types;
 pub mod cis2_security_state;
 pub mod cis2_state;
 pub mod cis2_types;

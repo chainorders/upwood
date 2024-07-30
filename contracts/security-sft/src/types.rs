@@ -1,6 +1,6 @@
 use super::error::Error;
 use concordium_cis2::{OnReceivingCis2Params, Receiver, TokenIdVec};
-use concordium_rwa_utils::{cis2_schema_types, cis2_types, concordium_cis2_security};
+use concordium_rwa_utils::{cis2_types, concordium_cis2_security};
 use concordium_std::*;
 
 pub type ContractResult<R> = Result<R, Error>;
@@ -8,8 +8,8 @@ pub type TokenAmount = cis2_types::SftTokenAmount;
 pub type TokenId = cis2_types::SftTokenId;
 pub type NftTokenAmount = cis2_types::NftTokenAmount;
 pub type NftTokenId = TokenIdVec;
-pub type NftTokenUId = cis2_schema_types::TokenUId<NftTokenId>;
-pub type NftTokenOwnerUId = cis2_schema_types::TokenOwnerUId<NftTokenId>;
+pub type NftTokenUId = concordium_cis2_security::TokenUId<NftTokenId>;
+pub type NftTokenOwnerUId = concordium_cis2_security::TokenOwnerUId<NftTokenId>;
 pub type ContractTransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
 pub type ContractBalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
 pub type ContractBalanceOfQuery = concordium_cis2::BalanceOfQuery<TokenId>;
@@ -22,6 +22,7 @@ pub type FreezeParams = concordium_cis2_security::FreezeParams<TokenId, TokenAmo
 pub type FrozenParams = concordium_cis2_security::FrozenParams<TokenId>;
 pub type FrozenResponse = concordium_cis2_security::FrozenResponse<TokenAmount>;
 pub type DepositParams = OnReceivingCis2Params<NftTokenId, NftTokenAmount>;
+pub type Event = concordium_cis2_security::Cis2SecurityEvent<TokenId, TokenAmount>;
 pub use cis2_types::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 pub use concordium_rwa_utils::cis2_conversions::Rate;

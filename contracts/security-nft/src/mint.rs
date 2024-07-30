@@ -1,4 +1,4 @@
-use super::{error::*, event::*, state::State, types::*};
+use super::{error::*, state::State, types::*};
 use concordium_cis2::{
     AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver, TokenAmountU8,
     TokenMetadataEvent,

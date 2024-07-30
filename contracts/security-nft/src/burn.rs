@@ -1,4 +1,4 @@
-use super::{error::Error, event::Event, state::State, types::*};
+use super::{error::Error, state::State, types::*};
 use concordium_cis2::{BurnEvent, Cis2Event};
 use concordium_rwa_utils::{
     clients::compliance_client::{ComplianceContract, IComplianceClient},

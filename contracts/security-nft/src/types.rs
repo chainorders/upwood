@@ -18,6 +18,7 @@ pub type FreezeParams = concordium_cis2_security::FreezeParams<TokenId, TokenAmo
 pub type FreezeParam = concordium_cis2_security::FreezeParam<TokenId, TokenAmount>;
 pub type FrozenParams = concordium_cis2_security::FrozenParams<TokenId>;
 pub type FrozenResponse = concordium_cis2_security::FrozenResponse<TokenAmount>;
+pub type Event = concordium_cis2_security::Cis2SecurityEvent<TokenId, TokenAmount>;
 pub use cis2_types::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 
