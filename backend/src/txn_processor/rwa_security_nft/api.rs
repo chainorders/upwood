@@ -30,8 +30,8 @@ pub struct ApiNftToken {
     pub supply:            String,
 }
 
-impl From<db::SecurityCis2Token> for ApiNftToken {
-    fn from(value: db::SecurityCis2Token) -> Self {
+impl From<db::Token> for ApiNftToken {
+    fn from(value: db::Token) -> Self {
         ApiNftToken {
             is_paused:         value.is_paused,
             metadata_url:      value.metadata_url,
@@ -51,8 +51,8 @@ pub struct ApiNftHolder {
     pub frozen_balance: String,
 }
 
-impl From<db::SecurityCis2TokenHolder> for ApiNftHolder {
-    fn from(token_holder: db::SecurityCis2TokenHolder) -> Self {
+impl From<db::TokenHolder> for ApiNftHolder {
+    fn from(token_holder: db::TokenHolder) -> Self {
         let address: ApiAddress = token_holder
             .holder_address
             .parse::<Address>()

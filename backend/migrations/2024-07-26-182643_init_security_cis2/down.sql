@@ -1,7 +1,7 @@
-drop table security_cis2_contract_compliances;
-drop table security_cis2_contract_identity_registries;
-drop table security_cis2_contract_tokens;
-drop table security_cis2_contract_token_holders;
-drop table security_cis2_contract_agents;
-drop table security_cis2_contract_operators;
-drop table security_cis2_contract_recovery_records;
+drop table cis2_compliances;
+drop table cis2_identity_registries;
+drop table cis2_tokens;
+drop table cis2_token_holders;
+drop table cis2_agents;
+drop table cis2_operators;
+drop table cis2_recovery_records;

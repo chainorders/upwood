@@ -37,7 +37,7 @@ where
             conn.transaction(|conn| {
                 db::insert_holder_or_add_balance(
                     conn,
-                    &db::SecurityCis2TokenHolder::new(
+                    &db::TokenHolder::new(
                         cis2_address,
                         &token_id,
                         &owner,
@@ -57,7 +57,7 @@ where
             let token_id = token_id.to_string().parse::<cis2::TokenId>()?;
             db::insert_token_or_update_metadata(
                 conn,
-                &db::SecurityCis2Token::new(
+                &db::Token::new(
                     cis2_address,
                     &token_id,
                     false,
@@ -93,7 +93,7 @@ where
                 db::update_sub_balance(conn, cis2_address, &token_id, &from, &token_amount)?;
                 db::insert_holder_or_add_balance(
                     conn,
-                    &db::SecurityCis2TokenHolder::new(
+                    &db::TokenHolder::new(
                         cis2_address,
                         &token_id,
                         &to,
@@ -110,7 +110,7 @@ where
             operator,
             update,
         }) => {
-            let record = db::SecurityCis2Operator::new(cis2_address, &owner, &operator);
+            let record = db::Operator::new(cis2_address, &owner, &operator);
             match update {
                 OperatorUpdate::Add => db::insert_operator(conn, &record)?,
                 OperatorUpdate::Remove => db::delete_operator(conn, &record)?,
@@ -143,10 +143,7 @@ pub fn compliance_updated(
     cis2_address: &ContractAddress,
     compliance_contract: ContractAddress,
 ) -> anyhow::Result<()> {
-    db::upsert_compliance(
-        conn,
-        &db::SecurityCis2ContractCompliance::new(cis2_address, &compliance_contract),
-    )?;
+    db::upsert_compliance(conn, &db::Compliance::new(cis2_address, &compliance_contract))?;
     Ok(())
 }
 
@@ -157,7 +154,7 @@ pub fn identity_registry_updated(
 ) -> anyhow::Result<()> {
     db::upsert_identity_registry(
         conn,
-        &db::SecurityCis2ContractIdentityRegistry::new(cis2_address, &identity_registry_contract),
+        &db::IdentityRegistry::new(cis2_address, &identity_registry_contract),
     )?;
     Ok(())
 }
@@ -193,7 +190,7 @@ pub fn account_recovered(
     let updated_rows = conn.transaction(|conn| {
         db::insert_recovery_record(
             conn,
-            &db::SecurityCis2RecoveryRecord::new(cis2_address, &lost_account, &new_account),
+            &db::RecoveryRecord::new(cis2_address, &lost_account, &new_account),
         )?;
         db::update_replace_holder(conn, cis2_address, &lost_account, &new_account)
     })?;

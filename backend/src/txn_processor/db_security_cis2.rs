@@ -2,10 +2,8 @@ use std::ops::{Add, Sub};
 
 use crate::{
     schema::{
-        security_cis2_contract_agents, security_cis2_contract_compliances,
-        security_cis2_contract_identity_registries, security_cis2_contract_operators,
-        security_cis2_contract_recovery_records, security_cis2_contract_token_holders,
-        security_cis2_contract_tokens,
+        cis2_agents, cis2_compliances, cis2_identity_registries, cis2_operators,
+        cis2_recovery_records, cis2_token_holders, cis2_tokens,
     },
     shared::db::{token_amount_to_sql, DbConn, DbResult},
 };
@@ -18,7 +16,7 @@ use concordium_rust_sdk::{
 use diesel::prelude::*;
 use num_traits::Zero;
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
-#[diesel(table_name = security_cis2_contract_agents)]
+#[diesel(table_name = cis2_agents)]
 #[diesel(primary_key(cis2_address, agent_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Agent {
@@ -46,23 +44,21 @@ pub fn list_agents(
     page_size: i64,
     page: i64,
 ) -> DbResult<(Vec<Agent>, i64)> {
-    let select_filter = security_cis2_contract_agents::cis2_address.eq(cis2_address.to_string());
-    let res: Vec<Agent> = security_cis2_contract_agents::table
+    let select_filter = cis2_agents::cis2_address.eq(cis2_address.to_string());
+    let res: Vec<Agent> = cis2_agents::table
         .filter(select_filter.clone())
         .select(Agent::as_select())
         .limit(page_size)
         .offset(page_size * page)
         .get_results(conn)?;
-    let count: i64 =
-        security_cis2_contract_agents::table.filter(select_filter).count().get_result(conn)?;
+    let count: i64 = cis2_agents::table.filter(select_filter).count().get_result(conn)?;
     let page_count = (count + page_size - 1) / page_size;
 
     Ok((res, page_count))
 }
 
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<()> {
-    let updated_rows =
-        diesel::insert_into(security_cis2_contract_agents::table).values(agent).execute(conn)?;
+    let updated_rows = diesel::insert_into(cis2_agents::table).values(agent).execute(conn)?;
     assert_eq!(updated_rows, 1, "error {} rows were updated", updated_rows);
     Ok(())
 }
@@ -72,40 +68,36 @@ pub fn remove_agent(
     cis2_address: &ContractAddress,
     agent_address: &Address,
 ) -> DbResult<()> {
-    let delete_filter = security_cis2_contract_agents::cis2_address
+    let delete_filter = cis2_agents::cis2_address
         .eq(cis2_address.to_string())
-        .and(security_cis2_contract_agents::agent_address.eq(agent_address.to_string()));
-    let updated_rows =
-        diesel::delete(security_cis2_contract_agents::table).filter(delete_filter).execute(conn)?;
+        .and(cis2_agents::agent_address.eq(agent_address.to_string()));
+    let updated_rows = diesel::delete(cis2_agents::table).filter(delete_filter).execute(conn)?;
     assert_eq!(updated_rows, 1, "error {} rows were updated", updated_rows);
     Ok(())
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq)]
-#[diesel(table_name = security_cis2_contract_compliances)]
+#[diesel(table_name = cis2_compliances)]
 #[diesel(primary_key(cis2_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityCis2ContractCompliance {
+pub struct Compliance {
     pub cis2_address:       String,
     pub compliance_address: String,
 }
 
-impl SecurityCis2ContractCompliance {
+impl Compliance {
     pub fn new(cis2_address: &ContractAddress, compliance: &ContractAddress) -> Self {
-        SecurityCis2ContractCompliance {
+        Compliance {
             cis2_address:       cis2_address.to_string(),
             compliance_address: compliance.to_string(),
         }
     }
 }
 
-pub fn upsert_compliance(
-    conn: &mut DbConn,
-    record: &SecurityCis2ContractCompliance,
-) -> DbResult<()> {
-    let row_count = diesel::insert_into(security_cis2_contract_compliances::table)
+pub fn upsert_compliance(conn: &mut DbConn, record: &Compliance) -> DbResult<()> {
+    let row_count = diesel::insert_into(cis2_compliances::table)
         .values(record)
-        .on_conflict((security_cis2_contract_compliances::cis2_address,))
+        .on_conflict((cis2_compliances::cis2_address,))
         .do_update()
         .set(record)
         .execute(conn)?;
@@ -117,33 +109,30 @@ pub fn upsert_compliance(
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq)]
 #[diesel(table_name =
-security_cis2_contract_identity_registries)]
+cis2_identity_registries)]
 #[diesel(primary_key(cis2_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityCis2ContractIdentityRegistry {
+pub struct IdentityRegistry {
     pub cis2_address:              String,
     pub identity_registry_address: String,
 }
 
-impl SecurityCis2ContractIdentityRegistry {
+impl IdentityRegistry {
     pub fn new(
         cis2_address: &ContractAddress,
         identity_registry_address: &ContractAddress,
     ) -> Self {
-        SecurityCis2ContractIdentityRegistry {
+        IdentityRegistry {
             cis2_address:              cis2_address.to_string(),
             identity_registry_address: identity_registry_address.to_string(),
         }
     }
 }
 
-pub fn upsert_identity_registry(
-    conn: &mut DbConn,
-    record: &SecurityCis2ContractIdentityRegistry,
-) -> DbResult<()> {
-    let row_count = diesel::insert_into(security_cis2_contract_identity_registries::table)
+pub fn upsert_identity_registry(conn: &mut DbConn, record: &IdentityRegistry) -> DbResult<()> {
+    let row_count = diesel::insert_into(cis2_identity_registries::table)
         .values(record)
-        .on_conflict((security_cis2_contract_identity_registries::cis2_address,))
+        .on_conflict((cis2_identity_registries::cis2_address,))
         .do_update()
         .set(record)
         .execute(conn)?;
@@ -159,25 +148,23 @@ pub fn update_token_paused(
     token_id: &cis2::TokenId,
     paused: bool,
 ) -> DbResult<()> {
-    let update_filter = security_cis2_contract_tokens::cis2_address
+    let update_filter = cis2_tokens::cis2_address
         .eq(cis2_address.to_string())
-        .and(security_cis2_contract_tokens::token_id.eq(token_id.to_string()));
-    let update = security_cis2_contract_tokens::is_paused.eq(paused);
+        .and(cis2_tokens::token_id.eq(token_id.to_string()));
+    let update = cis2_tokens::is_paused.eq(paused);
 
-    let row_count = diesel::update(security_cis2_contract_tokens::table)
-        .filter(update_filter)
-        .set(update)
-        .execute(conn)?;
+    let row_count =
+        diesel::update(cis2_tokens::table).filter(update_filter).set(update).execute(conn)?;
     assert_eq!(row_count, 1, "More than one row updated");
 
     Ok(())
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq)]
-#[diesel(table_name = security_cis2_contract_token_holders)]
+#[diesel(table_name = cis2_token_holders)]
 #[diesel(primary_key(cis2_address, token_id, holder_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityCis2TokenHolder {
+pub struct TokenHolder {
     pub cis2_address:   String,
     pub token_id:       String,
     pub holder_address: String,
@@ -186,7 +173,7 @@ pub struct SecurityCis2TokenHolder {
     pub create_time:    NaiveDateTime,
 }
 
-impl SecurityCis2TokenHolder {
+impl TokenHolder {
     pub fn new(
         cis2_address: &ContractAddress,
         token_id: &cis2::TokenId,
@@ -212,16 +199,16 @@ pub fn list_tokens_by_holder(
     holder_address: &Address,
     page_size: i64,
     page: i64,
-) -> DbResult<(Vec<SecurityCis2TokenHolder>, i64)> {
-    let query = security_cis2_contract_token_holders::table.filter(
-        security_cis2_contract_token_holders::cis2_address.eq(cis2_address.to_string()).and(
-            security_cis2_contract_token_holders::holder_address.eq(holder_address.to_string()),
-        ),
+) -> DbResult<(Vec<TokenHolder>, i64)> {
+    let query = cis2_token_holders::table.filter(
+        cis2_token_holders::cis2_address
+            .eq(cis2_address.to_string())
+            .and(cis2_token_holders::holder_address.eq(holder_address.to_string())),
     );
     let tokens = query
         .clone()
-        .select(SecurityCis2TokenHolder::as_select())
-        .order(security_cis2_contract_token_holders::create_time)
+        .select(TokenHolder::as_select())
+        .order(cis2_token_holders::create_time)
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
@@ -237,16 +224,16 @@ pub fn list_holders_by_token(
     token_id: &cis2::TokenId,
     page_size: i64,
     page: i64,
-) -> DbResult<(Vec<SecurityCis2TokenHolder>, i64)> {
-    let query = security_cis2_contract_token_holders::table.filter(
-        security_cis2_contract_token_holders::cis2_address
+) -> DbResult<(Vec<TokenHolder>, i64)> {
+    let query = cis2_token_holders::table.filter(
+        cis2_token_holders::cis2_address
             .eq(cis2_address.to_string())
-            .and(security_cis2_contract_token_holders::token_id.eq(token_id.to_string())),
+            .and(cis2_token_holders::token_id.eq(token_id.to_string())),
     );
     let tokens = query
         .clone()
-        .select(SecurityCis2TokenHolder::as_select())
-        .order(security_cis2_contract_token_holders::create_time)
+        .select(TokenHolder::as_select())
+        .order(cis2_token_holders::create_time)
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
@@ -264,26 +251,24 @@ pub fn update_balance_frozen(
     balance_delta: &cis2::TokenAmount,
     increase: bool,
 ) -> DbResult<()> {
-    let update_filter = security_cis2_contract_token_holders::cis2_address
+    let update_filter = cis2_token_holders::cis2_address
         .eq(cis2_address.to_string())
-        .and(security_cis2_contract_token_holders::token_id.eq(token_id.to_string()))
-        .and(security_cis2_contract_token_holders::holder_address.eq(holder_address.to_string()));
+        .and(cis2_token_holders::token_id.eq(token_id.to_string()))
+        .and(cis2_token_holders::holder_address.eq(holder_address.to_string()));
 
     let updated_rows = match increase {
         true => {
-            let update = security_cis2_contract_token_holders::frozen_balance
-                .eq(security_cis2_contract_token_holders::frozen_balance
-                    .add(token_amount_to_sql(balance_delta)));
-            diesel::update(security_cis2_contract_token_holders::table)
+            let update = cis2_token_holders::frozen_balance
+                .eq(cis2_token_holders::frozen_balance.add(token_amount_to_sql(balance_delta)));
+            diesel::update(cis2_token_holders::table)
                 .filter(update_filter)
                 .set(update)
                 .execute(conn)?
         }
         false => {
-            let update = security_cis2_contract_token_holders::frozen_balance
-                .eq(security_cis2_contract_token_holders::frozen_balance
-                    .sub(token_amount_to_sql(balance_delta)));
-            diesel::update(security_cis2_contract_token_holders::table)
+            let update = cis2_token_holders::frozen_balance
+                .eq(cis2_token_holders::frozen_balance.sub(token_amount_to_sql(balance_delta)));
+            diesel::update(cis2_token_holders::table)
                 .filter(update_filter)
                 .set(update)
                 .execute(conn)?
@@ -294,21 +279,17 @@ pub fn update_balance_frozen(
     Ok(())
 }
 
-pub fn insert_holder_or_add_balance(
-    conn: &mut DbConn,
-    holder: &SecurityCis2TokenHolder,
-) -> DbResult<()> {
-    let updated_rows = diesel::insert_into(security_cis2_contract_token_holders::table)
+pub fn insert_holder_or_add_balance(conn: &mut DbConn, holder: &TokenHolder) -> DbResult<()> {
+    let updated_rows = diesel::insert_into(cis2_token_holders::table)
         .values(holder)
         .on_conflict((
-            security_cis2_contract_token_holders::cis2_address,
-            security_cis2_contract_token_holders::token_id,
-            security_cis2_contract_token_holders::holder_address,
+            cis2_token_holders::cis2_address,
+            cis2_token_holders::token_id,
+            cis2_token_holders::holder_address,
         ))
         .do_update()
         .set(
-            security_cis2_contract_token_holders::balance
-                .eq(security_cis2_contract_token_holders::balance.add(holder.balance.clone())),
+            cis2_token_holders::balance.eq(cis2_token_holders::balance.add(holder.balance.clone())),
         )
         .execute(conn)?;
     assert_eq!(updated_rows, 1, "error: {} rows(s) updated", updated_rows);
@@ -324,26 +305,20 @@ pub fn update_sub_balance(
     balance_delta: &cis2::TokenAmount,
 ) -> DbResult<()> {
     conn.transaction(|conn| {
-        let update_filter = security_cis2_contract_token_holders::cis2_address
+        let update_filter = cis2_token_holders::cis2_address
             .eq(cis2_address.to_string())
-            .and(security_cis2_contract_token_holders::token_id.eq(token_id.to_string()))
-            .and(
-                security_cis2_contract_token_holders::holder_address.eq(holder_address.to_string()),
-            );
-        let update = security_cis2_contract_token_holders::balance
-            .eq(security_cis2_contract_token_holders::balance
-                .sub(token_amount_to_sql(balance_delta)));
-        let updated_rows = diesel::update(security_cis2_contract_token_holders::table)
+            .and(cis2_token_holders::token_id.eq(token_id.to_string()))
+            .and(cis2_token_holders::holder_address.eq(holder_address.to_string()));
+        let update = cis2_token_holders::balance
+            .eq(cis2_token_holders::balance.sub(token_amount_to_sql(balance_delta)));
+        let updated_rows = diesel::update(cis2_token_holders::table)
             .filter(&update_filter)
             .set(update)
             .execute(conn)?;
         assert_eq!(updated_rows, 1, "error: {} rows(s) updated", updated_rows);
 
-        let delete_filter =
-            update_filter.and(security_cis2_contract_token_holders::balance.eq(BigDecimal::zero()));
-        diesel::delete(security_cis2_contract_token_holders::table)
-            .filter(&delete_filter)
-            .execute(conn)?;
+        let delete_filter = update_filter.and(cis2_token_holders::balance.eq(BigDecimal::zero()));
+        diesel::delete(cis2_token_holders::table).filter(&delete_filter).execute(conn)?;
 
         Ok(())
     })
@@ -355,23 +330,23 @@ pub fn update_replace_holder(
     holder_address: &Address,
     recovery_address: &Address,
 ) -> DbResult<usize> {
-    let updated_rows = diesel::update(security_cis2_contract_token_holders::table)
+    let updated_rows = diesel::update(cis2_token_holders::table)
         .filter(
-            security_cis2_contract_token_holders::cis2_address.eq(cis2_address.to_string()).and(
-                security_cis2_contract_token_holders::holder_address.eq(holder_address.to_string()),
-            ),
+            cis2_token_holders::cis2_address
+                .eq(cis2_address.to_string())
+                .and(cis2_token_holders::holder_address.eq(holder_address.to_string())),
         )
-        .set(security_cis2_contract_token_holders::holder_address.eq(recovery_address.to_string()))
+        .set(cis2_token_holders::holder_address.eq(recovery_address.to_string()))
         .execute(conn)?;
 
     Ok(updated_rows)
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq)]
-#[diesel(table_name = security_cis2_contract_tokens)]
+#[diesel(table_name = cis2_tokens)]
 #[diesel(primary_key(cis2_address, token_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityCis2Token {
+pub struct Token {
     pub cis2_address:  String,
     pub token_id:      String,
     pub is_paused:     bool,
@@ -381,7 +356,7 @@ pub struct SecurityCis2Token {
     pub create_time:   NaiveDateTime,
 }
 
-impl SecurityCis2Token {
+impl Token {
     pub fn new(
         cis2_address: &ContractAddress,
         token_id: &cis2::TokenId,
@@ -408,13 +383,12 @@ pub fn list_tokens_for_contract(
     cis2_address: &ContractAddress,
     page_size: i64,
     page: i64,
-) -> DbResult<(Vec<SecurityCis2Token>, i64)> {
-    let query = security_cis2_contract_tokens::table
-        .filter(security_cis2_contract_tokens::cis2_address.eq(cis2_address.to_string()));
+) -> DbResult<(Vec<Token>, i64)> {
+    let query = cis2_tokens::table.filter(cis2_tokens::cis2_address.eq(cis2_address.to_string()));
     let tokens = query
         .clone()
-        .select(SecurityCis2Token::as_select())
-        .order(security_cis2_contract_tokens::create_time)
+        .select(Token::as_select())
+        .order(cis2_tokens::create_time)
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
@@ -424,20 +398,14 @@ pub fn list_tokens_for_contract(
     Ok((tokens, page_count))
 }
 
-pub fn insert_token_or_update_metadata(
-    conn: &mut DbConn,
-    token: &SecurityCis2Token,
-) -> DbResult<()> {
-    let row_count = diesel::insert_into(security_cis2_contract_tokens::table)
+pub fn insert_token_or_update_metadata(conn: &mut DbConn, token: &Token) -> DbResult<()> {
+    let row_count = diesel::insert_into(cis2_tokens::table)
         .values(token)
-        .on_conflict((
-            security_cis2_contract_tokens::cis2_address,
-            security_cis2_contract_tokens::token_id,
-        ))
+        .on_conflict((cis2_tokens::cis2_address, cis2_tokens::token_id))
         .do_update()
         .set((
-            security_cis2_contract_tokens::metadata_url.eq(token.metadata_url.clone()),
-            security_cis2_contract_tokens::metadata_hash.eq(token.metadata_hash.clone()),
+            cis2_tokens::metadata_url.eq(token.metadata_url.clone()),
+            cis2_tokens::metadata_hash.eq(token.metadata_hash.clone()),
         ))
         .execute(conn)?;
 
@@ -452,37 +420,32 @@ pub fn update_supply(
     supply_delta: &cis2::TokenAmount,
     increase: bool,
 ) -> DbResult<()> {
-    let update_filter = security_cis2_contract_tokens::cis2_address
+    let update_filter = cis2_tokens::cis2_address
         .eq(cis2_address.to_string())
-        .and(security_cis2_contract_tokens::token_id.eq(token_id.to_string()));
-    let query = diesel::update(security_cis2_contract_tokens::table).filter(&update_filter);
-    let update_rows =
-        match increase {
-            true => query
-                .set(security_cis2_contract_tokens::supply.eq(
-                    security_cis2_contract_tokens::supply.add(token_amount_to_sql(supply_delta)),
-                ))
-                .execute(conn)?,
-            false => query
-                .set(security_cis2_contract_tokens::supply.eq(
-                    security_cis2_contract_tokens::supply.sub(token_amount_to_sql(supply_delta)),
-                ))
-                .execute(conn)?,
-        };
+        .and(cis2_tokens::token_id.eq(token_id.to_string()));
+    let query = diesel::update(cis2_tokens::table).filter(&update_filter);
+    let update_rows = match increase {
+        true => query
+            .set(cis2_tokens::supply.eq(cis2_tokens::supply.add(token_amount_to_sql(supply_delta))))
+            .execute(conn)?,
+        false => query
+            .set(cis2_tokens::supply.eq(cis2_tokens::supply.sub(token_amount_to_sql(supply_delta))))
+            .execute(conn)?,
+    };
     assert_eq!(update_rows, 1, "error {} rows updated", update_rows);
     Ok(())
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
-#[diesel(table_name = security_cis2_contract_operators)]
+#[diesel(table_name = cis2_operators)]
 #[diesel(primary_key(cis2_address, holder_address, operator_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityCis2Operator {
+pub struct Operator {
     pub cis2_address:     String,
     pub holder_address:   String,
     pub operator_address: String,
 }
-impl SecurityCis2Operator {
+impl Operator {
     pub fn new(
         cis2_address: &ContractAddress,
         holder_address: &Address,
@@ -496,37 +459,36 @@ impl SecurityCis2Operator {
     }
 }
 
-pub fn insert_operator(conn: &mut DbConn, record: &SecurityCis2Operator) -> DbResult<()> {
-    diesel::insert_into(security_cis2_contract_operators::table)
+pub fn insert_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
+    diesel::insert_into(cis2_operators::table)
         .values(record)
         .on_conflict_do_nothing()
         .execute(conn)?;
     Ok(())
 }
 
-pub fn delete_operator(conn: &mut DbConn, record: &SecurityCis2Operator) -> DbResult<()> {
-    let delete_filter =
-        security_cis2_contract_operators::cis2_address.eq(&record.cis2_address).and(
-            security_cis2_contract_operators::holder_address
-                .eq(&record.holder_address)
-                .and(security_cis2_contract_operators::operator_address.eq(&record.holder_address)),
-        );
+pub fn delete_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
+    let delete_filter = cis2_operators::cis2_address.eq(&record.cis2_address).and(
+        cis2_operators::holder_address
+            .eq(&record.holder_address)
+            .and(cis2_operators::operator_address.eq(&record.holder_address)),
+    );
 
-    diesel::delete(security_cis2_contract_operators::table).filter(delete_filter).execute(conn)?;
+    diesel::delete(cis2_operators::table).filter(delete_filter).execute(conn)?;
 
     Ok(())
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
-#[diesel(table_name = security_cis2_contract_recovery_records)]
+#[diesel(table_name = cis2_recovery_records)]
 #[diesel(primary_key(cis2_address, holder_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityCis2RecoveryRecord {
+pub struct RecoveryRecord {
     pub cis2_address:      String,
     pub holder_address:    String,
     pub recovered_address: String,
 }
-impl SecurityCis2RecoveryRecord {
+impl RecoveryRecord {
     pub fn new(
         cis2_address: &ContractAddress,
         holder_address: &Address,
@@ -540,13 +502,8 @@ impl SecurityCis2RecoveryRecord {
     }
 }
 
-pub fn insert_recovery_record(
-    conn: &mut DbConn,
-    record: &SecurityCis2RecoveryRecord,
-) -> DbResult<()> {
-    diesel::insert_into(security_cis2_contract_recovery_records::table)
-        .values(record)
-        .execute(conn)?;
+pub fn insert_recovery_record(conn: &mut DbConn, record: &RecoveryRecord) -> DbResult<()> {
+    diesel::insert_into(cis2_recovery_records::table).values(record).execute(conn)?;
 
     Ok(())
 }
