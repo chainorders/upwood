@@ -90,13 +90,12 @@ impl RwaMarketApi {
             subindex,
         };
         let mut conn = pool.get()?;
-        let (tokens, page_count) =
-            db::list_tokens(&mut conn, market_contract, PAGE_SIZE as i64, page)?;
+        let (tokens, page_count) = db::list_tokens(&mut conn, market_contract, PAGE_SIZE, page)?;
         let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
         let res = PagedResponse {
-            data:       tokens,
-            page:       page as u64,
-            page_count: page_count as u64,
+            data: tokens,
+            page,
+            page_count,
         };
         Ok(Json(res))
     }
@@ -130,12 +129,12 @@ impl RwaMarketApi {
         let owner: AccountAddress = owner.parse()?;
         let mut conn = pool.get()?;
         let (tokens, page_count) =
-            db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE as i64, page)?;
+            db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE, page)?;
         let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
         let res = PagedResponse {
-            data:       tokens,
-            page:       page as u64,
-            page_count: page_count as u64,
+            data: tokens,
+            page,
+            page_count,
         };
         Ok(Json(res))
     }
@@ -169,12 +168,12 @@ impl RwaMarketApi {
         let owner: AccountAddress = owner.parse()?;
         let mut conn = pool.get()?;
         let (tokens, page_count) =
-            db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE as i64, page)?;
+            db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE, page)?;
         let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
         let res = PagedResponse {
-            data:       tokens,
-            page:       page as u64,
-            page_count: page_count as u64,
+            data: tokens,
+            page,
+            page_count,
         };
         Ok(Json(res))
     }

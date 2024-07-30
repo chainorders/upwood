@@ -4,97 +4,23 @@
 //! users to retrieve paged lists of tokens, holders, and deposited tokens for
 //! a specific RWA Security SFT contract. It interacts with the
 //! `IRwaSecuritySftDb` trait to fetch data from the database.
-use super::db::{DbDepositedToken, DbToken, RwaSecuritySftDb, TokenHolder};
+use super::cis2_api;
 use crate::shared::{
-    api::{ApiAddress, ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
-    db::{DbAccountAddress, DbAddress, ICollection},
+    api::{Error, PagedRequest, PagedResponse, PAGE_SIZE},
+    db::DbPool,
 };
-use bson::{doc, to_bson, Document};
-use concordium_rust_sdk::{base::smart_contracts::OwnedContractName, types::ContractAddress};
-use futures::TryStreamExt;
-use log::debug;
+use concordium_rust_sdk::{
+    cis2,
+    types::{Address, ContractAddress},
+};
 use poem::web::Data;
-use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
-
-#[derive(Object, Debug)]
-pub struct ApiSftToken {
-    pub token_id:          String,
-    pub is_paused:         bool,
-    pub metadata_url:      String,
-    pub metadata_url_hash: String,
-    pub supply:            String,
-}
-
-impl From<DbToken> for ApiSftToken {
-    fn from(db_token: DbToken) -> Self {
-        Self {
-            token_id:          db_token.token_id.0.into(),
-            is_paused:         db_token.is_paused,
-            metadata_url:      db_token.metadata_url.unwrap_or_default(),
-            metadata_url_hash: db_token.metadata_url_hash.unwrap_or_default(),
-            supply:            db_token.supply.0.to_string(),
-        }
-    }
-}
-
-#[derive(Object)]
-pub struct ApiSftHolder {
-    pub token_id:       String,
-    pub address:        ApiAddress,
-    pub balance:        String,
-    pub frozen_balance: String,
-}
-
-impl From<TokenHolder> for ApiSftHolder {
-    fn from(token_holder: TokenHolder) -> Self {
-        Self {
-            token_id:       token_holder.token_id.0.into(),
-            address:        token_holder.address.into(),
-            balance:        token_holder.balance.0.to_string(),
-            frozen_balance: token_holder.frozen_balance.0.to_string(),
-        }
-    }
-}
-
-#[derive(Object)]
-pub struct ApiDepositedToken {
-    pub token_contract:   ApiContractAddress,
-    pub token_id:         String,
-    pub owner:            String,
-    pub deposited_amount: String,
-    pub locked_amount:    String,
-    pub un_locked_amount: String,
-}
-
-impl From<DbDepositedToken> for ApiDepositedToken {
-    fn from(db_deposited_token: DbDepositedToken) -> Self {
-        Self {
-            token_contract:   db_deposited_token.token_contract.into(),
-            token_id:         db_deposited_token.token_id.0.into(),
-            owner:            db_deposited_token.owner.0.to_string(),
-            deposited_amount: db_deposited_token.deposited_amount.0.to_string(),
-            locked_amount:    db_deposited_token.locked_amount.0.to_string(),
-            un_locked_amount: db_deposited_token.un_locked_amount.0.to_string(),
-        }
-    }
-}
+use poem_openapi::{param::Path, payload::Json, OpenApi};
 
 /// The API for the RWA Security SFT module.
-pub struct RwaSecuritySftApi(pub OwnedContractName);
+pub struct RwaSecuritySftApi;
 
 #[OpenApi]
 impl RwaSecuritySftApi {
-    pub fn db(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        contract: &ContractAddress,
-    ) -> RwaSecuritySftDb {
-        let db =
-            client.database(&format!("{}-{}-{}", contract_name, contract.index, contract.subindex));
-
-        RwaSecuritySftDb::init(db)
-    }
-
     /// Get all tokens for a specific contract
     ///
     /// # Parameters
@@ -107,19 +33,22 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/tokens/:page", method = "get")]
     pub async fn tokens(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
-        Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<ApiSftToken>>, Error> {
-        let contract = &ContractAddress {
+        Path(page): Path<i64>,
+    ) -> Result<Json<PagedResponse<cis2_api::Token>>, Error> {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {};
-        let res = Self::to_paged_token_response(client, &self.0, query, contract, page).await?;
-        debug!("tokens contract: {:?}, res: {:?}", contract, res.data);
-        Ok(Json(res))
+        let mut conn = pool.get()?;
+        let res = cis2_api::tokens(&mut conn, PagedRequest {
+            data: cis2_address,
+            page,
+            page_size: PAGE_SIZE,
+        })?;
+        Ok(res)
     }
 
     /// Get all holders.
@@ -135,36 +64,23 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/holders/:address/:page", method = "get")]
     pub async fn holders(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(address): Path<String>,
-        Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<ApiSftHolder>>, Error> {
-        let contract = &ContractAddress {
+        Path(page): Path<i64>,
+    ) -> Result<Json<PagedResponse<cis2_api::TokenHolder>>, Error> {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let address: DbAddress = DbAddress(address.parse()?);
-        let query = doc! {
-            "address": to_bson(&address)?,
-            "balance": {
-                "$ne": "0",
-            }
-        };
-        let coll = Self::db(client, &self.0, contract).holders;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<ApiSftHolder> = data.into_iter().map(|holder| holder.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-        let res = PagedResponse {
-            page_count,
-            page: 0,
-            data,
-        };
-
-        Ok(Json(res))
+        let holder_address: Address = address.parse()?;
+        let mut conn = pool.get()?;
+        cis2_api::holders(&mut conn, PagedRequest {
+            data: (cis2_address, holder_address),
+            page_size: PAGE_SIZE,
+            page,
+        })
     }
 
     /// Get all holders of a specific token
@@ -180,32 +96,23 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/holdersOf/:token_id/:page", method = "get")]
     pub async fn holders_of(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(token_id): Path<String>,
-        Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<ApiSftHolder>>, Error> {
-        let contract = &ContractAddress {
+        Path(page): Path<i64>,
+    ) -> Result<Json<PagedResponse<cis2_api::TokenHolder>>, Error> {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "token_id": token_id,
-        };
-        let coll = Self::db(client, &self.0, contract).holders;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<TokenHolder> = cursor.try_collect().await?;
-        let data: Vec<ApiSftHolder> = data.into_iter().map(|holder| holder.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-        let res = PagedResponse {
-            page_count,
-            page: 0,
-            data,
-        };
-
-        Ok(Json(res))
+        let token_id: cis2::TokenId = token_id.parse()?;
+        let mut conn = pool.get()?;
+        cis2_api::holders_of(&mut conn, PagedRequest {
+            data: (cis2_address, token_id),
+            page_size: PAGE_SIZE,
+            page,
+        })
     }
 
     /// Get all deposited tokens for a specific owner
@@ -221,66 +128,22 @@ impl RwaSecuritySftApi {
     #[oai(path = "/rwa-security-sft/:index/:subindex/deposited/:owner/:page", method = "get")]
     pub async fn deposited(
         &self,
-        Data(client): Data<&mongodb::Client>,
+        Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
         Path(subindex): Path<u64>,
         Path(owner): Path<String>,
-        Path(page): Path<u64>,
-    ) -> Result<Json<PagedResponse<ApiDepositedToken>>, Error> {
-        let contract = &ContractAddress {
+        Path(page): Path<i64>,
+    ) -> Result<Json<PagedResponse<cis2_api::Cis2Deposit>>, Error> {
+        let cis2_address = ContractAddress {
             index,
             subindex,
         };
-        let query = doc! {
-            "owner": to_bson(&DbAccountAddress(owner.parse()?))?,
-            "deposited_amount": {
-                "$ne": "0",
-            }
-        };
-        let res =
-            Self::to_paged_deposited_token_response(client, &self.0, query, contract, page).await?;
-        Ok(Json(res))
-    }
-
-    async fn to_paged_token_response(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        query: Document,
-        contract: &ContractAddress,
-        page: u64,
-    ) -> anyhow::Result<PagedResponse<ApiSftToken>> {
-        let coll = Self::db(client, contract_name, contract).tokens;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<DbToken> = cursor.try_collect().await?;
-        let data: Vec<ApiSftToken> = data.into_iter().map(|token| token.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-
-        Ok(PagedResponse {
-            page_count,
+        let owner: Address = owner.parse()?;
+        let mut conn = pool.get()?;
+        cis2_api::deposits_for_address(&mut conn, PagedRequest {
+            data: (cis2_address, owner),
+            page_size: PAGE_SIZE,
             page,
-            data,
-        })
-    }
-
-    async fn to_paged_deposited_token_response(
-        client: &mongodb::Client,
-        contract_name: &OwnedContractName,
-        query: Document,
-        contract: &ContractAddress,
-        page: u64,
-    ) -> anyhow::Result<PagedResponse<ApiDepositedToken>> {
-        let coll = Self::db(client, contract_name, contract).deposited_tokens;
-        let cursor = coll.find(query.clone(), page * PAGE_SIZE, PAGE_SIZE as i64).await?;
-        let data: Vec<DbDepositedToken> = cursor.try_collect().await?;
-        let data: Vec<ApiDepositedToken> = data.into_iter().map(|token| token.into()).collect();
-        let total_count = coll.count(query).await?;
-        let page_count = (total_count + PAGE_SIZE - 1) / PAGE_SIZE;
-
-        Ok(PagedResponse {
-            page_count,
-            page,
-            data,
         })
     }
 }

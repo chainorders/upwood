@@ -44,17 +44,11 @@ impl From<r2d2::Error> for VerifierApiError {
 impl From<serde_json::Error> for VerifierApiError {
     fn from(_: serde_json::Error) -> Self { Self::InternalServer }
 }
-impl From<mongodb::error::Error> for VerifierApiError {
-    fn from(_: mongodb::error::Error) -> Self { Self::InternalServer }
-}
 impl From<anyhow::Error> for VerifierApiError {
     fn from(_: anyhow::Error) -> Self { Self::InternalServer }
 }
 impl From<AccountAddressParseError> for VerifierApiError {
     fn from(_: AccountAddressParseError) -> Self { Self::BadRequest }
-}
-impl From<bson::ser::Error> for VerifierApiError {
-    fn from(_: bson::ser::Error) -> Self { Self::BadRequest }
 }
 impl From<QueryError> for VerifierApiError {
     fn from(_: QueryError) -> Self { Self::InternalServer }

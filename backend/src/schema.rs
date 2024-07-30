@@ -16,6 +16,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    cis2_deposits (cis2_address, deposited_cis2_address, deposited_token_id, deposited_holder_address) {
+        cis2_address -> Varchar,
+        deposited_cis2_address -> Varchar,
+        deposited_token_id -> Varchar,
+        deposited_holder_address -> Varchar,
+        deposited_amount -> Numeric,
+    }
+}
+
+diesel::table! {
     cis2_identity_registries (cis2_address) {
         cis2_address -> Varchar,
         identity_registry_address -> Varchar,
@@ -129,6 +139,7 @@ diesel::table! {
 diesel::allow_tables_to_appear_in_same_query!(
     cis2_agents,
     cis2_compliances,
+    cis2_deposits,
     cis2_identity_registries,
     cis2_operators,
     cis2_recovery_records,

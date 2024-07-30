@@ -1,7 +1,7 @@
 use crate::{
     shared::db::{DbConn, DbPool},
     txn_listener::EventsProcessor,
-    txn_processor::processor_cis2,
+    txn_processor::cis2_processor,
 };
 use anyhow::Ok;
 use async_trait::async_trait;
@@ -77,15 +77,15 @@ pub fn process_events(
         match parsed_event {
             Event::AgentAdded(AgentUpdatedEvent {
                 agent,
-            }) => processor_cis2::agent_added(conn, agent, now, cis2_address)?,
+            }) => cis2_processor::agent_added(conn, agent, now, cis2_address)?,
             Event::AgentRemoved(AgentUpdatedEvent {
                 agent,
-            }) => processor_cis2::agent_removed(conn, cis2_address, agent)?,
+            }) => cis2_processor::agent_removed(conn, cis2_address, agent)?,
             Event::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
-                processor_cis2::compliance_updated(conn, cis2_address, compliance_contract)?
+                cis2_processor::compliance_updated(conn, cis2_address, compliance_contract)?
             }
             Event::IdentityRegistryAdded(IdentityRegistryAdded(identity_registry_contract)) => {
-                processor_cis2::identity_registry_updated(
+                cis2_processor::identity_registry_updated(
                     conn,
                     cis2_address,
                     identity_registry_contract,
@@ -93,25 +93,25 @@ pub fn process_events(
             }
             Event::Paused(Paused {
                 token_id,
-            }) => processor_cis2::token_paused(conn, cis2_address, token_id)?,
+            }) => cis2_processor::token_paused(conn, cis2_address, token_id)?,
             Event::UnPaused(Paused {
                 token_id,
-            }) => processor_cis2::token_unpaused(conn, cis2_address, token_id)?,
+            }) => cis2_processor::token_unpaused(conn, cis2_address, token_id)?,
             Event::Recovered(RecoverEvent {
                 lost_account,
                 new_account,
-            }) => processor_cis2::account_recovered(conn, cis2_address, lost_account, new_account)?,
+            }) => cis2_processor::account_recovered(conn, cis2_address, lost_account, new_account)?,
             Event::TokenFrozen(TokenFrozen {
                 address,
                 amount,
                 token_id,
-            }) => processor_cis2::token_frozen(conn, cis2_address, token_id, address, amount)?,
+            }) => cis2_processor::token_frozen(conn, cis2_address, token_id, address, amount)?,
             Event::TokenUnFrozen(TokenFrozen {
                 address,
                 amount,
                 token_id,
-            }) => processor_cis2::token_un_frozen(conn, cis2_address, token_id, address, amount)?,
-            Event::Cis2(e) => processor_cis2::cis2(conn, now, cis2_address, e)?,
+            }) => cis2_processor::token_un_frozen(conn, cis2_address, token_id, address, amount)?,
+            Event::Cis2(e) => cis2_processor::cis2(conn, now, cis2_address, e)?,
         }
     }
 

@@ -15,7 +15,7 @@ use num_traits::Zero;
 
 use crate::shared::db::{DbConn, DbResult};
 
-use super::db_security_cis2::{self as db};
+use super::cis2_db::{self as db};
 
 pub fn cis2<T, A>(
     conn: &mut DbConn,
@@ -33,7 +33,7 @@ where
             amount,
         }) => {
             let token_id = token_id.to_string().parse()?;
-            let token_amount = to_cis2_token_amount(amount)?;
+            let token_amount = to_cis2_token_amount(&amount)?;
             conn.transaction(|conn| {
                 db::insert_holder_or_add_balance(
                     conn,
@@ -74,7 +74,7 @@ where
             amount,
         }) => {
             let token_id = token_id.to_string().parse::<cis2::TokenId>()?;
-            let token_amount = to_cis2_token_amount(amount)?;
+            let token_amount = to_cis2_token_amount(&amount)?;
             conn.transaction(|conn| {
                 db::update_sub_balance(conn, cis2_address, &token_id, &owner, &token_amount)?;
                 db::update_supply(conn, cis2_address, &token_id, &token_amount, false)?;
@@ -88,7 +88,7 @@ where
             amount,
         }) => {
             let token_id = token_id.to_string().parse::<cis2::TokenId>()?;
-            let token_amount = to_cis2_token_amount(amount)?;
+            let token_amount = to_cis2_token_amount(&amount)?;
             conn.transaction(|conn| {
                 db::update_sub_balance(conn, cis2_address, &token_id, &from, &token_amount)?;
                 db::insert_holder_or_add_balance(
@@ -166,7 +166,7 @@ pub fn token_paused<T>(
 ) -> anyhow::Result<()>
 where
     T: IsTokenId + ToString, {
-    db::update_token_paused(conn, cis2_address, &to_cis2_token_id(token_id)?, true)?;
+    db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id)?, true)?;
     Ok(())
 }
 
@@ -177,7 +177,7 @@ pub fn token_unpaused<T>(
 ) -> anyhow::Result<()>
 where
     T: IsTokenId + ToString, {
-    db::update_token_paused(conn, cis2_address, &to_cis2_token_id(token_id)?, false)?;
+    db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id)?, false)?;
     Ok(())
 }
 
@@ -211,9 +211,9 @@ where
     db::update_balance_frozen(
         conn,
         cis2_address,
-        &to_cis2_token_id(token_id)?,
+        &to_cis2_token_id(&token_id)?,
         &address,
-        &to_cis2_token_amount(amount)?,
+        &to_cis2_token_amount(&amount)?,
         true,
     )?;
 
@@ -233,16 +233,66 @@ where
     db::update_balance_frozen(
         conn,
         cis2_address,
-        &to_cis2_token_id(token_id)?,
+        &to_cis2_token_id(&token_id)?,
         &address,
-        &to_cis2_token_amount(amount)?,
+        &to_cis2_token_amount(&amount)?,
         false,
     )?;
 
     Ok(())
 }
 
-fn to_cis2_token_amount<A>(amount: A) -> Result<cis2::TokenAmount, anyhow::Error>
+pub fn cis2_deposited<T, A>(
+    conn: &mut DbConn,
+    cis2_address: &ContractAddress,
+    deposited_contract: &ContractAddress,
+    deposited_token_id: &T,
+    deposited_holder_address: &Address,
+    deposited_token_amount: &A,
+) -> anyhow::Result<()>
+where
+    T: IsTokenId + ToString,
+    A: IsTokenAmount, {
+    db::insert_or_add_deposit_amount(
+        conn,
+        &db::Cis2Deposit::new(
+            cis2_address,
+            deposited_contract,
+            &to_cis2_token_id(deposited_token_id)?,
+            deposited_holder_address,
+            &to_cis2_token_amount(deposited_token_amount)?,
+        ),
+    )?;
+
+    Ok(())
+}
+
+pub fn cis2_withdrawn<T, A>(
+    conn: &mut DbConn,
+    cis2_address: &ContractAddress,
+    deposited_contract: &ContractAddress,
+    deposited_token_id: &T,
+    deposited_holder_address: &Address,
+    deposited_token_amount: &A,
+) -> anyhow::Result<()>
+where
+    T: IsTokenId + ToString,
+    A: IsTokenAmount, {
+    db::update_sub_deposit_amount(
+        conn,
+        &db::Cis2Deposit::new(
+            cis2_address,
+            deposited_contract,
+            &to_cis2_token_id(deposited_token_id)?,
+            deposited_holder_address,
+            &to_cis2_token_amount(deposited_token_amount)?,
+        ),
+    )?;
+
+    Ok(())
+}
+
+fn to_cis2_token_amount<A>(amount: &A) -> Result<cis2::TokenAmount, anyhow::Error>
 where
     A: Serial, {
     let mut bytes = vec![];
@@ -255,7 +305,7 @@ where
     )?)
 }
 
-fn to_cis2_token_id<T>(token_id: T) -> Result<cis2::TokenId, anyhow::Error>
+fn to_cis2_token_id<T>(token_id: &T) -> Result<cis2::TokenId, anyhow::Error>
 where
     T: IsTokenId + ToString, {
     let token_id = token_id.to_string().parse()?;

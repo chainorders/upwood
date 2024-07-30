@@ -14,5 +14,5 @@
 //! JSON using the `Json` type.
 
 pub mod api;
-pub mod db;
 pub mod processor;
+use super::cis2_api;
