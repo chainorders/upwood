@@ -1,0 +1,13 @@
+{
+    "rust-analyzer.check.overrideCommand": [
+        "cargo",
+        "clippy",
+        "--all"
+    ],
+    "rust-analyzer.rustfmt.extraArgs": [
+        "+nightly-2023-04-01"
+    ],
+    "rust-analyzer.linkedProjects": [
+        "identity-registry/Cargo.toml",
+    ]
+}

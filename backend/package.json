@@ -2,7 +2,7 @@
 	"name": "backend",
 	"packageManager": "yarn@4.0.2",
 	"scripts": {
-		"format": "cargo +nightly-2022-06-09 fmt",
+		"format": "cargo +nightly fmt",
 		"build": "cargo clean && cargo build --release",
 		"db-setup": "yarn run db-setup:listener",
 		"generate:spec": "yarn run generate:contracts-api-specs && yarn run generate:verifier-api-specs && yarn run generate:sponsor-api-specs",

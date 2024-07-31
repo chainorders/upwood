@@ -48,7 +48,8 @@ pub trait IsAgentsState<S: HasStateApi> {
     ///
     /// # Returns
     ///
-    /// Removes a value from the set. Returns whether the value was present in the set.
+    /// Removes a value from the set. Returns whether the value was present in
+    /// the set.
     fn remove_agent(&mut self, agent: &Agent) -> bool { self.agents_mut().remove(agent) }
 
     /// Returns a list of all agents.
