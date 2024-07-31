@@ -42,7 +42,9 @@ impl Drop for TestDbContext {
         diesel::sql_query(disconnect_users.as_str()).execute(&mut conn).unwrap();
 
         let query = diesel::sql_query(format!("DROP DATABASE {}", self.db_name).as_str());
-        query.execute(&mut conn).unwrap_or_else(|_| panic!("Couldn't drop database {}", self.db_name));
+        query
+            .execute(&mut conn)
+            .unwrap_or_else(|_| panic!("Couldn't drop database {}", self.db_name));
     }
 }
 
