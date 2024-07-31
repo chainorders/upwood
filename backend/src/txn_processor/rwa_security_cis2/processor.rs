@@ -4,18 +4,19 @@ use crate::{
     txn_listener::EventsProcessor,
 };
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use concordium_cis2::{
     BurnEvent, Cis2Event, IsTokenAmount, IsTokenId, MintEvent, OperatorUpdate, TokenMetadataEvent,
     TransferEvent, UpdateOperatorEvent,
 };
 use concordium_rust_sdk::{
     base::{
-        contracts_common::{Cursor, Serial},
+        contracts_common::{Cursor, Deserial, Serial},
         hashes::ModuleReference,
         smart_contracts::{ContractEvent, OwnedContractName},
     },
     cis2,
+    common::types::Timestamp,
     types::{Address, ContractAddress},
 };
 use concordium_rwa_utils::concordium_cis2_security::{
@@ -30,7 +31,7 @@ use std::marker::PhantomData;
 
 fn cis2<T, A>(
     conn: &mut DbConn,
-    now: chrono::DateTime<chrono::Utc>,
+    now: Timestamp,
     cis2_address: &ContractAddress,
     event: Cis2Event<T, A>,
 ) -> anyhow::Result<()>
@@ -134,7 +135,7 @@ where
 fn agent_added(
     conn: &mut DbConn,
     agent: Address,
-    now: DateTime<Utc>,
+    now: Timestamp,
     cis2_address: &ContractAddress,
 ) -> anyhow::Result<()> {
     Ok(db::insert_agent(conn, db::Agent::new(agent, now, cis2_address))?)
@@ -305,15 +306,15 @@ where
 
 fn to_cis2_token_amount<A>(amount: &A) -> Result<cis2::TokenAmount, anyhow::Error>
 where
-    A: Serial, {
+    A: IsTokenAmount + Serial, {
     let mut bytes = vec![];
     amount
         .serial(&mut bytes)
         .map_err(|_| anyhow::Error::msg("error serializing amount to bytes"))?;
     let mut cursor: Cursor<_> = Cursor::new(bytes);
-    Ok(<cis2::TokenAmount as concordium_rust_sdk::base::contracts_common::Deserial>::deserial(
-        &mut cursor,
-    )?)
+    let amount = cis2::TokenAmount::deserial(&mut cursor)?;
+
+    Ok(amount)
 }
 
 fn to_cis2_token_id<T>(token_id: &T) -> Result<cis2::TokenId, anyhow::Error>
@@ -326,7 +327,7 @@ where
 type Event<T, A> = Cis2SecurityEvent<T, A>;
 pub fn process_events<T, A>(
     conn: &mut DbConn,
-    now: DateTime<Utc>,
+    now: Timestamp,
     cis2_address: &ContractAddress,
     events: &[ContractEvent],
 ) -> anyhow::Result<()>
@@ -466,7 +467,39 @@ where
         events: &[ContractEvent],
     ) -> anyhow::Result<u64> {
         let mut conn = self.pool.get()?;
-        process_events::<T, A>(&mut conn, Utc::now(), contract, events)?;
+        let now = Timestamp {
+            millis: Utc::now().timestamp_millis() as u64,
+        };
+        process_events::<T, A>(&mut conn, now, contract, events)?;
         Ok(events.len() as u64)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use concordium_cis2::{TokenAmountU64, TokenAmountU8};
+    use concordium_rust_sdk::cis2;
+    use num_bigint::BigUint;
+    use num_traits::FromPrimitive;
+
+    use super::to_cis2_token_amount;
+
+    #[test]
+    fn token_amount_conversions() {
+        let amount = to_cis2_token_amount(&TokenAmountU8(0)).expect("should convert token amount");
+        assert_eq!(amount, cis2::TokenAmount(BigUint::from_u8(0).unwrap()));
+        assert_eq!(amount.to_string(), "0");
+
+        let amount: u8 = 255;
+        let token_amount =
+            to_cis2_token_amount(&TokenAmountU8(amount)).expect("should convert token amount");
+        assert_eq!(token_amount, cis2::TokenAmount(BigUint::from_u8(amount).unwrap()));
+        assert_eq!(token_amount.to_string(), "255");
+
+        let amount: u64 = 255;
+        let token_amount =
+            to_cis2_token_amount(&TokenAmountU64(amount)).expect("should convert token amount");
+        assert_eq!(token_amount, cis2::TokenAmount(BigUint::from_u64(amount).unwrap()));
+        assert_eq!(token_amount.to_string(), "255");
     }
 }

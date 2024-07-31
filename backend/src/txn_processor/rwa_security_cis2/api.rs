@@ -1,6 +1,6 @@
 use super::db;
 use crate::shared::{
-    api::{ApiAddress, ApiContractAddress, ApiResult, PagedResponse, PAGE_SIZE},
+    api::{ApiAddress, ApiResult, PagedResponse, PAGE_SIZE},
     db::DbPool,
 };
 use concordium_rust_sdk::{
@@ -56,24 +56,21 @@ impl From<db::TokenHolder> for TokenHolder {
     }
 }
 
-#[derive(Object)]
+#[derive(Object, PartialEq, Debug)]
 pub struct Cis2Deposit {
-    pub token_contract:   ApiContractAddress,
-    pub token_id:         String,
-    pub owner:            String,
-    pub deposited_amount: String,
+    pub deposited_cis2_address: String,
+    pub token_id:               String,
+    pub holder_address:         String,
+    pub deposited_amount:       String,
 }
 
 impl From<db::Cis2Deposit> for Cis2Deposit {
     fn from(value: db::Cis2Deposit) -> Self {
-        let token_contract: ContractAddress =
-            value.cis2_address.parse().expect("Error parsing contract address");
-
         Cis2Deposit {
-            token_contract:   ApiContractAddress::from_contract_address(token_contract),
-            token_id:         value.deposited_token_id,
-            owner:            value.deposited_holder_address,
-            deposited_amount: value.deposited_amount.to_string(),
+            deposited_cis2_address: value.deposited_cis2_address,
+            token_id:               value.deposited_token_id,
+            holder_address:         value.deposited_holder_address,
+            deposited_amount:       value.deposited_amount.to_string(),
         }
     }
 }
@@ -163,7 +160,7 @@ impl Cis2Api {
     }
 
     #[oai(path = "/rwa-security-cis2/:index/:subindex/deposited/:owner/:page", method = "get")]
-    pub async fn deposited(
+    pub async fn list_deposited(
         &self,
         Data(pool): Data<&DbPool>,
         Path(index): Path<u64>,
@@ -188,4 +185,6 @@ impl Cis2Api {
         };
         ApiResult::Ok(Json(res))
     }
+
+    //todo copy contract functions for the api, ex balanceOf
 }

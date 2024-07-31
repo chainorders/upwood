@@ -7,13 +7,14 @@
 
 pub mod db;
 pub mod processor;
-
+//todo add api module exposing open api
+//todo update integration tests using the api
 #[cfg(test)]
 mod integration_tests {
     use anyhow::Ok;
     use chrono::{DateTime, Utc};
     use concordium_rust_sdk::{
-        base::{contracts_common::Serial, smart_contracts::ContractEvent},
+        base::smart_contracts::ContractEvent,
         id::types::{AccountAddress, ACCOUNT_ADDRESS_SIZE},
         types::{Address, ContractAddress},
     };
@@ -22,6 +23,7 @@ mod integration_tests {
 
     use crate::{
         db_setup,
+        shared::test::to_contract_event,
         txn_processor::rwa_identity_registry::{db, processor},
     };
     use concordium_rwa_identity_registry::event::{
@@ -121,11 +123,5 @@ mod integration_tests {
             assert_eq!(page_count, 1);
             Ok(())
         });
-    }
-
-    fn to_contract_event(e: &Event) -> ContractEvent {
-        let mut out: Vec<u8> = Vec::new();
-        e.serial(&mut out).expect("Error serializing event");
-        out.into()
     }
 }

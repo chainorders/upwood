@@ -36,7 +36,7 @@ impl From<AddressParseError> for Error {
 }
 
 /// A wrapper around the `ContractAddress` type that can be used in the API.
-#[derive(Object, Debug, Clone, Copy)]
+#[derive(Object, Debug, Clone, Copy, PartialEq)]
 pub struct ApiContractAddress {
     pub index:    u64,
     pub subindex: u64,

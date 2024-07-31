@@ -3,12 +3,13 @@ use crate::{
         cis2_agents, cis2_compliances, cis2_deposits, cis2_identity_registries, cis2_operators,
         cis2_recovery_records, cis2_token_holders, cis2_tokens,
     },
-    shared::db::{token_amount_to_sql, DbConn, DbResult},
+    shared::db::{to_naive_utc, token_amount_to_sql, DbConn, DbResult},
 };
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
     cis2,
+    common::types::Timestamp,
     types::{Address, ContractAddress},
 };
 use diesel::prelude::*;
@@ -25,11 +26,7 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(
-        agent_address: Address,
-        _time: DateTime<Utc>,
-        cis2_address: &ContractAddress,
-    ) -> Self {
+    pub fn new(agent_address: Address, _time: Timestamp, cis2_address: &ContractAddress) -> Self {
         Self {
             agent_address: agent_address.to_string(),
             cis2_address:  cis2_address.to_string(),
@@ -180,7 +177,7 @@ impl TokenHolder {
         holder_address: &Address,
         balance: &cis2::TokenAmount,
         frozen_balance: &cis2::TokenAmount,
-        create_time: DateTime<Utc>,
+        create_time: Timestamp,
     ) -> Self {
         Self {
             cis2_address:   cis2_address.to_string(),
@@ -188,7 +185,7 @@ impl TokenHolder {
             holder_address: holder_address.to_string(),
             balance:        token_amount_to_sql(balance),
             frozen_balance: token_amount_to_sql(frozen_balance),
-            create_time:    create_time.naive_utc(),
+            create_time:    to_naive_utc(create_time),
         }
     }
 }
@@ -361,7 +358,7 @@ impl Token {
         metadata_url: String,
         metadata_hash: Option<[u8; 32]>,
         supply: &cis2::TokenAmount,
-        create_time: DateTime<Utc>,
+        create_time: Timestamp,
     ) -> Self {
         Self {
             cis2_address: cis2_address.to_string(),
@@ -370,7 +367,7 @@ impl Token {
             metadata_url,
             metadata_hash: metadata_hash.map(|value: [u8; 32]| value.to_vec()),
             supply: token_amount_to_sql(supply),
-            create_time: create_time.naive_utc(),
+            create_time: to_naive_utc(create_time),
         }
     }
 }
