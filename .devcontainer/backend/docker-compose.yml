@@ -14,11 +14,10 @@ services:
         # Use the VARIANT arg to pick a Debian OS version: buster, bullseye
         # Use bullseye when on local on arm64/Apple Silicon.
         VARIANT: bullseye
+        CARGO_HOME: /usr/local/cargo
+        RUSTUP_HOME: /usr/local/rustup
     env_file:
       - .env
-    environment:
-      - CARGO_HOME=/usr/local/cargo
-      - RUSTUP_HOME=/usr/local/rustup
     command: sleep infinity
     network_mode: service:db
     security_opt:
@@ -34,7 +33,7 @@ services:
         limits:
           memory: 25G
   db:
-    image: postgres:14.1
+    image: postgres:14-alpine
     restart: unless-stopped
     env_file:
       - .env
