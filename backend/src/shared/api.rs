@@ -28,9 +28,6 @@ impl From<r2d2::Error> for Error {
 impl From<cis2::ParseTokenIdVecError> for Error {
     fn from(_: cis2::ParseTokenIdVecError) -> Self { Self::ParseError }
 }
-impl From<anyhow::Error> for Error {
-    fn from(_: anyhow::Error) -> Self { Self::InternalServerError }
-}
 impl From<AccountAddressParseError> for Error {
     fn from(_: AccountAddressParseError) -> Self { Self::ParseError }
 }
@@ -87,12 +84,6 @@ impl From<Address> for ApiAddress {
             },
         }
     }
-}
-
-pub struct PagedRequest<T> {
-    pub data:      T,
-    pub page_size: i64,
-    pub page:      i64,
 }
 
 /// Pages Response. This is a generic response that can be used to return a list

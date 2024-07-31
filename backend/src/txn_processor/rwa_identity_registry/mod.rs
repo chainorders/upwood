@@ -18,7 +18,6 @@ mod integration_tests {
         types::{Address, ContractAddress},
     };
     use diesel::{r2d2::ConnectionManager, Connection, PgConnection};
-    use itertools::Itertools;
     use r2d2::Pool;
 
     use crate::{
@@ -34,7 +33,7 @@ mod integration_tests {
 
     #[test]
     fn add_identity() {
-        let now = DateTime::<Utc>::from_timestamp_millis(10).unwrap();
+        let now = DateTime::<Utc>::from_timestamp_millis(Utc::now().timestamp_millis()).unwrap();
         let contract_address = ContractAddress::new(0, 0);
         let events = [
             Event::IdentityRegistered(IdentityUpdatedEvent {
@@ -74,7 +73,7 @@ mod integration_tests {
                 },
             }),
         ];
-        let events: Vec<ContractEvent> = events.iter().map(to_contract_event).collect_vec();
+        let events: Vec<ContractEvent> = events.iter().map(to_contract_event).collect();
         let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL);
         let pool =
             Pool::builder().max_size(1).build(manager).expect("Error creating database pool");
@@ -110,7 +109,7 @@ mod integration_tests {
             assert_eq!(page_count, 1);
 
             let (issuers, page_count) =
-                db::list_issuers(conn, &contract_address, 10, 0).expect("Error Listing Agents");
+                db::list_issuers(conn, &contract_address, 10, 0).expect("Error Listing Issuers");
             assert_eq!(issuers, vec![db::Issuer::new(
                 &ContractAddress {
                     index:    1001,

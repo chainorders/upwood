@@ -1,5 +1,3 @@
-use std::ops::{Add, Sub};
-
 use crate::{
     schema::token_market::{
         self, market_address, token_contract_address, token_listed_amount, token_unlisted_amount,
@@ -11,6 +9,7 @@ use concordium_rust_sdk::{cis2, id::types::AccountAddress, types::ContractAddres
 use diesel::prelude::*;
 use log::debug;
 use num_traits::Zero;
+use std::ops::{Add, Sub};
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug)]
 #[diesel(table_name = token_market)]

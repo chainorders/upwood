@@ -21,17 +21,15 @@
 //!
 //! The `to_paged_response` method is a helper method used by the above methods
 //! to convert the query result into a paged response.
-use std::ops::Add;
-
 use super::db;
 use crate::shared::{
     api::{ApiContractAddress, Error, PagedResponse, PAGE_SIZE},
     db::DbPool,
 };
 use concordium_rust_sdk::{id::types::AccountAddress, types::ContractAddress};
-use itertools::Itertools;
 use poem::{web::Data, Result};
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
+use std::ops::Add;
 
 #[derive(Object)]
 pub struct MarketToken {
@@ -91,7 +89,7 @@ impl RwaMarketApi {
         };
         let mut conn = pool.get()?;
         let (tokens, page_count) = db::list_tokens(&mut conn, market_contract, PAGE_SIZE, page)?;
-        let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let tokens = tokens.into_iter().map(|t| t.into()).collect();
         let res = PagedResponse {
             data: tokens,
             page,
@@ -130,7 +128,7 @@ impl RwaMarketApi {
         let mut conn = pool.get()?;
         let (tokens, page_count) =
             db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE, page)?;
-        let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let tokens = tokens.into_iter().map(|t| t.into()).collect();
         let res = PagedResponse {
             data: tokens,
             page,
@@ -169,7 +167,7 @@ impl RwaMarketApi {
         let mut conn = pool.get()?;
         let (tokens, page_count) =
             db::list_tokens_by_owner(&mut conn, market_contract, owner, PAGE_SIZE, page)?;
-        let tokens: Vec<MarketToken> = tokens.into_iter().map(|t| t.into()).collect_vec();
+        let tokens = tokens.into_iter().map(|t| t.into()).collect();
         let res = PagedResponse {
             data: tokens,
             page,
