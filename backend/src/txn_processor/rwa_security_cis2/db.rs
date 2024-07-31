@@ -1,5 +1,3 @@
-use std::ops::{Add, Sub};
-
 use crate::{
     schema::{
         cis2_agents, cis2_compliances, cis2_deposits, cis2_identity_registries, cis2_operators,
@@ -15,6 +13,7 @@ use concordium_rust_sdk::{
 };
 use diesel::prelude::*;
 use num_traits::Zero;
+use std::ops::{Add, Sub};
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = cis2_agents)]

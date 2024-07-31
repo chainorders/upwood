@@ -391,7 +391,6 @@ dependencies = [
  "env_logger",
  "futures",
  "hex",
- "itertools 0.12.1",
  "log",
  "num-bigint",
  "num-traits",

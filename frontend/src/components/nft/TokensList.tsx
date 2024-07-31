@@ -12,7 +12,6 @@ import {
 } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { useContractsApi } from "../ContractsApiProvider";
-import { ApiNftHolder as NftHolder } from "../../lib/contracts-api-client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ActionButtonProps, Token } from "../common/TokenCardDisplay";
 import TokensGrid from "../common/TokensGrid";
@@ -23,6 +22,7 @@ import rwaSecuritySft, { MintRequest } from "../../lib/rwaSecuritySft";
 import { SFT_CONTRACT_INDEX, SFT_CONTRACT_SUBINDEX } from "./const";
 import { useSponsorApi } from "../SponsorApiProvider";
 import { permit } from "../../lib/sponsorUtils";
+import { TokenHolder } from "../../lib/contracts-api-client";
 
 type Props = {
 	currentAccount: AccountAddress.Type;
@@ -59,12 +59,12 @@ export default function TokensList(props: Props) {
 		);
 	}
 
-	const [tokens, setTokens] = useState<NftHolder[]>([]);
+	const [tokens, setTokens] = useState<TokenHolder[]>([]);
 	useEffect(() => {
 		setLoading(true);
 		setError("");
 		backendApi.default
-			.getRwaSecurityNftHolders({
+			.getRwaSecurityCis2Holders({
 				address: currentAccount.address,
 				index: Number(contract.index),
 				subindex: Number(contract.subindex),

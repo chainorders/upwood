@@ -1,8 +1,5 @@
 import { ContractAddress } from "@concordium/web-sdk";
-import {
-	ApiNftToken as NftToken,
-	ApiSftToken as SftToken,
-} from "../../lib/contracts-api-client";
+import { Token as ApiToken } from "../../lib/contracts-api-client";
 import { useSearchParams } from "react-router-dom";
 import { PlayArrow, Pause, OpenInBrowser, Token } from "@mui/icons-material";
 import {
@@ -26,7 +23,7 @@ import { toHttpUrl, toTokenIdInt } from "../../lib/cis2Utils";
 
 type TokensListProps = {
 	contract: ContractAddress.Type;
-	tokens: NftToken[] | SftToken[];
+	tokens: ApiToken[];
 	pageCount: number;
 	page: number;
 	loading: boolean;

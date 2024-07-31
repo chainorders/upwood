@@ -6,20 +6,16 @@
 //! functions to run the contracts API server and listener, as well as to
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
-pub mod cis2_api;
-pub mod cis2_db;
 pub mod cis2_processor;
 
 pub mod rwa_identity_registry;
 pub mod rwa_market;
-pub mod rwa_security_nft;
-pub mod rwa_security_sft;
+pub mod rwa_security_cis2;
 
 use crate::{
     shared::db::DbPool,
     txn_listener::{EventsProcessor, TransactionsListener},
 };
-use cis2_processor::RwaSecurityCIS2Processor;
 use clap::Parser;
 use concordium_rust_sdk::{
     types::smart_contracts::OwnedContractName,
@@ -41,8 +37,7 @@ use poem::{
 use poem_openapi::OpenApiService;
 use rwa_identity_registry::processor::*;
 use rwa_market::{api::*, processor::*};
-use rwa_security_nft::api::*;
-use rwa_security_sft::api::*;
+use rwa_security_cis2::{api::Cis2Api, processor::RwaSecurityCIS2Processor};
 use std::{io::Write, str::FromStr, sync::Arc, time::Duration};
 use tokio::{spawn, sync::RwLock};
 
@@ -215,10 +210,6 @@ pub async fn generate_open_api_specs(config: OpenApiConfig) -> anyhow::Result<()
 }
 
 /// Creates the service for the contracts API.
-fn create_service() -> OpenApiService<(RwaMarketApi, RwaSecurityNftApi, RwaSecuritySftApi), ()> {
-    OpenApiService::new(
-        (RwaMarketApi, RwaSecurityNftApi, RwaSecuritySftApi),
-        "RWA Contracts API",
-        "1.0.0",
-    )
+fn create_service() -> OpenApiService<(RwaMarketApi, Cis2Api), ()> {
+    OpenApiService::new((RwaMarketApi, Cis2Api), "RWA Contracts API", "1.0.0")
 }

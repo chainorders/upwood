@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import { ContractsApi } from "../lib/contracts-api-client";
-import { contractsApi } from "../lib/ContractsApiClient";
+import { default as contractsApi } from "../lib/ContractsApiClient";
 
 export type ContractsApiContext = {
 	provider: ContractsApi;
