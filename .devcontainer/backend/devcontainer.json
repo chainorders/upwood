@@ -15,17 +15,37 @@
 		"vscode": {
 			"settings": {
 				"lldb.executable": "/usr/bin/lldb",
-				// VS Code don't watch files under ./target
 				"files.watcherExclude": {
 					"**/target/**": true
 				},
-				"rust-analyzer.checkOnSave.command": "clippy",
 				"[markdown]": {
 					"editor.formatOnSave": true,
 					"editor.wordWrap": "on",
 					"editor.renderWhitespace": "all",
 					"editor.acceptSuggestionOnEnter": "off"
-				}
+				},
+				"files.insertFinalNewline": true,
+				"files.trimFinalNewlines": true,
+				"rust-analyzer.cargo.autoreload": true,
+				"rust-analyzer.files.excludeDirs": [
+					"target"
+				],
+				"rust-analyzer.diagnostics.styleLints.enable": true,
+				"rust-analyzer.check.overrideCommand": [
+					"cargo",
+					"clippy",
+					"--no-deps",
+					"--message-format=json",
+					"--all-targets"
+				],
+				"rust-analyzer.server.extraEnv": {
+					"RUSTUP_TOOLCHAIN": "stable"
+				},
+				"rust-analyzer.checkOnSave.command": "clippy",
+				"rust-analyzer.checkOnSave": true,
+				"rust-analyzer.linkedProjects": [
+					"Cargo.toml"
+				]
 			},
 			"extensions": [
 				"shardulm94.trailing-spaces",
