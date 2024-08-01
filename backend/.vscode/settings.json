@@ -30,5 +30,8 @@
         "--no-deps",
         "--message-format=json",
         "--all-targets"
-    ]
+    ],
+    "rust-analyzer.server.extraEnv": {
+        "RUSTUP_TOOLCHAIN": "stable"
+    }
 }
