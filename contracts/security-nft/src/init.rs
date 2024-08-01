@@ -19,8 +19,8 @@ use concordium_std::*;
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[init(
     contract = "rwa_security_nft",
-    event = "super::event::Event",
-    error = "super::error::Error",
+    event = "Event",
+    error = "Error",
     parameter = "InitParam",
     enable_logger
 )]
