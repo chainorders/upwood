@@ -10,7 +10,7 @@
 	"forwardPorts": [
 		5432
 	],
-	"postCreateCommand": "/post-create.sh",
+	"postCreateCommand": "/bootstrap.sh",
 	"customizations": {
 		"vscode": {
 			"settings": {

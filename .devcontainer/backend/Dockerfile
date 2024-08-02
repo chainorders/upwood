@@ -1,6 +1,5 @@
 # [Choice] Debian OS version (use bullseye on local arm64/Apple Silicon): buster, bullseye
 ARG VARIANT="bookworm"
-ARG CONCORDIUM_CLIENT_DOWNLOAD_URL="https://distribution.concordium.software/tools/linux/concordium-client_6.3.0-1"
 ARG CARGO_HOME="/usr/local/cargo"
 ARG RUSTUP_HOME="/usr/local/rustup"
 
@@ -20,6 +19,6 @@ RUN rustup toolchain install nightly --allow-downgrade -c rustfmt -c clippy \
    && rustup update
 RUN cargo install --locked cargo-concordium diesel_cli
 
-ADD ${CONCORDIUM_CLIENT_DOWNLOAD_URL} /usr/local/bin/concordium-client
+ADD "https://distribution.concordium.software/tools/linux/concordium-client_6.3.0-1" /usr/local/bin/concordium-client
 RUN chmod +x /usr/local/bin/concordium-client
-COPY --chmod=0755 post-create.sh /post-create.sh
+COPY --chmod=0755 bootstrap.sh /bootstrap.sh

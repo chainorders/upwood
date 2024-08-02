@@ -6,3 +6,4 @@ contracts/**/schema.bin
 .pnp.cjs
 out
 data
+.devcontainer/**/*.export
