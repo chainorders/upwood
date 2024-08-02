@@ -15,7 +15,7 @@ RUN apt-get update \
    && apt-get autoremove -y && apt-get clean -y
 RUN apt install build-essential libpq-dev
 RUN rustup toolchain install nightly --allow-downgrade -c rustfmt -c clippy \
-   && rustup toolchain install stable --allow-downgrade -c rust-analyzer \
+   && rustup toolchain install stable --allow-downgrade -c rust-analyzer -c clippy \
    && rustup update
 RUN cargo install --locked cargo-concordium diesel_cli
 

@@ -2,7 +2,7 @@
 	"name": "concordium-rwa",
 	"version": "1.0.0",
 	"repository": "git@github.com:chainorders/concordium-rwa.git",
-	"author": "Parv Sharma <parv0888@gmail.com>",
+	"author": "Parv Sharma <parv@stactrace.com>",
 	"private": true,
 	"workspaces": [
 		"contracts",
