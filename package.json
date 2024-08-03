@@ -9,26 +9,7 @@
 		"frontend",
 		"backend"
 	],
-	"scripts": {
-		"format": "yarn format:contracts && yarn format:backend && yarn format:frontend",
-		"build": "yarn build:contracts && yarn build:backend && yarn generate:backend:client && yarn build:frontend",
-		"build:contracts": "yarn workspace contracts build",
-		"deploy:contracts": "yarn workspace contracts deploy",
-		"format:contracts": "yarn workspace contracts format",
-		"test:contracts": "yarn workspace contracts test",
-		"build:backend": "yarn workspace backend build",
-		"format:backend": "yarn workspace backend format",
-		"run:backend:contracts-api": "yarn workspace backend debug:contracts-api",
-		"run:backend:verifier-api": "yarn workspace backend debug:verifier-api",
-		"generate:backend:contracts-api-client": "yarn workspace backend generate:contracts-api-client",
-		"generate:backend:verifier-api-client": "yarn workspace backend generate:verifier-api-client",
-		"generate:backend:sponsor-api-client": "yarn workspace backend generate:sponsor-api-client",
-		"generate:backend:client": "yarn generate:backend:contracts-api-client && yarn generate:backend:verifier-api-client && yarn generate:backend:sponsor-api-client",
-		"run:frontend": "yarn workspace frontend dev",
-		"format:frontend": "yarn workspace frontend format",
-		"build:frontend": "yarn workspace frontend build"
-	},
-	"packageManager": "yarn@4.3.1",
+	"packageManager": "yarn@4.4.0",
 	"devDependencies": {
 		"@types/node": "^20.10.5",
 		"typescript": "^5.3.3"

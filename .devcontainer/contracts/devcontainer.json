@@ -91,8 +91,6 @@
 				"bierner.github-markdown-preview",
 				"formulahendry.docker-extension-pack",
 				"inferrinizzard.prettier-sql-vscode",
-				"ms-ossdata.vscode-postgresql",
-				"ckolkman.vscode-postgres",
 				"MS-CST-E.vscode-devskim"
 			]
 		}
