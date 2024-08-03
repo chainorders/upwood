@@ -3,6 +3,7 @@
 	"dockerFile": "Dockerfile",
 	"context": ".",
 	"postCreateCommand": "/bootstrap.sh",
+	"postStartCommand": "yarn run",
 	"mounts": [
 		{
 			"source": "devcontainer-cargo-cache-${devcontainerId}",
@@ -80,6 +81,7 @@
 				"rust-lang.rust-analyzer",
 				"swellaby.rust-pack",
 				"vadimcn.vscode-lldb",
+				"gamunu.vscode-yarn",
 				"mutantdino.resourcemonitor",
 				"tamasfe.even-better-toml",
 				"fill-labs.dependi",

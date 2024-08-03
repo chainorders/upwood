@@ -39,24 +39,23 @@ use web3_id_utils::IdStatement;
 
 #[derive(Parser, Debug, Clone)]
 pub struct ApiConfig {
-    #[clap(env)]
+    #[clap(env, long)]
     pub concordium_node_uri: String,
-    #[clap(env)]
+    #[clap(env, long)]
     pub verifier_web_server_addr: String,
-    /// Postrgres Database Url
-    #[clap(env)]
+    #[clap(env, long)]
     pub database_url: String,
-    #[clap(env)]
+    #[clap(env, long)]
     pub db_pool_max_size: u32,
-    #[clap(env)]
+    #[clap(env, long)]
     pub identity_registry: String,
-    #[clap(env)]
+    #[clap(env, long)]
     pub agent_wallet_path: PathBuf,
-    #[clap(env, default_value = "init_rwa_identity_registry")]
+    #[clap(env, long)]
     pub rwa_identity_registry_contract_name: String,
-    #[clap(env, default_value = "30000")]
+    #[clap(env, long)]
     pub register_identity_max_energy: String,
-    #[clap(env, default_value = "testnet")]
+    #[clap(env, long)]
     pub network: String,
 }
 

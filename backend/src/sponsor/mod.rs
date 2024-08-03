@@ -34,23 +34,23 @@ pub mod sponsor_client;
 /// Configuration struct for the API.
 pub struct ApiConfig {
     /// The URI of the Concordium node.
-    #[clap(env)]
+    #[clap(env, long)]
     pub concordium_node_uri: String,
 
     /// The address of the sponsor web server.
-    #[clap(env)]
+    #[clap(env, long)]
     pub sponsor_web_server_addr: String,
 
     /// The contract used for sponsorship.
-    #[clap(env)]
+    #[clap(env, long)]
     pub sponsor_contract: String,
 
     /// The path to the sponsor's wallet.
-    #[clap(env)]
+    #[clap(env, long)]
     pub sponsor_wallet_path: PathBuf,
 
     /// The maximum energy permitted for a transaction.
-    #[clap(env, default_value = "30000")]
+    #[clap(env, long)]
     pub permit_max_energy: String,
 }
 

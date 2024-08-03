@@ -6,7 +6,6 @@
 //! functions to run the contracts API server and listener, as well as to
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
-pub mod cis2_processor;
 
 pub mod rwa_identity_registry;
 pub mod rwa_market;
@@ -43,44 +42,44 @@ use tokio::{spawn, sync::RwLock};
 
 #[derive(Parser, Debug, Clone)]
 pub struct ListenerConfig {
-    /// Postrgres Database Url
-    #[clap(env)]
+    /// Postgres Database Url
+    #[clap(env, long)]
     pub database_url: String,
-    #[clap(env)]
+    #[clap(env, long)]
     pub db_pool_max_size: u32,
     /// The Concordium node URI.
-    #[clap(env)]
+    #[clap(env, long)]
     pub concordium_node_uri: String,
     /// The reference to the RWA identity registry module.
-    #[clap(env)]
+    #[clap(env, long)]
     pub rwa_identity_registry_module_ref: String,
     /// The reference to the RWA security NFT module.
-    #[clap(env)]
+    #[clap(env, long)]
     pub rwa_security_nft_module_ref: String,
     /// The reference to the RWA security SFT module.
-    #[clap(env)]
+    #[clap(env, long)]
     pub rwa_security_sft_module_ref: String,
     /// The reference to the RWA market module.
-    #[clap(env)]
+    #[clap(env, long)]
     pub rwa_market_module_ref: String,
     /// The starting block hash.
-    #[clap(env, default_value = "")]
+    #[clap(env, long)]
     pub default_block_height: u64,
-    #[clap(env, default_value = "100")]
+    #[clap(env, long)]
     pub node_rate_limit: u64,
-    #[clap(env, default_value = "1")]
+    #[clap(env, long)]
     pub node_rate_limit_duration_secs: u64,
     /// The name of the RWA security NFT contract.
-    #[clap(env, default_value = "init_rwa_security_nft")]
+    #[clap(env, long)]
     pub rwa_security_nft_contract_name: String,
     /// The name of the RWA security SFT contract.
-    #[clap(env, default_value = "init_rwa_security_sft")]
+    #[clap(env, long)]
     pub rwa_security_sft_contract_name: String,
     /// The name of the RWA identity registry contract.
-    #[clap(env, default_value = "init_rwa_identity_registry")]
+    #[clap(env, long)]
     pub rwa_identity_registry_contract_name: String,
     /// The name of the RWA market contract.
-    #[clap(env, default_value = "init_rwa_market")]
+    #[clap(env, long)]
     pub rwa_market_contract_name: String,
 }
 
@@ -88,20 +87,20 @@ pub struct ListenerConfig {
 /// Configuration options for the Contracts API.
 #[derive(Parser, Debug, Clone)]
 pub struct ContractsApiConfig {
-    /// Postrgres Database Url
-    #[clap(env)]
+    /// Postgres Database Url
+    #[clap(env, long)]
     pub database_url:                   String,
-    #[clap(env)]
+    #[clap(env, long)]
     pub db_pool_max_size:               u32,
-    #[clap(env)]
+    #[clap(env, long)]
     pub web_server_addr:                String,
-    #[clap(env, default_value = "init_rwa_market")]
+    #[clap(env, long)]
     pub rwa_market_contract_name:       String,
     /// The name of the RWA security NFT contract.
-    #[clap(env, default_value = "init_rwa_security_nft")]
+    #[clap(env, long)]
     pub rwa_security_nft_contract_name: String,
     /// The name of the RWA security SFT contract.
-    #[clap(env, default_value = "init_rwa_security_sft")]
+    #[clap(env, long)]
     pub rwa_security_sft_contract_name: String,
 }
 
