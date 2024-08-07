@@ -38,19 +38,19 @@ pub struct Config {
     #[clap(env, long)]
     pub concordium_node_uri: String,
     #[clap(env, long)]
-    pub web_server_addr: String,
+    pub web_server_addr:     String,
     #[clap(env, long)]
-    pub database_url: String,
+    pub database_url:        String,
     #[clap(env, long)]
-    pub db_pool_max_size: u32,
+    pub db_pool_max_size:    u32,
     #[clap(env, long)]
-    pub identity_registry: String,
+    pub identity_registry:   String,
     #[clap(env, long)]
-    pub wallet_path: PathBuf,
+    pub wallet_path:         PathBuf,
     #[clap(env, long)]
-    pub max_energy: String,
+    pub max_energy:          String,
     #[clap(env, long)]
-    pub network: String,
+    pub network:             String,
 }
 
 #[tokio::main]
@@ -61,9 +61,7 @@ async fn main() {
     info!("Verifier API: Starting Server");
     debug!("{:#?}", config);
 
-    info!("Running migrations");
-    run_migrations(&config.database_url).expect("Failed to run migrations");
-
+    run_migrations(&config.database_url);
     let routes = create_server_routes(config.to_owned()).await;
     info!("Starting Server at {}", config.web_server_addr);
     Server::new(TcpListener::bind(config.web_server_addr))
@@ -184,10 +182,10 @@ async fn get_concordium_identity_providers(
 }
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-fn run_migrations(database_url: &str) -> anyhow::Result<()> {
-    PgConnection::establish(database_url)
-        .expect("Error connecting to Postgres")
-        .run_pending_migrations(MIGRATIONS)
-        .expect("Error running migrations");
-    Ok(())
+fn run_migrations(database_url: &str) {
+    info!("Running migrations on database: {}", database_url);
+    let mut conn = PgConnection::establish(database_url).expect("Error connecting to Postgres");
+    let applied_migrations =
+        conn.run_pending_migrations(MIGRATIONS).expect("Error running migrations");
+    applied_migrations.iter().for_each(|m| info!("Applied migration: {}", m));
 }
