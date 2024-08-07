@@ -1,7 +1,7 @@
 use concordium_rwa_sponsor_api::api;
 
 use clap::Parser;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::{io::Write, path::PathBuf};
 
 #[derive(Parser, Debug, Clone)]

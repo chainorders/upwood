@@ -1,0 +1,3 @@
+[workspace]
+members = ["sponsor", "verifier", "events_listener", "shared"]
+resolver = "2"

@@ -25,7 +25,7 @@ use diesel::{
     Connection, PgConnection,
 };
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use log::{debug, info};
 use poem::{
     listener::TcpListener,

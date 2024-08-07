@@ -7,7 +7,7 @@ use concordium_rust_sdk::{
     types::{ContractAddress, Energy, WalletAccount},
     v2,
 };
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use log::{debug, info};
 use poem::{
     listener::TcpListener,
