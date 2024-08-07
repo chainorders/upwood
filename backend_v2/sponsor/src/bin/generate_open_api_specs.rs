@@ -8,7 +8,7 @@ use std::{io::Write, path::PathBuf};
 /// Configuration struct for OpenAPI.
 pub struct Config {
     /// Output file path for the generated OpenAPI specs
-    #[clap(env, default_value = "sponsor-api-specs.json")]
+    #[clap(env, long)]
     pub output: PathBuf,
 }
 

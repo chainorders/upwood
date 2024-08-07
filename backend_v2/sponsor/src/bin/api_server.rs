@@ -67,7 +67,7 @@ async fn main() {
         .with(AddData::new(concordium_client))
         .with(AddData::new(Arc::new(wallet)));
 
-    info!("Sponsor API: Starting Server at {}", config.web_server_addr);
+    info!("Starting Server at {}", config.web_server_addr);
     Server::new(TcpListener::bind(config.web_server_addr))
         .run(routes)
         .await
