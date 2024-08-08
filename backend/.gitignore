@@ -1,5 +1,3 @@
-contracts-api-specs.json
-verifier-api-specs.json
-sponsor-api-specs.json
-agent_wallet.export
-sponsor_wallet.export
+target
+wallet.export
+*specs.json

@@ -5,7 +5,12 @@
 	"workspaceFolder": "/workspace/backend",
 	"remoteUser": "root",
 	"features": {
-		"ghcr.io/devcontainers/features/node:1": {}
+		"ghcr.io/devcontainers/features/node:1": {},
+		"docker-in-docker": {
+			"version": "latest",
+			"moby": true,
+			"dockerDashComposeVersion": "v2"
+		}
 	},
 	"forwardPorts": [
 		5432
