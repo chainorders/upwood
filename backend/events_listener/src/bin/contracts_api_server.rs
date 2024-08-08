@@ -31,7 +31,7 @@ pub struct Config {
 
 #[tokio::main]
 async fn main() {
-    dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".api.env")).ok();
+    dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
 
     env_logger::init();
     let config = Config::parse();
