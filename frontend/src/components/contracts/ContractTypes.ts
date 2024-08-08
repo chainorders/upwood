@@ -8,13 +8,13 @@ import { CONTRACT_NAME as rwaSponsorContractName } from "../../lib/rwaSponsor";
 import { CONTRACT_NAME as rwaMarketContractName } from "../../lib/rwaMarket";
 
 export const enum ContractType {
-	RwaIdentityRegistry = rwaIdentityRegistryContractName,
-	RwaCompliance = rwaComplianceContractName,
-	RwaComplianceModule = rwaComplianceModuleContractName,
-	RwaSecurityNft = rwaSecurityNftContractName,
-	RwaSecuritySft = rwaSecuritySftContractName,
-	RwaSponsor = rwaSponsorContractName,
-	RwaMarket = rwaMarketContractName,
+	RwaIdentityRegistry = `${rwaIdentityRegistryContractName}`,
+	RwaCompliance = `${rwaComplianceContractName}`,
+	RwaComplianceModule = `${rwaComplianceModuleContractName}`,
+	RwaSecurityNft = `${rwaSecurityNftContractName}`,
+	RwaSecuritySft = `${rwaSecuritySftContractName}`,
+	RwaSponsor = `${rwaSponsorContractName}`,
+	RwaMarket = `${rwaMarketContractName}`,
 }
 
 export interface Contract {

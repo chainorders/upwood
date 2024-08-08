@@ -1,12 +1,8 @@
-use super::{
-    error::*,
-    event::{Event, TokenDeposited},
-    mint::mint_internal,
-    state::State,
-    types::*,
+use super::{error::*, mint::mint_internal, state::State, types::*};
+use concordium_cis2::{AdditionalData, Cis2Client, Receiver, TokenAmountU64, Transfer};
+use concordium_rwa_utils::{
+    concordium_cis2_security::TokenDeposited, token_deposits_state::IDepositedTokensState,
 };
-use concordium_cis2::{AdditionalData, Cis2Client, Receiver, Transfer};
-use concordium_rwa_utils::token_deposits_state::IDepositedTokensState;
 use concordium_std::*;
 
 #[receive(
@@ -44,7 +40,7 @@ pub fn deposit(
     logger.log(&Event::Deposited(TokenDeposited {
         token_id: deposited_token_uid.clone().token_id,
         owner:    from,
-        amount:   params.amount,
+        amount:   TokenAmountU64(params.amount.0.into()),
     }))?;
 
     if params.data.size().ne(&0u32) {
@@ -96,7 +92,7 @@ pub fn withdraw(
     logger.log(&Event::Withdraw(TokenDeposited {
         token_id: params.token_id,
         owner:    params.owner,
-        amount:   params.amount,
+        amount:   TokenAmountU64(params.amount.0.into()),
     }))?;
 
     Ok(())

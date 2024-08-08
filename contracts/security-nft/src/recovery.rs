@@ -1,7 +1,8 @@
-use super::{error::*, event::*, state::State, types::*};
+use super::{error::*, state::State, types::*};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,
     clients::identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
+    concordium_cis2_security::RecoverEvent,
     holders_security_state::IHoldersSecurityState,
 };
 use concordium_std::*;

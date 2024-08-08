@@ -6,7 +6,7 @@ import {
 } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { useContractsApi } from "../ContractsApiProvider";
-import { ApiDepositedToken as DepositedToken } from "../../lib/contracts-api-client";
+import { Cis2Deposit } from "../../lib/contracts-api-client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ActionButtonProps, Token } from "../common/TokenCardDisplay";
 import TokensGrid from "../common/TokensGrid";
@@ -31,12 +31,12 @@ export default function TokensList(props: Props) {
 	const { provider: backendApi } = useContractsApi();
 	const navigate = useNavigate();
 
-	const [tokens, setTokens] = useState<DepositedToken[]>([]);
+	const [tokens, setTokens] = useState<Cis2Deposit[]>([]);
 	useEffect(() => {
 		setLoading(true);
 		setError("");
 		backendApi.default
-			.getRwaSecuritySftDeposited({
+			.getRwaSecurityCis2Deposited({
 				owner: currentAccount.address,
 				index: Number(contract.index),
 				subindex: Number(contract.subindex),

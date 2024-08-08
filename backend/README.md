@@ -1,10 +1,32 @@
 # Concordium RWA Backend
 
-## Generate docs
+Backend Consists of multiple components bundled together an a executor inside the [`main.rs`](./src/main.rs) file.
+The Components are
 
-    ```bash
-    cargo doc --no-deps --open
-    ```
+- [Listener](./src/txn_listener/mod.rs): With following contract event processors.
+  - [Identity Registry Processor](./src/txn_processor/rwa_identity_registry/processor.rs)
+  - [Market Processor](./src/txn_processor/rwa_market/processor.rs)
+  - [Security CIS2 Processor](./src/txn_processor/rwa_security_cis2/processor.rs)
+- Contract API's
+  - [Market](./src/txn_processor/rwa_security_cis2/api.rs)
+  - [Security CIS2](./src/txn_processor/rwa_security_cis2/api.rs)
+- [Sponsor Backend](./src/sponsor/mod.rs) : Uses an input wallet and exposes an API which can be accessed with a [Sponsor Contract](../contracts/sponsor/src/lib.rs)
+  - Wallet file can be provided by using the default location file [`./sponsor_wallet.export`](./sponsor_wallet.export)
+- [Verifier Backend](./src/verifier/mod.rs): Exposes an API with a Identity Registry Agent Account Wallet to add an input Identity (Account Address / Contract Address) to the [Identity Registry Contract](../contracts/identity-registry/src/lib.rs)
+  - Wallet file can be provided by copy pasting to the default location [`./agent_wallet.export`](./agent_wallet.export)
+
+## Notable Available Yarn Scripts
+
+All the yarn scripts can be listed using the command `yarn run`
+
+- `yarn build`
+- `yarn generate:client`: Used to generate frontend API clients.
+- `yarn debug:listener`: Runs the Concordium Listener and starts to process the events for the available contracts.
+- `yarn debug:contracts-api`: Runs the API's for the available contracts
+- `yarn debug:verifier-api`: Runs the verifier API
+- `yarn debug:debug:sponsor-api`: Runs the Sponsor API
+
+All Available commands exposed by the executable can be listed using `cargo run --help`. This will also show the default values being used.
 
 ## API's
 
@@ -45,47 +67,47 @@
 
 ### General Variables
 
-| Variable | Description |
-| --- | --- |
-| CONCORDIUM_NODE_URI | The URI of the Concordium node. |
-| MONGODB_URI | The URI of the MongoDB database. |
-| WEB_SERVER_ADDR | The address and port the web server is running on. |
-| DEFAULT_BLOCK_HEIGHT | The starting block height for the blockchain. |
-| NETWORK | The network the application is running on. |
+| Variable             | Description                                        |
+| -------------------- | -------------------------------------------------- |
+| CONCORDIUM_NODE_URI  | The URI of the Concordium node.                    |
+| MONGODB_URI          | The URI of the MongoDB database.                   |
+| WEB_SERVER_ADDR      | The address and port the web server is running on. |
+| DEFAULT_BLOCK_HEIGHT | The starting block height for the blockchain.      |
+| NETWORK              | The network the application is running on.         |
 
 ### Module Refs
 
-| Variable | Description |
-| --- | --- |
-| RWA_COMPLIANCE_MODULE_REF | The reference for the RWA Compliance module. |
+| Variable                         | Description                                         |
+| -------------------------------- | --------------------------------------------------- |
+| RWA_COMPLIANCE_MODULE_REF        | The reference for the RWA Compliance module.        |
 | RWA_IDENTITY_REGISTRY_MODULE_REF | The reference for the RWA Identity Registry module. |
-| RWA_MARKET_MODULE_REF | The reference for the RWA Market module. |
-| RWA_SECURITY_NFT_MODULE_REF | The reference for the RWA Security NFT module. |
-| RWA_SECURITY_SFT_MODULE_REF | The reference for the RWA Security SFT module. |
-| RWA_SPONSOR_MODULE_REF | The reference for the RWA Sponsor module. |
+| RWA_MARKET_MODULE_REF            | The reference for the RWA Market module.            |
+| RWA_SECURITY_NFT_MODULE_REF      | The reference for the RWA Security NFT module.      |
+| RWA_SECURITY_SFT_MODULE_REF      | The reference for the RWA Security SFT module.      |
+| RWA_SPONSOR_MODULE_REF           | The reference for the RWA Sponsor module.           |
 
 ### Contract Names
 
-| Variable | Description |
-| --- | --- |
+| Variable                            | Description                                     |
+| ----------------------------------- | ----------------------------------------------- |
 | RWA_IDENTITY_REGISTRY_CONTRACT_NAME | The name of the RWA Identity Registry contract. |
-| RWA_COMPLIANCE_CONTRACT_NAME | The name of the RWA Compliance contract. |
-| RWA_MARKET_CONTRACT_NAME | The name of the RWA Market contract. |
-| RWA_SECURITY_NFT_CONTRACT_NAME | The name of the RWA Security NFT contract. |
-| RWA_SPONSOR_CONTRACT_NAME | The name of the RWA Sponsor contract. |
+| RWA_COMPLIANCE_CONTRACT_NAME        | The name of the RWA Compliance contract.        |
+| RWA_MARKET_CONTRACT_NAME            | The name of the RWA Market contract.            |
+| RWA_SECURITY_NFT_CONTRACT_NAME      | The name of the RWA Security NFT contract.      |
+| RWA_SPONSOR_CONTRACT_NAME           | The name of the RWA Sponsor contract.           |
 
 ### Verifier
 
-| Variable | Description |
-| --- | --- |
-| IDENTITY_REGISTRY | The identity registry. |
-| AGENT_WALLET_PATH | The path to the agent's wallet. |
+| Variable                 | Description                                                 |
+| ------------------------ | ----------------------------------------------------------- |
+| IDENTITY_REGISTRY        | The identity registry.                                      |
+| AGENT_WALLET_PATH        | The path to the agent's wallet.                             |
 | VERIFIER_WEB_SERVER_ADDR | The address and port the verifier web server is running on. |
 
 ### Sponsor
 
-| Variable | Description |
-| --- | --- |
-| SPONSOR_WALLET_PATH | The path to the sponsor's wallet. |
+| Variable                | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| SPONSOR_WALLET_PATH     | The path to the sponsor's wallet.                          |
 | SPONSOR_WEB_SERVER_ADDR | The address and port the sponsor web server is running on. |
-| SPONSOR_CONTRACT | The sponsor contract. |
+| SPONSOR_CONTRACT        | The sponsor contract.                                      |

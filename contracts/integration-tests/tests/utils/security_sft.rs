@@ -8,7 +8,7 @@ use super::{
     test_contract_client::*,
 };
 use concordium_cis2::{AdditionalData, Cis2Event, Receiver, TokenIdU32, TokenIdU8, TransferParams};
-use concordium_rwa_security_sft::{event::Event, types::*};
+use concordium_rwa_security_sft::types::*;
 use concordium_smart_contract_testing::*;
 
 pub const CONTRACT_NAME: &str = "init_rwa_security_sft";
@@ -258,10 +258,7 @@ pub trait ISecuritySftContractExt: ISecuritySftContract {
                     .expect("SFT: Add Tokens parsing events")
                     .iter()
                     .filter_map(|e| {
-                        if let concordium_rwa_security_sft::event::Event::Cis2(
-                            Cis2Event::TokenMetadata(e),
-                        ) = e
-                        {
+                        if let Event::Cis2(Cis2Event::TokenMetadata(e)) = e {
                             Some(e.token_id)
                         } else {
                             None

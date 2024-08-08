@@ -13,10 +13,7 @@ use utils::{
     cis2_conversions::to_token_id_vec,
     cis2_security_test_contract::ICis2SecurityTestContract,
     cis2_test_contract::{ICis2Contract, ICis2ContractExt},
-    common::{
-        init_identity_contracts, init_security_sft_contract,
-        init_security_token_contracts,
-    },
+    common::{init_identity_contracts, init_security_sft_contract, init_security_token_contracts},
     consts::*,
     identity_registry::{IIdentityRegistryContract, IdentityRegistryContract},
     security_nft::ISecurityNftContractExt,

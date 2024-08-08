@@ -1,6 +1,5 @@
 use super::{
     error::*,
-    event::*,
     state::{State, TokenState},
     types::*,
 };

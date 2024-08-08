@@ -1,0 +1,79 @@
+{
+	"name": "backend",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "backend",
+	"workspaceFolder": "/workspace/backend",
+	"remoteUser": "root",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {},
+		"docker-in-docker": {
+			"version": "latest",
+			"moby": true,
+			"dockerDashComposeVersion": "v2"
+		}
+	},
+	"forwardPorts": [
+		5432
+	],
+	"postCreateCommand": "/bootstrap.sh",
+	"postStartCommand": "yarn run",
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"lldb.executable": "/usr/bin/lldb",
+				"files.watcherExclude": {
+					"**/target/**": true
+				},
+				"[markdown]": {
+					"editor.formatOnSave": true,
+					"editor.wordWrap": "on",
+					"editor.renderWhitespace": "all",
+					"editor.acceptSuggestionOnEnter": "off"
+				},
+				"files.insertFinalNewline": true,
+				"files.trimFinalNewlines": true,
+				"rust-analyzer.cargo.autoreload": true,
+				"rust-analyzer.files.excludeDirs": [
+					"target"
+				],
+				"rust-analyzer.diagnostics.styleLints.enable": true,
+				"rust-analyzer.check.overrideCommand": [
+					"cargo",
+					"clippy",
+					"--no-deps",
+					"--message-format=json",
+					"--all-targets"
+				],
+				"rust-analyzer.checkOnSave.command": "clippy",
+				"rust-analyzer.checkOnSave": true,
+				"rust-analyzer.linkedProjects": [
+					"Cargo.toml"
+				]
+			},
+			"extensions": [
+				"shardulm94.trailing-spaces",
+				"spikespaz.vscode-smoothtype",
+				"eamodio.gitlens",
+				"ms-azuretools.vscode-docker",
+				"Gruntfuggly.todo-tree",
+				"streetsidesoftware.code-spell-checker",
+				"rust-lang.rust-analyzer",
+				"swellaby.rust-pack",
+				"vadimcn.vscode-lldb",
+				"mutantdino.resourcemonitor",
+				"gamunu.vscode-yarn",
+				"tamasfe.even-better-toml",
+				"fill-labs.dependi",
+				"esbenp.prettier-vscode",
+				"DavidAnson.vscode-markdownlint",
+				"bierner.markdown-emoji",
+				"bierner.github-markdown-preview",
+				"formulahendry.docker-extension-pack",
+				"inferrinizzard.prettier-sql-vscode",
+				"ms-ossdata.vscode-postgresql",
+				"ckolkman.vscode-postgres",
+				"MS-CST-E.vscode-devskim"
+			]
+		}
+	}
+}

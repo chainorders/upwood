@@ -3,7 +3,7 @@ use super::{
     test_contract_client::*,
 };
 use concordium_cis2::Receiver;
-use concordium_rwa_security_nft::{event::Event, types::*};
+use concordium_rwa_security_nft::types::*;
 use concordium_smart_contract_testing::*;
 
 pub const CONTRACT_NAME: &str = "init_rwa_security_nft";

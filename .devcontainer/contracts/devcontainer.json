@@ -1,0 +1,98 @@
+{
+	"name": "contracts",
+	"dockerFile": "Dockerfile",
+	"context": ".",
+	"postCreateCommand": "/bootstrap.sh",
+	"postStartCommand": "yarn run",
+	"mounts": [
+		{
+			"source": "devcontainer-cargo-cache-${devcontainerId}",
+			"target": "/usr/local/cargo",
+			"type": "volume"
+		},
+		{
+			"source": "${localEnv:HOME}/etc/concordium/default_account.export",
+			"target": "/etc/concordium/default_account.export",
+			"type": "bind"
+		}
+	],
+	"containerEnv": {
+		"CONTRACT_DEPLOY_SENDER_ACCOUNT": "default",
+		"CONTRACT_DEPLOY_GRPC_IP": "node.testnet.concordium.com",
+		"CONTRACT_DEPLOY_GRPC_PORT": "20000"
+	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+	"workspaceFolder": "/workspace/contracts",
+	"remoteUser": "root",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"lldb.executable": "/usr/bin/lldb",
+				"files.watcherExclude": {
+					"**/target/**": true
+				},
+				"[markdown]": {
+					"editor.formatOnSave": true,
+					"editor.wordWrap": "on",
+					"editor.renderWhitespace": "all",
+					"editor.acceptSuggestionOnEnter": "off"
+				},
+				"files.insertFinalNewline": true,
+				"files.trimFinalNewlines": true,
+				"rust-analyzer.cargo.autoreload": true,
+				"rust-analyzer.files.excludeDirs": [
+					"target"
+				],
+				"rust-analyzer.diagnostics.styleLints.enable": true,
+				"rust-analyzer.check.overrideCommand": [
+					"cargo",
+					"clippy",
+					"--no-deps",
+					"--message-format=json",
+					"--all-targets"
+				],
+				"rust-analyzer.checkOnSave.command": "clippy",
+				"rust-analyzer.checkOnSave": true,
+				"rust-analyzer.rustfmt.extraArgs": [
+					"+nightly-2023-04-01"
+				],
+				"rust-analyzer.linkedProjects": [
+					"compliance/Cargo.toml",
+					"concordium-protocols/Cargo.toml",
+					"identity-registry/Cargo.toml",
+					"integration-tests/Cargo.toml",
+					"market/Cargo.toml",
+					"security-nft/Cargo.toml",
+					"security-sft/Cargo.toml",
+					"sponsor/Cargo.toml",
+					"utils/Cargo.toml"
+				]
+			},
+			"extensions": [
+				"shardulm94.trailing-spaces",
+				"spikespaz.vscode-smoothtype",
+				"eamodio.gitlens",
+				"ms-azuretools.vscode-docker",
+				"Gruntfuggly.todo-tree",
+				"streetsidesoftware.code-spell-checker",
+				"rust-lang.rust-analyzer",
+				"swellaby.rust-pack",
+				"vadimcn.vscode-lldb",
+				"gamunu.vscode-yarn",
+				"mutantdino.resourcemonitor",
+				"tamasfe.even-better-toml",
+				"fill-labs.dependi",
+				"esbenp.prettier-vscode",
+				"DavidAnson.vscode-markdownlint",
+				"bierner.markdown-emoji",
+				"bierner.github-markdown-preview",
+				"formulahendry.docker-extension-pack",
+				"inferrinizzard.prettier-sql-vscode",
+				"MS-CST-E.vscode-devskim"
+			]
+		}
+	}
+}

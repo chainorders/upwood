@@ -1,4 +1,4 @@
-use super::{error::*, event::*, state::State, types::*};
+use super::{error::*, state::State, types::*};
 use concordium_cis2::{Cis2Event, OnReceivingCis2Params, Receiver, TransferEvent};
 use concordium_rwa_utils::{
     agents_state::IsAgentsState,

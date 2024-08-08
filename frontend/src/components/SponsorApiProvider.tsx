@@ -9,6 +9,7 @@ const context = createContext<SponsorApiContent>({
 	provider: sponsorApi,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSponsorApi = () => {
 	return useContext(context);
 };

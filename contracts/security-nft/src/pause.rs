@@ -1,7 +1,7 @@
-use super::{error::*, event::*, state::State, types::*};
+use super::{error::*, state::State, types::*};
 use concordium_rwa_utils::{
-    agents_state::IsAgentsState, tokens_security_state::ITokensSecurityState,
-    tokens_state::ITokensState,
+    agents_state::IsAgentsState, concordium_cis2_security::Paused,
+    tokens_security_state::ITokensSecurityState, tokens_state::ITokensState,
 };
 use concordium_std::*;
 

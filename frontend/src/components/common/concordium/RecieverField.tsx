@@ -1,4 +1,3 @@
-/* eslint-disable no-mixed-spaces-and-tabs */
 import { MenuItem, Select, Stack, TextField } from "@mui/material";
 import AccountAddressField from "./AccountAddressField";
 import {

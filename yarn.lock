@@ -2406,12 +2406,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"concordium-rwa-utils@workspace:contracts/utils":
+  version: 0.0.0-use.local
+  resolution: "concordium-rwa-utils@workspace:contracts/utils"
+  languageName: unknown
+  linkType: soft
+
 "concordium-rwa@workspace:.":
   version: 0.0.0-use.local
   resolution: "concordium-rwa@workspace:."
   dependencies:
     "@types/node": "npm:^20.10.5"
     typescript: "npm:^5.3.3"
+  languageName: unknown
+  linkType: soft
+
+"contracts@workspace:contracts":
+  version: 0.0.0-use.local
+  resolution: "contracts@workspace:contracts"
   languageName: unknown
   linkType: soft
 

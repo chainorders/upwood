@@ -1,7 +1,6 @@
 import { SchemaType, deserializeSchemaType } from "@concordium/web-sdk";
 import { Buffer } from "buffer/";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseUiToContract = <TUi, TContract>(
 	json: TUi,
 	schemaBase64: string,
@@ -87,7 +86,6 @@ const parseContractRequest = (json: any, type: SchemaType): any => {
 };
 
 // Parses Contract Response to UI friendly format
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseContractToUi = <TUi, TContract>(
 	json: TContract,
 	schemaBase64: string,

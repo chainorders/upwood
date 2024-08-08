@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import { ContractsApi } from "../lib/contracts-api-client";
-import { contractsApi } from "../lib/ContractsApiClient";
+import { default as contractsApi } from "../lib/ContractsApiClient";
 
 export type ContractsApiContext = {
 	provider: ContractsApi;
@@ -9,6 +9,7 @@ const ContractsApiContext = createContext<ContractsApiContext>({
 	provider: contractsApi,
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useContractsApi = () => {
 	return useContext(ContractsApiContext);
 };

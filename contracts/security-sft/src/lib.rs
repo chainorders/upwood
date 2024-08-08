@@ -3,7 +3,6 @@ pub mod balance_of;
 pub mod burn;
 pub mod deposit;
 pub mod error;
-pub mod event;
 pub mod freeze;
 pub mod init;
 pub mod mint;

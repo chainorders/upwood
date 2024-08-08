@@ -1,11 +1,12 @@
 use super::{
     error::Error,
-    event::{ComplianceAdded, Event, IdentityRegistryAdded},
     state::State,
-    types::{ContractResult, InitParam},
+    types::{ContractResult, Event, InitParam},
 };
 use concordium_rwa_utils::{
-    agents_state::IsAgentsState, holders_security_state::IHoldersSecurityState,
+    agents_state::IsAgentsState,
+    concordium_cis2_security::{ComplianceAdded, IdentityRegistryAdded},
+    holders_security_state::IHoldersSecurityState,
 };
 use concordium_std::*;
 
@@ -20,8 +21,8 @@ use concordium_std::*;
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[init(
     contract = "rwa_security_sft",
-    event = "super::event::Event",
-    error = "super::error::Error",
+    event = "Event",
+    error = "Error",
     parameter = "InitParam",
     enable_logger
 )]

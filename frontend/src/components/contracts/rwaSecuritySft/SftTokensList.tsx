@@ -1,7 +1,7 @@
 import { ContractAddress } from "@concordium/web-sdk";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ApiSftToken as SftToken } from "../../../lib/contracts-api-client";
+import { Token } from "../../../lib/contracts-api-client";
 import { useContractsApi } from "../../ContractsApiProvider";
 import TokensList from "../../common/TokensList";
 
@@ -16,13 +16,13 @@ export default function SftTokensList(props: Props) {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const { provider: backendApi } = useContractsApi();
-	const [tokens, setTokens] = useState<SftToken[]>([]);
+	const [tokens, setTokens] = useState<Token[]>([]);
 
 	useEffect(() => {
 		setLoading(true);
 		setError("");
 		backendApi.default
-			.getRwaSecuritySftTokens({
+			.getRwaSecurityCis2Tokens({
 				index: Number(contract.index),
 				subindex: Number(contract.subindex),
 				page,
