@@ -32,8 +32,7 @@ sha2 = "0.10.8"
 async-trait = "0.1.77"
 concordium-rwa-market = { path = "../../contracts/market" }
 concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
-concordium-rwa-security-nft = { path = "../../contracts/security-nft" }
-concordium-rwa-security-sft = { path = "../../contracts/security-sft" }
+security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 concordium-rwa-utils = { path = "../../contracts/utils" }
 dotenvy = "0.15.7"
 env_logger = "0.10.1"

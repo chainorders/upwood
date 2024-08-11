@@ -1,4 +1,5 @@
 pub mod agents_state;
+pub mod agent_with_roles_state;
 pub mod cis2_conversions;
 pub mod cis2_security_state;
 pub mod cis2_state;
@@ -13,4 +14,6 @@ pub mod sponsors_state;
 pub mod token_deposits_state;
 pub mod tokens_security_state;
 pub mod tokens_state;
-pub use concordium_protocols::{concordium_cis2_ext, concordium_cis2_security, concordium_cis3};
+pub use concordium_protocols::concordium_cis2_ext;
+pub use concordium_protocols::concordium_cis3;
+pub use concordium_protocols::concordium_cis2_security;

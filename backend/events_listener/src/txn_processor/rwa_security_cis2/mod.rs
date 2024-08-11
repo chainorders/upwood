@@ -12,12 +12,9 @@ mod test {
         id::types::{AccountAddress, ACCOUNT_ADDRESS_SIZE},
         types::ContractAddress,
     };
-    use concordium_rwa_security_nft::types::Event;
-    use concordium_rwa_security_sft::types::NftTokenId;
-    use concordium_rwa_utils::{
-        cis2_types::NftTokenAmount,
-        concordium_cis2_security::{TokenDeposited, TokenUId},
-    };
+    use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
+    // use concordium_rwa_security_sft::types::NftTokenId;
+    use concordium_rwa_utils::concordium_cis2_security::{TokenDeposited, TokenUId};
     use diesel::{r2d2::ConnectionManager, PgConnection};
     use diesel_migrations::{embed_migrations, EmbeddedMigrations};
     use poem::web::Data;
@@ -103,10 +100,20 @@ mod test {
             .expect("Error creating database pool")
             .get()
             .expect("error getting connection from db");
-        process_events::<NftTokenId, NftTokenAmount>(&mut db_conn, now, &cis2_address_1, &events)
-            .expect("Error processing events");
-        process_events::<NftTokenId, NftTokenAmount>(&mut db_conn, now, &cis2_address_2, &events)
-            .expect("Error processing events");
+        process_events::<TokenId, TokenAmount, AgentRole>(
+            &mut db_conn,
+            now,
+            &cis2_address_1,
+            &events,
+        )
+        .expect("Error processing events");
+        process_events::<TokenId, TokenAmount, AgentRole>(
+            &mut db_conn,
+            now,
+            &cis2_address_2,
+            &events,
+        )
+        .expect("Error processing events");
 
         let pool = Pool::builder()
             .max_size(1)

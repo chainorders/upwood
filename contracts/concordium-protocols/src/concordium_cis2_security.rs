@@ -1,8 +1,7 @@
-#![allow(clippy::manual_range_patterns)]
-use concordium_cis2::{IsTokenAmount, IsTokenId, Receiver, TokenAmountU64, TokenIdVec};
-use concordium_std::{Address, SchemaType, Serialize};
-use concordium_cis2::Cis2Event;
-use concordium_std::{schema::SchemaType, *};
+use concordium_cis2::{Cis2Event, IsTokenAmount, IsTokenId, Receiver, TokenAmountU64, TokenIdVec};
+use concordium_std::{
+    schema::SchemaType, AccountAddress, Address, ContractAddress, Cursor, SchemaType, Serialize,
+};
 
 #[derive(Serialize, SchemaType)]
 pub struct PauseParams<T: IsTokenId> {
@@ -46,14 +45,22 @@ pub struct FrozenParams<T: IsTokenId> {
 }
 
 #[derive(Serialize, SchemaType, PartialEq, Debug)]
-pub struct FrozenResponse<T: IsTokenAmount> {
-    pub tokens: Vec<T>,
+pub struct FrozenResponse<A: IsTokenAmount> {
+    pub tokens: Vec<A>,
 }
 
 #[derive(Serialize, SchemaType)]
 pub struct RecoverParam {
     pub lost_account: Address,
     pub new_account:  Address,
+}
+
+pub type Agent = Address;
+
+#[derive(Serialize, SchemaType, Clone)]
+pub struct AgentWithRoles<TAgentRole> {
+    pub address: Address,
+    pub roles:   Vec<TAgentRole>,
 }
 
 #[derive(Serialize, SchemaType, Clone, Debug)]
@@ -97,8 +104,9 @@ impl<T: Eq> TokenOwnerUId<T> {
 /// Represents an event that is triggered when an agent is updated (Added /
 /// Removed).
 #[derive(Serialize, SchemaType, Debug)]
-pub struct AgentUpdatedEvent {
+pub struct AgentUpdatedEvent<R> {
     pub agent: Address,
+    pub roles: Vec<R>,
 }
 
 /// Represents the event when tokens are frozen / un frozen.
@@ -143,7 +151,7 @@ pub struct TokenDeposited {
 
 #[derive(Serialize, SchemaType, Debug)]
 #[concordium(repr(u8))]
-pub enum Cis2SecurityEvent<T, A>
+pub enum Cis2SecurityEvent<T, A, R>
 where
     T: IsTokenId,
     A: IsTokenAmount, {
@@ -181,11 +189,11 @@ where
 
     /// Event triggered when an agent is removed.
     #[concordium(tag = 249)]
-    AgentRemoved(AgentUpdatedEvent),
+    AgentRemoved(AgentUpdatedEvent<R>),
 
     /// Event triggered when an agent is added.
     #[concordium(tag = 250)]
-    AgentAdded(AgentUpdatedEvent),
+    AgentAdded(AgentUpdatedEvent<R>),
 
     /// Event forwarded from the CIS2 contract.
     #[concordium(forward = cis2_events)]

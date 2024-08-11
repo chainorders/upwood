@@ -1,6 +1,6 @@
 use concordium_cis2::{
     TokenAmountU32, TokenAmountU64 as Cis2TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU8,
-    TokenIdVec,
+    TokenIdUnit, TokenIdVec,
 };
 use concordium_std::*;
 /// Trait representing a token amount.
@@ -84,3 +84,4 @@ impl IsTokenAmount for Cis2TokenAmountU64 {
 impl IsTokenId for TokenIdU8 {}
 impl IsTokenId for TokenIdU32 {}
 impl IsTokenId for TokenIdVec {}
+impl IsTokenId for TokenIdUnit {}

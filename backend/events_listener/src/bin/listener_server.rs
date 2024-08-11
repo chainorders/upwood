@@ -1,7 +1,11 @@
 use std::{path::Path, sync::Arc, time::Duration};
 
 use clap::Parser;
-use concordium_rust_sdk::{base::smart_contracts::OwnedContractName, v2};
+use concordium_rust_sdk::{
+    base::smart_contracts::{OwnedContractName, WasmModule},
+    types::AbsoluteBlockHeight,
+    v2,
+};
 use concordium_rwa_events_listener::{
     txn_listener::{EventsProcessor, TransactionsListener},
     txn_processor::{
@@ -10,54 +14,29 @@ use concordium_rwa_events_listener::{
         rwa_security_cis2::processor::RwaSecurityCIS2Processor,
     },
 };
-use concordium_rwa_security_sft::types::NftTokenId;
-use concordium_rwa_utils::cis2_types::{NftTokenAmount, SftTokenAmount, SftTokenId};
 use diesel::{r2d2::ConnectionManager, PgConnection};
 use log::{debug, info};
 use r2d2::Pool;
+use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
 use tokio::sync::RwLock;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
     /// Postgres Database Url
     #[clap(env, long)]
-    pub database_url: String,
+    pub database_url:                  String,
     #[clap(env, long)]
-    pub db_pool_max_size: u32,
+    pub db_pool_max_size:              u32,
     /// The Concordium node URI.
     #[clap(env, long)]
-    pub concordium_node_uri: String,
-    /// The reference to the RWA identity registry module.
-    #[clap(env, long)]
-    pub rwa_identity_registry_module_ref: String,
-    /// The reference to the RWA security NFT module.
-    #[clap(env, long)]
-    pub rwa_security_nft_module_ref: String,
-    /// The reference to the RWA security SFT module.
-    #[clap(env, long)]
-    pub rwa_security_sft_module_ref: String,
-    /// The reference to the RWA market module.
-    #[clap(env, long)]
-    pub rwa_market_module_ref: String,
+    pub concordium_node_uri:           String,
     /// The starting block hash.
     #[clap(env, long)]
-    pub default_block_height: u64,
+    pub default_block_height:          Option<u64>,
     #[clap(env, long)]
-    pub node_rate_limit: u64,
+    pub node_rate_limit:               u64,
     #[clap(env, long)]
     pub node_rate_limit_duration_secs: u64,
-    /// The name of the RWA security NFT contract.
-    #[clap(env, long)]
-    pub rwa_security_nft_contract_name: String,
-    /// The name of the RWA security SFT contract.
-    #[clap(env, long)]
-    pub rwa_security_sft_contract_name: String,
-    /// The name of the RWA identity registry contract.
-    #[clap(env, long)]
-    pub rwa_identity_registry_contract_name: String,
-    /// The name of the RWA market contract.
-    #[clap(env, long)]
-    pub rwa_market_contract_name: String,
 }
 
 #[tokio::main]
@@ -74,35 +53,6 @@ async fn main() {
         .max_size(config.db_pool_max_size)
         .build(manager)
         .expect("Failed to create connection pool");
-    let processors: Vec<Arc<RwLock<dyn EventsProcessor>>> = vec![
-        Arc::new(RwLock::new(RwaIdentityRegistryProcessor {
-            module_ref:    config
-                .rwa_identity_registry_module_ref
-                .parse()
-                .expect("Invalid identity registry module ref"),
-            contract_name: OwnedContractName::new(config.rwa_identity_registry_contract_name)
-                .expect("Invalid identity registry contract name"),
-            pool:          pool.clone(),
-        })),
-        Arc::new(RwLock::new(RwaSecurityCIS2Processor::<NftTokenId, NftTokenAmount>::new(
-            pool.clone(),
-            config.rwa_security_nft_module_ref.parse().expect("Invalid security NFT module ref"),
-            OwnedContractName::new(config.rwa_security_nft_contract_name)
-                .expect("Invalid security NFT contract name"),
-        ))),
-        Arc::new(RwLock::new(RwaSecurityCIS2Processor::<SftTokenId, SftTokenAmount>::new(
-            pool.clone(),
-            config.rwa_security_sft_module_ref.parse().expect("Invalid security SFT module ref"),
-            OwnedContractName::new(config.rwa_security_sft_contract_name)
-                .expect("Invalid security SFT contract name"),
-        ))),
-        Arc::new(RwLock::new(RwaMarketProcessor {
-            module_ref:    config.rwa_market_module_ref.parse().expect("Invalid market module ref"),
-            contract_name: OwnedContractName::new(config.rwa_market_contract_name)
-                .expect("Invalid market contract name"),
-            pool:          pool.clone(),
-        })),
-    ];
 
     let endpoint: v2::Endpoint =
         config.concordium_node_uri.parse().expect("Failed to parse Concordium node URI");
@@ -110,14 +60,74 @@ async fn main() {
         config.node_rate_limit,
         Duration::from_secs(config.node_rate_limit_duration_secs),
     );
-    let concordium_client =
+    let mut concordium_client =
         v2::Client::new(endpoint).await.expect("Failed to create Concordium client");
 
+    let default_block_height = match config.default_block_height {
+        Some(height) => AbsoluteBlockHeight {
+            height,
+        },
+        None => {
+            debug!("Fetching last finalized block height");
+            concordium_client
+                .get_consensus_info()
+                .await
+                .expect("Failed to get consensus info")
+                .last_finalized_block_height
+        }
+    };
+    info!("default block height: {}", default_block_height);
+
+    // Parsing modules to get module references
+    let ir_module = WasmModule::from_slice(include_bytes!(
+        "../../../../contracts/identity-registry/contract.wasm.v1"
+    ))
+    .unwrap();
+    info!("Identity Registry Module Reference: {:?}", ir_module.get_module_ref());
+    let ir_contract_name: OwnedContractName =
+        OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string());
+    let security_sft_rewards_module = WasmModule::from_slice(include_bytes!(
+        "../../../../contracts/security-sft-rewards/contract.wasm.v1"
+    ))
+    .unwrap();
+    info!(
+        "Security SFT Rewards Module Reference: {:?}",
+        security_sft_rewards_module.get_module_ref()
+    );
+    let security_sft_rewards_contract_name: OwnedContractName =
+        OwnedContractName::new_unchecked("init_security_sft_rewards".to_string());
+    let market_module =
+        WasmModule::from_slice(include_bytes!("../../../../contracts/market/contract.wasm.v1"))
+            .unwrap();
+    info!("Market Module Reference: {:?}", market_module.get_module_ref());
+    let market_contract_name: OwnedContractName =
+        OwnedContractName::new_unchecked("init_rwa_market".to_string());
+
+    let identity_registry_processor = RwaIdentityRegistryProcessor {
+        module_ref:    ir_module.get_module_ref(),
+        contract_name: ir_contract_name,
+        pool:          pool.clone(),
+    };
+    let security_sft_processor = RwaSecurityCIS2Processor::<TokenId, TokenAmount, AgentRole>::new(
+        pool.clone(),
+        security_sft_rewards_module.get_module_ref(),
+        security_sft_rewards_contract_name,
+    );
+    let market_processor = RwaMarketProcessor {
+        pool:          pool.clone(),
+        module_ref:    market_module.get_module_ref(),
+        contract_name: market_contract_name,
+    };
+    let processors: Vec<Arc<RwLock<dyn EventsProcessor>>> = vec![
+        Arc::new(RwLock::new(identity_registry_processor)),
+        Arc::new(RwLock::new(security_sft_processor)),
+        Arc::new(RwLock::new(market_processor)),
+    ];
     let listener = TransactionsListener::new(
         concordium_client,
         pool.clone(),
         processors,
-        config.default_block_height.into(),
+        default_block_height,
     );
 
     listener.listen().await.expect("Listener runtime error");

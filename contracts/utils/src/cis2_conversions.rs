@@ -5,10 +5,19 @@ pub enum ExchangeError {
     InvalidRate,
 }
 
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Rate {
     pub numerator:   u64,
     pub denominator: u64,
+}
+
+impl Default for Rate {
+    fn default() -> Self {
+        Self {
+            numerator:   1,
+            denominator: 1,
+        }
+    }
 }
 
 impl Rate {
