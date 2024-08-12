@@ -1002,7 +1002,6 @@ dependencies = [
 name = "concordium_rwa_events_listener"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "bigdecimal",
  "chrono",
@@ -1028,6 +1027,7 @@ dependencies = [
  "security-sft-rewards",
  "serde_json",
  "sha2",
+ "thiserror",
  "tokio",
 ]
 

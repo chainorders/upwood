@@ -11,7 +11,6 @@ pub mod processor;
 //todo update integration tests using the api
 #[cfg(test)]
 mod integration_tests {
-    use anyhow::Ok;
     use chrono::{DateTime, Utc};
     use concordium_rust_sdk::{
         base::smart_contracts::ContractEvent,
@@ -116,7 +115,7 @@ mod integration_tests {
                 &contract_address
             )]);
             assert_eq!(page_count, 1);
-            Ok(())
+            Ok::<_, diesel::result::Error>(())
         });
     }
 }

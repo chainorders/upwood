@@ -7,7 +7,7 @@ use concordium_rust_sdk::{
     v2,
 };
 use concordium_rwa_events_listener::{
-    txn_listener::{EventsProcessor, TransactionsListener},
+    txn_listener::{EventsProcessor, ListenerError, TransactionsListener},
     txn_processor::{
         rwa_identity_registry::processor::RwaIdentityRegistryProcessor,
         rwa_market::processor::RwaMarketProcessor,
@@ -15,7 +15,7 @@ use concordium_rwa_events_listener::{
     },
 };
 use diesel::{r2d2::ConnectionManager, PgConnection};
-use log::{debug, info};
+use log::{debug, error, info};
 use r2d2::Pool;
 use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
 use tokio::sync::RwLock;
@@ -39,8 +39,18 @@ pub struct Config {
     pub node_rate_limit_duration_secs: u64,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Invalid node URI: {0}")]
+    InvalidNodeUri(#[from] concordium_rust_sdk::endpoints::Error),
+    #[error("Listener Error: {0}")]
+    ListenerError(#[from] ListenerError),
+    #[error("Listener stopped")]
+    ListenerStopped,
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Error> {
     dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
     env_logger::init();
 
@@ -54,8 +64,7 @@ async fn main() {
         .build(manager)
         .expect("Failed to create connection pool");
 
-    let endpoint: v2::Endpoint =
-        config.concordium_node_uri.parse().expect("Failed to parse Concordium node URI");
+    let endpoint: v2::Endpoint = config.concordium_node_uri.parse()?;
     let endpoint = endpoint.rate_limit(
         config.node_rate_limit,
         Duration::from_secs(config.node_rate_limit_duration_secs),
@@ -130,5 +139,7 @@ async fn main() {
         default_block_height,
     );
 
-    listener.listen().await.expect("Listener runtime error");
+    listener.listen().await?;
+    error!("Contracts Listener: Stopped");
+    Err(Error::ListenerStopped)
 }

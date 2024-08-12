@@ -561,7 +561,7 @@ pub fn list_deposits_by_holder(
     Ok((tokens, page_count))
 }
 
-pub fn insert_or_add_deposit_amount(conn: &mut DbConn, record: &Cis2Deposit) -> DbResult<()> {
+pub fn insert_or_inc_deposit_amount(conn: &mut DbConn, record: &Cis2Deposit) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_deposits::table)
         .values(record)
         .on_conflict((

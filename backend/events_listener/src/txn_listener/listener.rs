@@ -1,5 +1,4 @@
 use super::db;
-use anyhow::Ok;
 use async_trait::async_trait;
 use concordium_rust_sdk::{
     types::{
@@ -18,6 +17,18 @@ use futures::StreamExt;
 use log::{debug, info, warn};
 use std::{collections::BTreeMap, ops::AddAssign, sync::Arc};
 use tokio::sync::RwLock;
+
+#[derive(Debug, thiserror::Error)]
+pub enum ProcessorError {
+    #[error("R2D2 pool Database error: {0}")]
+    DatabasePoolError(#[from] r2d2::Error),
+    #[error("Events Parse Error: {0}")]
+    EventsParseError(#[from] concordium_rust_sdk::base::contracts_common::ParseError),
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] diesel::result::Error),
+    #[error("token id vector parse error: {0}")]
+    TokenIdParseError(#[from] concordium_rust_sdk::cis2::ParseTokenIdVecError)
+}
 
 /// `EventsProcessor` is a trait that defines the necessary methods for
 /// processing events of a specific contract. It is designed to be implemented
@@ -72,13 +83,27 @@ pub trait EventsProcessor: Send + Sync {
         &mut self,
         contract: &ContractAddress,
         events: &[ContractEvent],
-    ) -> anyhow::Result<u64>;
+    ) -> Result<u64, ProcessorError>;
 }
 
 pub enum ProcessedBlockItem {
     Init((ContractAddress, ModuleReference, OwnedContractName, Vec<ContractEvent>)),
     Update(BTreeMap<ContractAddress, Vec<ContractEvent>>),
     WithNoEvents,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ListenerError {
+    #[error("Finalized Block Stream ended")]
+    FinalizedBlockStreamEnded,
+    #[error("R2D2 pool Database error: {0}")]
+    DatabasePoolError(#[from] r2d2::Error),
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] diesel::result::Error),
+    #[error("Concordium node query error: {0}")]
+    QueryError(#[from] concordium_rust_sdk::endpoints::QueryError),
+    #[error("Processor error: {0}")]
+    ProcessorError(#[from] ProcessorError),
 }
 
 /// `TransactionsListener` is a struct that listens to transactions from a
@@ -117,7 +142,7 @@ impl TransactionsListener {
     /// # Returns
     ///
     /// * A Result indicating the success or failure of the operation.
-    pub async fn listen(mut self) -> anyhow::Result<()> {
+    pub async fn listen(mut self) -> Result<(), ListenerError> {
         let block_height = self.get_block_height().await?;
         let mut finalized_block_stream =
             self.client.get_finalized_blocks_from(block_height).await?;
@@ -127,10 +152,10 @@ impl TransactionsListener {
             log::debug!("Processed block {}", block.height.height);
         }
 
-        anyhow::bail!("Finalized block stream ended unexpectedly")
+        Err(ListenerError::FinalizedBlockStreamEnded)
     }
 
-    async fn get_block_height(&self) -> Result<AbsoluteBlockHeight, anyhow::Error> {
+    async fn get_block_height(&self) -> Result<AbsoluteBlockHeight, ListenerError> {
         let mut conn = self.database.get()?;
         let block_height =
             db::get_last_processed_block(&mut conn)?.unwrap_or(self.default_block_height);
@@ -147,14 +172,10 @@ impl TransactionsListener {
     /// # Returns
     ///
     /// * A Result indicating the success or failure of the operation.
-    async fn process_block(&mut self, block: &FinalizedBlockInfo) -> anyhow::Result<u64> {
+    async fn process_block(&mut self, block: &FinalizedBlockInfo) -> Result<u64, ListenerError> {
         let mut b_events_count = 0u64;
-        let mut summaries = self
-            .client
-            .get_block_transaction_events(block.block_hash)
-            .await
-            .expect("block not found")
-            .response;
+        let mut summaries =
+            self.client.get_block_transaction_events(block.block_hash).await?.response;
 
         while let Some(summary) =
             summaries.next().await.transpose().expect("error getting block item summary")
@@ -175,7 +196,7 @@ impl TransactionsListener {
         &mut self,
         block: &FinalizedBlockInfo,
         summary: &BlockItemSummary,
-    ) -> Result<u64, anyhow::Error> {
+    ) -> Result<u64, ListenerError> {
         let BlockItemSummary {
             index,
             hash,
@@ -265,7 +286,7 @@ impl TransactionsListener {
         let events_count = match summary {
             ProcessedBlockItem::WithNoEvents => 0u64,
             ProcessedBlockItem::Init((contract_address, module_ref, contract_name, events)) => {
-                let processor = self.find_processor(&module_ref, &contract_name).await?;
+                let processor = self.find_processor(&module_ref, &contract_name).await;
                 match processor {
                     Some(processor) => {
                         db::add_contract(
@@ -310,7 +331,7 @@ impl TransactionsListener {
                     let contract = db::find_contract(&mut conn, &contract_address)?;
                     let processor = match contract {
                         Some((module_ref, contract_name)) => {
-                            self.find_processor(&module_ref, &contract_name).await?
+                            self.find_processor(&module_ref, &contract_name).await
                         }
                         None => None,
                     };
@@ -372,15 +393,15 @@ impl TransactionsListener {
         &self,
         origin_ref: &ModuleReference,
         init_name: &OwnedContractName,
-    ) -> Result<Option<Arc<RwLock<dyn EventsProcessor>>>, anyhow::Error> {
+    ) -> Option<Arc<RwLock<dyn EventsProcessor>>> {
         for processor in self.processors.iter() {
             let matches = processor.read().await.matches(origin_ref, init_name);
             match matches {
-                true => return Ok(Some(processor.clone())),
+                true => return Some(processor.clone()),
                 false => continue,
             }
         }
 
-        Ok(None)
+        None
     }
 }

@@ -1,6 +1,5 @@
 use super::db;
-use crate::txn_listener::EventsProcessor;
-use anyhow::Ok;
+use crate::txn_listener::{EventsProcessor, ProcessorError};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
@@ -57,7 +56,7 @@ impl EventsProcessor for RwaMarketProcessor {
         &mut self,
         contract: &ContractAddress,
         events: &[ContractEvent],
-    ) -> anyhow::Result<u64> {
+    ) -> Result<u64, ProcessorError> {
         let mut conn = self.pool.get()?;
         let count = process_events(&mut conn, Utc::now(), contract, events)?;
         Ok(count as u64)
@@ -69,7 +68,7 @@ pub fn process_events(
     _now: DateTime<Utc>,
     contract: &ContractAddress,
     events: &[ContractEvent],
-) -> anyhow::Result<usize> {
+) -> Result<usize, ProcessorError> {
     let mut process_events_count: usize = 0;
     for event in events {
         let parsed_event = event.parse::<Event>()?;
@@ -153,10 +152,11 @@ pub fn process_events(
                             e.pay_token_owner,
                             amount.0.into(),
                         )?;
-                    }
+                    };
 
-                    Ok(())
+                    Ok::<_, ProcessorError>(())
                 })?;
+
                 debug!("Exchanged Market Token");
                 process_events_count += 1;
             }
