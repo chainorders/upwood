@@ -18,18 +18,18 @@ use super::{
     name = "isAgent",
     parameter = "Agent",
     return_value = "bool",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn is_agent(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<bool> {
     let agent: Agent = ctx.parameter_cursor().get()?;
-    Ok(host.state().is_agent(&agent.address, agent.roles.iter().collect()))
+    Ok(host.state().is_agent(&agent.address, agent.roles))
 }
 
 #[receive(
     contract = "security_sft_rewards",
     name = "agents",
     return_value = "Vec<Agent>",
-    error = "super::error::Error"
+    error = "Error"
 )]
 /// Returns the list of agents.
 pub fn agents(_ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<Vec<Agent>> {
@@ -52,7 +52,7 @@ pub fn agents(_ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<Vec<A
     mutable,
     enable_logger,
     parameter = "Agent",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn add_agent(
     ctx: &ReceiveContext,
@@ -62,10 +62,7 @@ pub fn add_agent(
     let params: Agent = ctx.parameter_cursor().get()?;
     let (state, state_builder) = host.state_and_builder();
     ensure!(
-        state.is_agent(
-            &ctx.sender(),
-            params.roles.iter().chain([AgentRole::AddAgent].iter()).collect::<Vec<_>>(),
-        ),
+        state.is_agent(&ctx.sender(), [params.roles.as_slice(), &[AgentRole::AddAgent]].concat(),),
         Error::Unauthorized
     );
     ensure!(state.add_agent(params.to_owned(), state_builder), Error::AgentAlreadyExists);
@@ -93,7 +90,7 @@ pub fn add_agent(
     mutable,
     enable_logger,
     parameter = "Address",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn remove_agent(
     ctx: &ReceiveContext,

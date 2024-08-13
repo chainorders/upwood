@@ -27,7 +27,7 @@ pub trait IAgentWithRolesState<S: HasStateApi, TAgentRole: Serialize + Copy> {
     /// # Returns
     ///
     /// A boolean indicating whether the address is an agent.
-    fn is_agent(&self, address: &Address, roles: Vec<&TAgentRole>) -> bool {
+    fn is_agent(&self, address: &Address, roles: Vec<TAgentRole>) -> bool {
         self.agents()
             .get(address)
             .is_some_and(|roles_set| roles.iter().all(|r| roles_set.contains(r)))

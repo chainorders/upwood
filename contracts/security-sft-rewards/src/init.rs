@@ -76,7 +76,7 @@ pub fn identity_registry(
     mutable,
     enable_logger,
     parameter = "ContractAddress",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn set_identity_registry(
     ctx: &ReceiveContext,
@@ -85,7 +85,7 @@ pub fn set_identity_registry(
 ) -> ContractResult<()> {
     let identity_registry: ContractAddress = ctx.parameter_cursor().get()?;
     ensure!(
-        host.state().is_agent(&ctx.sender(), vec![&AgentRole::SetIdentityRegistry]),
+        host.state().is_agent(&ctx.sender(), vec![AgentRole::SetIdentityRegistry]),
         Error::Unauthorized
     );
 
@@ -114,7 +114,7 @@ pub fn compliance(_: &ReceiveContext, host: &Host<State>) -> ContractResult<Cont
     mutable,
     enable_logger,
     parameter = "ContractAddress",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn set_compliance(
     ctx: &ReceiveContext,
@@ -123,7 +123,7 @@ pub fn set_compliance(
 ) -> ContractResult<()> {
     let compliance: ContractAddress = ctx.parameter_cursor().get()?;
     ensure!(
-        host.state().is_agent(&ctx.sender(), vec![&AgentRole::SetCompliance]),
+        host.state().is_agent(&ctx.sender(), vec![AgentRole::SetCompliance]),
         Error::Unauthorized
     );
 

@@ -1,11 +1,11 @@
 use concordium_cis2::{BurnEvent, Cis2Event};
-use concordium_protocols::concordium_cis2_security::{compliance_client, BurnedParam, Token, TokenFrozen};
-use concordium_rwa_utils::{
-    state_implementations::{
-        agent_with_roles_state::IAgentWithRolesState,
-        holders_security_state::IHoldersSecurityState, holders_state::IHoldersState,
-        tokens_security_state::ITokensSecurityState, tokens_state::ITokensState,
-    },
+use concordium_protocols::concordium_cis2_security::{
+    compliance_client, BurnedParam, Token, TokenFrozen,
+};
+use concordium_rwa_utils::state_implementations::{
+    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
+    holders_state::IHoldersState, tokens_security_state::ITokensSecurityState,
+    tokens_state::ITokensState,
 };
 use concordium_std::*;
 
@@ -31,7 +31,7 @@ use super::{error::Error, state::State, types::*};
     contract = "security_sft_rewards",
     name = "burn",
     parameter = "BurnParams",
-    error = "super::error::Error",
+    error = "Error",
     enable_logger,
     mutable
 )]
@@ -83,7 +83,7 @@ pub fn burn(
     contract = "security_sft_rewards",
     name = "forcedBurn",
     parameter = "BurnParams",
-    error = "super::error::Error",
+    error = "Error",
     enable_logger,
     mutable
 )]
@@ -95,7 +95,7 @@ pub fn forced_burn(
     let params: BurnParams = ctx.parameter_cursor().get()?;
 
     let state = host.state();
-    ensure!(state.is_agent(&ctx.sender(), vec![&AgentRole::ForcedBurn]), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::ForcedBurn]), Error::Unauthorized);
 
     for Burn {
         token_id,

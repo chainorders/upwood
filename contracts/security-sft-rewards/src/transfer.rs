@@ -47,7 +47,7 @@ use super::{error::*, state::State, types::*};
     enable_logger,
     mutable,
     parameter = "ContractTransferParams",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn transfer(
     ctx: &ReceiveContext,
@@ -163,7 +163,7 @@ pub fn transfer(
     enable_logger,
     mutable,
     parameter = "TransferParams<TokenId, TokenAmount>",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn forced_transfer(
     ctx: &ReceiveContext,
@@ -174,7 +174,7 @@ pub fn forced_transfer(
         ctx.parameter_cursor().get()?;
 
     let state = host.state();
-    ensure!(state.is_agent(&ctx.sender(), vec![&AgentRole::ForcedTransfer]), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::ForcedTransfer]), Error::Unauthorized);
 
     for Transfer {
         to,

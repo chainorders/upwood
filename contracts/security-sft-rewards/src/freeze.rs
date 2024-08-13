@@ -27,7 +27,7 @@ use super::{error::*, state::State, types::*};
     mutable,
     enable_logger,
     parameter = "FreezeParams",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn freeze(
     ctx: &ReceiveContext,
@@ -36,7 +36,7 @@ pub fn freeze(
 ) -> ContractResult<()> {
     let (state, state_builder) = host.state_and_builder();
     // Sender of this transaction should be a Trusted Agent
-    ensure!(state.is_agent(&ctx.sender(), vec![&AgentRole::Freeze]), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::Freeze]), Error::Unauthorized);
 
     let FreezeParams {
         owner,
@@ -78,7 +78,7 @@ pub fn freeze(
     mutable,
     enable_logger,
     parameter = "FreezeParams",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn un_freeze(
     ctx: &ReceiveContext,
@@ -87,7 +87,7 @@ pub fn un_freeze(
 ) -> ContractResult<()> {
     let state = host.state_mut();
     // Sender of this transaction should be a Trusted Agent
-    ensure!(state.is_agent(&ctx.sender(), vec![&AgentRole::UnFreeze]), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::UnFreeze]), Error::Unauthorized);
 
     let FreezeParams {
         owner,
@@ -121,7 +121,7 @@ pub fn un_freeze(
     name = "balanceOfFrozen",
     parameter = "FrozenParams",
     return_value = "FrozenResponse",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn balance_of_frozen(
     ctx: &ReceiveContext,
@@ -158,7 +158,7 @@ pub fn balance_of_frozen(
     name = "balanceOfUnFrozen",
     parameter = "FrozenParams",
     return_value = "FrozenResponse",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn balance_of_un_frozen(
     ctx: &ReceiveContext,

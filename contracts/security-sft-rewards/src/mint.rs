@@ -20,7 +20,7 @@ use super::{error::*, state::State, types::*};
     enable_logger,
     mutable,
     parameter = "MintParam",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn mint(
     ctx: &ReceiveContext,
@@ -29,7 +29,7 @@ pub fn mint(
 ) -> ContractResult<()> {
     let self_address = ctx.self_address();
     let params: MintParam = ctx.parameter_cursor().get()?;
-    let can_mint = host.state().is_agent(&ctx.sender(), vec![&AgentRole::Mint]);
+    let can_mint = host.state().is_agent(&ctx.sender(), vec![AgentRole::Mint]);
     ensure!(can_mint, Error::Unauthorized);
 
     mint_internal(self_address, params, host, logger)

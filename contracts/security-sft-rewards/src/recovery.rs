@@ -16,7 +16,7 @@ use super::{
     mutable,
     enable_logger,
     parameter = "RecoverParam",
-    error = "super::error::Error"
+    error = "Error"
 )]
 pub fn recover(
     ctx: &ReceiveContext,
@@ -28,7 +28,7 @@ pub fn recover(
         new_account,
     }: RecoverParam = ctx.parameter_cursor().get()?;
     let state = host.state();
-    ensure!(state.is_agent(&ctx.sender(), vec![&AgentRole::HolderRecovery]), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::HolderRecovery]), Error::Unauthorized);
     ensure!(
         identity_registry_client::is_same(
             host,
@@ -52,7 +52,7 @@ pub fn recover(
     contract = "security_sft_rewards",
     name = "recoveryAddress",
     parameter = "Address",
-    error = "super::error::Error",
+    error = "Error",
     return_value = "Option<Address>"
 )]
 pub fn recovery_address(
