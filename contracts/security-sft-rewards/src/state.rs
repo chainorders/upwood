@@ -1,19 +1,22 @@
-use super::types::{Agent, AgentRole, TokenAmount, TokenId};
 use concordium_cis2::TokenIdU32;
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_rwa_utils::{
-    agent_with_roles_state::IAgentWithRolesState,
     clients::contract_client::IContractState,
-    concordium_cis2_ext::IsTokenAmount,
-    holders_security_state::{HoldersSecurityState, IHoldersSecurityState},
-    holders_state::{HolderState, IHoldersState},
-    sponsors_state::ISponsorsState,
-    tokens_security_state::{ITokensSecurityState, TokenSecurityState},
-    tokens_state::ITokensState,
+    state_implementations::{
+        agent_with_roles_state::IAgentWithRolesState,
+        holders_security_state::{HoldersSecurityState, IHoldersSecurityState},
+        holders_state::{HolderState, IHoldersState},
+        sponsors_state::ISponsorsState,
+        tokens_security_state::{ITokensSecurityState, TokenSecurityState},
+        tokens_state::ITokensState,
+    },
 };
 use concordium_std::{
     Address, ContractAddress, DeserialWithState, HasStateApi, MetadataUrl, Serial, Serialize,
     StateApi, StateBuilder, StateMap, StateSet,
 };
+
+use super::types::{Agent, AgentRole, TokenAmount, TokenId};
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]

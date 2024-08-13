@@ -1,17 +1,18 @@
-use super::{error::*, state::State, types::*};
 use concordium_cis2::{AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver};
+use concordium_protocols::{concordium_cis2_ext::IsTokenAmount, concordium_cis2_security::Token};
 use concordium_rwa_utils::{
-    agent_with_roles_state::IAgentWithRolesState,
     clients::{
         compliance_client::{ComplianceContract, IComplianceClient},
         identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
     },
-    compliance_types::Token,
-    concordium_cis2_ext::IsTokenAmount,
-    holders_security_state::IHoldersSecurityState,
-    holders_state::IHoldersState,
+    state_implementations::{
+        agent_with_roles_state::IAgentWithRolesState,
+        holders_security_state::IHoldersSecurityState, holders_state::IHoldersState,
+    },
 };
 use concordium_std::*;
+
+use super::{error::*, state::State, types::*};
 
 /// Mint the given amount of tokens to the owner. Locking the deposited tokens.
 #[receive(

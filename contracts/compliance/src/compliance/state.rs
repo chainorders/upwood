@@ -1,6 +1,8 @@
 use concordium_std::*;
 
-use concordium_rwa_utils::{agents_state::IsAgentsState, clients::contract_client::IContractState};
+use concordium_rwa_utils::{
+    clients::contract_client::IContractState, state_implementations::agents_state::IsAgentsState,
+};
 
 use super::types::Module;
 

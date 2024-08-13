@@ -1,12 +1,17 @@
+use concordium_protocols::concordium_cis2_security::RecoverEvent;
+use concordium_rwa_utils::{
+    clients::identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
+    state_implementations::{
+        agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
+    },
+};
+use concordium_std::*;
+
 use super::{
     error::*,
     state::State,
-    types::{AgentRole, ContractResult, RecoverParam, Event},
+    types::{AgentRole, ContractResult, Event, RecoverParam},
 };
-use concordium_rwa_utils::{
-    agent_with_roles_state::IAgentWithRolesState, clients::identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract}, concordium_cis2_security, holders_security_state::IHoldersSecurityState
-};
-use concordium_std::*;
 
 #[receive(
     contract = "security_sft_rewards",
@@ -37,7 +42,7 @@ pub fn recover(
     );
 
     host.state_mut().recover(lost_account, new_account)?;
-    logger.log(&Event::Recovered(concordium_cis2_security::RecoverEvent {
+    logger.log(&Event::Recovered(RecoverEvent {
         lost_account,
         new_account,
     }))?;

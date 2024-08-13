@@ -1,10 +1,12 @@
+use concordium_protocols::concordium_cis2_security::AgentUpdatedEvent;
+use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_std::*;
+
 use super::{
     error::Error,
     state::State,
     types::{Agent, AgentRole, ContractResult, Event},
 };
-use concordium_rwa_utils::{agent_with_roles_state::IAgentWithRolesState, concordium_cis2_security::AgentUpdatedEvent};
-use concordium_std::*;
 
 /// Returns true if the given address is an agent.
 ///

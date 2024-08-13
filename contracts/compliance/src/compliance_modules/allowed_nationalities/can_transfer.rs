@@ -1,10 +1,11 @@
 use concordium_std::{attributes::NATIONALITY, *};
 
 use super::{state::State, types::*};
-use concordium_rwa_utils::{
-    clients::identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
-    common_types::{Identity, IdentityAttribute},
-    compliance_types::*,
+use concordium_protocols::concordium_cis2_security::{
+    CanTransferParam, Identity, IdentityAttribute,
+};
+use concordium_rwa_utils::clients::identity_registry_client::{
+    IdentityRegistryClient, IdentityRegistryContract,
 };
 
 #[receive(

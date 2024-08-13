@@ -1,7 +1,9 @@
 use concordium_rwa_utils::{
     clients::contract_client::ContractClientError,
-    holders_security_state::HolderSecurityStateError, holders_state::HolderStateError,
-    tokens_security_state::TokenSecurityError, tokens_state::TokenStateError,
+    state_implementations::{
+        holders_security_state::HolderSecurityStateError, holders_state::HolderStateError,
+        tokens_security_state::TokenSecurityError, tokens_state::TokenStateError,
+    },
 };
 use concordium_std::{
     num::NonZeroI32, CallContractError, LogError, ParseError, Reject, SchemaType,

@@ -1,11 +1,11 @@
+use concordium_cis2::{TokenMetadataQueryParams, TokenMetadataQueryResponse};
+use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
+use concordium_std::*;
+
 use super::{
     state::State,
     types::{ContractResult, TokenId},
 };
-use concordium_cis2::{TokenMetadataQueryParams, TokenMetadataQueryResponse};
-use concordium_rwa_utils::tokens_state::ITokensState;
-use concordium_std::*;
-
 /// Retrieves the metadata for a token.
 ///
 /// # Returns

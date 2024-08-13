@@ -1,23 +1,23 @@
-use super::{error::*, state::State, types::*};
 use concordium_cis2::{
     Cis2Event, OnReceivingCis2Params, Receiver, Transfer, TransferEvent, TransferParams,
 };
+use concordium_protocols::concordium_cis2_security::{Token, TokenFrozen};
 use concordium_rwa_utils::{
-    agent_with_roles_state::IAgentWithRolesState,
     clients::{
         compliance_client::{ComplianceContract, IComplianceClient},
         identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
     },
-    compliance_types::Token,
-    concordium_cis2_security,
-    holders_security_state::IHoldersSecurityState,
-    holders_state::IHoldersState,
     sponsor_types::{SponsoredParams, SponsoredParamsRaw},
-    sponsors_state::ISponsorsState,
-    tokens_security_state::ITokensSecurityState,
-    tokens_state::ITokensState,
+    state_implementations::{
+        agent_with_roles_state::IAgentWithRolesState,
+        holders_security_state::IHoldersSecurityState, holders_state::IHoldersState,
+        sponsors_state::ISponsorsState, tokens_security_state::ITokensSecurityState,
+        tokens_state::ITokensState,
+    },
 };
 use concordium_std::*;
+
+use super::{error::*, state::State, types::*};
 
 /// Compliant Transfers ownership of an NFT from one verified account to another
 /// verified account. This function can be called by the owner of the token or
@@ -201,12 +201,12 @@ pub fn forced_transfer(
             amount,
         )?;
 
-        logger.log(&Event::TokenUnFrozen(concordium_cis2_security::TokenFrozen {
+        logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,
             amount: unfrozen_balance,
             address: from,
         }))?;
-        logger.log(&Event::Cis2(concordium_cis2::Cis2Event::Transfer(TransferEvent {
+        logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
             token_id,
             from,

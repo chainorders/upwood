@@ -49,9 +49,13 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderBalances<T, A, S> {
     }
 }
 
-/// The State of a single address for all tokens.
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
+/// The state of a single address for all tokens.
+///
+/// This struct holds the operators and balances for a single address. The operators
+/// are stored in a `StateSet`, and the balances are stored in a `HolderBalances`
+/// struct.
 pub struct HolderState<T, A, S> {
     operators: StateSet<Address, S>,
     balances:  HolderBalances<T, A, S>,
@@ -130,6 +134,7 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderState<T, A, S> {
         self.balances.add(token_id, amount)
     }
 }
+
 
 pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     fn holders(&self) -> &StateMap<Address, HolderState<T, A, S>, S>;

@@ -1,7 +1,5 @@
-use concordium_rwa_utils::{
-    clients::compliance_client::{ComplianceContract, IComplianceClient},
-    compliance_types::*,
-};
+use concordium_protocols::concordium_cis2_security::BurnedParam;
+use concordium_rwa_utils::clients::compliance_client::{ComplianceContract, IComplianceClient};
 use concordium_std::*;
 
 use super::{error::Error, state::State, types::*};

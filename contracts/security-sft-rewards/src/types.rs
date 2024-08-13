@@ -1,12 +1,16 @@
-use super::error::Error;
 use concordium_cis2::Receiver;
+use concordium_protocols::{
+    concordium_cis2_ext,
+    concordium_cis2_security::{self, Cis2SecurityEvent},
+};
 use concordium_std::{ContractAddress, SchemaType, Serialize};
 
-use concordium_rwa_utils::concordium_cis2_security::{self, AgentWithRoles};
+use super::error::Error;
+
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU64;
 pub type TokenId = concordium_cis2::TokenIdU32;
-pub type Event = concordium_cis2_security::Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>;
+pub type Event = Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>;
 
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq, Clone, Copy)]
 pub enum AgentRole {
@@ -43,15 +47,15 @@ impl AgentRole {
     }
 }
 
-pub type Agent = AgentWithRoles<AgentRole>;
+pub type Agent = concordium_cis2_security::AgentWithRoles<AgentRole>;
 pub type BurnParams = concordium_cis2_security::BurnParams<TokenId, TokenAmount>;
 pub type Burn = concordium_cis2_security::Burn<TokenId, TokenAmount>;
 pub type FreezeParams = concordium_cis2_security::FreezeParams<TokenId, TokenAmount>;
 pub type FrozenParams = concordium_cis2_security::FrozenParams<TokenId>;
 pub type FrozenResponse = concordium_cis2_security::FrozenResponse<TokenAmount>;
 pub type ContractTransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
+pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
-pub use concordium_rwa_utils::cis2_types::ContractMetadataUrl;
 
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {

@@ -1,16 +1,16 @@
-use super::{error::Error, state::State, types::*};
 use concordium_cis2::{BurnEvent, Cis2Event};
+use concordium_protocols::concordium_cis2_security::{Token, TokenFrozen};
 use concordium_rwa_utils::{
-    agent_with_roles_state::IAgentWithRolesState,
     clients::compliance_client::{ComplianceContract, IComplianceClient},
-    compliance_types::Token,
-    concordium_cis2_security,
-    holders_security_state::IHoldersSecurityState,
-    holders_state::IHoldersState,
-    tokens_security_state::ITokensSecurityState,
-    tokens_state::ITokensState,
+    state_implementations::{
+        agent_with_roles_state::IAgentWithRolesState,
+        holders_security_state::IHoldersSecurityState, holders_state::IHoldersState,
+        tokens_security_state::ITokensSecurityState, tokens_state::ITokensState,
+    },
 };
 use concordium_std::*;
+
+use super::{error::Error, state::State, types::*};
 
 /// Burns the specified amount of the given token from the given owner's
 /// account.
@@ -121,7 +121,7 @@ pub fn forced_burn(
             amount,
         )?;
 
-        logger.log(&Event::TokenUnFrozen(concordium_cis2_security::TokenFrozen {
+        logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,
             amount: unfrozen_balance,
             address: owner,

@@ -1,11 +1,14 @@
+use concordium_cis2::*;
+use concordium_rwa_utils::state_implementations::{
+    holders_state::IHoldersState, tokens_state::ITokensState,
+};
+use concordium_std::*;
+
 use super::{
     error::Error,
     state::State,
     types::{ContractResult, TokenAmount, TokenId},
 };
-use concordium_cis2::*;
-use concordium_rwa_utils::{holders_state::IHoldersState, tokens_state::ITokensState};
-use concordium_std::*;
 
 /// Queries the balance of the specified token IDs for the given addresses.
 ///

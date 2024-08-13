@@ -1,9 +1,10 @@
-use super::types::{ExchangeRate, *};
-use concordium_rwa_utils::{
-    concordium_cis2_ext::IsTokenAmount,
-    token_deposits_state::{DepositedStateError, DepositedTokenState, IDepositedTokensState},
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
+use concordium_rwa_utils::state_implementations::token_deposits_state::{
+    DepositedStateError, DepositedTokenState, IDepositedTokensState,
 };
 use concordium_std::*;
+
+use super::types::{ExchangeRate, *};
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]

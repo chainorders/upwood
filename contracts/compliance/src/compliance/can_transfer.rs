@@ -1,10 +1,8 @@
+use concordium_protocols::concordium_cis2_security::CanTransferParam;
+use concordium_rwa_utils::clients::compliance_client::{ComplianceContract, IComplianceClient};
 use concordium_std::*;
 
 use super::{state::State, types::*};
-use concordium_rwa_utils::{
-    clients::compliance_client::{ComplianceContract, IComplianceClient},
-    compliance_types::*,
-};
 
 /// Handles the `can_transfer` event in the `rwa_compliance` contract.
 ///

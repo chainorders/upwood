@@ -1,4 +1,4 @@
-use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
+use concordium_cis2::{IsTokenAmount, IsTokenId};
 use concordium_std::{Address, ContractAddress, SchemaType, Serialize};
 
 #[derive(Serialize, SchemaType, Copy, Clone)]

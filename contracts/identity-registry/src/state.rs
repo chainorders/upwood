@@ -1,7 +1,9 @@
-use super::types::{AttributeTag, AttributeValue, *};
-use concordium_rwa_utils::{agents_state::IsAgentsState, clients::contract_client::IContractState};
+use concordium_rwa_utils::{
+    clients::contract_client::IContractState, state_implementations::agents_state::IsAgentsState,
+};
 use concordium_std::*;
 
+use super::types::{AttributeTag, AttributeValue, *};
 #[derive(Serial, DeserialWithState, Deletable)]
 #[concordium(state_parameter = "S")]
 /// Represents the state of an identity in the identity registry.

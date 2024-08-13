@@ -1,11 +1,12 @@
-use super::{error::*, state::State, types::*};
-use concordium_rwa_utils::{
+use concordium_protocols::concordium_cis2_security::TokenFrozen;
+use concordium_rwa_utils::state_implementations::{
     agent_with_roles_state::IAgentWithRolesState,
-    concordium_cis2_security,
     holders_security_state::IHoldersSecurityState,
     tokens_state::{ITokensState, TokenStateResult},
 };
 use concordium_std::*;
+
+use super::{error::*, state::State, types::*};
 
 /// Freezes the given amount of given tokenIds for the given address.
 ///
@@ -50,7 +51,7 @@ pub fn freeze(
         )?;
 
         state.freeze(owner, &token.token_id, token.token_amount, state_builder)?;
-        logger.log(&Event::TokenFrozen(concordium_cis2_security::TokenFrozen {
+        logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,
             address:  owner,
@@ -94,7 +95,7 @@ pub fn un_freeze(
     }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
         state.un_freeze(owner, token.token_id, token.token_amount)?;
-        logger.log(&Event::TokenUnFrozen(concordium_cis2_security::TokenFrozen {
+        logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,
             address:  owner,

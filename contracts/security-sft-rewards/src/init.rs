@@ -1,13 +1,14 @@
+use concordium_protocols::concordium_cis2_security::{ComplianceAdded, IdentityRegistryAdded};
+use concordium_rwa_utils::state_implementations::{
+    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
+};
+use concordium_std::*;
+
 use super::{
     error::Error,
     state::State,
     types::{Agent, AgentRole, ContractResult, Event, InitParam},
 };
-use concordium_rwa_utils::{
-    agent_with_roles_state::IAgentWithRolesState, concordium_cis2_security,
-    holders_security_state::IHoldersSecurityState,
-};
-use concordium_std::*;
 
 /// Initializes the contract with the given parameters.
 ///
@@ -45,12 +46,8 @@ pub fn init(
         state_builder,
     );
 
-    logger.log(&Event::IdentityRegistryAdded(concordium_cis2_security::IdentityRegistryAdded(
-        params.identity_registry,
-    )))?;
-    logger.log(&Event::ComplianceAdded(concordium_cis2_security::ComplianceAdded(
-        params.compliance,
-    )))?;
+    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(params.identity_registry)))?;
+    logger.log(&Event::ComplianceAdded(ComplianceAdded(params.compliance)))?;
 
     Ok(state)
 }
@@ -95,9 +92,7 @@ pub fn set_identity_registry(
     // IdentityRegistryClient::new(identity_registry).is_identity_registry()?;
 
     host.state_mut().set_identity_registry(identity_registry);
-    logger.log(&Event::IdentityRegistryAdded(concordium_cis2_security::IdentityRegistryAdded(
-        identity_registry,
-    )))?;
+    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(identity_registry)))?;
 
     Ok(())
 }
@@ -108,11 +103,7 @@ pub fn set_identity_registry(
 ///
 /// Returns `ContractResult<ContractAddress>` containing the address of the
 /// compliance contract.
-#[receive(
-    contract = "security_sft_rewards",
-    name = "compliance",
-    return_value = "ContractAddress"
-)]
+#[receive(contract = "security_sft_rewards", name = "compliance", return_value = "ContractAddress")]
 pub fn compliance(_: &ReceiveContext, host: &Host<State>) -> ContractResult<ContractAddress> {
     Ok(host.state().compliance())
 }
@@ -137,7 +128,7 @@ pub fn set_compliance(
     );
 
     host.state_mut().set_compliance(compliance);
-    logger.log(&Event::ComplianceAdded(concordium_cis2_security::ComplianceAdded(compliance)))?;
+    logger.log(&Event::ComplianceAdded(ComplianceAdded(compliance)))?;
 
     Ok(())
 }

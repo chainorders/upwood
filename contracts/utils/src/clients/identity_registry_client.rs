@@ -1,7 +1,6 @@
 use concordium_cis2::StandardIdentifier;
+use concordium_protocols::concordium_cis2_security::Identity;
 use concordium_std::{Address, ContractAddress, EntrypointName, Host};
-
-use crate::common_types::Identity;
 
 use super::contract_client::{ContractClientError, IContractClient, IContractState};
 

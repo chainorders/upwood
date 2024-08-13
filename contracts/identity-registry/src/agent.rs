@@ -1,6 +1,5 @@
+use concordium_rwa_utils::state_implementations::agents_state::IsAgentsState;
 use concordium_std::*;
-
-use concordium_rwa_utils::agents_state::IsAgentsState;
 
 use super::{error::*, event::*, state::State, types::*};
 

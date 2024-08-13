@@ -1,5 +1,5 @@
 use concordium_cis2::{AdditionalData, Cis2Client, OnReceivingCis2Params, Receiver, Transfer};
-use concordium_rwa_utils::token_deposits_state::IDepositedTokensState;
+use concordium_rwa_utils::state_implementations::token_deposits_state::IDepositedTokensState;
 use concordium_std::*;
 
 use super::{

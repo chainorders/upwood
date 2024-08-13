@@ -5,7 +5,8 @@ use concordium_rwa_identity_registry::{
     types::{Identity, IdentityAttribute},
 };
 use concordium_smart_contract_testing::{
-    module_load_v1, Account, Chain, ContractInitSuccess, ContractInvokeSuccess, InitContractPayload, ModuleDeploySuccess, Signer, UpdateContractPayload,
+    module_load_v1, Account, Chain, ContractInitSuccess, ContractInvokeSuccess,
+    InitContractPayload, ModuleDeploySuccess, Signer, UpdateContractPayload,
 };
 use concordium_std::{Address, Amount, ContractAddress, OwnedContractName, OwnedParameter};
 
