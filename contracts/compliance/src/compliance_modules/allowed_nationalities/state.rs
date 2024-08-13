@@ -1,4 +1,3 @@
-use concordium_rwa_utils::clients::contract_client::IContractState;
 use concordium_std::{
     ContractAddress, DeserialWithState, Serial, StateApi, StateBuilder, StateSet,
 };
@@ -36,5 +35,3 @@ impl State<StateApi> {
         self.allowed_nationalities.contains(&value)
     }
 }
-
-impl IContractState for State<StateApi> {}

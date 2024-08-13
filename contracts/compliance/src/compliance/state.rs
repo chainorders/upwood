@@ -1,8 +1,6 @@
 use concordium_std::*;
 
-use concordium_rwa_utils::{
-    clients::contract_client::IContractState, state_implementations::agents_state::IsAgentsState,
-};
+use concordium_rwa_utils::state_implementations::agents_state::IsAgentsState;
 
 use super::types::Module;
 
@@ -34,7 +32,6 @@ impl State {
     pub fn modules(&self) -> Vec<Module> { self.modules.iter().map(|m| m.to_owned()).collect() }
 }
 
-impl IContractState for State {}
 impl IsAgentsState<StateApi> for State {
     fn agents(&self) -> &StateSet<Address, StateApi> { &self.agents }
 

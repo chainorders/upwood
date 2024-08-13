@@ -1,5 +1,4 @@
-use concordium_protocols::concordium_cis2_security::BurnedParam;
-use concordium_rwa_utils::clients::compliance_client::{ComplianceContract, IComplianceClient};
+use concordium_protocols::concordium_cis2_security::{compliance_client, BurnedParam};
 use concordium_std::*;
 
 use super::{error::Error, state::State, types::*};
@@ -28,12 +27,7 @@ fn burned(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<()> {
     let state = host.state();
 
     for module in state.modules.iter() {
-        ComplianceContract(module.to_owned()).burned(
-            host,
-            params.token_id.clone(),
-            params.owner,
-            params.amount,
-        )?;
+        compliance_client::burned(host, module.to_owned(), &params)?;
     }
 
     Ok(())

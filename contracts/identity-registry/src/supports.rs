@@ -2,9 +2,8 @@ use concordium_cis2::{
     StandardIdentifier, SupportResult, SupportsQueryParams, SupportsQueryResponse,
     CIS0_STANDARD_IDENTIFIER,
 };
+use concordium_protocols::concordium_cis2_security::IDENTITY_REGISTRY_STANDARD_IDENTIFIER;
 use concordium_std::*;
-
-use concordium_rwa_utils::clients::identity_registry_client::IDENTITY_REGISTRY_STANDARD_IDENTIFIER;
 
 use super::{state::State, types::ContractResult};
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =

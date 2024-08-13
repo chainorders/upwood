@@ -1,8 +1,5 @@
+use concordium_protocols::concordium_cis4::cis4_client;
 use concordium_std::*;
-
-use concordium_rwa_utils::clients::{
-    cis4_client::Cis4ContractAddress, contract_client::IContractClient,
-};
 
 use super::{error::*, event::*, state::State, types::*};
 
@@ -60,7 +57,7 @@ pub fn add_issuer(
 ) -> ContractResult<()> {
     ensure!(ctx.sender().matches_account(&ctx.owner()), Error::Unauthorized);
     let issuer: Issuer = ctx.parameter_cursor().get()?;
-    ensure!(Cis4ContractAddress(issuer).is_valid(host)?, Error::InvalidIssuer);
+    ensure!(cis4_client::supports_cis4(host, issuer)?, Error::InvalidIssuer);
     ensure!(host.state_mut().issuers.insert(issuer), Error::IssuerAlreadyExists);
     logger.log(&Event::IssuerAdded(IssuerUpdatedEvent {
         issuer,

@@ -1,15 +1,12 @@
 use concordium_cis2::TokenIdU32;
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
-use concordium_rwa_utils::{
-    clients::contract_client::IContractState,
-    state_implementations::{
-        agent_with_roles_state::IAgentWithRolesState,
-        holders_security_state::{HoldersSecurityState, IHoldersSecurityState},
-        holders_state::{HolderState, IHoldersState},
-        sponsors_state::ISponsorsState,
-        tokens_security_state::{ITokensSecurityState, TokenSecurityState},
-        tokens_state::ITokensState,
-    },
+use concordium_rwa_utils::state_implementations::{
+    agent_with_roles_state::IAgentWithRolesState,
+    holders_security_state::{HoldersSecurityState, IHoldersSecurityState},
+    holders_state::{HolderState, IHoldersState},
+    sponsors_state::ISponsorsState,
+    tokens_security_state::{ITokensSecurityState, TokenSecurityState},
+    tokens_state::ITokensState,
 };
 use concordium_std::{
     Address, ContractAddress, DeserialWithState, HasStateApi, MetadataUrl, Serial, Serialize,
@@ -23,17 +20,17 @@ use super::types::{Agent, AgentRole, TokenAmount, TokenId};
 /// Represents the state of the security NFT contract.
 pub struct State<S = StateApi> {
     /// A set that stores the addresses of the agents in the contract.
-    agents:                 StateMap<Address, StateSet<AgentRole, S>, S>,
+    agents:           StateMap<Address, StateSet<AgentRole, S>, S>,
     /// A map that stores the state of each token in the contract.
-    tokens:                 StateMap<TokenId, TokenState, S>,
+    tokens:           StateMap<TokenId, TokenState, S>,
     /// A map that stores the state of each holder's address for each token.
-    holders:                StateMap<Address, HolderState<TokenId, TokenAmount, S>, S>,
+    holders:          StateMap<Address, HolderState<TokenId, TokenAmount, S>, S>,
     /// A map that stores the security state of each token in the contract.
-    tokens_security_state:  StateMap<TokenId, TokenSecurityState, S>,
+    tokens_security:  StateMap<TokenId, TokenSecurityState, S>,
     /// The security state of each holder's address for each token.
-    holders_security_state: HoldersSecurityState<TokenId, TokenAmount, S>,
+    holders_security: HoldersSecurityState<TokenId, TokenAmount, S>,
     /// A set that stores the addresses of the sponsors of the contract.
-    sponsors:               StateSet<ContractAddress, S>,
+    sponsors:         StateSet<ContractAddress, S>,
 }
 
 impl<S: HasStateApi> State<S> {
@@ -66,16 +63,16 @@ impl<S: HasStateApi> State<S> {
         });
 
         State {
-            agents:                 state_agents,
-            tokens:                 state_tokens,
-            tokens_security_state:  state_builder.new_map(),
-            holders_security_state: HoldersSecurityState::new(
+            agents:           state_agents,
+            tokens:           state_tokens,
+            tokens_security:  state_builder.new_map(),
+            holders_security: HoldersSecurityState::new(
                 identity_registry,
                 compliance,
                 state_builder,
             ),
-            holders:                state_builder.new_map(),
-            sponsors:               state_sponsors,
+            holders:          state_builder.new_map(),
+            sponsors:         state_sponsors,
         }
     }
 }
@@ -114,25 +111,23 @@ impl IHoldersState<TokenId, TokenAmount, StateApi> for State {
 
 impl ITokensSecurityState<TokenId, TokenState, StateApi> for State {
     fn security_tokens(&self) -> &StateMap<TokenId, TokenSecurityState, StateApi> {
-        &self.tokens_security_state
+        &self.tokens_security
     }
 
     fn security_tokens_mut(&mut self) -> &mut StateMap<TokenId, TokenSecurityState, StateApi> {
-        &mut self.tokens_security_state
+        &mut self.tokens_security
     }
 }
 
 impl IHoldersSecurityState<TokenId, TokenAmount, StateApi> for State {
     fn state(&self) -> &HoldersSecurityState<TokenId, TokenAmount, StateApi> {
-        &self.holders_security_state
+        &self.holders_security
     }
 
     fn state_mut(&mut self) -> &mut HoldersSecurityState<TokenId, TokenAmount, StateApi> {
-        &mut self.holders_security_state
+        &mut self.holders_security
     }
 }
-
-impl IContractState for State {}
 
 impl ISponsorsState<StateApi> for State {
     fn sponsors(&self) -> &StateSet<ContractAddress, StateApi> { &self.sponsors }

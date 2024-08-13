@@ -1,19 +1,17 @@
 use concordium_cis2::{
     Cis2Event, OnReceivingCis2Params, Receiver, Transfer, TransferEvent, TransferParams,
 };
-use concordium_protocols::concordium_cis2_security::{Token, TokenFrozen};
-use concordium_rwa_utils::{
-    clients::{
-        compliance_client::{ComplianceContract, IComplianceClient},
-        identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
+use concordium_protocols::{
+    concordium_cis2_security::{
+        compliance_client, identity_registry_client, CanTransferParam, Token, TokenFrozen,
+        TransferredParam,
     },
-    sponsor_types::{SponsoredParams, SponsoredParamsRaw},
-    state_implementations::{
-        agent_with_roles_state::IAgentWithRolesState,
-        holders_security_state::IHoldersSecurityState, holders_state::IHoldersState,
-        sponsors_state::ISponsorsState, tokens_security_state::ITokensSecurityState,
-        tokens_state::ITokensState,
-    },
+    concordium_global_sponsor::{SponsoredParams, SponsoredParamsRaw},
+};
+use concordium_rwa_utils::state_implementations::{
+    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
+    holders_state::IHoldersState, sponsors_state::ISponsorsState,
+    tokens_security_state::ITokensSecurityState, tokens_state::ITokensState,
 };
 use concordium_std::*;
 
@@ -70,7 +68,7 @@ pub fn transfer(
     };
 
     let TransferParams(transfers): ContractTransferParams = params;
-    let compliance = ComplianceContract(state.compliance());
+    let compliance = state.compliance();
 
     for Transfer {
         to,
@@ -87,19 +85,27 @@ pub fn transfer(
         state.ensure_not_paused(&token_id)?;
         state.ensure_has_sufficient_unfrozen_balance(&from, &token_id, &amount)?;
         ensure!(
-            IdentityRegistryContract(state.identity_registry()).is_verified(host, &to.address())?,
+            identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
             Error::UnVerifiedIdentity
         );
-        ensure!(
-            compliance.can_transfer(host, compliance_token, to.address(), amount)?,
-            Error::InCompliantTransfer
-        );
+        let compliance_can_transfer =
+            compliance_client::can_transfer(host, state.compliance(), &CanTransferParam {
+                token_id: compliance_token,
+                to: to.address(),
+                amount,
+            })?;
+        ensure!(compliance_can_transfer, Error::InCompliantTransfer);
 
         ensure!(from.eq(&sender) || state.is_operator(&from, &sender), Error::Unauthorized);
 
         let (state, state_builder) = host.state_and_builder();
         state.transfer(from, to.address(), &token_id, amount, state_builder)?;
-        compliance.transferred(host, compliance_token, from, to.address(), amount)?;
+        compliance_client::transferred(host, compliance, &TransferredParam {
+            token_id: compliance_token,
+            from,
+            to: to.address(),
+            amount,
+        })?;
 
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
@@ -185,7 +191,7 @@ pub fn forced_transfer(
         // Only the balance is checked. The frozen balance is not checked.
         state.ensure_has_sufficient_balance(&from, &token_id, &amount)?;
         ensure!(
-            IdentityRegistryContract(state.identity_registry()).is_verified(host, &to.address())?,
+            identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
             Error::UnVerifiedIdentity
         );
 
@@ -193,13 +199,12 @@ pub fn forced_transfer(
         state.transfer(from, to.address(), &token_id, amount, state_builder)?;
         // Adjust the frozen balance of the sender.
         let unfrozen_balance = state.adjust_frozen_balance(from, token_id)?;
-        ComplianceContract(host.state().compliance()).transferred(
-            host,
-            Token::new(token_id, ctx.self_address()),
+        compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
+            token_id: Token::new(token_id, ctx.self_address()),
             from,
-            to.address(),
+            to: to.address(),
             amount,
-        )?;
+        })?;
 
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,

@@ -1,7 +1,6 @@
 use super::{
     holders_security_state::IHoldersSecurityState, tokens_security_state::ITokensSecurityState,
 };
-use crate::clients::contract_client::IContractState;
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::{HasStateApi, Serialize};
 
@@ -13,8 +12,7 @@ pub trait ICis2SecurityState<
     A: IsTokenAmount,
     TTokenState: Serialize + Clone,
     S: HasStateApi,
->:
-    ITokensSecurityState<T, TTokenState, S> + IHoldersSecurityState<T, A, S> + IContractState {
+>: ITokensSecurityState<T, TTokenState, S> + IHoldersSecurityState<T, A, S> {
 }
 
 pub enum Cis2SecurityStateError {

@@ -1,7 +1,6 @@
 use concordium_cis2::{BurnEvent, Cis2Event};
-use concordium_protocols::concordium_cis2_security::{Token, TokenFrozen};
+use concordium_protocols::concordium_cis2_security::{compliance_client, BurnedParam, Token, TokenFrozen};
 use concordium_rwa_utils::{
-    clients::compliance_client::{ComplianceContract, IComplianceClient},
     state_implementations::{
         agent_with_roles_state::IAgentWithRolesState,
         holders_security_state::IHoldersSecurityState, holders_state::IHoldersState,
@@ -61,14 +60,14 @@ pub fn burn(
         state.ensure_token_exists(&token_id)?;
         state.ensure_not_paused(&token_id)?;
         state.ensure_has_sufficient_unfrozen_balance(&owner, &token_id, &amount)?;
+        let compliance = state.compliance();
 
         host.state_mut().sub_balance(owner, token_id, amount)?;
-        ComplianceContract(host.state().compliance()).burned(
-            host,
-            Token::new(token_id, ctx.self_address()),
-            owner,
+        compliance_client::burned(host, compliance, &BurnedParam {
+            token_id: Token::new(token_id, ctx.self_address()),
             amount,
-        )?;
+            owner,
+        })?;
 
         logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
             amount,
@@ -109,17 +108,17 @@ pub fn forced_burn(
         state.ensure_not_paused(&token_id)?;
         // Only the balance is checked. The frozen balance is not checked.
         state.ensure_has_sufficient_balance(&owner, &token_id, &amount)?;
+        let compliance = state.compliance();
 
         let state = host.state_mut();
         state.sub_balance(owner, token_id, amount)?;
         let unfrozen_balance = state.adjust_frozen_balance(owner, token_id)?;
 
-        ComplianceContract(host.state().compliance()).burned(
-            host,
-            Token::new(token_id, ctx.self_address()),
-            owner,
+        compliance_client::burned(host, compliance, &BurnedParam {
+            token_id: Token::new(token_id, ctx.self_address()),
             amount,
-        )?;
+            owner,
+        })?;
 
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,

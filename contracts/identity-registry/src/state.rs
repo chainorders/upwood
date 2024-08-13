@@ -1,6 +1,4 @@
-use concordium_rwa_utils::{
-    clients::contract_client::IContractState, state_implementations::agents_state::IsAgentsState,
-};
+use concordium_rwa_utils::state_implementations::agents_state::IsAgentsState;
 use concordium_std::*;
 
 use super::types::{AttributeTag, AttributeValue, *};
@@ -140,7 +138,6 @@ impl<S: HasStateApi> State<S> {
     }
 }
 
-impl IContractState for State {}
 impl IsAgentsState<StateApi> for State {
     fn agents(&self) -> &StateSet<Address, StateApi> { &self.agents }
 

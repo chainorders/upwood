@@ -1,9 +1,7 @@
-use concordium_rwa_utils::{
-    clients::contract_client::ContractClientError,
-    state_implementations::{
-        holders_security_state::HolderSecurityStateError, holders_state::HolderStateError,
-        tokens_security_state::TokenSecurityError, tokens_state::TokenStateError,
-    },
+use concordium_protocols::concordium_cis2_security::identity_registry_client::IdentityRegistryClientError;
+use concordium_rwa_utils::state_implementations::{
+    holders_security_state::HolderSecurityStateError, holders_state::HolderStateError,
+    tokens_security_state::TokenSecurityError, tokens_state::TokenStateError,
 };
 use concordium_std::{
     num::NonZeroI32, CallContractError, LogError, ParseError, Reject, SchemaType,
@@ -123,8 +121,8 @@ impl From<HolderSecurityStateError> for Error {
     }
 }
 
-impl<T> From<ContractClientError<T>> for Error {
-    fn from(_: ContractClientError<T>) -> Self { Error::CallContractError }
+impl From<IdentityRegistryClientError> for Error {
+    fn from(_: IdentityRegistryClientError) -> Self { Error::CallContractError }
 }
 
 impl<T> From<CallContractError<T>> for Error {

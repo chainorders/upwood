@@ -2,7 +2,6 @@ use super::{
     holders_state::{HolderStateError, IHoldersState},
     tokens_state::{ITokensState, TokenStateError},
 };
-use crate::clients::contract_client::IContractState;
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
 
@@ -15,7 +14,7 @@ pub enum Cis2StateError {
 }
 
 pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize + Clone, S: HasStateApi>:
-    IContractState + IHoldersState<T, A, S> + ITokensState<T, TTokenState, S> {
+    IHoldersState<T, A, S> + ITokensState<T, TTokenState, S> {
     /// Mints a token.
     ///
     /// This function mints a new token with the specified `token_id` and

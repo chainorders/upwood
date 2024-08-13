@@ -1,9 +1,6 @@
-use concordium_protocols::concordium_cis2_security::RecoverEvent;
-use concordium_rwa_utils::{
-    clients::identity_registry_client::{IdentityRegistryClient, IdentityRegistryContract},
-    state_implementations::{
-        agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
-    },
+use concordium_protocols::concordium_cis2_security::{identity_registry_client, RecoverEvent};
+use concordium_rwa_utils::state_implementations::{
+    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
 };
 use concordium_std::*;
 
@@ -30,11 +27,12 @@ pub fn recover(
         lost_account,
         new_account,
     }: RecoverParam = ctx.parameter_cursor().get()?;
-    let state = host.state_mut();
+    let state = host.state();
     ensure!(state.is_agent(&ctx.sender(), vec![&AgentRole::HolderRecovery]), Error::Unauthorized);
     ensure!(
-        IdentityRegistryContract(state.identity_registry()).is_same(
+        identity_registry_client::is_same(
             host,
+            state.identity_registry(),
             &lost_account,
             &new_account
         )?,
