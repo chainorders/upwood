@@ -1,8 +1,6 @@
 use concordium_cis2::Receiver;
-use concordium_protocols::{
-    concordium_cis2_ext,
-    concordium_cis2_security::{self, Cis2SecurityEvent},
-};
+use concordium_protocols::concordium_cis2_ext;
+use concordium_protocols::concordium_cis2_security::{self, Cis2SecurityEvent};
 use concordium_std::{ContractAddress, SchemaType, Serialize};
 
 use super::error::Error;

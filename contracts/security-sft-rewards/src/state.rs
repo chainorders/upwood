@@ -1,13 +1,15 @@
 use concordium_cis2::TokenIdU32;
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
-use concordium_rwa_utils::state_implementations::{
-    agent_with_roles_state::IAgentWithRolesState,
-    holders_security_state::{HoldersSecurityState, IHoldersSecurityState},
-    holders_state::{HolderState, IHoldersState},
-    sponsors_state::ISponsorsState,
-    tokens_security_state::{ITokensSecurityState, TokenSecurityState},
-    tokens_state::ITokensState,
+use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_rwa_utils::state_implementations::holders_security_state::{
+    HoldersSecurityState, IHoldersSecurityState,
 };
+use concordium_rwa_utils::state_implementations::holders_state::{HolderState, IHoldersState};
+use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
+use concordium_rwa_utils::state_implementations::tokens_security_state::{
+    ITokensSecurityState, TokenSecurityState,
+};
+use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
 use concordium_std::{
     Address, ContractAddress, DeserialWithState, HasStateApi, MetadataUrl, Serial, Serialize,
     StateApi, StateBuilder, StateMap, StateSet,
@@ -18,7 +20,7 @@ use super::types::{Agent, AgentRole, TokenAmount, TokenId};
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 /// Represents the state of the security NFT contract.
-pub struct State<S = StateApi> {
+pub struct State<S=StateApi> {
     /// A set that stores the addresses of the agents in the contract.
     agents:           StateMap<Address, StateSet<AgentRole, S>, S>,
     /// A map that stores the state of each token in the contract.

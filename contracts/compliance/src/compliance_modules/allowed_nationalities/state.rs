@@ -6,7 +6,7 @@ use super::types::AttributeValue;
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
-pub struct State<S = StateApi> {
+pub struct State<S=StateApi> {
     allowed_nationalities: StateSet<AttributeValue, S>,
     identity_registry:     ContractAddress,
 }

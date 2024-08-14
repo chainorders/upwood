@@ -1,7 +1,8 @@
 use concordium_protocols::concordium_cis4::{self, cis4_client};
 use concordium_std::*;
 
-use super::{state::State, types::ContractResult};
+use super::state::State;
+use super::types::ContractResult;
 
 /// Handles the `isVerified` contract call in the `rwa_identity_registry`
 /// contract.

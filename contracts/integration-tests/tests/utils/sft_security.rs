@@ -17,12 +17,19 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
 
 pub fn init(chain: &mut Chain, sender: &Account, param: &InitParam) -> ContractInitSuccess {
     chain
-        .contract_init(Signer::with_one_key(), sender.address, MAX_ENERGY, InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string()),
-            mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
-            param:     OwnedParameter::from_serial(param).unwrap(),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            sender.address,
+            MAX_ENERGY,
+            InitContractPayload {
+                amount:    Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(
+                    "init_rwa_identity_registry".to_string(),
+                ),
+                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                param:     OwnedParameter::from_serial(param).unwrap(),
+            },
+        )
         .expect("init")
 }
 

@@ -8,6 +8,4 @@ pub mod market;
 pub mod sft_security;
 
 use concordium_smart_contract_testing::Energy;
-const MAX_ENERGY: Energy = Energy {
-    energy: 30000,
-};
+const MAX_ENERGY: Energy = Energy { energy: 30000 };

@@ -1,17 +1,16 @@
 use concordium_cis2::{AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver};
-use concordium_protocols::{
-    concordium_cis2_ext::IsTokenAmount,
-    concordium_cis2_security::{
-        compliance_client, identity_registry_client, CanTransferParam, MintedParam, Token,
-    },
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
+use concordium_protocols::concordium_cis2_security::{
+    compliance_client, identity_registry_client, CanTransferParam, MintedParam, Token,
 };
-use concordium_rwa_utils::state_implementations::{
-    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
-    holders_state::IHoldersState,
-};
+use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
+use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
 use concordium_std::*;
 
-use super::{error::*, state::State, types::*};
+use super::error::*;
+use super::state::State;
+use super::types::*;
 
 /// Mint the given amount of tokens to the owner. Locking the deposited tokens.
 #[receive(
@@ -32,15 +31,6 @@ pub fn mint(
     let can_mint = host.state().is_agent(&ctx.sender(), vec![AgentRole::Mint]);
     ensure!(can_mint, Error::Unauthorized);
 
-    mint_internal(self_address, params, host, logger)
-}
-
-pub fn mint_internal(
-    curr_contract_address: ContractAddress,
-    params: MintParam,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
     let state = host.state();
     let owner_address = params.owner.address();
 
@@ -56,9 +46,7 @@ pub fn mint_internal(
     let token_id = params.token_id;
     let mint_amount = params.amount;
     ensure!(mint_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-
-    let compliance_token = Token::new(token_id, curr_contract_address);
-
+    let compliance_token = Token::new(token_id, self_address);
     let compliance_can_transfer =
         compliance_client::can_transfer(host, compliance, &CanTransferParam {
             token_id: compliance_token,
@@ -89,10 +77,15 @@ pub fn mint_internal(
             amount: mint_amount,
             // From self because the minting is being done from deposited tokens in custody of the
             // current contract
-            from: curr_contract_address.into(),
+            from: self_address.into(),
             data: AdditionalData::empty(),
         };
-        host.invoke_contract(address, &parameter, function.as_entrypoint_name(), Amount::zero())?;
+        host.invoke_contract(
+            address,
+            &parameter,
+            function.as_entrypoint_name(),
+            Amount::zero(),
+        )?;
     }
 
     Ok(())

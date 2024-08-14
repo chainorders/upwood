@@ -1,15 +1,11 @@
 use concordium_protocols::concordium_cis2_security::{ComplianceAdded, IdentityRegistryAdded};
-use concordium_rwa_utils::state_implementations::{
-    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
-};
+use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
 use concordium_std::*;
 
-use super::{
-    error::Error,
-    state::State,
-    types::{Agent, AgentRole, ContractResult, Event, InitParam},
-};
-
+use super::error::Error;
+use super::state::State;
+use super::types::{Agent, AgentRole, ContractResult, Event, InitParam};
 /// Initializes the contract with the given parameters.
 ///
 /// # Returns
@@ -45,8 +41,9 @@ pub fn init(
         params.metadata_url.into(),
         state_builder,
     );
-
-    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(params.identity_registry)))?;
+    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
+        params.identity_registry,
+    )))?;
     logger.log(&Event::ComplianceAdded(ComplianceAdded(params.compliance)))?;
 
     Ok(state)
@@ -56,8 +53,7 @@ pub fn init(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<ContractAddress>` containing the address of the
-/// identity registry contract.
+/// Returns `ContractResult<ContractAddress>` containing the address of the identity registry contract.
 #[receive(
     contract = "security_sft_rewards",
     name = "identityRegistry",
@@ -70,6 +66,15 @@ pub fn identity_registry(
     Ok(host.state().identity_registry())
 }
 
+/// Sets the address of the identity registry contract.
+///
+/// # Parameters
+///
+/// - `ContractAddress`: The address of the identity registry contract.
+///
+/// # Errors
+///
+/// Returns an `Error::Unauthorized` error if the caller is not authorized to set the identity registry.
 #[receive(
     contract = "security_sft_rewards",
     name = "setIdentityRegistry",
@@ -85,15 +90,15 @@ pub fn set_identity_registry(
 ) -> ContractResult<()> {
     let identity_registry: ContractAddress = ctx.parameter_cursor().get()?;
     ensure!(
-        host.state().is_agent(&ctx.sender(), vec![AgentRole::SetIdentityRegistry]),
+        host.state()
+            .is_agent(&ctx.sender(), vec![AgentRole::SetIdentityRegistry]),
         Error::Unauthorized
     );
 
-    // IdentityRegistryClient::new(identity_registry).is_identity_registry()?;
-
     host.state_mut().set_identity_registry(identity_registry);
-    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(identity_registry)))?;
-
+    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
+        identity_registry,
+    )))?;
     Ok(())
 }
 
@@ -101,13 +106,31 @@ pub fn set_identity_registry(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<ContractAddress>` containing the address of the
-/// compliance contract.
-#[receive(contract = "security_sft_rewards", name = "compliance", return_value = "ContractAddress")]
+/// Returns `ContractResult<ContractAddress>` containing the address of the compliance contract.
+#[receive(
+    contract = "security_sft_rewards",
+    name = "compliance",
+    return_value = "ContractAddress"
+)]
 pub fn compliance(_: &ReceiveContext, host: &Host<State>) -> ContractResult<ContractAddress> {
     Ok(host.state().compliance())
 }
 
+/// Sets the compliance contract address.
+///
+/// This function allows authorized agents to set the compliance contract address for the security SFT rewards contract.
+///
+/// # Parameters
+///
+/// - `ContractAddress`: The address of the compliance contract.
+///
+/// # Errors
+///
+/// Returns an `Error::Unauthorized` error if the caller is not authorized to set the compliance contract.
+///
+/// # Returns
+///
+/// Returns `ContractResult<()>` indicating whether the operation was successful.
 #[receive(
     contract = "security_sft_rewards",
     name = "setCompliance",
@@ -123,7 +146,8 @@ pub fn set_compliance(
 ) -> ContractResult<()> {
     let compliance: ContractAddress = ctx.parameter_cursor().get()?;
     ensure!(
-        host.state().is_agent(&ctx.sender(), vec![AgentRole::SetCompliance]),
+        host.state()
+            .is_agent(&ctx.sender(), vec![AgentRole::SetCompliance]),
         Error::Unauthorized
     );
 

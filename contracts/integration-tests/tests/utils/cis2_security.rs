@@ -14,7 +14,8 @@ pub fn add_agent<R>(
     payload: &AgentWithRoles<R>,
 ) -> ContractInvokeSuccess
 where
-    R: Serial, {
+    R: Serial,
+{
     chain
         .contract_update(
             Signer::with_one_key(),
@@ -38,7 +39,8 @@ pub fn is_agent<R>(
     payload: &AgentWithRoles<R>,
 ) -> bool
 where
-    R: Serial, {
+    R: Serial,
+{
     chain
         .contract_invoke(
             sender.address,
@@ -62,7 +64,8 @@ pub fn agents<R>(
     contract: ContractAddress,
 ) -> Vec<AgentWithRoles<R>>
 where
-    R: Deserial, {
+    R: Deserial,
+{
     chain
         .contract_invoke(
             sender.address,
@@ -201,7 +204,8 @@ pub fn burn<T, A>(
 ) -> ContractInvokeSuccess
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_update(
             Signer::with_one_key(),
@@ -226,7 +230,8 @@ pub fn forced_burn<T, A>(
 ) -> ContractInvokeSuccess
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_update(
             Signer::with_one_key(),
@@ -251,7 +256,8 @@ pub fn freeze<T, A>(
 ) -> ContractInvokeSuccess
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_update(
             Signer::with_one_key(),
@@ -276,7 +282,8 @@ pub fn un_freeze<T, A>(
 ) -> ContractInvokeSuccess
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_update(
             Signer::with_one_key(),
@@ -301,7 +308,8 @@ pub fn balance_of_frozen<T, A>(
 ) -> FrozenResponse<A>
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_invoke(
             sender.address,
@@ -327,7 +335,8 @@ pub fn balance_of_un_frozen<T, A>(
 ) -> FrozenResponse<A>
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_invoke(
             sender.address,

@@ -32,12 +32,17 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
 
 pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
     chain
-        .contract_init(Signer::with_one_key(), sender.address, MAX_ENERGY, InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked("init_euroe_stablecoin".to_string()),
-            mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
-            param:     OwnedParameter::empty(),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            sender.address,
+            MAX_ENERGY,
+            InitContractPayload {
+                amount:    Amount::zero(),
+                init_name: OwnedContractName::new_unchecked("init_euroe_stablecoin".to_string()),
+                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                param:     OwnedParameter::empty(),
+            },
+        )
         .expect("init")
 }
 

@@ -2,12 +2,9 @@ use concordium_protocols::concordium_cis2_security::AgentUpdatedEvent;
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_std::*;
 
-use super::{
-    error::Error,
-    state::State,
-    types::{Agent, AgentRole, ContractResult, Event},
-};
-
+use super::error::Error;
+use super::state::State;
+use super::types::{Agent, AgentRole, ContractResult, Event};
 /// Returns true if the given address is an agent.
 ///
 /// # Returns
@@ -62,10 +59,16 @@ pub fn add_agent(
     let params: Agent = ctx.parameter_cursor().get()?;
     let (state, state_builder) = host.state_and_builder();
     ensure!(
-        state.is_agent(&ctx.sender(), [params.roles.as_slice(), &[AgentRole::AddAgent]].concat(),),
+        state.is_agent(
+            &ctx.sender(),
+            [params.roles.as_slice(), &[AgentRole::AddAgent]].concat(),
+        ),
         Error::Unauthorized
     );
-    ensure!(state.add_agent(params.to_owned(), state_builder), Error::AgentAlreadyExists);
+    ensure!(
+        state.add_agent(params.to_owned(), state_builder),
+        Error::AgentAlreadyExists
+    );
     logger.log(&Event::AgentAdded(AgentUpdatedEvent {
         agent: params.address,
         roles: params.roles,
@@ -78,8 +81,7 @@ pub fn add_agent(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<()>` indicating whether the operation was
-/// successful.
+/// Returns `ContractResult<()>` indicating whether the operation was successful.
 ///
 /// # Errors
 ///
@@ -97,7 +99,10 @@ pub fn remove_agent(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    ensure!(ctx.sender().matches_account(&ctx.owner()), Error::Unauthorized);
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::Unauthorized
+    );
     let address: Address = ctx.parameter_cursor().get()?;
     let agent: Option<Agent> = host.state_mut().remove_agent(&address);
     match agent {

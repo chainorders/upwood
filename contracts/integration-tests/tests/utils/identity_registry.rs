@@ -1,9 +1,7 @@
 use std::error::Error;
 
-use concordium_rwa_identity_registry::{
-    identities::RegisterIdentityParams,
-    types::{Identity, IdentityAttribute},
-};
+use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
+use concordium_rwa_identity_registry::types::{Identity, IdentityAttribute};
 use concordium_smart_contract_testing::{
     module_load_v1, Account, Chain, ContractInitSuccess, ContractInvokeSuccess,
     InitContractPayload, ModuleDeploySuccess, Signer, UpdateContractPayload,
@@ -28,12 +26,19 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
 
 pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
     chain
-        .contract_init(Signer::with_one_key(), sender.address, MAX_ENERGY, InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string()),
-            mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
-            param:     OwnedParameter::empty(),
-        })
+        .contract_init(
+            Signer::with_one_key(),
+            sender.address,
+            MAX_ENERGY,
+            InitContractPayload {
+                amount:    Amount::zero(),
+                init_name: OwnedContractName::new_unchecked(
+                    "init_rwa_identity_registry".to_string(),
+                ),
+                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                param:     OwnedParameter::empty(),
+            },
+        )
         .expect("init")
 }
 

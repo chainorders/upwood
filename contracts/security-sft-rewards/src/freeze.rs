@@ -1,26 +1,23 @@
 use concordium_protocols::concordium_cis2_security::TokenFrozen;
-use concordium_rwa_utils::state_implementations::{
-    agent_with_roles_state::IAgentWithRolesState,
-    holders_security_state::IHoldersSecurityState,
-    tokens_state::{ITokensState, TokenStateResult},
-};
+use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
+use concordium_rwa_utils::state_implementations::tokens_state::{ITokensState, TokenStateResult};
 use concordium_std::*;
 
-use super::{error::*, state::State, types::*};
-
+use super::error::*;
+use super::state::State;
+use super::types::*;
 /// Freezes the given amount of given tokenIds for the given address.
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<()>` indicating whether the operation was
-/// successful.
+/// Returns `ContractResult<()>` indicating whether the operation was successful.
 ///
 /// # Errors
 ///
 /// Returns `Error::Unauthorized` if the sender is not an agent.
-/// Returns `Error::InsufficientFunds` if the owner does not have enough
-/// unfrozen balance. Returns `Error::ParseError` if the parameters could not be
-/// parsed.
+/// Returns `Error::InsufficientFunds` if the owner does not have enough unfrozen balance.
+/// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
     contract = "security_sft_rewards",
     name = "freeze",
@@ -36,12 +33,11 @@ pub fn freeze(
 ) -> ContractResult<()> {
     let (state, state_builder) = host.state_and_builder();
     // Sender of this transaction should be a Trusted Agent
-    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::Freeze]), Error::Unauthorized);
-
-    let FreezeParams {
-        owner,
-        tokens,
-    }: FreezeParams = ctx.parameter_cursor().get()?;
+    ensure!(
+        state.is_agent(&ctx.sender(), vec![AgentRole::Freeze]),
+        Error::Unauthorized
+    );
+    let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
         state.ensure_token_exists(&token.token_id)?;
         state.ensure_has_sufficient_unfrozen_balance(
@@ -65,8 +61,7 @@ pub fn freeze(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<()>` indicating whether the operation was
-/// successful.
+/// Returns `ContractResult<()>` indicating whether the operation was successful.
 ///
 /// # Errors
 ///
@@ -87,12 +82,11 @@ pub fn un_freeze(
 ) -> ContractResult<()> {
     let state = host.state_mut();
     // Sender of this transaction should be a Trusted Agent
-    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::UnFreeze]), Error::Unauthorized);
-
-    let FreezeParams {
-        owner,
-        tokens,
-    }: FreezeParams = ctx.parameter_cursor().get()?;
+    ensure!(
+        state.is_agent(&ctx.sender(), vec![AgentRole::UnFreeze]),
+        Error::Unauthorized
+    );
+    let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
         state.un_freeze(owner, token.token_id, token.token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
@@ -109,8 +103,7 @@ pub fn un_freeze(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<FrozenResponse>` containing the frozen
-/// balance of the given token for the given addresses.
+/// Returns `ContractResult<FrozenResponse>` containing the frozen balance of the given token for the given addresses.
 ///
 /// # Errors
 ///
@@ -136,21 +129,19 @@ pub fn balance_of_frozen(
     let tokens = token_ids
         .iter()
         .map(|token_id| {
-            state.ensure_token_exists(token_id).map(|_| state.balance_of_frozen(&owner, token_id))
+            state
+                .ensure_token_exists(token_id)
+                .map(|_| state.balance_of_frozen(&owner, token_id))
         })
         .collect::<TokenStateResult<Vec<_>>>()?;
-
-    Ok(FrozenResponse {
-        tokens,
-    })
+    Ok(FrozenResponse { tokens })
 }
 
 /// Returns the unfrozen balance of the given token for the given addresses.
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<FrozenResponse>` containing the
-/// unfrozen balance of the given token for the given addresses.
+/// Returns `ContractResult<FrozenResponse>` containing the unfrozen balance of the given token for the given addresses.
 /// Returns `Error::TokenDoesNotExist` if the token does not exist.
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
@@ -173,11 +164,10 @@ pub fn balance_of_un_frozen(
     let tokens = token_ids
         .iter()
         .map(|token_id| {
-            state.ensure_token_exists(token_id).map(|_| state.balance_of_unfrozen(&owner, token_id))
+            state
+                .ensure_token_exists(token_id)
+                .map(|_| state.balance_of_unfrozen(&owner, token_id))
         })
         .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(FrozenResponse {
-        tokens,
-    })
+    Ok(FrozenResponse { tokens })
 }

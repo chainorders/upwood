@@ -1,12 +1,11 @@
-use concordium_std::*;
-
 use concordium_rwa_utils::state_implementations::agents_state::IsAgentsState;
+use concordium_std::*;
 
 use super::types::Module;
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
-pub struct State<S = StateApi> {
+pub struct State<S=StateApi> {
     pub modules: StateSet<Module, S>,
     pub agents:  StateSet<Address, S>,
 }

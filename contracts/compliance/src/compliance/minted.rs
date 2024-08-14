@@ -1,7 +1,9 @@
 use concordium_protocols::concordium_cis2_security::{compliance_client, MintedParam};
 use concordium_std::*;
 
-use super::{error::Error, state::State, types::*};
+use super::error::Error;
+use super::state::State;
+use super::types::*;
 
 /// Handles the `minted` event in the `rwa_compliance` contract.
 ///
@@ -24,7 +26,10 @@ fn minted(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<()> {
     let state = host.state();
 
     for module in state.modules.iter() {
-        ensure!(ctx.sender().matches_contract(&params.token_id.contract), Error::Unauthorized);
+        ensure!(
+            ctx.sender().matches_contract(&params.token_id.contract),
+            Error::Unauthorized
+        );
         compliance_client::minted(host, module.to_owned(), &params)?;
     }
 

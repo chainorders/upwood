@@ -96,5 +96,5 @@ impl<T> TokenOwnerUId<T> {
 }
 
 impl<T: Eq> TokenOwnerUId<T> {
-    pub fn matches(&self, token_id: &TokenUId<T>) -> bool { self.token_id.eq(token_id) }
+    pub fn matches_token(&self, token_id: &TokenUId<T>) -> bool { self.token_id.eq(token_id) }
 }

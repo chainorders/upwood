@@ -1,46 +1,49 @@
 use concordium_cis2::{
     Cis2Event, OnReceivingCis2Params, Receiver, Transfer, TransferEvent, TransferParams,
 };
-use concordium_protocols::{
-    concordium_cis2_security::{
-        compliance_client, identity_registry_client, CanTransferParam, Token, TokenFrozen,
-        TransferredParam,
-    },
-    concordium_global_sponsor::{SponsoredParams, SponsoredParamsRaw},
+use concordium_protocols::concordium_cis2_security::{
+    compliance_client, identity_registry_client, CanTransferParam, Token, TokenFrozen,
+    TransferredParam,
 };
-use concordium_rwa_utils::state_implementations::{
-    agent_with_roles_state::IAgentWithRolesState, holders_security_state::IHoldersSecurityState,
-    holders_state::IHoldersState, sponsors_state::ISponsorsState,
-    tokens_security_state::ITokensSecurityState, tokens_state::ITokensState,
-};
+use concordium_protocols::concordium_global_sponsor::{SponsoredParams, SponsoredParamsRaw};
+use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
+use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
+use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
+use concordium_rwa_utils::state_implementations::tokens_security_state::ITokensSecurityState;
+use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
 use concordium_std::*;
 
-use super::{error::*, state::State, types::*};
+use super::error::*;
+use super::state::State;
+use super::types::*;
 
-/// Compliant Transfers ownership of an NFT from one verified account to another
-/// verified account. This function can be called by the owner of the token or
-/// an operator of the owner or the trusted sponsor of the transaction.
+/// Executes a compliant transfer of token ownership between verified accounts
+///
+/// This function facilitates the transfer of token ownership from one verified
+/// account to another. It can be invoked by the token owner, an authorized
+/// operator, or a trusted transaction sponsor.
+///
+/// # Arguments
+///
+/// * Implicitly uses `TransferParams` parsed from the parameter cursor
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<()>` indicating the success or failure of the
-/// operation.
+/// * `ContractResult<()>` - Indicates the success or failure of the transfer operation
 ///
 /// # Errors
 ///
-/// This method will return an error if:
-/// * `concordium_std::ParseError` - The parameter cursor cannot parse the
-///   `TransferParams`.
-/// * `Error::Unauthorized` - The sender is not authorized to perform the
-///   transfer.
-/// * `Error::Custom(CustomContractError::PausedToken)` - The token is paused.
-/// * `Error::InsufficientFunds` - The sender does not have enough tokens.
-/// * `Error::Custom(CustomContractError::UnVerifiedIdentity)` - The receiver's
-///   identity is not verified.
-/// * `Error::Custom(CustomContractError::InCompliantTransfer)` - The transfer
-///   is not compliant.
-/// * `Error::Custom(CustomContractError::LogError)` - The logger failed to log
-///   the event.
+/// May return the following errors:
+/// * `concordium_std::ParseError` - Failed to parse `TransferParams` from the parameter cursor
+/// * `Error::Unauthorized` - The sender lacks the necessary authorization for the transfer
+/// * `Error::Custom(CustomContractError::PausedToken)` - The token is currently paused
+/// * `Error::InsufficientFunds` - The sender's token balance is insufficient for the transfer
+/// * `Error::Custom(CustomContractError::UnVerifiedIdentity)` - The receiver's identity is not
+///   verified
+/// * `Error::Custom(CustomContractError::InCompliantTransfer)` - The transfer violates compliance
+///   rules
+/// * `Error::Custom(CustomContractError::LogError)` - Failed to log the transfer event
 #[receive(
     contract = "security_sft_rewards",
     name = "transfer",
@@ -95,9 +98,10 @@ pub fn transfer(
                 amount,
             })?;
         ensure!(compliance_can_transfer, Error::InCompliantTransfer);
-
-        ensure!(from.eq(&sender) || state.is_operator(&from, &sender), Error::Unauthorized);
-
+        ensure!(
+            from.eq(&sender) || state.is_operator(&from, &sender),
+            Error::Unauthorized
+        );
         let (state, state_builder) = host.state_and_builder();
         state.transfer(from, to.address(), &token_id, amount, state_builder)?;
         compliance_client::transferred(host, compliance, &TransferredParam {
@@ -114,7 +118,6 @@ pub fn transfer(
             to: to.address(),
         })))?;
 
-        // host.commit_state();
         if let Receiver::Contract(to_contract, entrypoint) = to {
             let parameter = OnReceivingCis2Params {
                 token_id,
@@ -147,16 +150,12 @@ pub fn transfer(
 /// # Errors
 ///
 /// This method will return an error if:
-/// * `concordium_std::ParseError` - The parameter cursor cannot parse the
-///   `TransferParams`.
-/// * `Error::Unauthorized` - The sender is not authorized to perform the
-///   transfer. Sender is not an agent.
+/// * `concordium_std::ParseError` - The parameter cursor cannot parse the `TransferParams`.
+/// * `Error::Unauthorized` - The sender is not authorized to perform the transfer. Sender is not an agent.
 /// * `Error::Custom(CustomContractError::PausedToken)` - The token is paused.
 /// * `Error::InsufficientFunds` - The sender does not have enough tokens.
-/// * `Error::Custom(CustomContractError::UnVerifiedIdentity)` - The receiver's
-///   identity is not verified.
-/// * `Error::Custom(CustomContractError::LogError)` - The logger failed to log
-///   the event.
+/// * `Error::Custom(CustomContractError::UnVerifiedIdentity)` - The receiver's identity is not verified.
+/// * `Error::Custom(CustomContractError::LogError)` - The logger failed to log the event.
 #[receive(
     contract = "security_sft_rewards",
     name = "forcedTransfer",
@@ -174,8 +173,10 @@ pub fn forced_transfer(
         ctx.parameter_cursor().get()?;
 
     let state = host.state();
-    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::ForcedTransfer]), Error::Unauthorized);
-
+    ensure!(
+        state.is_agent(&ctx.sender(), vec![AgentRole::ForcedTransfer]),
+        Error::Unauthorized
+    );
     for Transfer {
         to,
         from,
@@ -219,7 +220,7 @@ pub fn forced_transfer(
         })))?;
 
         if let Address::Contract(_from_contract) = from {
-            //TODO: there should be a way to notify that the transfer has been
+            // TODO: there should be a way to notify that the transfer has been
             // forced Ex. A token is sent to the marketplace for
             // selling. Upon a forced transfer since marketplace
             // would not know that the it does not have the token authority

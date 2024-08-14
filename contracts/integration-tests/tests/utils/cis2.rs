@@ -14,7 +14,8 @@ pub fn balance_of<T, A>(
 ) -> BalanceOfQueryResponse<A>
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_invoke(
             invoker.address,
@@ -41,13 +42,11 @@ pub fn balance_of_single<T, A>(
 ) -> A
 where
     T: IsTokenId,
-    A: IsTokenAmount + Copy, {
+    A: IsTokenAmount+Copy,
+{
     let BalanceOfQueryResponse(amounts) =
         balance_of::<T, A>(chain, invoker, contract, &BalanceOfQueryParams {
-            queries: vec![BalanceOfQuery {
-                address,
-                token_id,
-            }],
+            queries: vec![BalanceOfQuery { address, token_id }],
         });
     amounts[0]
 }
@@ -60,7 +59,8 @@ pub fn transfer<T, A>(
 ) -> ContractInvokeSuccess
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     chain
         .contract_update(
             Signer::with_one_key(),
@@ -85,7 +85,8 @@ pub fn transfer_single<T, A>(
 ) -> ContractInvokeSuccess
 where
     T: IsTokenId,
-    A: IsTokenAmount, {
+    A: IsTokenAmount,
+{
     let payload = &TransferParams(vec![payload]);
     chain
         .contract_update(
@@ -155,10 +156,7 @@ pub fn operator_of_single(
 ) -> bool {
     let OperatorOfQueryResponse(operators) =
         operator_of(chain, sender, contract, &OperatorOfQueryParams {
-            queries: vec![OperatorOfQuery {
-                owner,
-                address,
-            }],
+            queries: vec![OperatorOfQuery { owner, address }],
         })
         .parse_return_value()
         .unwrap();

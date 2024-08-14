@@ -1,11 +1,10 @@
 use concordium_protocols::concordium_cis2_security::identity_registry_client::IdentityRegistryClientError;
-use concordium_rwa_utils::state_implementations::{
-    holders_security_state::HolderSecurityStateError, holders_state::HolderStateError,
-    tokens_security_state::TokenSecurityError, tokens_state::TokenStateError,
-};
-use concordium_std::{
-    num::NonZeroI32, CallContractError, LogError, ParseError, Reject, SchemaType,
-};
+use concordium_rwa_utils::state_implementations::holders_security_state::HolderSecurityStateError;
+use concordium_rwa_utils::state_implementations::holders_state::HolderStateError;
+use concordium_rwa_utils::state_implementations::tokens_security_state::TokenSecurityError;
+use concordium_rwa_utils::state_implementations::tokens_state::TokenStateError;
+use concordium_std::num::NonZeroI32;
+use concordium_std::{CallContractError, LogError, ParseError, Reject, SchemaType};
 
 #[derive(SchemaType)]
 pub enum Error {
@@ -15,8 +14,7 @@ pub enum Error {
     LogError,
     /// Triggered when the receiver of the token is not verified.
     InvalidTokenId,
-    /// The balance of the token owner is insufficient for the transfer (Error
-    /// code: -42000002).
+    /// The balance of the token owner is insufficient for the transfer (Error code: -42000002).
     InsufficientFunds,
     /// Sender is unauthorized to call this function (Error code: -42000003).
     Unauthorized,
@@ -76,7 +74,6 @@ impl Error {
         .unwrap()
     }
 }
-
 impl From<Error> for Reject {
     fn from(err: Error) -> Self {
         Reject {
@@ -85,23 +82,18 @@ impl From<Error> for Reject {
         }
     }
 }
-
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Self { Error::ParseError }
 }
-
 impl From<LogError> for Error {
     fn from(_: LogError) -> Self { Error::LogError }
 }
-
 impl From<TokenStateError> for Error {
     fn from(_: TokenStateError) -> Self { Error::InvalidTokenId }
 }
-
 impl From<HolderStateError> for Error {
     fn from(_: HolderStateError) -> Self { Error::InsufficientFunds }
 }
-
 impl From<TokenSecurityError> for Error {
     fn from(value: TokenSecurityError) -> Self {
         match value {
@@ -109,7 +101,6 @@ impl From<TokenSecurityError> for Error {
         }
     }
 }
-
 impl From<HolderSecurityStateError> for Error {
     fn from(e: HolderSecurityStateError) -> Self {
         match e {
@@ -120,11 +111,9 @@ impl From<HolderSecurityStateError> for Error {
         }
     }
 }
-
 impl From<IdentityRegistryClientError> for Error {
     fn from(_: IdentityRegistryClientError) -> Self { Error::CallContractError }
 }
-
 impl<T> From<CallContractError<T>> for Error {
     fn from(_: CallContractError<T>) -> Self { Error::CallContractError }
 }
