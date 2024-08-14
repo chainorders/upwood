@@ -1,7 +1,7 @@
 use concordium_cis2::{AdditionalData, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver};
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::{
-    compliance_client, identity_registry_client, CanTransferParam, MintedParam, Token,
+    compliance_client, identity_registry_client, CanTransferParam, MintedParam, TokenUId,
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
@@ -12,7 +12,6 @@ use super::error::*;
 use super::state::State;
 use super::types::*;
 
-/// Mint the given amount of tokens to the owner. Locking the deposited tokens.
 #[receive(
     contract = "security_sft_rewards",
     name = "mint",
@@ -46,7 +45,7 @@ pub fn mint(
     let token_id = params.token_id;
     let mint_amount = params.amount;
     ensure!(mint_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-    let compliance_token = Token::new(token_id, self_address);
+    let compliance_token = TokenUId::new(token_id, self_address);
     let compliance_can_transfer =
         compliance_client::can_transfer(host, compliance, &CanTransferParam {
             token_id: compliance_token,

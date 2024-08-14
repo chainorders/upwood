@@ -1,7 +1,5 @@
-use concordium_cis2::{IsTokenAmount, IsTokenId};
-use concordium_protocols::concordium_cis2_security::{
-    AgentWithRoles, BurnParams, FreezeParams, FrozenParams, FrozenResponse,
-};
+use concordium_cis2::{BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId};
+use concordium_protocols::concordium_cis2_security::{AgentWithRoles, BurnParams, FreezeParams};
 use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, Serial};
 
@@ -304,8 +302,8 @@ pub fn balance_of_frozen<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
-    payload: &FrozenParams<T>,
-) -> FrozenResponse<A>
+    payload: &BalanceOfQueryParams<T>,
+) -> BalanceOfQueryResponse<A>
 where
     T: IsTokenId,
     A: IsTokenAmount,
@@ -331,8 +329,8 @@ pub fn balance_of_un_frozen<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
-    payload: &FrozenParams<T>,
-) -> FrozenResponse<A>
+    payload: &BalanceOfQueryParams<T>,
+) -> BalanceOfQueryResponse<A>
 where
     T: IsTokenId,
     A: IsTokenAmount,

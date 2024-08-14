@@ -7,6 +7,7 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
+
 /// Freezes the given amount of given tokenIds for the given address.
 ///
 /// # Returns
@@ -103,7 +104,44 @@ pub fn un_freeze(
 ///
 /// # Returns
 ///
-/// Returns `ContractResult<FrozenResponse>` containing the frozen balance of the given token for the given addresses.
+/// Returns `ContractResult<BalanceOfQueryResponse>` containing the frozen balance of the given token for the given addresses.
+///
+/// # Errors
+///
+/// - `Error::TokenDoesNotExist`: If any of the specified tokens do not exist.
+/// - `Error::InvalidAddress`: If any of the provided addresses are invalid.
+/// - `Error::ParseError`: If the input parameters could not be parsed correctly.
+#[receive(
+    contract = "security_sft_rewards",
+    name = "balanceOfFrozen",
+    parameter = "BalanceOfQueryParams",
+    return_value = "BalanceOfQueryResponse",
+    error = "Error"
+)]
+pub fn balance_of_frozen(
+    ctx: &ReceiveContext,
+    host: &Host<State>,
+) -> ContractResult<BalanceOfQueryResponse> {
+    let state = host.state();
+    let BalanceOfQueryParams { queries } = ctx.parameter_cursor().get()?;
+
+    let amounts = queries
+        .iter()
+        .map(|query| {
+            state
+                .ensure_token_exists(&query.token_id)
+                .map(|_| state.balance_of_frozen(&query.address, &query.token_id))
+        })
+        .collect::<TokenStateResult<Vec<_>>>()?;
+
+    Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
+}
+
+/// Returns the unfrozen balance of the given token for the given addresses.
+///
+/// # Returns
+///
+/// Returns `ContractResult<BalanceOfQueryResponse>` containing the unfrozen balance of the given token for the given addresses.
 ///
 /// # Errors
 ///
@@ -111,63 +149,26 @@ pub fn un_freeze(
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
     contract = "security_sft_rewards",
-    name = "balanceOfFrozen",
-    parameter = "FrozenParams",
-    return_value = "FrozenResponse",
-    error = "Error"
-)]
-pub fn balance_of_frozen(
-    ctx: &ReceiveContext,
-    host: &Host<State>,
-) -> ContractResult<FrozenResponse> {
-    let state = host.state();
-    let FrozenParams {
-        owner,
-        tokens: token_ids,
-    }: FrozenParams = ctx.parameter_cursor().get()?;
-
-    let tokens = token_ids
-        .iter()
-        .map(|token_id| {
-            state
-                .ensure_token_exists(token_id)
-                .map(|_| state.balance_of_frozen(&owner, token_id))
-        })
-        .collect::<TokenStateResult<Vec<_>>>()?;
-    Ok(FrozenResponse { tokens })
-}
-
-/// Returns the unfrozen balance of the given token for the given addresses.
-///
-/// # Returns
-///
-/// Returns `ContractResult<FrozenResponse>` containing the unfrozen balance of the given token for the given addresses.
-/// Returns `Error::TokenDoesNotExist` if the token does not exist.
-/// Returns `Error::ParseError` if the parameters could not be parsed.
-#[receive(
-    contract = "security_sft_rewards",
     name = "balanceOfUnFrozen",
-    parameter = "FrozenParams",
-    return_value = "FrozenResponse",
+    parameter = "BalanceOfQueryParams",
+    return_value = "BalanceOfQueryResponse",
     error = "Error"
 )]
 pub fn balance_of_un_frozen(
     ctx: &ReceiveContext,
     host: &Host<State>,
-) -> ContractResult<FrozenResponse> {
+) -> ContractResult<BalanceOfQueryResponse> {
     let state = host.state();
-    let FrozenParams {
-        owner,
-        tokens: token_ids,
-    }: FrozenParams = ctx.parameter_cursor().get()?;
+    let BalanceOfQueryParams { queries } = ctx.parameter_cursor().get()?;
 
-    let tokens = token_ids
+    let amounts = queries
         .iter()
-        .map(|token_id| {
+        .map(|query| {
             state
-                .ensure_token_exists(token_id)
-                .map(|_| state.balance_of_unfrozen(&owner, token_id))
+                .ensure_token_exists(&query.token_id)
+                .map(|_| state.balance_of_unfrozen(&query.address, &query.token_id))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(FrozenResponse { tokens })
+
+    Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
 }

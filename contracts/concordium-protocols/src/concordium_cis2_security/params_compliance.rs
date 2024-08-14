@@ -1,26 +1,13 @@
 use concordium_cis2::{IsTokenAmount, IsTokenId};
-use concordium_std::{Address, ContractAddress, SchemaType, Serialize};
+use concordium_std::{Address, SchemaType, Serialize};
 
-#[derive(Serialize, SchemaType, Copy, Clone)]
-pub struct Token<T: IsTokenId> {
-    pub token_id: T,
-    pub contract: ContractAddress,
-}
-
-impl<T: IsTokenId> Token<T> {
-    pub fn new(token_id: T, contract: ContractAddress) -> Self {
-        Self {
-            token_id,
-            contract,
-        }
-    }
-}
+use super::TokenUId;
 
 /// Parameters for the `can_transfer` function.
 #[derive(Serialize, SchemaType)]
 pub struct CanTransferParam<T: IsTokenId, A: IsTokenAmount> {
     /// The ID of the token to transfer.
-    pub token_id: Token<T>,
+    pub token_id: TokenUId<T>,
     /// The address to transfer to.
     pub to:       Address,
     /// The amount of tokens to transfer.
@@ -31,7 +18,7 @@ pub struct CanTransferParam<T: IsTokenId, A: IsTokenAmount> {
 #[derive(Serialize, SchemaType)]
 pub struct BurnedParam<T: IsTokenId, A: IsTokenAmount> {
     /// The ID of the token that was burned.
-    pub token_id: Token<T>,
+    pub token_id: TokenUId<T>,
     /// The address of the owner of the burned tokens.
     pub owner:    Address,
     /// The amount of tokens that were burned.
@@ -42,7 +29,7 @@ pub struct BurnedParam<T: IsTokenId, A: IsTokenAmount> {
 #[derive(Serialize, SchemaType)]
 pub struct MintedParam<T: IsTokenId, A: IsTokenAmount> {
     /// The ID of the token that was minted.
-    pub token_id: Token<T>,
+    pub token_id: TokenUId<T>,
     /// The address of the owner of the minted tokens.
     pub owner:    Address,
     /// The amount of tokens that were minted.
@@ -53,7 +40,7 @@ pub struct MintedParam<T: IsTokenId, A: IsTokenAmount> {
 #[derive(Serialize, SchemaType)]
 pub struct TransferredParam<T: IsTokenId, A: IsTokenAmount> {
     /// The ID of the token that was transferred.
-    pub token_id: Token<T>,
+    pub token_id: TokenUId<T>,
     /// The address of the sender of the transfer.
     pub from:     Address,
     /// The address of the receiver of the transfer.

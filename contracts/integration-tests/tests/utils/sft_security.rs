@@ -194,8 +194,8 @@ pub fn balance_of_frozen(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
-    payload: &FrozenParams,
-) -> FrozenResponse {
+    payload: &BalanceOfQueryParams,
+) -> BalanceOfQueryResponse {
     cis2_security::balance_of_frozen(chain, sender, contract, payload)
 }
 
@@ -203,7 +203,7 @@ pub fn balance_of_un_frozen(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
-    payload: &FrozenParams,
-) -> FrozenResponse {
+    payload: &BalanceOfQueryParams,
+) -> BalanceOfQueryResponse {
     cis2_security::balance_of_un_frozen(chain, sender, contract, payload)
 }

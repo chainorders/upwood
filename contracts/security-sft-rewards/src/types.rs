@@ -51,11 +51,11 @@ pub type Agent = concordium_cis2_security::AgentWithRoles<AgentRole>;
 pub type BurnParams = concordium_cis2_security::BurnParams<TokenId, TokenAmount>;
 pub type Burn = concordium_cis2_security::Burn<TokenId, TokenAmount>;
 pub type FreezeParams = concordium_cis2_security::FreezeParams<TokenId, TokenAmount>;
-pub type FrozenParams = concordium_cis2_security::FrozenParams<TokenId>;
-pub type FrozenResponse = concordium_cis2_security::FrozenResponse<TokenAmount>;
-pub type ContractTransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
+pub type TransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
 pub type PauseParams = concordium_cis2_security::PauseParams<TokenId>;
 pub type IsPausedResponse = concordium_cis2_security::IsPausedResponse;
+pub type BalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
+pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 

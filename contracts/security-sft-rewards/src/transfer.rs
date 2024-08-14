@@ -1,8 +1,6 @@
-use concordium_cis2::{
-    Cis2Event, OnReceivingCis2Params, Receiver, Transfer, TransferEvent, TransferParams,
-};
+use concordium_cis2::{Cis2Event, OnReceivingCis2Params, Receiver, TransferEvent};
 use concordium_protocols::concordium_cis2_security::{
-    compliance_client, identity_registry_client, CanTransferParam, Token, TokenFrozen,
+    compliance_client, identity_registry_client, CanTransferParam, TokenFrozen, TokenUId,
     TransferredParam,
 };
 use concordium_protocols::concordium_global_sponsor::{SponsoredParams, SponsoredParamsRaw};
@@ -49,7 +47,7 @@ use super::types::*;
     name = "transfer",
     enable_logger,
     mutable,
-    parameter = "ContractTransferParams",
+    parameter = "TransferParams",
     error = "Error"
 )]
 pub fn transfer(
@@ -62,18 +60,18 @@ pub fn transfer(
         let sender = ctx.sender();
         if state.is_sponsor(&sender) {
             let params: SponsoredParamsRaw = ctx.parameter_cursor().get()?;
-            let params: SponsoredParams<ContractTransferParams> = params.try_into()?;
+            let params: SponsoredParams<TransferParams> = params.try_into()?;
             (Address::Account(params.signer), params.params)
         } else {
-            let params: ContractTransferParams = ctx.parameter_cursor().get()?;
+            let params: TransferParams = ctx.parameter_cursor().get()?;
             (sender, params)
         }
     };
 
-    let TransferParams(transfers): ContractTransferParams = params;
+    let concordium_cis2::TransferParams(transfers) = params;
     let compliance = state.compliance();
 
-    for Transfer {
+    for concordium_cis2::Transfer {
         to,
         from,
         amount,
@@ -81,7 +79,7 @@ pub fn transfer(
         data,
     } in transfers
     {
-        let compliance_token = Token::new(token_id, ctx.self_address());
+        let compliance_token = TokenUId::new(token_id, ctx.self_address());
         let state = host.state();
         state.ensure_token_exists(&token_id)?;
         state.ensure_not_recovered(&to.address())?;
@@ -161,7 +159,7 @@ pub fn transfer(
     name = "forcedTransfer",
     enable_logger,
     mutable,
-    parameter = "TransferParams<TokenId, TokenAmount>",
+    parameter = "TransferParams",
     error = "Error"
 )]
 pub fn forced_transfer(
@@ -169,15 +167,14 @@ pub fn forced_transfer(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let TransferParams(transfers): TransferParams<TokenId, TokenAmount> =
-        ctx.parameter_cursor().get()?;
-
+    let concordium_cis2::TransferParams(transfers) = ctx.parameter_cursor().get()?;
     let state = host.state();
     ensure!(
         state.is_agent(&ctx.sender(), vec![AgentRole::ForcedTransfer]),
         Error::Unauthorized
     );
-    for Transfer {
+
+    for concordium_cis2::Transfer {
         to,
         from,
         amount,
@@ -201,7 +198,7 @@ pub fn forced_transfer(
         // Adjust the frozen balance of the sender.
         let unfrozen_balance = state.adjust_frozen_balance(from, token_id)?;
         compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
-            token_id: Token::new(token_id, ctx.self_address()),
+            token_id: TokenUId::new(token_id, ctx.self_address()),
             from,
             to: to.address(),
             amount,

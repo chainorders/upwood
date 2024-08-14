@@ -1,6 +1,6 @@
 use concordium_cis2::{BurnEvent, Cis2Event};
 use concordium_protocols::concordium_cis2_security::{
-    compliance_client, BurnedParam, Token, TokenFrozen,
+    compliance_client, BurnedParam, TokenFrozen, TokenUId,
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
@@ -58,7 +58,7 @@ pub fn burn(
 
         host.state_mut().sub_balance(owner, token_id, amount)?;
         compliance_client::burned(host, compliance, &BurnedParam {
-            token_id: Token::new(token_id, ctx.self_address()),
+            token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
             owner,
         })?;
@@ -125,7 +125,7 @@ pub fn forced_burn(
         let unfrozen_balance = state.adjust_frozen_balance(owner, token_id)?;
 
         compliance_client::burned(host, compliance, &BurnedParam {
-            token_id: Token::new(token_id, ctx.self_address()),
+            token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
             owner,
         })?;
