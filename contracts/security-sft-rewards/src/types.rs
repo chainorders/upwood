@@ -27,6 +27,8 @@ pub enum AgentRole {
     Freeze,
     UnFreeze,
     HolderRecovery,
+    Pause,
+    UnPause,
 }
 
 impl AgentRole {
@@ -54,6 +56,8 @@ pub type FreezeParams = concordium_cis2_security::FreezeParams<TokenId, TokenAmo
 pub type FrozenParams = concordium_cis2_security::FrozenParams<TokenId>;
 pub type FrozenResponse = concordium_cis2_security::FrozenResponse<TokenAmount>;
 pub type ContractTransferParams = concordium_cis2::TransferParams<TokenId, TokenAmount>;
+pub type PauseParams = concordium_cis2_security::PauseParams<TokenId>;
+pub type IsPausedResponse = concordium_cis2_security::IsPausedResponse;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 

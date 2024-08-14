@@ -6,6 +6,7 @@ pub mod freeze;
 pub mod init;
 pub mod mint;
 pub mod operator;
+pub mod pause;
 pub mod recovery;
 mod state;
 pub mod supports;

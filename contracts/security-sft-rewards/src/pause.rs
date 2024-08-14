@@ -1,9 +1,11 @@
-use super::{error::*, event::*, state::State, types::*};
-use concordium_rwa_utils::{
-    agents_state::IsAgentsState, tokens_security_state::ITokensSecurityState,
+use concordium_protocols::concordium_cis2_security::Paused;
+use concordium_rwa_utils::state_implementations::{
+    agent_with_roles_state::IAgentWithRolesState, tokens_security_state::ITokensSecurityState,
     tokens_state::ITokensState,
 };
 use concordium_std::*;
+
+use super::{error::*, state::State, types::*};
 
 /// Pauses the given tokenIds.
 ///
@@ -31,7 +33,7 @@ pub fn pause(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state_mut();
-    ensure!(state.is_agent(&ctx.sender()), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::Pause]), Error::Unauthorized);
 
     let PauseParams {
         tokens,
@@ -73,7 +75,7 @@ pub fn un_pause(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state_mut();
-    ensure!(state.is_agent(&ctx.sender()), Error::Unauthorized);
+    ensure!(state.is_agent(&ctx.sender(), vec![AgentRole::UnPause]), Error::Unauthorized);
 
     let PauseParams {
         tokens,
