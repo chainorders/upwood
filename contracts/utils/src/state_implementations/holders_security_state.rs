@@ -1,6 +1,7 @@
-use super::holders_state::{HolderBalances, HolderStateError, IHoldersState};
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
+
+use super::holders_state::{HolderBalances, HolderStateError, IHoldersState};
 
 /// Represents the different types of errors that can occur in the holder's
 /// security state.
@@ -113,7 +114,10 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     /// * `address` - The address for which the recovery address is being set.
     /// * `recovery_address` - The recovery address to be set.
     fn set_recovery_address(&mut self, address: Address, recovery_address: Address) {
-        let _ = self.state_mut().recovery_addresses.insert(address, recovery_address);
+        let _ = self
+            .state_mut()
+            .recovery_addresses
+            .insert(address, recovery_address);
     }
 
     /// Removes the recovery address of the given address and sets it to the new
@@ -152,7 +156,9 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
             .frozen_balances
             .remove_and_get(&address)
             .map(|frozen_balances| {
-                self.state_mut().frozen_balances.insert(new_address, frozen_balances)
+                self.state_mut()
+                    .frozen_balances
+                    .insert(new_address, frozen_balances)
             })
             .map(|new_address_state| match new_address_state {
                 // new address should not have State
@@ -177,7 +183,7 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
         &mut self,
         address: Address,
         token_id: &T,
-        amount: A,
+        amount: &A,
         state_builder: &mut StateBuilder<S>,
     ) -> HolderSecurityStateResult<()> {
         self.state_mut()
@@ -197,13 +203,13 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     /// * `amount` - The amount to unfreeze.
     fn un_freeze(
         &mut self,
-        address: Address,
-        token_id: T,
-        amount: A,
+        address: &Address,
+        token_id: &T,
+        amount: &A,
     ) -> HolderSecurityStateResult<()> {
         self.state_mut()
             .frozen_balances
-            .entry(address)
+            .entry(*address)
             .occupied_or(HolderSecurityStateError::AmountTooLarge)?
             .sub(token_id, amount)
             .map_err(|e| e.into())
@@ -275,18 +281,18 @@ pub trait IHoldersSecurityState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi>:
     /// Returns an error if the unfreeze operation fails.
     fn adjust_frozen_balance(
         &mut self,
-        address: Address,
-        token_id: T,
+        address: &Address,
+        token_id: &T,
     ) -> HolderSecurityStateResult<A> {
-        let frozen_balance = self.balance_of_frozen(&address, &token_id);
-        let balance = self.balance_of(&address, &token_id);
+        let frozen_balance = self.balance_of_frozen(address, token_id);
+        let balance = self.balance_of(address, token_id);
 
         if frozen_balance.le(&balance) {
             return Ok(A::zero());
         }
 
         let in_compliant_amount = frozen_balance.sub(balance);
-        self.un_freeze(address, token_id, in_compliant_amount)?;
+        self.un_freeze(address, token_id, &in_compliant_amount)?;
 
         Ok(in_compliant_amount)
     }

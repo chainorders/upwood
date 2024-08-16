@@ -56,7 +56,7 @@ pub fn mint(
 
     // Minting Logic
     let (state, state_builder) = host.state_and_builder();
-    state.add_balance(owner_address, &token_id, mint_amount, state_builder)?;
+    state.add_balance(&owner_address, &token_id, &mint_amount, state_builder)?;
     // Notify compliance that the token has been minted
     compliance_client::minted(host, compliance, &MintedParam {
         token_id: compliance_token,

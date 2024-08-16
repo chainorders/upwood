@@ -47,7 +47,7 @@ pub fn freeze(
             &token.token_amount,
         )?;
 
-        state.freeze(owner, &token.token_id, token.token_amount, state_builder)?;
+        state.freeze(owner, &token.token_id, &token.token_amount, state_builder)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,
@@ -89,7 +89,7 @@ pub fn un_freeze(
     );
     let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
-        state.un_freeze(owner, token.token_id, token.token_amount)?;
+        state.un_freeze(&owner, &token.token_id, &token.token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,

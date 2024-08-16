@@ -82,8 +82,8 @@ pub fn transfer(
         let compliance_token = TokenUId::new(token_id, ctx.self_address());
         let state = host.state();
         state.ensure_token_exists(&token_id)?;
-        state.ensure_not_recovered(&to.address())?;
         state.ensure_not_paused(&token_id)?;
+        state.ensure_not_recovered(&to.address())?;
         state.ensure_has_sufficient_unfrozen_balance(&from, &token_id, &amount)?;
         ensure!(
             identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
@@ -101,7 +101,7 @@ pub fn transfer(
             Error::Unauthorized
         );
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(from, to.address(), &token_id, amount, state_builder)?;
+        state.transfer(&from, &to.address(), &token_id, &amount, state_builder)?;
         compliance_client::transferred(host, compliance, &TransferredParam {
             token_id: compliance_token,
             from,
@@ -194,9 +194,9 @@ pub fn forced_transfer(
         );
 
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(from, to.address(), &token_id, amount, state_builder)?;
+        state.transfer(&from, &to.address(), &token_id, &amount, state_builder)?;
         // Adjust the frozen balance of the sender.
-        let unfrozen_balance = state.adjust_frozen_balance(from, token_id)?;
+        let unfrozen_balance = state.adjust_frozen_balance(&from, &token_id)?;
         compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             from,

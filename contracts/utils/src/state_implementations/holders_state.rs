@@ -24,13 +24,14 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderBalances<T, A, S> {
         self.balances.get(token_id).map(|a| *a).unwrap_or(A::zero())
     }
 
-    pub fn sub(&mut self, token_id: T, amount: A) -> HolderStateResult<()> {
+    pub fn sub(&mut self, token_id: &T, amount: &A) -> HolderStateResult<()> {
         let amount = self
             .balances
             .entry(token_id.to_owned())
             .occupied_or(HolderStateError::AmountTooLarge)?
             .try_modify(|e| {
-                e.checked_sub_assign(amount).ok_or(HolderStateError::AmountTooLarge)?;
+                e.checked_sub_assign(*amount)
+                    .ok_or(HolderStateError::AmountTooLarge)?;
                 Ok(e.to_owned())
             })?;
 
@@ -41,11 +42,14 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderBalances<T, A, S> {
         Ok(())
     }
 
-    pub fn add(&mut self, token_id: &T, amount: A) -> HolderStateResult<()> {
+    pub fn add(&mut self, token_id: &T, amount: &A) -> HolderStateResult<()> {
         self.balances
             .entry(token_id.to_owned())
             .or_insert_with(|| A::zero())
-            .try_modify(|e| e.checked_add_assign(amount).ok_or(HolderStateError::AmountOverflow))
+            .try_modify(|e| {
+                e.checked_add_assign(*amount)
+                    .ok_or(HolderStateError::AmountOverflow)
+            })
     }
 }
 
@@ -114,7 +118,7 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderState<T, A, S> {
     ///
     /// Returns `HolderStateError::AmountTooLarge` if the amount to subtract is
     /// larger than the current balance.
-    pub fn sub(&mut self, token_id: T, amount: A) -> HolderStateResult<()> {
+    pub fn sub(&mut self, token_id: &T, amount: &A) -> HolderStateResult<()> {
         self.balances.sub(token_id, amount)
     }
 
@@ -130,11 +134,10 @@ impl<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> HolderState<T, A, S> {
     ///
     /// Returns `HolderStateError::AmountOverflow` if the amount to add and the
     /// current balance exceed the maximum value of `A`.
-    pub fn add(&mut self, token_id: &T, amount: A) -> HolderStateResult<()> {
+    pub fn add(&mut self, token_id: &T, amount: &A) -> HolderStateResult<()> {
         self.balances.add(token_id, amount)
     }
 }
-
 
 pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     fn holders(&self) -> &StateMap<Address, HolderState<T, A, S>, S>;
@@ -152,7 +155,10 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     /// Returns `true` if the operator is an operator for the address, `false`
     /// otherwise.
     fn is_operator(&self, address: &Address, operator: &Address) -> bool {
-        self.holders().get(address).map(|address| address.is_operator(operator)).unwrap_or(false)
+        self.holders()
+            .get(address)
+            .map(|address| address.is_operator(operator))
+            .unwrap_or(false)
     }
 
     /// Adds an operator for the given address.
@@ -198,7 +204,10 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     /// Returns the balance of the given token for the given address. If the
     /// address does not exist, returns zero.
     fn balance_of(&self, address: &Address, token_id: &T) -> A {
-        self.holders().get(address).map(|address| address.balance_of(token_id)).unwrap_or(A::zero())
+        self.holders()
+            .get(address)
+            .map(|address| address.balance_of(token_id))
+            .unwrap_or(A::zero())
     }
 
     fn ensure_has_sufficient_balance(
@@ -236,13 +245,13 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     /// current balance exceed the maximum value of `A`.
     fn add_balance(
         &mut self,
-        address: Address,
+        address: &Address,
         token_id: &T,
-        amount: A,
+        amount: &A,
         state_builder: &mut StateBuilder<S>,
     ) -> HolderStateResult<()> {
         self.holders_mut()
-            .entry(address)
+            .entry(*address)
             .or_insert_with(|| HolderState::new(state_builder))
             .add(token_id, amount)
     }
@@ -264,9 +273,14 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     ///
     /// Returns `HolderStateError::AmountTooLarge` if the amount to subtract is
     /// larger than the current balance.
-    fn sub_balance(&mut self, address: Address, token_id: T, amount: A) -> HolderStateResult<()> {
+    fn sub_balance(
+        &mut self,
+        address: &Address,
+        token_id: &T,
+        amount: &A,
+    ) -> HolderStateResult<()> {
         self.holders_mut()
-            .entry(address)
+            .entry(*address)
             .occupied_or(HolderStateError::AmountTooLarge)?
             .try_modify(|address| address.sub(token_id, amount))
     }
@@ -294,18 +308,15 @@ pub trait IHoldersState<T: IsTokenId, A: IsTokenAmount, S: HasStateApi> {
     /// current balance of the `to` address exceed the maximum value of `A`.
     fn transfer(
         &mut self,
-        from: Address,
-        to: Address,
+        from: &Address,
+        to: &Address,
         token_id: &T,
-        amount: A,
+        amount: &A,
         state_builder: &mut StateBuilder<S>,
     ) -> HolderStateResult<()> {
-        self.holders_mut()
-            .entry(from)
-            .and_try_modify(|address| address.sub(token_id.to_owned(), amount))?;
-        self.holders_mut()
-            .entry(to)
-            .or_insert_with(|| HolderState::new(state_builder))
-            .add(token_id, amount)
+        self.sub_balance(from, token_id, amount)?;
+        self.add_balance(to, token_id, amount, state_builder)?;
+
+        Ok(())
     }
 }

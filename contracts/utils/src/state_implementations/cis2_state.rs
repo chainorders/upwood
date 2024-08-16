@@ -1,9 +1,8 @@
-use super::{
-    holders_state::{HolderStateError, IHoldersState},
-    tokens_state::{ITokensState, TokenStateError},
-};
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
+
+use super::holders_state::{HolderStateError, IHoldersState};
+use super::tokens_state::{ITokensState, TokenStateError};
 
 pub type Cis2Result<R> = Result<R, Cis2StateError>;
 
@@ -13,8 +12,8 @@ pub enum Cis2StateError {
     InvalidAmount,
 }
 
-pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize + Clone, S: HasStateApi>:
-    IHoldersState<T, A, S> + ITokensState<T, TTokenState, S> {
+pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize+Clone, S: HasStateApi>:
+    IHoldersState<T, A, S>+ITokensState<T, TTokenState, S> {
     /// Mints a token.
     ///
     /// This function mints a new token with the specified `token_id` and
@@ -38,14 +37,14 @@ pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize + Cl
     /// `Cis2Result`.
     fn mint_token(
         &mut self,
-        token_id: T,
+        token_id: &T,
         state: TTokenState,
         balances: Vec<(Address, A)>,
         state_builder: &mut StateBuilder<S>,
     ) -> Cis2Result<()> {
         self.add_token(token_id.to_owned(), state)?;
         for (address, amount) in balances {
-            self.add_balance(address, &token_id, amount, state_builder)?;
+            self.add_balance(&address, token_id, &amount, state_builder)?;
         }
 
         Ok(())

@@ -56,7 +56,7 @@ pub fn burn(
         state.ensure_has_sufficient_unfrozen_balance(&owner, &token_id, &amount)?;
         let compliance = state.compliance();
 
-        host.state_mut().sub_balance(owner, token_id, amount)?;
+        host.state_mut().sub_balance(&owner, &token_id, &amount)?;
         compliance_client::burned(host, compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
@@ -121,8 +121,8 @@ pub fn forced_burn(
         let compliance = state.compliance();
 
         let state = host.state_mut();
-        state.sub_balance(owner, token_id, amount)?;
-        let unfrozen_balance = state.adjust_frozen_balance(owner, token_id)?;
+        state.sub_balance(&owner, &token_id, &amount)?;
+        let unfrozen_balance = state.adjust_frozen_balance(&owner, &token_id)?;
 
         compliance_client::burned(host, compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
