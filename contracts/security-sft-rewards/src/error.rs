@@ -1,4 +1,6 @@
 use concordium_protocols::concordium_cis2_security::identity_registry_client::IdentityRegistryClientError;
+use concordium_rwa_utils::state_implementations::cis2_security_state::Cis2SecurityStateError;
+use concordium_rwa_utils::state_implementations::cis2_state::Cis2StateError;
 use concordium_rwa_utils::state_implementations::holders_security_state::HolderSecurityStateError;
 use concordium_rwa_utils::state_implementations::holders_state::HolderStateError;
 use concordium_rwa_utils::state_implementations::tokens_security_state::TokenSecurityError;
@@ -98,6 +100,7 @@ impl From<TokenSecurityError> for Error {
     fn from(value: TokenSecurityError) -> Self {
         match value {
             TokenSecurityError::PausedToken => Error::PausedToken,
+            TokenSecurityError::InvalidTokenId => Error::InvalidTokenId,
         }
     }
 }
@@ -105,7 +108,6 @@ impl From<HolderSecurityStateError> for Error {
     fn from(e: HolderSecurityStateError) -> Self {
         match e {
             HolderSecurityStateError::AmountTooLarge => Error::InsufficientFunds,
-            HolderSecurityStateError::AmountOverflow => Error::InvalidAmount,
             HolderSecurityStateError::AddressAlreadyRecovered => Error::InvalidAddress,
             HolderSecurityStateError::InvalidRecoveryAddress => Error::InvalidAddress,
         }
@@ -116,4 +118,25 @@ impl From<IdentityRegistryClientError> for Error {
 }
 impl<T> From<CallContractError<T>> for Error {
     fn from(_: CallContractError<T>) -> Self { Error::CallContractError }
+}
+impl From<Cis2StateError> for Error {
+    fn from(e: Cis2StateError) -> Self {
+        match e {
+            Cis2StateError::InvalidTokenId => Error::InvalidTokenId,
+            Cis2StateError::InsufficientFunds => Error::InsufficientFunds,
+            Cis2StateError::InvalidAmount => Error::InvalidAmount,
+        }
+    }
+}
+
+impl From<Cis2SecurityStateError> for Error {
+    fn from(value: Cis2SecurityStateError) -> Self {
+        match value {
+            Cis2SecurityStateError::InvalidTokenId => Error::InvalidTokenId,
+            Cis2SecurityStateError::InsufficientFunds => Error::InsufficientFunds,
+            Cis2SecurityStateError::InvalidAmount => Error::InvalidAmount,
+            Cis2SecurityStateError::InvalidAddress => Error::InvalidAddress,
+            Cis2SecurityStateError::PausedToken => Error::PausedToken,
+        }
+    }
 }

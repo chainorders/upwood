@@ -5,11 +5,9 @@ use concordium_protocols::concordium_cis2_security::{
 };
 use concordium_protocols::concordium_global_sponsor::{SponsoredParams, SponsoredParamsRaw};
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
+use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
 use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
 use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
-use concordium_rwa_utils::state_implementations::tokens_security_state::ITokensSecurityState;
-use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
 use concordium_std::*;
 
 use super::error::*;
@@ -81,10 +79,6 @@ pub fn transfer(
     {
         let compliance_token = TokenUId::new(token_id, ctx.self_address());
         let state = host.state();
-        state.ensure_token_exists(&token_id)?;
-        state.ensure_not_paused(&token_id)?;
-        state.ensure_not_recovered(&to.address())?;
-        state.ensure_has_sufficient_unfrozen_balance(&from, &token_id, &amount)?;
         ensure!(
             identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
             Error::UnVerifiedIdentity
@@ -101,7 +95,14 @@ pub fn transfer(
             Error::Unauthorized
         );
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(&from, &to.address(), &token_id, &amount, state_builder)?;
+        state.transfer(
+            &from,
+            &to.address(),
+            &token_id,
+            &amount,
+            false,
+            state_builder,
+        )?;
         compliance_client::transferred(host, compliance, &TransferredParam {
             token_id: compliance_token,
             from,
@@ -183,20 +184,21 @@ pub fn forced_transfer(
     } in transfers
     {
         let state = host.state();
-        state.ensure_token_exists(&token_id)?;
-        state.ensure_not_recovered(&to.address())?;
-        state.ensure_not_paused(&token_id)?;
-        // Only the balance is checked. The frozen balance is not checked.
-        state.ensure_has_sufficient_balance(&from, &token_id, &amount)?;
         ensure!(
             identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
             Error::UnVerifiedIdentity
         );
 
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(&from, &to.address(), &token_id, &amount, state_builder)?;
+        let un_frozen_balance = state.transfer(
+            &from,
+            &to.address(),
+            &token_id,
+            &amount,
+            true,
+            state_builder,
+        )?;
         // Adjust the frozen balance of the sender.
-        let unfrozen_balance = state.adjust_frozen_balance(&from, &token_id)?;
         compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             from,
@@ -206,7 +208,7 @@ pub fn forced_transfer(
 
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,
-            amount: unfrozen_balance,
+            amount: un_frozen_balance,
             address: from,
         }))?;
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {

@@ -1,20 +1,13 @@
 use concordium_cis2::*;
 use concordium_std::*;
 
-#[derive(Serial, DeserialWithState)]
-#[concordium(state_parameter = "S")]
-pub struct TokensState<T, TTokenState, S> {
-    tokens: StateMap<T, TTokenState, S>,
-}
-
 pub enum TokenStateError {
-    TokenAlreadyExists,
-    TokenDoesNotExist,
+    InvalidTokenId
 }
 
 pub type TokenStateResult<T> = Result<T, TokenStateError>;
 
-pub trait ITokensState<T: IsTokenId, TTokenState: Serialize + Clone, S: HasStateApi> {
+pub trait ITokensState<T: IsTokenId, TTokenState: Serialize+Clone, S: HasStateApi> {
     fn tokens(&self) -> &StateMap<T, TTokenState, S>;
     fn tokens_mut(&mut self) -> &mut StateMap<T, TTokenState, S>;
 
@@ -29,7 +22,9 @@ pub trait ITokensState<T: IsTokenId, TTokenState: Serialize + Clone, S: HasState
     /// Returns `Ok(())` if the token exists,
     /// `Err(TokenStateError::TokenDoesNotExist)` otherwise.
     fn ensure_token_exists(&self, token_id: &T) -> TokenStateResult<()> {
-        self.tokens().get(token_id).ok_or(TokenStateError::TokenDoesNotExist)?;
+        self.tokens()
+            .get(token_id)
+            .ok_or(TokenStateError::InvalidTokenId)?;
         Ok(())
     }
 
@@ -37,7 +32,7 @@ pub trait ITokensState<T: IsTokenId, TTokenState: Serialize + Clone, S: HasState
         self.tokens()
             .get(token_id)
             .map(|token| token.clone())
-            .ok_or(TokenStateError::TokenDoesNotExist)
+            .ok_or(TokenStateError::InvalidTokenId)
     }
 
     /// Adds a token with the given ID and metadata URL to the state.
@@ -54,13 +49,9 @@ pub trait ITokensState<T: IsTokenId, TTokenState: Serialize + Clone, S: HasState
     fn add_token(&mut self, token_id: T, state: TTokenState) -> TokenStateResult<()> {
         self.tokens_mut()
             .entry(token_id)
-            .vacant_or(TokenStateError::TokenAlreadyExists)?
+            .vacant_or(TokenStateError::InvalidTokenId)?
             .insert(state);
 
         Ok(())
-    }
-
-    fn add_or_replace_token(&mut self, token_id: T, state: TTokenState) -> Option<TTokenState> {
-        self.tokens_mut().insert(token_id, state)
     }
 }

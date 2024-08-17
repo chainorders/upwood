@@ -4,8 +4,7 @@ use concordium_protocols::concordium_cis2_security::{
     compliance_client, identity_registry_client, CanTransferParam, MintedParam, TokenUId,
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
-use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
+use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
 use concordium_std::*;
 
 use super::error::*;
@@ -32,19 +31,17 @@ pub fn mint(
 
     let state = host.state();
     let owner_address = params.owner.address();
+    let compliance = state.compliance();
+    let token_id = params.token_id;
+    let mint_amount = params.amount;
 
-    // Ensure that the owner is not recovered
-    state.ensure_not_recovered(&owner_address)?;
+    ensure!(mint_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
     // Ensure that the owner is verified
     ensure!(
         identity_registry_client::is_verified(host, state.identity_registry(), &owner_address)?,
         Error::UnVerifiedIdentity
     );
 
-    let compliance = state.compliance();
-    let token_id = params.token_id;
-    let mint_amount = params.amount;
-    ensure!(mint_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
     let compliance_token = TokenUId::new(token_id, self_address);
     let compliance_can_transfer =
         compliance_client::can_transfer(host, compliance, &CanTransferParam {
@@ -56,7 +53,7 @@ pub fn mint(
 
     // Minting Logic
     let (state, state_builder) = host.state_and_builder();
-    state.add_balance(&owner_address, &token_id, &mint_amount, state_builder)?;
+    state.mint(&token_id, &mint_amount, &owner_address, state_builder)?;
     // Notify compliance that the token has been minted
     compliance_client::minted(host, compliance, &MintedParam {
         token_id: compliance_token,

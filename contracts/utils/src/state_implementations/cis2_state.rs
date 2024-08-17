@@ -1,7 +1,7 @@
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
 
-use super::holders_state::{HolderStateError, IHoldersState};
+use super::holders_state::{HolderStateError, IHolderState, IHoldersState};
 use super::tokens_state::{ITokensState, TokenStateError};
 
 pub type Cis2Result<R> = Result<R, Cis2StateError>;
@@ -12,40 +12,56 @@ pub enum Cis2StateError {
     InvalidAmount,
 }
 
-pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize+Clone, S: HasStateApi>:
-    IHoldersState<T, A, S>+ITokensState<T, TTokenState, S> {
-    /// Mints a token.
-    ///
-    /// This function mints a new token with the specified `token_id` and
-    /// `metadata_url`. It also initializes the balances of the token for
-    /// the given `balances` vector. The `state_builder` is used to update
-    /// the state of the contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `token_id` - The ID of the token to be minted.
-    /// * `metadata_url` - The URL of the metadata associated with the token.
-    /// * `balances` - A vector of tuples containing the address and amount of
-    ///   tokens to be minted.
-    /// * `state_builder` - A mutable reference to the `StateBuilder` used to
-    ///   update the contract state.
-    ///
-    /// # Returns
-    ///
-    /// This function returns `Ok(())` if the token minting and balance
-    /// initialization is successful. Otherwise, it returns an error of type
-    /// `Cis2Result`.
-    fn mint_token(
+pub trait ICis2TokenState<A>: Serialize+Clone {
+    fn inc_supply(&mut self, amount: &A);
+    fn dec_supply(&mut self, amount: &A);
+}
+
+pub trait ICis2State<
+    T: IsTokenId,
+    A: IsTokenAmount,
+    TTokenState: ICis2TokenState<A>,
+    THolderState: IHolderState<T, A, S>,
+    S: HasStateApi,
+>: IHoldersState<T, A, THolderState, S>+ITokensState<T, TTokenState, S> {
+    fn mint(
         &mut self,
         token_id: &T,
-        state: TTokenState,
-        balances: Vec<(Address, A)>,
+        amount: &A,
+        to: &Address,
         state_builder: &mut StateBuilder<S>,
-    ) -> Cis2Result<()> {
-        self.add_token(token_id.to_owned(), state)?;
-        for (address, amount) in balances {
-            self.add_balance(&address, token_id, &amount, state_builder)?;
-        }
+    ) -> Result<(), Cis2StateError> {
+        self.tokens_mut()
+            .entry(token_id.clone())
+            .occupied_or(Cis2StateError::InvalidTokenId)?
+            .modify(|t| t.inc_supply(amount));
+
+        self.add_balance(to, token_id, amount, state_builder);
+
+        Ok(())
+    }
+
+    fn burn(&mut self, token_id: &T, amount: &A, from: &Address) -> Result<(), Cis2StateError> {
+        self.tokens_mut()
+            .entry(token_id.clone())
+            .occupied_or(Cis2StateError::InvalidTokenId)?
+            .modify(|t| t.dec_supply(amount));
+
+        self.sub_balance(from, token_id, amount)?;
+        Ok(())
+    }
+
+    fn transfer(
+        &mut self,
+        from: &Address,
+        to: &Address,
+        token_id: &T,
+        amount: &A,
+        state_builder: &mut StateBuilder<S>,
+    ) -> Result<(), Cis2StateError> {
+        self.ensure_token_exists(token_id)?;
+        self.sub_balance(from, token_id, amount)?;
+        self.add_balance(to, token_id, amount, state_builder);
 
         Ok(())
     }
@@ -54,8 +70,7 @@ pub trait ICis2State<T: IsTokenId, A: IsTokenAmount, TTokenState: Serialize+Clon
 impl From<TokenStateError> for Cis2StateError {
     fn from(value: TokenStateError) -> Self {
         match value {
-            TokenStateError::TokenAlreadyExists => Cis2StateError::InvalidTokenId,
-            TokenStateError::TokenDoesNotExist => Cis2StateError::InvalidTokenId,
+            TokenStateError::InvalidTokenId => Cis2StateError::InvalidTokenId,
         }
     }
 }
@@ -64,7 +79,6 @@ impl From<HolderStateError> for Cis2StateError {
     fn from(value: HolderStateError) -> Self {
         match value {
             HolderStateError::AmountTooLarge => Cis2StateError::InsufficientFunds,
-            HolderStateError::AmountOverflow => Cis2StateError::InvalidAmount,
         }
     }
 }

@@ -3,10 +3,8 @@ use concordium_protocols::concordium_cis2_security::{
     compliance_client, BurnedParam, TokenFrozen, TokenUId,
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
+use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
 use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
-use concordium_rwa_utils::state_implementations::tokens_security_state::ITokensSecurityState;
-use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
 use concordium_std::*;
 
 use super::error::Error;
@@ -49,14 +47,10 @@ pub fn burn(
     {
         let state = host.state();
         let is_authorized = owner.eq(&sender) || state.is_operator(&owner, &sender);
-
         ensure!(is_authorized, Error::Unauthorized);
-        state.ensure_token_exists(&token_id)?;
-        state.ensure_not_paused(&token_id)?;
-        state.ensure_has_sufficient_unfrozen_balance(&owner, &token_id, &amount)?;
-        let compliance = state.compliance();
 
-        host.state_mut().sub_balance(&owner, &token_id, &amount)?;
+        let compliance = state.compliance();
+        host.state_mut().burn(&token_id, &amount, &owner)?;
         compliance_client::burned(host, compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
@@ -114,16 +108,9 @@ pub fn forced_burn(
     } in params.0
     {
         let state = host.state();
-        state.ensure_token_exists(&token_id)?;
-        state.ensure_not_paused(&token_id)?;
-        // Only the balance is checked. The frozen balance is not checked.
-        state.ensure_has_sufficient_balance(&owner, &token_id, &amount)?;
         let compliance = state.compliance();
 
-        let state = host.state_mut();
-        state.sub_balance(&owner, &token_id, &amount)?;
-        let unfrozen_balance = state.adjust_frozen_balance(&owner, &token_id)?;
-
+        let unfrozen_balance = host.state_mut().forced_burn(&token_id, &amount, &owner)?;
         compliance_client::burned(host, compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,

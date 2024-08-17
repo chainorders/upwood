@@ -32,7 +32,7 @@ pub fn freeze(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let (state, state_builder) = host.state_and_builder();
+    let state = host.state_mut();
     // Sender of this transaction should be a Trusted Agent
     ensure!(
         state.is_agent(&ctx.sender(), vec![AgentRole::Freeze]),
@@ -41,13 +41,7 @@ pub fn freeze(
     let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
         state.ensure_token_exists(&token.token_id)?;
-        state.ensure_has_sufficient_unfrozen_balance(
-            &owner,
-            &token.token_id,
-            &token.token_amount,
-        )?;
-
-        state.freeze(owner, &token.token_id, &token.token_amount, state_builder)?;
+        state.freeze(owner, &token.token_id, &token.token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,

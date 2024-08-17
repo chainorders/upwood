@@ -1,5 +1,6 @@
 use concordium_protocols::concordium_cis2_security::{identity_registry_client, RecoverEvent};
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
+use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
 use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
 use concordium_std::*;
 

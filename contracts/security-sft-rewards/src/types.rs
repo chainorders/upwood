@@ -1,4 +1,4 @@
-use concordium_cis2::Receiver;
+use concordium_cis2::{Receiver, TokenIdU32};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, Cis2SecurityEvent};
 use concordium_std::{ContractAddress, SchemaType, Serialize};
@@ -7,7 +7,7 @@ use super::error::Error;
 
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU64;
-pub type TokenId = concordium_cis2::TokenIdU32;
+pub type TokenId = TokenIdU32;
 pub type Event = Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>;
 
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq, Clone, Copy)]

@@ -39,8 +39,7 @@ pub fn pause(
     );
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
     for token_id in tokens {
-        state.ensure_token_exists(&token_id)?;
-        state.pause(token_id);
+        state.pause(token_id)?;
         logger.log(&Event::Paused(Paused { token_id }))?;
     }
 
@@ -78,8 +77,7 @@ pub fn un_pause(
     );
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
     for token_id in tokens {
-        state.ensure_token_exists(&token_id)?;
-        state.un_pause(token_id);
+        state.un_pause(token_id)?;
         logger.log(&Event::UnPaused(Paused { token_id }))?;
     }
 
