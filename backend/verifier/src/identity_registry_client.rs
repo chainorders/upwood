@@ -14,8 +14,7 @@ use concordium_rust_sdk::types::{
 };
 use concordium_rust_sdk::v2::{self, BlockIdentifier};
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
-use concordium_rwa_identity_registry::types::Identity;
-use concordium_rwa_utils::common_types::{IdentityAttribute, IdentityCredential};
+use concordium_rwa_identity_registry::types::{Identity, IdentityAttribute, IdentityCredential};
 
 use super::web3_id_utils::VerifyPresentationResponse;
 

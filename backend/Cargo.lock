@@ -1009,6 +1009,7 @@ dependencies = [
  "chrono",
  "clap",
  "concordium-cis2",
+ "concordium-protocols",
  "concordium-rust-sdk",
  "concordium-rwa-identity-registry",
  "concordium-rwa-market",

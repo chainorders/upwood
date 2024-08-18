@@ -33,6 +33,7 @@ concordium-rwa-market = { path = "../../contracts/market" }
 concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
 security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 concordium-rwa-utils = { path = "../../contracts/utils" }
+concordium-protocols = { path = "../../contracts/concordium-protocols" }
 dotenvy = "0.15.7"
 env_logger = "0.10.1"
 thiserror = "1.0.63"

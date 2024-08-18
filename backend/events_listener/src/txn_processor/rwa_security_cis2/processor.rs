@@ -7,17 +7,14 @@ use concordium_cis2::{
     BurnEvent, Cis2Event, IsTokenAmount, IsTokenId, MintEvent, OperatorUpdate, TokenMetadataEvent,
     TransferEvent, UpdateOperatorEvent,
 };
+use concordium_protocols::concordium_cis2_security::*;
 use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Serial};
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName};
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::common::types::Timestamp;
-use concordium_rust_sdk::types::{Address, ContractAddress};
+use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::*;
-use concordium_rwa_utils::concordium_cis2_security::{
-    AgentUpdatedEvent, Cis2SecurityEvent, ComplianceAdded, IdentityRegistryAdded, Paused,
-    RecoverEvent, TokenDeposited, TokenFrozen,
-};
 use diesel::Connection;
 use log::debug;
 use num_bigint::BigUint;
@@ -165,46 +162,6 @@ where
         debug!("{:#?}", parsed_event);
 
         match parsed_event {
-            Event::Deposited(TokenDeposited {
-                token_id,
-                owner,
-                amount,
-            }) => {
-                let deposited_contract = &token_id.contract;
-                let deposited_token_id = &token_id.id;
-                let deposited_holder_address = &Address::Account(owner);
-                let deposited_token_amount = &amount;
-                db::insert_or_inc_deposit_amount(
-                    conn,
-                    &db::Cis2Deposit::new(
-                        cis2_address,
-                        deposited_contract,
-                        &to_cis2_token_id(deposited_token_id),
-                        deposited_holder_address,
-                        &to_cis2_token_amount(deposited_token_amount),
-                    ),
-                )?
-            }
-            Event::Withdraw(TokenDeposited {
-                token_id,
-                owner,
-                amount,
-            }) => {
-                let deposited_contract = &token_id.contract;
-                let deposited_token_id = &token_id.id;
-                let deposited_holder_address = &Address::Account(owner);
-                let deposited_token_amount = &amount;
-                db::update_sub_deposit_amount(
-                    conn,
-                    &db::Cis2Deposit::new(
-                        cis2_address,
-                        deposited_contract,
-                        &to_cis2_token_id(deposited_token_id),
-                        deposited_holder_address,
-                        &to_cis2_token_amount(deposited_token_amount),
-                    ),
-                )?
-            }
             Event::AgentAdded(AgentUpdatedEvent {
                 agent,
                 roles: _, // todo: add roles to the database

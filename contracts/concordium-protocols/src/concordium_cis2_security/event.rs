@@ -1,9 +1,7 @@
-use concordium_cis2::{Cis2Event, TokenAmountU64, TokenIdVec};
+use concordium_cis2::{Cis2Event, IsTokenAmount, IsTokenId, TokenAmountU64, TokenIdVec};
 use concordium_std::{
     schema::SchemaType, AccountAddress, Address, ContractAddress, Cursor, SchemaType, Serialize,
 };
-
-use crate::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 
 use super::TokenUId;
 
