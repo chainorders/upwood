@@ -40,7 +40,10 @@ pub fn freeze(
     );
     let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
-        state.ensure_token_exists(&token.token_id)?;
+        ensure!(
+            token.token_id.eq(&state.tracked_token_id),
+            Error::InvalidTokenId
+        );
         state.freeze(owner, &token.token_id, &token.token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id: token.token_id,
@@ -83,6 +86,10 @@ pub fn un_freeze(
     );
     let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
     for token in tokens {
+        ensure!(
+            token.token_id.eq(&state.tracked_token_id),
+            Error::InvalidTokenId
+        );
         state.un_freeze(&owner, &token.token_id, &token.token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id: token.token_id,

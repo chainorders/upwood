@@ -1,8 +1,10 @@
 use concordium_protocols::concordium_cis2_security::identity_registry_client::IdentityRegistryClientError;
+use concordium_rwa_utils::conversions::exchange_rate::ExchangeError;
 use concordium_rwa_utils::state_implementations::cis2_security_state::Cis2SecurityStateError;
 use concordium_rwa_utils::state_implementations::cis2_state::Cis2StateError;
 use concordium_rwa_utils::state_implementations::holders_security_state::HolderSecurityStateError;
 use concordium_rwa_utils::state_implementations::holders_state::HolderStateError;
+use concordium_rwa_utils::state_implementations::rewards_state::RewardsStateError;
 use concordium_rwa_utils::state_implementations::tokens_security_state::TokenSecurityError;
 use concordium_rwa_utils::state_implementations::tokens_state::TokenStateError;
 use concordium_std::num::NonZeroI32;
@@ -42,8 +44,7 @@ pub enum Error {
     Cis2WithdrawError,
     InsufficientDeposits,
     NotDeposited,
-    InsufficientFractionalized,
-    InvalidFractionsRate,
+    InvalidRewardRate,
 }
 
 impl Error {
@@ -70,8 +71,7 @@ impl Error {
             Error::Cis2WithdrawError => -14,
             Error::InsufficientDeposits => -15,
             Error::NotDeposited => -16,
-            Error::InsufficientFractionalized => -17,
-            Error::InvalidFractionsRate => -18,
+            Error::InvalidRewardRate => -17,
         })
         .unwrap()
     }
@@ -137,6 +137,23 @@ impl From<Cis2SecurityStateError> for Error {
             Cis2SecurityStateError::InvalidAmount => Error::InvalidAmount,
             Cis2SecurityStateError::InvalidAddress => Error::InvalidAddress,
             Cis2SecurityStateError::PausedToken => Error::PausedToken,
+        }
+    }
+}
+
+impl From<RewardsStateError> for Error {
+    fn from(value: RewardsStateError) -> Self {
+        match value {
+            RewardsStateError::InsufficientFunds => Error::InsufficientFunds,
+            RewardsStateError::InvalidAmount => Error::InvalidAmount,
+            RewardsStateError::InvalidTokenId => Error::InvalidTokenId,
+        }
+    }
+}
+impl From<ExchangeError> for Error {
+    fn from(value: ExchangeError) -> Self {
+        match value {
+            ExchangeError::InvalidRate => Error::InvalidRewardRate,
         }
     }
 }

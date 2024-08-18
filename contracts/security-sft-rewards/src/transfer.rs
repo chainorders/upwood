@@ -1,4 +1,5 @@
 use concordium_cis2::{Cis2Event, OnReceivingCis2Params, Receiver, TransferEvent};
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::{
     compliance_client, identity_registry_client, CanTransferParam, TokenFrozen, TokenUId,
     TransferredParam,
@@ -7,6 +8,7 @@ use concordium_protocols::concordium_global_sponsor::{SponsoredParams, Sponsored
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
 use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
+use concordium_rwa_utils::state_implementations::rewards_state::IRewardsState;
 use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
 use concordium_std::*;
 
@@ -94,7 +96,10 @@ pub fn transfer(
             from.eq(&sender) || state.is_operator(&from, &sender),
             Error::Unauthorized
         );
+
+        // Transfer token
         let (state, state_builder) = host.state_and_builder();
+        ensure!(token_id.eq(&state.tracked_token_id), Error::InvalidTokenId);
         state.transfer(
             &from,
             &to.address(),
@@ -103,6 +108,10 @@ pub fn transfer(
             false,
             state_builder,
         )?;
+        // transfer attached rewards
+        let transferred_rewards =
+            state.transfer_rewards(&from, &to.address(), &amount, state_builder)?;
+
         compliance_client::transferred(host, compliance, &TransferredParam {
             token_id: compliance_token,
             from,
@@ -116,7 +125,17 @@ pub fn transfer(
             from,
             to: to.address(),
         })))?;
-
+        for transfer in transferred_rewards
+            .iter()
+            .filter(|r| r.token_amount.gt(&TokenAmount::zero()))
+        {
+            logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
+                amount: transfer.token_amount,
+                token_id: transfer.token_id,
+                from,
+                to: to.address(),
+            })))?;
+        }
         if let Receiver::Contract(to_contract, entrypoint) = to {
             let parameter = OnReceivingCis2Params {
                 token_id,
@@ -198,6 +217,8 @@ pub fn forced_transfer(
             true,
             state_builder,
         )?;
+        let transferred_rewards =
+            state.transfer_rewards(&from, &to.address(), &amount, state_builder)?;
         // Adjust the frozen balance of the sender.
         compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
@@ -217,6 +238,17 @@ pub fn forced_transfer(
             from,
             to: to.address(),
         })))?;
+        for transfer in transferred_rewards
+            .iter()
+            .filter(|r| r.token_amount.gt(&TokenAmount::zero()))
+        {
+            logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
+                amount: transfer.token_amount,
+                token_id: transfer.token_id,
+                from,
+                to: to.address(),
+            })))?;
+        }
 
         if let Address::Contract(_from_contract) = from {
             // TODO: there should be a way to notify that the transfer has been

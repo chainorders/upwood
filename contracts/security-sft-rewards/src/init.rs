@@ -1,6 +1,10 @@
-use concordium_protocols::concordium_cis2_security::{ComplianceAdded, IdentityRegistryAdded};
+use concordium_cis2::{Cis2Event, TokenMetadataEvent};
+use concordium_protocols::concordium_cis2_security::{
+    AgentUpdatedEvent, ComplianceAdded, IdentityRegistryAdded,
+};
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
+use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
+use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
 use concordium_std::*;
 
 use super::error::Error;
@@ -28,6 +32,10 @@ pub fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
+    ensure!(
+        params.min_reward_token_id.gt(&params.tracked_token_id),
+        Error::InvalidTokenId.into()
+    );
     let owner = Address::Account(ctx.init_origin());
     let state = State::new(
         params.identity_registry,
@@ -39,12 +47,28 @@ pub fn init(
             roles:   AgentRole::owner_roles(),
         }],
         params.metadata_url.into(),
+        params.blank_reward_metadata_url.into(),
+        params.tracked_token_id,
+        params.min_reward_token_id,
         state_builder,
     );
+
     logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
-        params.identity_registry,
+        state.identity_registry,
     )))?;
-    logger.log(&Event::ComplianceAdded(ComplianceAdded(params.compliance)))?;
+    logger.log(&Event::ComplianceAdded(ComplianceAdded(state.compliance)))?;
+    for agent in state.list_agents().iter() {
+        logger.log(&Event::AgentAdded(AgentUpdatedEvent {
+            agent: agent.address,
+            roles: agent.roles.clone(),
+        }))?;
+    }
+    for token in state.tokens().iter() {
+        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+            metadata_url: token.1.metadata_url().clone(),
+            token_id:     *token.0,
+        })))?;
+    }
 
     Ok(state)
 }

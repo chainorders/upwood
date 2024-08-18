@@ -13,3 +13,4 @@ pub mod supports;
 pub mod token_metadata;
 pub mod transfer;
 pub mod types;
+pub mod rewards;

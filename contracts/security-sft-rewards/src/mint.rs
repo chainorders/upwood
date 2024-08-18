@@ -5,6 +5,7 @@ use concordium_protocols::concordium_cis2_security::{
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
+use concordium_rwa_utils::state_implementations::rewards_state::IRewardsState;
 use concordium_std::*;
 
 use super::error::*;
@@ -53,7 +54,10 @@ pub fn mint(
 
     // Minting Logic
     let (state, state_builder) = host.state_and_builder();
+    ensure!(token_id.eq(&state.tracked_token_id), Error::InvalidTokenId);
+
     state.mint(&token_id, &mint_amount, &owner_address, state_builder)?;
+    let reward_token_id = state.mint_rewards(&owner_address, &mint_amount, state_builder)?;
     // Notify compliance that the token has been minted
     compliance_client::minted(host, compliance, &MintedParam {
         token_id: compliance_token,
@@ -65,6 +69,11 @@ pub fn mint(
         token_id,
         amount: mint_amount,
         owner: owner_address,
+    })))?;
+    logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+        token_id: reward_token_id,
+        amount:   mint_amount,
+        owner:    owner_address,
     })))?;
     // If the receiver is a contract: invoke the receive hook function.
     if let Receiver::Contract(address, function) = &params.owner {

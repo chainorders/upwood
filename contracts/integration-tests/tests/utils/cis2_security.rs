@@ -1,4 +1,6 @@
-use concordium_cis2::{BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId};
+use concordium_cis2::{
+    BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId, TransferParams,
+};
 use concordium_protocols::concordium_cis2_security::{AgentWithRoles, BurnParams, FreezeParams};
 use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, Serial};
@@ -9,6 +11,7 @@ pub fn add_agent<R>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &AgentWithRoles<R>,
 ) -> ContractInvokeSuccess
 where
@@ -23,7 +26,10 @@ where
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "addAgent".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("addAgent"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -34,6 +40,7 @@ pub fn is_agent<R>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &AgentWithRoles<R>,
 ) -> bool
 where
@@ -47,7 +54,10 @@ where
             UpdateContractPayload {
                 amount:       Amount::zero(),
                 address:      contract,
-                receive_name: "isAgent".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("isAgent"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -60,6 +70,7 @@ pub fn agents<R>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
 ) -> Vec<AgentWithRoles<R>>
 where
     R: Deserial,
@@ -72,7 +83,10 @@ where
             UpdateContractPayload {
                 amount:       Amount::zero(),
                 address:      contract,
-                receive_name: "agents".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("agents"),
+                ),
                 message:      OwnedParameter::from_serial(&()).unwrap(),
             },
         )
@@ -85,6 +99,7 @@ pub fn remove_agent(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &Address,
 ) -> ContractInvokeSuccess
 where {
@@ -97,7 +112,10 @@ where {
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "removeAgent".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("removeAgent"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -108,6 +126,7 @@ pub fn set_identity_registry(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &ContractAddress,
 ) -> ContractInvokeSuccess
 where {
@@ -120,7 +139,10 @@ where {
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "setIdentityRegistry".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("setIdentityRegistry"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -131,6 +153,7 @@ pub fn set_compliance_registry(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &ContractAddress,
 ) -> ContractInvokeSuccess
 where {
@@ -143,7 +166,10 @@ where {
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "setCompliance".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("setCompliance"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -154,6 +180,7 @@ pub fn identity_registry(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
 ) -> ContractAddress {
     chain
         .contract_invoke(
@@ -163,7 +190,10 @@ pub fn identity_registry(
             UpdateContractPayload {
                 amount:       Amount::zero(),
                 address:      contract,
-                receive_name: "identityRegistry".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("identityRegistry"),
+                ),
                 message:      OwnedParameter::empty(),
             },
         )
@@ -176,6 +206,7 @@ pub fn compliance(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
 ) -> ContractAddress {
     chain
         .contract_invoke(
@@ -185,7 +216,10 @@ pub fn compliance(
             UpdateContractPayload {
                 amount:       Amount::zero(),
                 address:      contract,
-                receive_name: "compliance".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("compliance"),
+                ),
                 message:      OwnedParameter::empty(),
             },
         )
@@ -198,6 +232,7 @@ pub fn burn<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &BurnParams<T, A>,
 ) -> ContractInvokeSuccess
 where
@@ -213,7 +248,10 @@ where
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "burn".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("burn"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -224,6 +262,7 @@ pub fn forced_burn<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &BurnParams<T, A>,
 ) -> ContractInvokeSuccess
 where
@@ -239,7 +278,10 @@ where
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "forced_burn".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("forcedBurn"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -250,6 +292,7 @@ pub fn freeze<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &FreezeParams<T, A>,
 ) -> ContractInvokeSuccess
 where
@@ -265,7 +308,10 @@ where
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "freeze".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("freeze"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -276,6 +322,7 @@ pub fn un_freeze<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &FreezeParams<T, A>,
 ) -> ContractInvokeSuccess
 where
@@ -291,7 +338,10 @@ where
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "un_freeze".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("unFreeze"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -302,6 +352,7 @@ pub fn balance_of_frozen<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &BalanceOfQueryParams<T>,
 ) -> BalanceOfQueryResponse<A>
 where
@@ -316,7 +367,10 @@ where
             UpdateContractPayload {
                 amount:       Amount::zero(),
                 address:      contract,
-                receive_name: "balanceOfFrozen".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("balanceOfFrozen"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -329,6 +383,7 @@ pub fn balance_of_un_frozen<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
+    contract_name: ContractName,
     payload: &BalanceOfQueryParams<T>,
 ) -> BalanceOfQueryResponse<A>
 where
@@ -343,11 +398,40 @@ where
             UpdateContractPayload {
                 amount:       Amount::zero(),
                 address:      contract,
-                receive_name: "balanceOfUnFrozen".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("balanceOfUnFrozen"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
         .expect("Balance of un frozen")
         .parse_return_value()
         .unwrap()
+}
+
+pub fn forced_transfer<T: IsTokenId, A: IsTokenAmount>(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    contract_name: ContractName,
+    payload: &TransferParams<T, A>,
+) -> ContractInvokeSuccess {
+    chain
+        .contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            UpdateContractPayload {
+                address:      contract,
+                amount:       Amount::zero(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("forcedTransfer"),
+                ),
+                message:      OwnedParameter::from_serial(payload).unwrap(),
+            },
+        )
+        .expect("forced_transfer")
 }

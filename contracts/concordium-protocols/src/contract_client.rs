@@ -26,37 +26,39 @@ impl<E: Deserial, R: Read> TryFrom<CallContractError<R>> for ContractClientError
 
     fn try_from(value: CallContractError<R>) -> Result<Self, Self::Error> {
         match value {
-            CallContractError::AmountTooLarge => {
-                Ok(ContractClientError::CallContractError(CallContractError::AmountTooLarge))
-            }
-            CallContractError::MissingAccount => {
-                Ok(ContractClientError::CallContractError(CallContractError::MissingAccount))
-            }
-            CallContractError::MissingContract => {
-                Ok(ContractClientError::CallContractError(CallContractError::MissingContract))
-            }
-            CallContractError::MissingEntrypoint => {
-                Ok(ContractClientError::CallContractError(CallContractError::MissingEntrypoint))
-            }
-            CallContractError::MessageFailed => {
-                Ok(ContractClientError::CallContractError(CallContractError::MessageFailed))
-            }
+            CallContractError::AmountTooLarge => Ok(ContractClientError::CallContractError(
+                CallContractError::AmountTooLarge,
+            )),
+            CallContractError::MissingAccount => Ok(ContractClientError::CallContractError(
+                CallContractError::MissingAccount,
+            )),
+            CallContractError::MissingContract => Ok(ContractClientError::CallContractError(
+                CallContractError::MissingContract,
+            )),
+            CallContractError::MissingEntrypoint => Ok(ContractClientError::CallContractError(
+                CallContractError::MissingEntrypoint,
+            )),
+            CallContractError::MessageFailed => Ok(ContractClientError::CallContractError(
+                CallContractError::MessageFailed,
+            )),
             CallContractError::LogicReject {
                 reason,
                 mut return_value,
-            } => Ok(ContractClientError::CallContractError(CallContractError::LogicReject {
-                reason,
-                return_value: E::deserial(&mut return_value).map_err(|_| ParseError {})?,
-            })),
-            CallContractError::Trap => {
-                Ok(ContractClientError::CallContractError(CallContractError::Trap))
-            }
+            } => Ok(ContractClientError::CallContractError(
+                CallContractError::LogicReject {
+                    reason,
+                    return_value: E::deserial(&mut return_value).map_err(|_| ParseError {})?,
+                },
+            )),
+            CallContractError::Trap => Ok(ContractClientError::CallContractError(
+                CallContractError::Trap,
+            )),
         }
     }
 }
 
 #[inline(always)]
-pub fn supports<State: Serial + DeserialWithState<ExternStateApi>>(
+pub fn supports<State: Serial+DeserialWithState<ExternStateApi>>(
     host: &Host<State>,
     contract: ContractAddress,
     identifier: StandardIdentifier,
@@ -92,7 +94,7 @@ pub fn supports<State: Serial + DeserialWithState<ExternStateApi>>(
 
 #[inline(always)]
 pub fn invoke_contract_read_only<
-    State: Serial + DeserialWithState<ExternStateApi>,
+    State: Serial+DeserialWithState<ExternStateApi>,
     P: Serial,
     R: Deserial,
     E: Deserial,
@@ -115,6 +117,30 @@ pub fn invoke_contract_read_only<
         }
     };
 
+    match res {
+        // Since the contract should return a response. If it doesn't, it is an error.
+        Some(mut res) => R::deserial(&mut res).map_err(|_| ContractClientError::ParseResult),
+        None => bail!(ContractClientError::NoResponse),
+    }
+}
+
+pub fn invoke_contract<State: Serial+DeserialWithState<ExternStateApi>, P: Serial, R: Deserial>(
+    host: &mut Host<State>,
+    contract: ContractAddress,
+    method: EntrypointName,
+    parameter: &P,
+) -> Result<R, ContractClientError<()>> {
+    let res = host.invoke_contract(&contract, parameter, method, Amount::from_ccd(0));
+    let (_, res) = match res {
+        Ok(res) => res,
+        Err(err) => {
+            let err = ContractClientError::try_from(err);
+            match err {
+                Ok(err) => return Err(err),
+                Err(_) => return Err(ContractClientError::ParseResultError),
+            }
+        }
+    };
     match res {
         // Since the contract should return a response. If it doesn't, it is an error.
         Some(mut res) => R::deserial(&mut res).map_err(|_| ContractClientError::ParseResult),

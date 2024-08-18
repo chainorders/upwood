@@ -1,7 +1,7 @@
 use concordium_cis2::IsTokenId;
 use concordium_std::*;
 
-use super::tokens_state::ITokensState;
+use super::tokens_state::{ITokenState, ITokensState};
 
 pub enum TokenSecurityError {
     /// The token is paused.
@@ -9,7 +9,7 @@ pub enum TokenSecurityError {
     InvalidTokenId,
 }
 
-pub trait ISecurityTokenState: Serialize+Clone {
+pub trait ISecurityTokenState: ITokenState {
     /// Returns `true` if the token is paused, `false` otherwise.
     fn paused(&self) -> bool;
     /// Sets the `is_paused` field to the given value.
@@ -31,8 +31,9 @@ pub trait ITokensSecurityState<T: IsTokenId, TTokenState: ISecurityTokenState, S
     /// Returns `true` if the token is paused, `false` otherwise. If the token
     /// does not exist, returns `false`.
     fn is_paused(&self, token_id: &T) -> bool {
-        self.token(token_id)
-            .map(|token| token.paused())
+        self.tokens()
+            .get(token_id)
+            .map(|t| t.paused())
             .unwrap_or(false)
     }
 

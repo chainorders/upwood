@@ -6,12 +6,17 @@ use concordium_smart_contract_testing::{
     module_load_v1, Account, Chain, ContractInitSuccess, ContractInvokeSuccess,
     InitContractPayload, ModuleDeploySuccess, Signer, UpdateContractPayload,
 };
-use concordium_std::{Address, Amount, ContractAddress, OwnedContractName, OwnedParameter};
+use concordium_std::{
+    Address, Amount, ContractAddress, ContractName, EntrypointName, OwnedParameter,
+    OwnedReceiveName,
+};
 
 use super::MAX_ENERGY;
 
 pub type ContractResult<T> = Result<T, dyn Error>;
 const MODULE_PATH: &str = "../identity-registry/contract.wasm.v1";
+const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_rwa_identity_registry");
+
 const NATIONALITY_ATTRIBUTE_TAG: u8 = 5;
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
@@ -32,9 +37,7 @@ pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
             MAX_ENERGY,
             InitContractPayload {
                 amount:    Amount::zero(),
-                init_name: OwnedContractName::new_unchecked(
-                    "init_rwa_identity_registry".to_string(),
-                ),
+                init_name: CONTRACT_NAME.to_owned(),
                 mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
                 param:     OwnedParameter::empty(),
             },
@@ -57,7 +60,10 @@ pub fn registry_identity(
             UpdateContractPayload {
                 address:      *contract,
                 amount:       Amount::zero(),
-                receive_name: "registry_identity".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("registerIdentity"),
+                ),
                 message:      OwnedParameter::from_serial(params).unwrap(),
             },
         )
@@ -102,7 +108,10 @@ pub fn add_agent(
             UpdateContractPayload {
                 address:      *contract,
                 amount:       Amount::zero(),
-                receive_name: "registry_identity".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("addAgent"),
+                ),
                 message:      OwnedParameter::from_serial(agent_address).unwrap(),
             },
         )

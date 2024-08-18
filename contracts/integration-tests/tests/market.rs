@@ -21,22 +21,19 @@ pub const DEFAULT_ACC_BALANCE: Amount = Amount {
 #[test]
 fn market_buy_via_transfer_of_cis2() {
     let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
+    let admin = Account::new(AccountAddress([0; 32]), DEFAULT_ACC_BALANCE);
+    let ir_agent = Account::new(AccountAddress([1; 32]), DEFAULT_ACC_BALANCE);
+    let seller = Account::new(AccountAddress([2; 32]), DEFAULT_ACC_BALANCE);
+    let buyer = Account::new(AccountAddress([3; 32]), DEFAULT_ACC_BALANCE);
+    let nft_agent = Account::new(AccountAddress([4; 32]), DEFAULT_ACC_BALANCE);
+
     let mut chain = Chain::new();
-    let admin = chain
-        .create_account(Account::new(AccountAddress([0; 32]), DEFAULT_ACC_BALANCE))
-        .unwrap();
-    let ir_agent = chain
-        .create_account(Account::new(AccountAddress([1; 32]), DEFAULT_ACC_BALANCE))
-        .unwrap();
-    let seller = chain
-        .create_account(Account::new(AccountAddress([2; 32]), DEFAULT_ACC_BALANCE))
-        .unwrap();
-    let buyer = chain
-        .create_account(Account::new(AccountAddress([3; 32]), DEFAULT_ACC_BALANCE))
-        .unwrap();
-    let nft_agent = chain
-        .create_account(Account::new(AccountAddress([4; 32]), DEFAULT_ACC_BALANCE))
-        .unwrap();
+    chain.create_account(admin.clone());
+    chain.create_account(ir_agent.clone());
+    chain.create_account(seller.clone());
+    chain.create_account(buyer.clone());
+    chain.create_account(nft_agent.clone());
+
     euroe::deploy_module(&mut chain, &admin);
     let euroe = euroe::init(&mut chain, &admin).contract_address;
     euroe::grant_role(&mut chain, &admin, euroe, &euroe::RoleTypes {
@@ -67,13 +64,19 @@ fn market_buy_via_transfer_of_cis2() {
     );
 
     let token_contract = sft_security::init(&mut chain, &admin, &InitParam {
-        compliance:        compliance_contract,
-        identity_registry: ir_contract,
-        metadata_url:      ContractMetadataUrl {
+        compliance:                compliance_contract,
+        identity_registry:         ir_contract,
+        metadata_url:              ContractMetadataUrl {
             hash: None,
             url:  "example.com".to_string(),
         },
-        sponsors:          vec![],
+        sponsors:                  vec![],
+        blank_reward_metadata_url: ContractMetadataUrl {
+            hash: None,
+            url:  "reward.example.com".to_string(),
+        },
+        tracked_token_id:          TokenIdU32(0),
+        min_reward_token_id:       TokenIdU32(1),
     })
     .contract_address;
     sft_security::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
@@ -274,23 +277,23 @@ fn market_buy_via_transfer_of_cis2() {
 
     // Settlement of the Buy Token
     assert_eq!(
-        cis2::balance_of_single::<TokenIdU32, TokenAmountU64>(
+        sft_security::balance_of_single(
             &mut chain,
             &admin,
             token_contract,
             TokenIdU32(0),
-            Address::Account(seller.address)
+            Address::Account(seller.address),
         ),
         TokenAmountU64(0),
         "Seller balance"
     );
     assert_eq!(
-        cis2::balance_of_single::<TokenIdU32, TokenAmountU64>(
+        sft_security::balance_of_single(
             &mut chain,
             &admin,
             token_contract,
             TokenIdU32(0),
-            Address::Account(buyer.address)
+            Address::Account(buyer.address),
         ),
         TokenAmountU64(1),
         "Buyer balance"

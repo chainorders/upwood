@@ -27,6 +27,7 @@ pub enum AgentRole {
     HolderRecovery,
     Pause,
     UnPause,
+    Rewarder,
 }
 
 impl AgentRole {
@@ -43,6 +44,9 @@ impl AgentRole {
             Self::Freeze,
             Self::UnFreeze,
             Self::HolderRecovery,
+            Self::Pause,
+            Self::UnPause,
+            Self::Rewarder,
         ]
     }
 }
@@ -61,10 +65,13 @@ pub use concordium_cis2_security::RecoverParam;
 
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {
-    pub identity_registry: ContractAddress,
-    pub compliance:        ContractAddress,
-    pub sponsors:          Vec<ContractAddress>,
-    pub metadata_url:      ContractMetadataUrl,
+    pub identity_registry:         ContractAddress,
+    pub compliance:                ContractAddress,
+    pub sponsors:                  Vec<ContractAddress>,
+    pub metadata_url:              ContractMetadataUrl,
+    pub blank_reward_metadata_url: ContractMetadataUrl,
+    pub tracked_token_id:          TokenId,
+    pub min_reward_token_id:       TokenId,
 }
 
 #[derive(Serialize, SchemaType)]

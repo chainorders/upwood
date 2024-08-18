@@ -7,6 +7,7 @@ use concordium_smart_contract_testing::*;
 
 use super::MAX_ENERGY;
 const MODULE_PATH: &str = "../market/contract.wasm.v1";
+const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_rwa_market");
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     chain
@@ -26,7 +27,7 @@ pub fn init(chain: &mut Chain, sender: &Account, param: &InitParams) -> Contract
             MAX_ENERGY,
             InitContractPayload {
                 amount:    Amount::zero(),
-                init_name: OwnedContractName::new_unchecked("init_rwa_market".to_string()),
+                init_name: CONTRACT_NAME.to_owned(),
                 mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
                 param:     OwnedParameter::from_serial(param).unwrap(),
             },
@@ -51,7 +52,10 @@ pub fn deposit(
             UpdateContractPayload {
                 address:      *contract,
                 amount:       Amount::zero(),
-                receive_name: DEPOSIT_RECEIVE_NAME.parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("deposit"),
+                ),
                 message:      OwnedParameter::from_serial(params).unwrap(),
             },
         )
@@ -72,7 +76,10 @@ pub fn balance_of_listed(
             UpdateContractPayload {
                 address:      *contract,
                 amount:       Amount::zero(),
-                receive_name: "balanceOfDeposited".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("balanceOfDeposited"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )
@@ -95,7 +102,10 @@ pub fn calculate_amounts(
             UpdateContractPayload {
                 address:      *contract,
                 amount:       Amount::zero(),
-                receive_name: "calculateAmounts".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("calculateAmounts"),
+                ),
                 message:      OwnedParameter::from_serial(payload).unwrap(),
             },
         )

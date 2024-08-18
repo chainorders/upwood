@@ -2,14 +2,20 @@ use concordium_cis2::*;
 use concordium_std::*;
 
 pub enum TokenStateError {
-    InvalidTokenId
+    InvalidTokenId,
 }
 
 pub type TokenStateResult<T> = Result<T, TokenStateError>;
 
-pub trait ITokensState<T: IsTokenId, TTokenState: Serialize+Clone, S: HasStateApi> {
+pub trait ITokenState: Serialize+Clone {
+    fn metadata_url(&self) -> &MetadataUrl;
+}
+
+pub trait ITokensState<T: IsTokenId, TTokenState: ITokenState, S: HasStateApi> {
     fn tokens(&self) -> &StateMap<T, TTokenState, S>;
     fn tokens_mut(&mut self) -> &mut StateMap<T, TTokenState, S>;
+
+    fn token_exists(&self, token_id: &T) -> bool { self.tokens().get(token_id).is_some() }
 
     /// Checks if the token with the given ID exists.
     ///
@@ -22,9 +28,7 @@ pub trait ITokensState<T: IsTokenId, TTokenState: Serialize+Clone, S: HasStateAp
     /// Returns `Ok(())` if the token exists,
     /// `Err(TokenStateError::TokenDoesNotExist)` otherwise.
     fn ensure_token_exists(&self, token_id: &T) -> TokenStateResult<()> {
-        self.tokens()
-            .get(token_id)
-            .ok_or(TokenStateError::InvalidTokenId)?;
+        ensure!(self.token_exists(token_id), TokenStateError::InvalidTokenId);
         Ok(())
     }
 
@@ -53,5 +57,12 @@ pub trait ITokensState<T: IsTokenId, TTokenState: Serialize+Clone, S: HasStateAp
             .insert(state);
 
         Ok(())
+    }
+
+    fn metadata_url(&self, token_id: &T) -> TokenStateResult<MetadataUrl> {
+        self.tokens()
+            .get(token_id)
+            .map(|t| t.metadata_url().clone())
+            .ok_or(TokenStateError::InvalidTokenId)
     }
 }

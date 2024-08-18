@@ -61,10 +61,6 @@ pub enum Cis2SecurityEvent<T, A, R>
 where
     T: IsTokenId,
     A: IsTokenAmount, {
-    #[concordium(tag = 240)]
-    Deposited(TokenDeposited),
-    #[concordium(tag = 241)]
-    Withdraw(TokenDeposited),
     /// Event triggered when an account is recovered.
     #[concordium(tag = 242)]
     Recovered(RecoverEvent),

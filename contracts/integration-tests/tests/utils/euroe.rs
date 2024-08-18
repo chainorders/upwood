@@ -4,6 +4,7 @@ use concordium_std::{Deserial, SchemaType, Serial, Serialize};
 
 use super::{cis2, MAX_ENERGY};
 pub const MODULE_PATH: &str = "../euroe/dist/module.wasm.v1";
+pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_euroe_stablecoin");
 
 #[derive(Serial, Deserial, SchemaType)]
 pub struct MintParams {
@@ -38,7 +39,7 @@ pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
             MAX_ENERGY,
             InitContractPayload {
                 amount:    Amount::zero(),
-                init_name: OwnedContractName::new_unchecked("init_euroe_stablecoin".to_string()),
+                init_name: CONTRACT_NAME.to_owned(),
                 mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
                 param:     OwnedParameter::empty(),
             },
@@ -61,7 +62,10 @@ pub fn grant_role(
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "grantRole".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("grantRole"),
+                ),
                 message:      OwnedParameter::from_serial(params).unwrap(),
             },
         )
@@ -83,7 +87,10 @@ pub fn mint(
             UpdateContractPayload {
                 address:      contract,
                 amount:       Amount::zero(),
-                receive_name: "mint".parse().unwrap(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    CONTRACT_NAME,
+                    EntrypointName::new_unchecked("mint"),
+                ),
                 message:      OwnedParameter::from_serial(params).unwrap(),
             },
         )
@@ -96,7 +103,7 @@ pub fn transfer_single(
     contract: ContractAddress,
     payload: concordium_cis2::Transfer<TokenIdUnit, TokenAmountU64>,
 ) -> ContractInvokeSuccess {
-    cis2::transfer_single(chain, sender, contract, payload)
+    cis2::transfer_single(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
 pub fn balance_of_single(
@@ -105,5 +112,12 @@ pub fn balance_of_single(
     contract: ContractAddress,
     address: Address,
 ) -> TokenAmountU64 {
-    cis2::balance_of_single(chain, invoker, contract, TokenIdUnit(), address)
+    cis2::balance_of_single(
+        chain,
+        invoker,
+        contract,
+        TokenIdUnit(),
+        address,
+        CONTRACT_NAME,
+    )
 }

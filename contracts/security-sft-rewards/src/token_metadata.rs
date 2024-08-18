@@ -31,10 +31,7 @@ pub fn token_metadata(
     let TokenMetadataQueryParams { queries }: TokenMetadataQueryParams<TokenId> =
         ctx.parameter_cursor().get()?;
     let state = host.state();
-    let res: Result<Vec<_>, _> = queries
-        .iter()
-        .map(|q| state.token(q).map(|token| token.metadata_url))
-        .collect();
+    let res: Result<Vec<_>, _> = queries.iter().map(|q| state.metadata_url(q)).collect();
 
     Ok(TokenMetadataQueryResponse(res?))
 }

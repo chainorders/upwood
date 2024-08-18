@@ -2,7 +2,7 @@ use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
 
 use super::holders_state::{HolderStateError, IHolderState, IHoldersState};
-use super::tokens_state::{ITokensState, TokenStateError};
+use super::tokens_state::{ITokenState, ITokensState, TokenStateError};
 
 pub type Cis2Result<R> = Result<R, Cis2StateError>;
 
@@ -12,9 +12,10 @@ pub enum Cis2StateError {
     InvalidAmount,
 }
 
-pub trait ICis2TokenState<A>: Serialize+Clone {
+pub trait ICis2TokenState<A>: ITokenState {
     fn inc_supply(&mut self, amount: &A);
     fn dec_supply(&mut self, amount: &A);
+    fn supply(&self) -> A;
 }
 
 pub trait ICis2State<
@@ -64,6 +65,20 @@ pub trait ICis2State<
         self.add_balance(to, token_id, amount, state_builder);
 
         Ok(())
+    }
+
+    fn metadata_url(&self, token_id: &T) -> Result<MetadataUrl, Cis2StateError> {
+        let metadata_url = ITokensState::metadata_url(self, token_id)?;
+        Ok(metadata_url)
+    }
+
+    fn supply_of(&self, token_id: &T) -> Result<A, Cis2StateError> {
+        let supply = self
+            .tokens()
+            .get(token_id)
+            .ok_or(Cis2StateError::InvalidTokenId)?
+            .supply();
+        Ok(supply)
     }
 }
 
