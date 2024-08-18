@@ -1,14 +1,15 @@
-use super::db::{self};
-use crate::txn_listener::{EventsProcessor, ProcessorError};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use concordium_rust_sdk::types::{
-    smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
-    ContractAddress,
+use concordium_rust_sdk::types::smart_contracts::{
+    ContractEvent, ModuleReference, OwnedContractName,
 };
+use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::{DbConn, DbPool};
 use concordium_rwa_identity_registry::event::Event;
 use log::debug;
+
+use super::db::{self};
+use crate::txn_listener::{EventsProcessor, ProcessorError};
 
 /// `RwaIdentityRegistryProcessor` is a struct that processes events for the
 /// rwa-identity-registry contract. It maintains a connection to a MongoDB
@@ -80,7 +81,10 @@ pub fn process_events(
 ) -> Result<(), ProcessorError> {
     for event in events {
         let parsed_event = event.parse::<Event>()?;
-        debug!("Processing event for contract: {}/{}", contract.index, contract.subindex);
+        debug!(
+            "Processing event for contract: {}/{}",
+            contract.index, contract.subindex
+        );
         debug!("Event details: {:#?}", parsed_event);
 
         match parsed_event {

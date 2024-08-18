@@ -1,20 +1,19 @@
-use std::{path::Path, sync::Arc, time::Duration};
+use std::path::Path;
+use std::sync::Arc;
+use std::time::Duration;
 
 use clap::Parser;
-use concordium_rust_sdk::{
-    base::smart_contracts::{OwnedContractName, WasmModule},
-    types::AbsoluteBlockHeight,
-    v2,
+use concordium_rust_sdk::base::smart_contracts::{OwnedContractName, WasmModule};
+use concordium_rust_sdk::types::AbsoluteBlockHeight;
+use concordium_rust_sdk::v2;
+use concordium_rwa_events_listener::txn_listener::{
+    EventsProcessor, ListenerError, TransactionsListener,
 };
-use concordium_rwa_events_listener::{
-    txn_listener::{EventsProcessor, ListenerError, TransactionsListener},
-    txn_processor::{
-        rwa_identity_registry::processor::RwaIdentityRegistryProcessor,
-        rwa_market::processor::RwaMarketProcessor,
-        rwa_security_cis2::processor::RwaSecurityCIS2Processor,
-    },
-};
-use diesel::{r2d2::ConnectionManager, PgConnection};
+use concordium_rwa_events_listener::txn_processor::rwa_identity_registry::processor::RwaIdentityRegistryProcessor;
+use concordium_rwa_events_listener::txn_processor::rwa_market::processor::RwaMarketProcessor;
+use concordium_rwa_events_listener::txn_processor::rwa_security_cis2::processor::RwaSecurityCIS2Processor;
+use diesel::r2d2::ConnectionManager;
+use diesel::PgConnection;
 use log::{debug, error, info};
 use r2d2::Pool;
 use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
@@ -69,13 +68,12 @@ async fn main() -> Result<(), Error> {
         config.node_rate_limit,
         Duration::from_secs(config.node_rate_limit_duration_secs),
     );
-    let mut concordium_client =
-        v2::Client::new(endpoint).await.expect("Failed to create Concordium client");
+    let mut concordium_client = v2::Client::new(endpoint)
+        .await
+        .expect("Failed to create Concordium client");
 
     let default_block_height = match config.default_block_height {
-        Some(height) => AbsoluteBlockHeight {
-            height,
-        },
+        Some(height) => AbsoluteBlockHeight { height },
         None => {
             debug!("Fetching last finalized block height");
             concordium_client
@@ -92,7 +90,10 @@ async fn main() -> Result<(), Error> {
         "../../../../contracts/identity-registry/contract.wasm.v1"
     ))
     .unwrap();
-    info!("Identity Registry Module Reference: {:?}", ir_module.get_module_ref());
+    info!(
+        "Identity Registry Module Reference: {:?}",
+        ir_module.get_module_ref()
+    );
     let ir_contract_name: OwnedContractName =
         OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string());
     let security_sft_rewards_module = WasmModule::from_slice(include_bytes!(
@@ -105,10 +106,14 @@ async fn main() -> Result<(), Error> {
     );
     let security_sft_rewards_contract_name: OwnedContractName =
         OwnedContractName::new_unchecked("init_security_sft_rewards".to_string());
-    let market_module =
-        WasmModule::from_slice(include_bytes!("../../../../contracts/market/contract.wasm.v1"))
-            .unwrap();
-    info!("Market Module Reference: {:?}", market_module.get_module_ref());
+    let market_module = WasmModule::from_slice(include_bytes!(
+        "../../../../contracts/market/contract.wasm.v1"
+    ))
+    .unwrap();
+    info!(
+        "Market Module Reference: {:?}",
+        market_module.get_module_ref()
+    );
     let market_contract_name: OwnedContractName =
         OwnedContractName::new_unchecked("init_rwa_market".to_string());
 

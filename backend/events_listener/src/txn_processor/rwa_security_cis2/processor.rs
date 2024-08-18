@@ -1,32 +1,30 @@
-use super::db;
-use crate::txn_listener::{EventsProcessor, ProcessorError};
+use core::fmt;
+use std::marker::PhantomData;
+
 use async_trait::async_trait;
 use chrono::Utc;
 use concordium_cis2::{
     BurnEvent, Cis2Event, IsTokenAmount, IsTokenId, MintEvent, OperatorUpdate, TokenMetadataEvent,
     TransferEvent, UpdateOperatorEvent,
 };
-use concordium_rust_sdk::{
-    base::{
-        contracts_common::{Cursor, Deserial, Serial},
-        hashes::ModuleReference,
-        smart_contracts::{ContractEvent, OwnedContractName},
-    },
-    cis2,
-    common::types::Timestamp,
-    types::{Address, ContractAddress},
-};
+use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Serial};
+use concordium_rust_sdk::base::hashes::ModuleReference;
+use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName};
+use concordium_rust_sdk::cis2;
+use concordium_rust_sdk::common::types::Timestamp;
+use concordium_rust_sdk::types::{Address, ContractAddress};
 use concordium_rwa_backend_shared::db::*;
 use concordium_rwa_utils::concordium_cis2_security::{
     AgentUpdatedEvent, Cis2SecurityEvent, ComplianceAdded, IdentityRegistryAdded, Paused,
     RecoverEvent, TokenDeposited, TokenFrozen,
 };
-use core::fmt;
 use diesel::Connection;
 use log::debug;
 use num_bigint::BigUint;
 use num_traits::Zero;
-use std::marker::PhantomData;
+
+use super::db;
+use crate::txn_listener::{EventsProcessor, ProcessorError};
 
 fn cis2<T, A>(
     conn: &mut DbConn,
@@ -36,7 +34,8 @@ fn cis2<T, A>(
 ) -> DbResult<()>
 where
     T: IsTokenId,
-    A: IsTokenAmount + Serial, {
+    A: IsTokenAmount+Serial,
+{
     match event {
         Cis2Event::Mint(MintEvent {
             token_id,
@@ -130,8 +129,7 @@ where
 }
 
 fn to_cis2_token_amount<A>(amount: &A) -> cis2::TokenAmount
-where
-    A: IsTokenAmount + Serial, {
+where A: IsTokenAmount+Serial {
     let mut bytes = vec![];
     amount.serial(&mut bytes).unwrap();
     let mut cursor: Cursor<_> = Cursor::new(bytes);
@@ -140,8 +138,7 @@ where
 }
 
 fn to_cis2_token_id<T>(token_id: &T) -> cis2::TokenId
-where
-    T: IsTokenId + Serial, {
+where T: IsTokenId+Serial {
     let mut bytes = vec![];
 
     token_id.serial(&mut bytes).unwrap();
@@ -158,9 +155,10 @@ pub fn process_events<T, A, R>(
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError>
 where
-    T: IsTokenId + fmt::Debug,
-    A: IsTokenAmount + fmt::Debug,
-    R: Deserial + fmt::Debug, {
+    T: IsTokenId+fmt::Debug,
+    A: IsTokenAmount+fmt::Debug,
+    R: Deserial+fmt::Debug,
+{
     for event in events {
         let parsed_event = event.parse::<Event<T, A, R>>()?;
         debug!("Event: {}/{}", cis2_address.index, cis2_address.subindex);
@@ -209,12 +207,11 @@ where
             }
             Event::AgentAdded(AgentUpdatedEvent {
                 agent,
-                roles: _, //todo: add roles to the database
+                roles: _, // todo: add roles to the database
             }) => db::insert_agent(conn, db::Agent::new(agent, now, cis2_address))?,
-            Event::AgentRemoved(AgentUpdatedEvent {
-                agent,
-                roles: _,
-            }) => db::remove_agent(conn, cis2_address, &agent)?,
+            Event::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
+                db::remove_agent(conn, cis2_address, &agent)?
+            }
             Event::ComplianceAdded(ComplianceAdded(compliance_contract)) => db::upsert_compliance(
                 conn,
                 &db::Compliance::new(cis2_address, &compliance_contract),
@@ -225,12 +222,12 @@ where
                     &db::IdentityRegistry::new(cis2_address, &identity_registry_contract),
                 )?
             }
-            Event::Paused(Paused {
-                token_id,
-            }) => db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id), true)?,
-            Event::UnPaused(Paused {
-                token_id,
-            }) => db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id), false)?,
+            Event::Paused(Paused { token_id }) => {
+                db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id), true)?
+            }
+            Event::UnPaused(Paused { token_id }) => {
+                db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id), false)?
+            }
             Event::Recovered(RecoverEvent {
                 lost_account,
                 new_account,
@@ -306,9 +303,9 @@ impl<T, A, R> RwaSecurityCIS2Processor<T, A, R> {
 #[async_trait]
 impl<T, A, R> EventsProcessor for RwaSecurityCIS2Processor<T, A, R>
 where
-    T: IsTokenId + Send + Sync + fmt::Debug,
-    A: IsTokenAmount + Send + Sync + fmt::Debug,
-    R: Send + Sync + Deserial + fmt::Debug,
+    T: IsTokenId+Send+Sync+fmt::Debug,
+    A: IsTokenAmount+Send+Sync+fmt::Debug,
+    R: Send+Sync+Deserial+fmt::Debug,
 {
     /// Returns the name of the contract this processor is responsible for.
     ///
@@ -367,12 +364,18 @@ mod tests {
 
         let amount: u8 = 255;
         let token_amount = to_cis2_token_amount(&TokenAmountU8(amount));
-        assert_eq!(token_amount, cis2::TokenAmount(BigUint::from_u8(amount).unwrap()));
+        assert_eq!(
+            token_amount,
+            cis2::TokenAmount(BigUint::from_u8(amount).unwrap())
+        );
         assert_eq!(token_amount.to_string(), "255");
 
         let amount: u64 = 255;
         let token_amount = to_cis2_token_amount(&TokenAmountU64(amount));
-        assert_eq!(token_amount, cis2::TokenAmount(BigUint::from_u64(amount).unwrap()));
+        assert_eq!(
+            token_amount,
+            cis2::TokenAmount(BigUint::from_u64(amount).unwrap())
+        );
         assert_eq!(token_amount.to_string(), "255");
     }
 }

@@ -6,30 +6,28 @@ pub mod processor;
 mod test {
     use chrono::Utc;
     use concordium_cis2::{TokenAmountU64, TokenIdU64, TokenIdU8};
-    use concordium_rust_sdk::{
-        base::smart_contracts::ContractEvent,
-        common::types::Timestamp,
-        id::types::{AccountAddress, ACCOUNT_ADDRESS_SIZE},
-        types::ContractAddress,
+    use concordium_rust_sdk::base::smart_contracts::ContractEvent;
+    use concordium_rust_sdk::common::types::Timestamp;
+    use concordium_rust_sdk::id::types::{AccountAddress, ACCOUNT_ADDRESS_SIZE};
+    use concordium_rust_sdk::types::ContractAddress;
+    use concordium_rwa_backend_shared::api::PagedResponse;
+    use concordium_rwa_backend_shared::test::{
+        create_new_database_container, to_contract_event, to_token_id_vec_u64, to_token_id_vec_u8,
     };
-    use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
     // use concordium_rwa_security_sft::types::NftTokenId;
     use concordium_rwa_utils::concordium_cis2_security::{TokenDeposited, TokenUId};
-    use diesel::{r2d2::ConnectionManager, PgConnection};
+    use diesel::r2d2::ConnectionManager;
+    use diesel::PgConnection;
     use diesel_migrations::{embed_migrations, EmbeddedMigrations};
     use poem::web::Data;
-    use poem_openapi::{param::Path, payload::Json};
+    use poem_openapi::param::Path;
+    use poem_openapi::payload::Json;
     use r2d2::Pool;
+    use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
 
-    use super::{api::Cis2Api, processor::process_events};
+    use super::api::Cis2Api;
+    use super::processor::process_events;
     use crate::txn_processor::rwa_security_cis2::api::Cis2Deposit;
-    use concordium_rwa_backend_shared::{
-        api::PagedResponse,
-        test::{
-            create_new_database_container, to_contract_event, to_token_id_vec_u64,
-            to_token_id_vec_u8,
-        },
-    };
 
     const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
@@ -174,5 +172,5 @@ mod test {
         ]);
     }
 
-    //todo add tests for other remaining events
+    // todo add tests for other remaining events
 }

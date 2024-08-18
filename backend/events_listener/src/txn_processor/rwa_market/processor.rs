@@ -1,20 +1,19 @@
-use super::db;
-use crate::txn_listener::{EventsProcessor, ProcessorError};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use concordium_rust_sdk::{
-    cis2::{self},
-    types::{
-        smart_contracts::{ContractEvent, ModuleReference, OwnedContractName},
-        ContractAddress,
-    },
+use concordium_rust_sdk::cis2::{self};
+use concordium_rust_sdk::types::smart_contracts::{
+    ContractEvent, ModuleReference, OwnedContractName,
 };
+use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::{DbConn, DbPool};
 use concordium_rwa_market::event::{Event, PaymentAmount, PaymentTokenUId};
 use diesel::Connection;
 use log::debug;
 use num_bigint::BigUint;
 use num_traits::Zero;
+
+use super::db;
+use crate::txn_listener::{EventsProcessor, ProcessorError};
 
 pub struct RwaMarketProcessor {
     pub pool:          DbPool,

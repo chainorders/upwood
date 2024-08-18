@@ -810,6 +810,7 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-std",
+ "hex",
 ]
 
 [[package]]
@@ -850,6 +851,7 @@ name = "concordium-rwa-identity-registry"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
+ "concordium-protocols",
  "concordium-rwa-utils",
  "concordium-std",
 ]
@@ -859,6 +861,7 @@ name = "concordium-rwa-market"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
+ "concordium-protocols",
  "concordium-rwa-utils",
  "concordium-std",
 ]
@@ -870,7 +873,6 @@ dependencies = [
  "concordium-cis2",
  "concordium-protocols",
  "concordium-std",
- "hex",
 ]
 
 [[package]]
@@ -3223,6 +3225,7 @@ name = "security-sft-rewards"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
+ "concordium-protocols",
  "concordium-rwa-utils",
  "concordium-std",
  "hex",
