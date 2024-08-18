@@ -1,4 +1,4 @@
-use concordium_cis2::{TokenAmountU64, TokenIdUnit};
+use concordium_cis2::{TokenAmountU64, TokenIdUnit, UpdateOperator, UpdateOperatorParams};
 use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, SchemaType, Serial, Serialize};
 
@@ -119,5 +119,28 @@ pub fn balance_of_single(
         TokenIdUnit(),
         address,
         CONTRACT_NAME,
+    )
+}
+
+pub fn update_operator(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: &UpdateOperatorParams,
+) -> ContractInvokeSuccess {
+    cis2::update_operator(chain, sender, contract, CONTRACT_NAME, payload)
+}
+
+pub fn update_operator_single(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: UpdateOperator,
+) -> ContractInvokeSuccess {
+    update_operator(
+        chain,
+        sender,
+        contract,
+        &UpdateOperatorParams(vec![payload]),
     )
 }

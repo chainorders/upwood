@@ -23,16 +23,16 @@ fn market_buy_via_transfer_of_cis2() {
     let compliant_nationalities = ["IN".to_owned(), "US".to_owned()];
     let admin = Account::new(AccountAddress([0; 32]), DEFAULT_ACC_BALANCE);
     let ir_agent = Account::new(AccountAddress([1; 32]), DEFAULT_ACC_BALANCE);
+    let token_contract_agent = Account::new(AccountAddress([4; 32]), DEFAULT_ACC_BALANCE);
     let seller = Account::new(AccountAddress([2; 32]), DEFAULT_ACC_BALANCE);
     let buyer = Account::new(AccountAddress([3; 32]), DEFAULT_ACC_BALANCE);
-    let nft_agent = Account::new(AccountAddress([4; 32]), DEFAULT_ACC_BALANCE);
 
     let mut chain = Chain::new();
     chain.create_account(admin.clone());
     chain.create_account(ir_agent.clone());
     chain.create_account(seller.clone());
     chain.create_account(buyer.clone());
-    chain.create_account(nft_agent.clone());
+    chain.create_account(token_contract_agent.clone());
 
     euroe::deploy_module(&mut chain, &admin);
     let euroe = euroe::init(&mut chain, &admin).contract_address;
@@ -44,10 +44,10 @@ fn market_buy_via_transfer_of_cis2() {
         adminrole: Address::Account(admin.address),
     });
 
-    market::deploy_module(&mut chain, &admin);
     identity_registry::deploy_module(&mut chain, &admin);
     compliance::deploy_module(&mut chain, &admin);
     sft_security::deploy_module(&mut chain, &admin);
+    market::deploy_module(&mut chain, &admin);
     let ir_contract = identity_registry::init(&mut chain, &admin).contract_address;
     let compliance_contract = compliance::init_all(
         &mut chain,
@@ -80,7 +80,7 @@ fn market_buy_via_transfer_of_cis2() {
     })
     .contract_address;
     sft_security::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
-        address: Address::Account(nft_agent.address),
+        address: Address::Account(token_contract_agent.address),
         roles:   vec![AgentRole::Mint],
     });
     let market = market::init(
@@ -115,11 +115,16 @@ fn market_buy_via_transfer_of_cis2() {
         ),
     ]);
     let buy_token = TokenIdU32(0);
-    sft_security::mint(&mut chain, &nft_agent, &token_contract, &MintParam {
-        amount:   TokenAmountU64(1),
-        owner:    Receiver::Account(seller.address),
-        token_id: buy_token,
-    });
+    sft_security::mint(
+        &mut chain,
+        &token_contract_agent,
+        &token_contract,
+        &MintParam {
+            amount:   TokenAmountU64(1),
+            owner:    Receiver::Account(seller.address),
+            token_id: buy_token,
+        },
+    );
 
     let euroe_exchange_rate: ExchangeRate = ExchangeRate::Cis2((
         TokenUId {

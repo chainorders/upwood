@@ -118,16 +118,15 @@ pub fn receive_add_reward(
 }
 
 #[derive(Debug, Serialize, Clone, SchemaType)]
-struct ClaimRewardsParams {
-    owner:  Receiver,
-    claims: Vec<ClaimRewardsParam>,
+pub struct ClaimRewardsParams {
+    pub owner:  Receiver,
+    pub claims: Vec<ClaimRewardsParam>,
 }
 
 #[derive(Debug, Serialize, Clone, SchemaType)]
-struct ClaimRewardsParam {
-    token_id: TokenId,
-    amount:   TokenAmount,
-    data:     AdditionalData,
+pub struct ClaimRewardsParam {
+    pub token_id: TokenId,
+    pub amount:   TokenAmount,
 }
 
 #[receive(
@@ -174,7 +173,7 @@ pub fn claim_rewards(
                 from:     Address::Contract(ctx.self_address()),
                 to:       params.owner.clone(),
                 token_id: reward_token.reward_token_id(),
-                data:     claim.data,
+                data:     AdditionalData::empty(),
                 amount:   rewarded_amount,
             })?;
 

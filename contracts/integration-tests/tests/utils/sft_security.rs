@@ -1,8 +1,9 @@
 use concordium_cis2::TransferParams;
 use concordium_smart_contract_testing::*;
+use security_sft_rewards::rewards::{ClaimRewardsParams, TransferAddRewardParams};
 use security_sft_rewards::types::*;
 
-use super::{cis2, cis2_security, MAX_ENERGY};
+use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
 pub const MODULE_PATH: &str = "../security-sft-rewards/contract.wasm.v1";
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_rewards");
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
@@ -23,9 +24,7 @@ pub fn init(chain: &mut Chain, sender: &Account, param: &InitParam) -> ContractI
             MAX_ENERGY,
             InitContractPayload {
                 amount:    Amount::zero(),
-                init_name: OwnedContractName::new_unchecked(
-                    "init_security_sft_rewards".to_string(),
-                ),
+                init_name: CONTRACT_NAME.to_owned(),
                 mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
                 param:     OwnedParameter::from_serial(param).unwrap(),
             },
@@ -193,4 +192,22 @@ pub fn balance_of_un_frozen(
     payload: &BalanceOfQueryParams,
 ) -> BalanceOfQueryResponse {
     cis2_security::balance_of_un_frozen(chain, sender, contract, CONTRACT_NAME, payload)
+}
+
+pub fn transfer_add_reward(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: &TransferAddRewardParams,
+) -> ContractInvokeSuccess {
+    cis2_security_rewards::transfer_add_reward(chain, sender, contract, CONTRACT_NAME, payload)
+}
+
+pub fn claim_rewards(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: &ClaimRewardsParams,
+) -> ContractInvokeSuccess {
+    cis2_security_rewards::claim_rewards(chain, sender, contract, CONTRACT_NAME, payload)
 }

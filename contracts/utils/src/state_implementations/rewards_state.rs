@@ -89,17 +89,16 @@ pub trait IRewardsState<
         token_state: AddRewardParam<TDeposit, ADeposit>,
     ) -> RewardsStateResult<T> {
         let max_reward_token_id = self.max_reward_token_id();
-        // attach reward to the max reward token id
-        self.attach_reward(max_reward_token_id.clone(), token_state)?;
-
-        // Update the max reward token id
         let new_reward_token_id = max_reward_token_id.plus_one();
-        // Results are ignored because a new token id is being generated
         let _ = self.add_token(
             new_reward_token_id.clone(),
             TTokenState::new(default_reward_metadata_url),
         );
         self.set_max_reward_token_id(new_reward_token_id.clone());
+
+        // attach reward to the max reward token id
+        self.attach_reward(max_reward_token_id.clone(), token_state)?;
+        // Results are ignored because a new token id is being generated
         Ok(new_reward_token_id)
     }
 

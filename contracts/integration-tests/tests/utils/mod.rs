@@ -1,6 +1,7 @@
 pub mod cis2;
 pub mod cis2_conversions;
 pub mod cis2_security;
+pub mod cis2_security_rewards;
 pub mod compliance;
 pub mod euroe;
 pub mod identity_registry;
