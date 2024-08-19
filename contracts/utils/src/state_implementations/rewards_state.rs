@@ -26,7 +26,7 @@ impl From<Cis2StateError> for RewardsStateError {
 impl From<HolderStateError> for RewardsStateError {
     fn from(e: HolderStateError) -> Self {
         match e {
-            HolderStateError::AmountTooLarge => RewardsStateError::InsufficientFunds,
+            HolderStateError::InsufficientFunds => RewardsStateError::InsufficientFunds,
         }
     }
 }
@@ -122,7 +122,7 @@ pub trait IRewardsState<
     fn claim_rewards(
         &mut self,
         token_id: &T,
-        amount: &A,
+        amount: A,
         owner: &Address,
         state_builder: &mut StateBuilder<S>,
     ) -> RewardsStateResult<T> {
@@ -159,14 +159,14 @@ pub trait IRewardsState<
         &mut self,
         from: &Address,
         to: &Address,
-        amount: &A,
+        amount: A,
         state_builder: &mut StateBuilder<S>,
     ) -> RewardsStateResult<Vec<RewardContract<T, A>>> {
         let max_reward_token_id: T = self.max_reward_token_id();
         let min_reward_token_id: T = self.min_reward_token_id();
 
         let mut curr_reward_token_id = max_reward_token_id;
-        let mut remaining_balance = *amount;
+        let mut remaining_balance = amount;
         let mut res = Vec::new();
 
         while curr_reward_token_id.ge(&min_reward_token_id) {
@@ -177,7 +177,7 @@ pub trait IRewardsState<
                 from,
                 to,
                 &curr_reward_token_id,
-                &transfer_balance,
+                transfer_balance,
                 state_builder,
             )?;
             res.push(RewardContract {
@@ -214,7 +214,7 @@ pub trait IRewardsState<
     fn mint_rewards(
         &mut self,
         to: &Address,
-        amount: &A,
+        amount: A,
         state_builder: &mut StateBuilder<S>,
     ) -> RewardsStateResult<T> {
         let max_reward_token_id: T = self.max_reward_token_id();

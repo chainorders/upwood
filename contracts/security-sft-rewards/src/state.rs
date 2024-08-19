@@ -2,24 +2,28 @@ use concordium_cis2::{TokenAmountU64, TokenIdVec};
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
-use concordium_rwa_utils::state_implementations::cis2_state::{ICis2State, ICis2TokenState};
+use concordium_rwa_utils::state_implementations::cis2_state::{
+    Cis2Result, Cis2StateError, ICis2State, ICis2TokenState,
+};
 use concordium_rwa_utils::state_implementations::holders_security_state::{
     HolderSecurityStateError, HolderSecurityStateResult, IHoldersSecurityState,
     ISecurityHolderState,
 };
-use concordium_rwa_utils::state_implementations::holders_state::{IHolderState, IHoldersState};
+use concordium_rwa_utils::state_implementations::holders_state::{
+    HolderStateError, IHolderState, IHoldersState,
+};
 use concordium_rwa_utils::state_implementations::rewards_state::{
     AddRewardParam, IRewardHolderState, IRewardTokenState, IRewardsState, RewardDeposited,
 };
+use concordium_rwa_utils::state_implementations::sft_state::{ITokenState, ITokensState};
 use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
 use concordium_rwa_utils::state_implementations::tokens_security_state::{
     ISecurityTokenState, ITokensSecurityState,
 };
-use concordium_rwa_utils::state_implementations::sft_state::{ITokenState, ITokensState};
 use concordium_std::ops::{Add, Sub, SubAssign};
 use concordium_std::{
-    Address, ContractAddress, Deserial, DeserialWithState, HasStateApi, MetadataUrl, Serial,
-    Serialize, StateApi, StateBuilder, StateMap, StateSet,
+    ensure, Address, ContractAddress, Deserial, DeserialWithState, HasStateApi, MetadataUrl,
+    Serial, Serialize, StateApi, StateBuilder, StateMap, StateSet,
 };
 
 use super::types::{Agent, AgentRole, TokenAmount, TokenId};
@@ -142,9 +146,14 @@ impl ISecurityTokenState for TokenState {
     fn set_paused(&mut self, is_paused: bool) { self.paused = is_paused; }
 }
 impl ICis2TokenState<TokenAmount> for TokenState {
-    fn inc_supply(&mut self, amount: &TokenAmount) { self.supply = self.supply.add(*amount); }
+    fn inc_supply(&mut self, amount: TokenAmount) { self.supply = self.supply.add(amount); }
 
-    fn dec_supply(&mut self, amount: &TokenAmount) { self.supply = self.supply.sub(*amount); }
+    fn dec_supply(&mut self, amount: TokenAmount) -> Cis2Result<()> {
+        ensure!(self.supply.ge(&amount), Cis2StateError::InsufficientFunds);
+        self.supply = self.supply.sub(amount);
+
+        Ok(())
+    }
 
     fn supply(&self) -> TokenAmount { self.supply }
 }
@@ -164,26 +173,46 @@ impl HolderStateBalance {
 
     pub fn total(&self) -> TokenAmount { self.frozen.add(self.un_frozen) }
 
-    pub fn freeze(&mut self, amount: &TokenAmount) {
-        self.frozen = self.frozen.add(*amount);
-        self.un_frozen = self.un_frozen.sub(*amount);
+    pub fn freeze(&mut self, amount: TokenAmount) -> Result<(), HolderStateError> {
+        ensure!(
+            self.un_frozen.ge(&amount),
+            HolderStateError::InsufficientFunds
+        );
+        self.frozen = self.frozen.add(amount);
+        self.un_frozen = self.un_frozen.sub(amount);
+
+        Ok(())
     }
 
-    pub fn un_freeze(&mut self, amount: &TokenAmount) {
-        self.frozen = self.frozen.sub(*amount);
-        self.un_frozen = self.un_frozen.add(*amount);
+    pub fn un_freeze(&mut self, amount: TokenAmount) -> Result<(), HolderStateError> {
+        ensure!(self.frozen.ge(&amount), HolderStateError::InsufficientFunds);
+        self.frozen = self.frozen.sub(amount);
+        self.un_frozen = self.un_frozen.add(amount);
+
+        Ok(())
     }
 
     pub fn add(&mut self, amount: TokenAmount) { self.un_frozen = self.un_frozen.add(amount); }
 
-    pub fn sub(&mut self, amount: TokenAmount) { self.un_frozen = self.un_frozen.sub(amount); }
+    pub fn sub(&mut self, amount: TokenAmount) -> Result<(), HolderStateError> {
+        ensure!(
+            self.un_frozen.ge(&amount),
+            HolderStateError::InsufficientFunds
+        );
+        self.un_frozen = self.un_frozen.sub(amount);
+        Ok(())
+    }
 
-    pub fn sub_forced(&mut self, amount: TokenAmount) -> TokenAmount {
+    pub fn sub_forced(&mut self, amount: TokenAmount) -> Result<TokenAmount, HolderStateError> {
+        ensure!(
+            self.total().ge(&amount),
+            HolderStateError::InsufficientFunds
+        );
         self.un_frozen = self.un_frozen.sub(self.un_frozen.min(amount));
         let un_freeze = amount.sub(self.un_frozen);
         self.frozen = self.frozen.sub(un_freeze);
 
-        un_freeze
+        Ok(un_freeze)
     }
 }
 
@@ -207,18 +236,22 @@ impl IHolderState<TokenId, TokenAmount, StateApi> for HolderState {
             .unwrap_or(TokenAmount::zero())
     }
 
-    fn add_balance(&mut self, token_id: &TokenId, amount: &TokenAmount) {
+    fn add_balance(&mut self, token_id: &TokenId, amount: TokenAmount) {
         self.balances
             .entry(*token_id)
             .or_insert(HolderStateBalance::default())
-            .modify(|a| a.add(*amount));
+            .modify(|a| a.add(amount));
     }
 
-    fn sub_balance(&mut self, token_id: &TokenId, amount: &TokenAmount) {
+    fn sub_balance(
+        &mut self,
+        token_id: &TokenId,
+        amount: TokenAmount,
+    ) -> Result<(), HolderStateError> {
         self.balances
             .entry(*token_id)
-            .or_insert(HolderStateBalance::default())
-            .modify(|a| a.sub(*amount));
+            .occupied_or(HolderStateError::InsufficientFunds)?
+            .try_modify(|a| a.sub(amount))
     }
 
     fn new(state_builder: &mut StateBuilder<StateApi>) -> Self {
@@ -229,29 +262,23 @@ impl IHolderState<TokenId, TokenAmount, StateApi> for HolderState {
     }
 }
 impl ISecurityHolderState<TokenId, TokenAmount, StateApi> for HolderState {
-    fn freeze(
-        &mut self,
-        token_id: &TokenId,
-        amount: &TokenAmount,
-    ) -> HolderSecurityStateResult<()> {
+    fn freeze(&mut self, token_id: &TokenId, amount: TokenAmount) -> HolderSecurityStateResult<()> {
         self.balances
             .entry(*token_id)
-            .occupied_or(HolderSecurityStateError::AmountTooLarge)?
-            .modify(|e| {
-                e.freeze(amount);
-            });
+            .occupied_or(HolderSecurityStateError::InsufficientFunds)?
+            .try_modify(|e| e.freeze(amount))?;
         Ok(())
     }
 
     fn un_freeze(
         &mut self,
         token_id: &TokenId,
-        amount: &TokenAmount,
+        amount: TokenAmount,
     ) -> HolderSecurityStateResult<()> {
         self.balances
             .entry(*token_id)
-            .occupied_or(HolderSecurityStateError::AmountTooLarge)?
-            .modify(|e| e.un_freeze(amount));
+            .occupied_or(HolderSecurityStateError::InsufficientFunds)?
+            .try_modify(|e| e.un_freeze(amount))?;
         Ok(())
     }
 

@@ -50,7 +50,7 @@ pub fn burn(
         ensure!(is_authorized, Error::Unauthorized);
 
         let compliance = state.compliance();
-        host.state_mut().burn(&token_id, &amount, &owner)?;
+        host.state_mut().burn(&token_id, amount, &owner)?;
         compliance_client::burned(host, compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
@@ -110,7 +110,7 @@ pub fn forced_burn(
         let state = host.state();
         let compliance = state.compliance();
 
-        let unfrozen_balance = host.state_mut().forced_burn(&token_id, &amount, &owner)?;
+        let unfrozen_balance = host.state_mut().forced_burn(&token_id, amount, &owner)?;
         compliance_client::burned(host, compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,

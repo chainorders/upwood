@@ -7,7 +7,7 @@ use super::holders_state::{HolderStateError, IHolderState, IHoldersState};
 /// security state.
 pub enum HolderSecurityStateError {
     /// Triggered when the amount is too large for the operation.
-    AmountTooLarge,
+    InsufficientFunds,
     /// Triggered when the address has already been recovered.
     AddressAlreadyRecovered,
     /// Triggered when the recovery address provided is invalid.
@@ -17,7 +17,7 @@ pub enum HolderSecurityStateError {
 impl From<HolderStateError> for HolderSecurityStateError {
     fn from(e: HolderStateError) -> Self {
         match e {
-            HolderStateError::AmountTooLarge => HolderSecurityStateError::AmountTooLarge,
+            HolderStateError::InsufficientFunds => HolderSecurityStateError::InsufficientFunds,
         }
     }
 }
@@ -25,8 +25,8 @@ impl From<HolderStateError> for HolderSecurityStateError {
 pub type HolderSecurityStateResult<T> = Result<T, HolderSecurityStateError>;
 
 pub trait ISecurityHolderState<T, A, S> {
-    fn freeze(&mut self, token_id: &T, amount: &A) -> HolderSecurityStateResult<()>;
-    fn un_freeze(&mut self, token_id: &T, amount: &A) -> HolderSecurityStateResult<()>;
+    fn freeze(&mut self, token_id: &T, amount: A) -> HolderSecurityStateResult<()>;
+    fn un_freeze(&mut self, token_id: &T, amount: A) -> HolderSecurityStateResult<()>;
     fn balance_of_frozen(&self, token_id: &T) -> A;
     fn balance_of_un_frozen(&self, token_id: &T) -> A;
 }
@@ -125,11 +125,11 @@ pub trait IHoldersSecurityState<
         &mut self,
         address: Address,
         token_id: &T,
-        amount: &A,
+        amount: A,
     ) -> HolderSecurityStateResult<()> {
         self.holders_mut()
             .entry(address)
-            .occupied_or(HolderSecurityStateError::AmountTooLarge)?
+            .occupied_or(HolderSecurityStateError::InsufficientFunds)?
             .modify(|h| h.freeze(token_id, amount))
     }
 
@@ -144,11 +144,11 @@ pub trait IHoldersSecurityState<
         &mut self,
         address: &Address,
         token_id: &T,
-        amount: &A,
+        amount: A,
     ) -> HolderSecurityStateResult<()> {
         self.holders_mut()
             .entry(*address)
-            .occupied_or(HolderSecurityStateError::AmountTooLarge)?
+            .occupied_or(HolderSecurityStateError::InsufficientFunds)?
             .modify(|h| h.un_freeze(token_id, amount))
     }
 

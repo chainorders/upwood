@@ -163,7 +163,7 @@ pub fn claim_rewards(
             let claim_amount = claim.amount.sub(TokenAmountU64(un_converted_amount));
             let new_reward_token_id: TokenId = state.claim_rewards(
                 &claim.token_id,
-                &claim_amount,
+                claim_amount,
                 &owner_address,
                 state_builder,
             )?;
@@ -181,7 +181,7 @@ pub fn claim_rewards(
         } else {
             let new_reward_token_id: TokenId = state.claim_rewards(
                 &claim.token_id,
-                &claim.amount,
+                claim.amount,
                 &owner_address,
                 state_builder,
             )?;

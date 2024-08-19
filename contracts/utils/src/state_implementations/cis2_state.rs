@@ -13,8 +13,8 @@ pub enum Cis2StateError {
 }
 
 pub trait ICis2TokenState<A>: ITokenState {
-    fn inc_supply(&mut self, amount: &A);
-    fn dec_supply(&mut self, amount: &A);
+    fn inc_supply(&mut self, amount: A);
+    fn dec_supply(&mut self, amount: A) -> Cis2Result<()>;
     fn supply(&self) -> A;
 }
 
@@ -28,7 +28,7 @@ pub trait ICis2State<
     fn mint(
         &mut self,
         token_id: &T,
-        amount: &A,
+        amount: A,
         to: &Address,
         state_builder: &mut StateBuilder<S>,
     ) -> Result<(), Cis2StateError> {
@@ -42,13 +42,12 @@ pub trait ICis2State<
         Ok(())
     }
 
-    fn burn(&mut self, token_id: &T, amount: &A, from: &Address) -> Result<(), Cis2StateError> {
+    fn burn(&mut self, token_id: &T, amount: A, from: &Address) -> Result<(), Cis2StateError> {
+        self.sub_balance(from, token_id, amount)?;
         self.tokens_mut()
             .entry(token_id.clone())
-            .occupied_or(Cis2StateError::InvalidTokenId)?
-            .modify(|t| t.dec_supply(amount));
+            .and_try_modify(|t| t.dec_supply(amount))?;
 
-        self.sub_balance(from, token_id, amount)?;
         Ok(())
     }
 
@@ -57,10 +56,9 @@ pub trait ICis2State<
         from: &Address,
         to: &Address,
         token_id: &T,
-        amount: &A,
+        amount: A,
         state_builder: &mut StateBuilder<S>,
     ) -> Result<(), Cis2StateError> {
-        self.ensure_token_exists(token_id)?;
         self.sub_balance(from, token_id, amount)?;
         self.add_balance(to, token_id, amount, state_builder);
 
@@ -93,7 +91,7 @@ impl From<TokenStateError> for Cis2StateError {
 impl From<HolderStateError> for Cis2StateError {
     fn from(value: HolderStateError) -> Self {
         match value {
-            HolderStateError::AmountTooLarge => Cis2StateError::InsufficientFunds,
+            HolderStateError::InsufficientFunds => Cis2StateError::InsufficientFunds,
         }
     }
 }

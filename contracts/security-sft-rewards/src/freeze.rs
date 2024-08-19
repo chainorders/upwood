@@ -44,7 +44,7 @@ pub fn freeze(
             token.token_id.eq(&state.tracked_token_id),
             Error::InvalidTokenId
         );
-        state.freeze(owner, &token.token_id, &token.token_amount)?;
+        state.freeze(owner, &token.token_id, token.token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,
@@ -90,7 +90,7 @@ pub fn un_freeze(
             token.token_id.eq(&state.tracked_token_id),
             Error::InvalidTokenId
         );
-        state.un_freeze(&owner, &token.token_id, &token.token_amount)?;
+        state.un_freeze(&owner, &token.token_id, token.token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id: token.token_id,
             amount:   token.token_amount,
@@ -129,9 +129,8 @@ pub fn balance_of_frozen(
     let amounts = queries
         .iter()
         .map(|query| {
-            state
-                .ensure_token_exists(&query.token_id)
-                .map(|_| state.balance_of_frozen(&query.address, &query.token_id))
+            state.ensure_token_exists(&query.token_id)?;
+            Ok(state.balance_of_frozen(&query.address, &query.token_id))
         })
         .collect::<TokenStateResult<Vec<_>>>()?;
 
@@ -165,11 +164,10 @@ pub fn balance_of_un_frozen(
     let amounts = queries
         .iter()
         .map(|query| {
-            state
-                .ensure_token_exists(&query.token_id)
-                .map(|_| state.balance_of_unfrozen(&query.address, &query.token_id))
+            state.ensure_token_exists(&query.token_id)?;
+            Ok(state.balance_of_unfrozen(&query.address, &query.token_id))
         })
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<TokenStateResult<Vec<_>>>()?;
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
 }

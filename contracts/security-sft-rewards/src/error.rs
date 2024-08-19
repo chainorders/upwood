@@ -5,8 +5,8 @@ use concordium_rwa_utils::state_implementations::cis2_state::Cis2StateError;
 use concordium_rwa_utils::state_implementations::holders_security_state::HolderSecurityStateError;
 use concordium_rwa_utils::state_implementations::holders_state::HolderStateError;
 use concordium_rwa_utils::state_implementations::rewards_state::RewardsStateError;
-use concordium_rwa_utils::state_implementations::tokens_security_state::TokenSecurityError;
 use concordium_rwa_utils::state_implementations::sft_state::TokenStateError;
+use concordium_rwa_utils::state_implementations::tokens_security_state::TokenSecurityError;
 use concordium_std::num::NonZeroI32;
 use concordium_std::{CallContractError, LogError, ParseError, Reject, SchemaType};
 
@@ -107,7 +107,7 @@ impl From<TokenSecurityError> for Error {
 impl From<HolderSecurityStateError> for Error {
     fn from(e: HolderSecurityStateError) -> Self {
         match e {
-            HolderSecurityStateError::AmountTooLarge => Error::InsufficientFunds,
+            HolderSecurityStateError::InsufficientFunds => Error::InsufficientFunds,
             HolderSecurityStateError::AddressAlreadyRecovered => Error::InvalidAddress,
             HolderSecurityStateError::InvalidRecoveryAddress => Error::InvalidAddress,
         }

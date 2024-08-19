@@ -2,7 +2,7 @@ use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
 
 pub enum HolderStateError {
-    AmountTooLarge,
+    InsufficientFunds,
 }
 pub type HolderStateResult<T> = Result<T, HolderStateError>;
 
@@ -12,8 +12,8 @@ pub trait IHolderState<T, A, S: HasStateApi>: Serial+DeserialWithState<S> {
     fn add_operator(&mut self, operator: Address);
     fn remove_operator(&mut self, operator: &Address);
     fn balance_of(&self, token_id: &T) -> A;
-    fn sub_balance(&mut self, token_id: &T, amount: &A);
-    fn add_balance(&mut self, token_id: &T, amount: &A);
+    fn sub_balance(&mut self, token_id: &T, amount: A) -> Result<(), HolderStateError>;
+    fn add_balance(&mut self, token_id: &T, amount: A);
 }
 
 pub trait IHoldersState<
@@ -100,7 +100,7 @@ pub trait IHoldersState<
     ) -> HolderStateResult<()> {
         let balance = self.balance_of(address, token_id);
         if balance.lt(amount) {
-            Err(HolderStateError::AmountTooLarge)
+            Err(HolderStateError::InsufficientFunds)
         } else {
             Ok(())
         }
@@ -129,7 +129,7 @@ pub trait IHoldersState<
         &mut self,
         address: &Address,
         token_id: &T,
-        amount_delta: &A,
+        amount_delta: A,
         state_builder: &mut StateBuilder<S>,
     ) {
         self.holders_mut()
@@ -159,13 +159,11 @@ pub trait IHoldersState<
         &mut self,
         address: &Address,
         token_id: &T,
-        amount_delta: &A,
+        amount_delta: A,
     ) -> HolderStateResult<()> {
         self.holders_mut()
             .entry(*address)
-            .occupied_or(HolderStateError::AmountTooLarge)?
-            .modify(|holder| holder.sub_balance(token_id, amount_delta));
-
-        Ok(())
+            .occupied_or(HolderStateError::InsufficientFunds)?
+            .try_modify(|holder| holder.sub_balance(token_id, amount_delta))
     }
 }

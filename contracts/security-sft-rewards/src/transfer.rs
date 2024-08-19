@@ -104,13 +104,13 @@ pub fn transfer(
             &from,
             &to.address(),
             &token_id,
-            &amount,
+            amount,
             false,
             state_builder,
         )?;
         // transfer attached rewards
         let transferred_rewards =
-            state.transfer_rewards(&from, &to.address(), &amount, state_builder)?;
+            state.transfer_rewards(&from, &to.address(), amount, state_builder)?;
 
         compliance_client::transferred(host, compliance, &TransferredParam {
             token_id: compliance_token,
@@ -209,16 +209,10 @@ pub fn forced_transfer(
         );
 
         let (state, state_builder) = host.state_and_builder();
-        let un_frozen_balance = state.transfer(
-            &from,
-            &to.address(),
-            &token_id,
-            &amount,
-            true,
-            state_builder,
-        )?;
+        let un_frozen_balance =
+            state.transfer(&from, &to.address(), &token_id, amount, true, state_builder)?;
         let transferred_rewards =
-            state.transfer_rewards(&from, &to.address(), &amount, state_builder)?;
+            state.transfer_rewards(&from, &to.address(), amount, state_builder)?;
         // Adjust the frozen balance of the sender.
         compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),

@@ -56,8 +56,8 @@ pub fn mint(
     let (state, state_builder) = host.state_and_builder();
     ensure!(token_id.eq(&state.tracked_token_id), Error::InvalidTokenId);
 
-    state.mint(&token_id, &mint_amount, &owner_address, state_builder)?;
-    let reward_token_id = state.mint_rewards(&owner_address, &mint_amount, state_builder)?;
+    state.mint(&token_id, mint_amount, &owner_address, state_builder)?;
+    let reward_token_id = state.mint_rewards(&owner_address, mint_amount, state_builder)?;
     // Notify compliance that the token has been minted
     compliance_client::minted(host, compliance, &MintedParam {
         token_id: compliance_token,

@@ -34,7 +34,7 @@ pub trait ICis2SecurityState<
     fn mint(
         &mut self,
         token_id: &T,
-        amount: &A,
+        amount: A,
         to: &Address,
         state_builder: &mut StateBuilder<S>,
     ) -> Result<(), Cis2SecurityStateError> {
@@ -47,7 +47,7 @@ pub trait ICis2SecurityState<
     fn burn(
         &mut self,
         token_id: &T,
-        amount: &A,
+        amount: A,
         from: &Address,
     ) -> Result<(), Cis2SecurityStateError> {
         self.ensure_not_paused(token_id)?;
@@ -58,7 +58,7 @@ pub trait ICis2SecurityState<
     fn forced_burn(
         &mut self,
         token_id: &T,
-        amount: &A,
+        amount: A,
         from: &Address,
     ) -> Result<A, Cis2SecurityStateError> {
         let un_frozen_balance = self.unfreeze_to_match(from, token_id, amount)?;
@@ -71,7 +71,7 @@ pub trait ICis2SecurityState<
         from: &Address,
         to: &Address,
         token_id: &T,
-        amount: &A,
+        amount: A,
         forced: bool,
         state_builder: &mut StateBuilder<S>,
     ) -> Result<A, Cis2SecurityStateError> {
@@ -89,11 +89,11 @@ pub trait ICis2SecurityState<
         &mut self,
         from: &Address,
         token_id: &T,
-        amount: &A,
+        amount: A,
     ) -> Result<A, Cis2SecurityStateError> {
         let un_frozen_balance = self.balance_of_unfrozen(from, token_id);
-        let un_frozen_balance = amount.sub(un_frozen_balance.min(*amount));
-        self.un_freeze(from, token_id, &un_frozen_balance)?;
+        let un_frozen_balance = amount.sub(un_frozen_balance.min(amount));
+        self.un_freeze(from, token_id, un_frozen_balance)?;
         Ok(un_frozen_balance)
     }
 }
@@ -116,7 +116,7 @@ impl From<TokenSecurityError> for Cis2SecurityStateError {
 impl From<HolderSecurityStateError> for Cis2SecurityStateError {
     fn from(value: HolderSecurityStateError) -> Self {
         match value {
-            HolderSecurityStateError::AmountTooLarge => Cis2SecurityStateError::InsufficientFunds,
+            HolderSecurityStateError::InsufficientFunds => Cis2SecurityStateError::InsufficientFunds,
             HolderSecurityStateError::AddressAlreadyRecovered => {
                 Cis2SecurityStateError::InvalidAddress
             }
