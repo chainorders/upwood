@@ -2,7 +2,7 @@ use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
 
 use super::holders_state::{HolderStateError, IHolderState, IHoldersState};
-use super::tokens_state::{ITokenState, ITokensState, TokenStateError};
+use super::sft_state::{ITokenState, ITokensState, TokenStateError};
 
 pub type Cis2Result<R> = Result<R, Cis2StateError>;
 

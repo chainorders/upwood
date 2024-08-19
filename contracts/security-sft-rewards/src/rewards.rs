@@ -12,7 +12,7 @@ use concordium_rwa_utils::state_implementations::cis2_state::ICis2State;
 use concordium_rwa_utils::state_implementations::rewards_state::{
     AddRewardParam, IRewardTokenState, IRewardsState, RewardDeposited,
 };
-use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
+use concordium_rwa_utils::state_implementations::sft_state::ITokensState;
 use concordium_std::ops::Sub;
 use concordium_std::{
     bail, receive, Address, Get, HasCommonData, HasHost, HasLogger, HasReceiveContext, Host,

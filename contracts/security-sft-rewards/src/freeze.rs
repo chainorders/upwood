@@ -1,7 +1,7 @@
 use concordium_protocols::concordium_cis2_security::TokenFrozen;
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
-use concordium_rwa_utils::state_implementations::tokens_state::{ITokensState, TokenStateResult};
+use concordium_rwa_utils::state_implementations::sft_state::{ITokensState, TokenStateResult};
 use concordium_std::*;
 
 use super::error::*;

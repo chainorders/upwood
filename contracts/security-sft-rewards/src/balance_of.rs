@@ -1,5 +1,5 @@
 use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
-use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
+use concordium_rwa_utils::state_implementations::sft_state::ITokensState;
 use concordium_std::*;
 
 use super::error::Error;

@@ -7,5 +7,5 @@ pub mod holders_state;
 pub mod sponsors_state;
 pub mod token_deposits_state;
 pub mod tokens_security_state;
-pub mod tokens_state;
+pub mod sft_state;
 pub mod rewards_state;

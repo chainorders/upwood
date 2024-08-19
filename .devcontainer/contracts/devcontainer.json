@@ -90,7 +90,8 @@
 				"formulahendry.docker-extension-pack",
 				"inferrinizzard.prettier-sql-vscode",
 				"MS-CST-E.vscode-devskim",
-				"ms-vscode.live-server"
+				"ms-vscode.live-server",
+				"bpruitt-goddard.mermaid-markdown-syntax-highlighting"
 			]
 		}
 	}

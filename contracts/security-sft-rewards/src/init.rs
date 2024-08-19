@@ -4,7 +4,7 @@ use concordium_protocols::concordium_cis2_security::{
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
-use concordium_rwa_utils::state_implementations::tokens_state::ITokensState;
+use concordium_rwa_utils::state_implementations::sft_state::ITokensState;
 use concordium_std::*;
 
 use super::error::Error;

@@ -15,7 +15,7 @@ use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
 use concordium_rwa_utils::state_implementations::tokens_security_state::{
     ISecurityTokenState, ITokensSecurityState,
 };
-use concordium_rwa_utils::state_implementations::tokens_state::{ITokenState, ITokensState};
+use concordium_rwa_utils::state_implementations::sft_state::{ITokenState, ITokensState};
 use concordium_std::ops::{Add, Sub, SubAssign};
 use concordium_std::{
     Address, ContractAddress, Deserial, DeserialWithState, HasStateApi, MetadataUrl, Serial,

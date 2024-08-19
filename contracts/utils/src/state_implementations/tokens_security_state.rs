@@ -1,7 +1,7 @@
 use concordium_cis2::IsTokenId;
 use concordium_std::*;
 
-use super::tokens_state::{ITokenState, ITokensState};
+use super::sft_state::{ITokenState, ITokensState};
 
 pub enum TokenSecurityError {
     /// The token is paused.
