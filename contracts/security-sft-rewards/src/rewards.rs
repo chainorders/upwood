@@ -27,7 +27,7 @@ use super::types::*;
 pub struct TransferAddRewardParams {
     pub token_contract: ContractAddress,
     pub token_id:       TokenIdVec,
-    pub rate:           Rate,
+    pub data:           AddRewardContractParam,
 }
 
 #[receive(
@@ -46,7 +46,7 @@ pub fn transfer_add_reward(ctx: &ReceiveContext, host: &mut Host<State>) -> Cont
     );
     let params: TransferAddRewardParams = ctx.parameter_cursor().get()?;
     let curr_supply: TokenAmount = state.supply_of(&state.tracked_token_id)?;
-    let (rewarded_amount, _) = params.rate.convert(&curr_supply.0)?;
+    let (rewarded_amount, _) = params.data.rate.convert(&curr_supply.0)?;
     let rewarded_token_amount = TokenAmountU64(rewarded_amount);
     let receive_add_reward_receiver = Receiver::Contract(
         ctx.self_address(),
@@ -59,16 +59,23 @@ pub fn transfer_add_reward(ctx: &ReceiveContext, host: &mut Host<State>) -> Cont
         amount:   rewarded_token_amount,
         from:     sender,
         to:       receive_add_reward_receiver,
-        data:     to_additional_data(params.rate).map_err(|_| Error::InvalidRewardRate)?,
+        data:     to_additional_data(params.data).map_err(|_| Error::InvalidRewardRate)?,
     })?;
 
     Ok(())
 }
 
+#[derive(Debug, Serialize, Clone, SchemaType)]
+pub struct AddRewardContractParam {
+    pub metadata_url: ContractMetadataUrl,
+    pub rate:         Rate,
+}
+
 /// The parameters for the deposit function
 /// The token id is the token id of the token to be deposited
 /// The amount is the amount of tokens to be deposited hence any amount with size less than u64 can be deposited
-pub type ReceiveAddRewardParam = OnReceivingCis2DataParams<TokenIdVec, TokenAmountU64, Rate>;
+pub type ReceiveAddRewardParam =
+    OnReceivingCis2DataParams<TokenIdVec, TokenAmountU64, AddRewardContractParam>;
 
 #[receive(
     contract = "security_sft_rewards",
@@ -89,29 +96,27 @@ pub fn receive_add_reward(
     };
     let params: ReceiveAddRewardParam = ctx.parameter_cursor().get()?;
 
-    let rewarded_token_metadata_url =
-        cis2_client::token_metadata_single(host, token_contract, params.token_id.clone())?;
-
     let state = host.state_mut();
     // Check if the agent / instigator is authorized to add rewards
     ensure!(
         state.is_agent(&Address::Account(ctx.invoker()), vec![AgentRole::Rewarder]),
         Error::Unauthorized
     );
+    let param_metadata_url: MetadataUrl = params.data.metadata_url.into();
     let (old_token_id, new_token_id) =
         state.add_reward(state.blank_reward_metadata_url.clone(), AddRewardParam {
-            metadata_url: rewarded_token_metadata_url.clone(),
+            metadata_url: param_metadata_url.clone(),
             reward:       RewardDeposited {
                 token_id: params.token_id,
                 token_contract,
                 token_amount: params.amount,
-                rate: params.data,
+                rate: params.data.rate,
             },
         })?;
 
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
         token_id:     old_token_id,
-        metadata_url: rewarded_token_metadata_url,
+        metadata_url: param_metadata_url,
     })))?;
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
         token_id:     new_token_id,
