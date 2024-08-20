@@ -139,15 +139,17 @@ impl TokenState {
 
     pub fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
 }
-impl ITokenState for TokenState {
+impl ITokenState<StateApi> for TokenState {
     fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
 }
-impl ISecurityTokenState for TokenState {
+impl ISecurityTokenState<StateApi> for TokenState {
     fn paused(&self) -> bool { self.paused }
 
-    fn set_paused(&mut self, is_paused: bool) { self.paused = is_paused; }
+    fn pause(&mut self) { self.paused = true; }
+
+    fn un_pause(&mut self) { self.paused = false; }
 }
-impl ICis2TokenState<TokenAmount> for TokenState {
+impl ICis2TokenState<TokenAmount, StateApi> for TokenState {
     fn inc_supply(&mut self, amount: TokenAmount) { self.supply = self.supply.add(amount); }
 
     fn dec_supply(&mut self, amount: TokenAmount) -> Cis2Result<()> {
@@ -159,7 +161,7 @@ impl ICis2TokenState<TokenAmount> for TokenState {
 
     fn supply(&self) -> TokenAmount { self.supply }
 }
-impl ICis2SecurityTokenState<TokenAmount> for TokenState {}
+impl ICis2SecurityTokenState<TokenAmount, StateApi> for TokenState {}
 
 #[derive(Deserial, Serial)]
 pub struct HolderStateBalance {

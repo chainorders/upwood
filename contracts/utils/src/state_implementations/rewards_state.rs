@@ -55,8 +55,8 @@ impl<TDeposit: IsTokenId, ADeposit: IsTokenAmount> RewardDeposited<TDeposit, ADe
     pub fn reward_token_contract(&self) -> ContractAddress { self.token_contract }
 }
 
-pub trait IRewardTokenState<T, A, TDeposit: IsTokenId, ADeposit: IsTokenAmount, S>:
-    ICis2TokenState<A> {
+pub trait IRewardTokenState<T, A, TDeposit: IsTokenId, ADeposit: IsTokenAmount, S: HasStateApi>:
+    ICis2TokenState<A, S> {
     fn new(metadata_url: MetadataUrl) -> Self;
     fn reward(&self) -> Option<RewardDeposited<TDeposit, ADeposit>>;
     fn attach_reward(&mut self, params: AddRewardParam<TDeposit, ADeposit>);
@@ -82,6 +82,16 @@ pub trait IRewardsState<
     fn max_reward_token_id(&self) -> T;
     fn min_reward_token_id(&self) -> T;
     fn set_max_reward_token_id(&mut self, token_id: T);
+
+    fn reward(
+        &self,
+        token_id: &T,
+    ) -> RewardsStateResult<Option<RewardDeposited<TDeposit, ADeposit>>> {
+        self.tokens()
+            .get(token_id)
+            .map(|r| r.reward())
+            .ok_or(RewardsStateError::InvalidTokenId)
+    }
 
     fn add_reward(
         &mut self,

@@ -13,7 +13,7 @@ pub enum Cis2StateError {
     InvalidAmount,
 }
 
-pub trait ICis2TokenState<A>: ITokenState {
+pub trait ICis2TokenState<A, S: HasStateApi>: ITokenState<S> {
     fn inc_supply(&mut self, amount: A);
     fn dec_supply(&mut self, amount: A) -> Cis2Result<()>;
     fn supply(&self) -> A;
@@ -22,7 +22,7 @@ pub trait ICis2TokenState<A>: ITokenState {
 pub trait ICis2State<
     T: IsTokenId,
     A: IsTokenAmount,
-    TTokenState: ICis2TokenState<A>,
+    TTokenState: ICis2TokenState<A, S>,
     THolderState: IHolderState<T, A, S>,
     S: HasStateApi,
 >: IHoldersState<T, A, THolderState, S>+ITokensState<T, TTokenState, S> {
@@ -101,7 +101,7 @@ pub trait ICis2SingleState<
     A: IsTokenAmount,
     THolderState: IHolderState<TokenIdUnit, A, S>,
     S: HasStateApi,
->: IHoldersState<TokenIdUnit, A, THolderState, S>+ICis2TokenState<A> {
+>: IHoldersState<TokenIdUnit, A, THolderState, S>+ICis2TokenState<A, S> {
     fn mint(
         &mut self,
         amount: A,

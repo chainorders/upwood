@@ -9,7 +9,9 @@ use super::holders_security_state::{
 use super::holders_state::IHolderState;
 use super::tokens_security_state::{ISecurityTokenState, ITokensSecurityState, TokenSecurityError};
 
-pub trait ICis2SecurityTokenState<A>: ISecurityTokenState+ICis2TokenState<A> {}
+pub trait ICis2SecurityTokenState<A, S: HasStateApi>:
+    ISecurityTokenState<S>+ICis2TokenState<A, S> {
+}
 
 /// Trait representing the security state of the Cis2 contract.
 /// It combines the functionality of `ITokensSecurityState` and
@@ -17,7 +19,7 @@ pub trait ICis2SecurityTokenState<A>: ISecurityTokenState+ICis2TokenState<A> {}
 pub trait ICis2SecurityState<
     T: IsTokenId,
     A: IsTokenAmount,
-    TTokenState: ICis2SecurityTokenState<A>,
+    TTokenState: ICis2SecurityTokenState<A, S>,
     THolderState: IHolderState<T, A, S>+ISecurityHolderState<T, A, S>,
     S: HasStateApi,
 >: ITokensSecurityState<T, TTokenState, S>+IHoldersSecurityState<T, A, THolderState, S>+ICis2State<T, A, TTokenState, THolderState, S>
@@ -143,10 +145,9 @@ impl From<Cis2StateError> for Cis2SecurityStateError {
 
 pub trait ICis2SingleSecurityState<
     A: IsTokenAmount,
-    TTokenState: ICis2SecurityTokenState<A>,
     THolderState: ISecurityHolderState<TokenIdUnit, A, S>,
     S: HasStateApi,
->: ICis2SecurityTokenState<A>+IHoldersSecurityState<TokenIdUnit, A, THolderState, S>+ICis2SingleState<A, THolderState, S>
+>: ICis2SecurityTokenState<A, S>+IHoldersSecurityState<TokenIdUnit, A, THolderState, S>+ICis2SingleState<A, THolderState, S>
 {
     /// Sets the compliance contract address.
     fn set_compliance(&mut self, compliance: ContractAddress);

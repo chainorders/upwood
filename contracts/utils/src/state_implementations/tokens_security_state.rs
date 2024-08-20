@@ -9,11 +9,12 @@ pub enum TokenSecurityError {
     InvalidTokenId,
 }
 
-pub trait ISecurityTokenState: ITokenState {
+pub trait ISecurityTokenState<S: HasStateApi>: ITokenState<S> {
     /// Returns `true` if the token is paused, `false` otherwise.
     fn paused(&self) -> bool;
     /// Sets the `is_paused` field to the given value.
-    fn set_paused(&mut self, is_paused: bool);
+    fn pause(&mut self);
+    fn un_pause(&mut self);
 
     fn ensure_not_paused(&self) -> Result<(), TokenSecurityError> {
         ensure!(!self.paused(), TokenSecurityError::PausedToken);
@@ -23,7 +24,7 @@ pub trait ISecurityTokenState: ITokenState {
 
 /// The `ITokensSecurityState` trait defines the interface for managing the
 /// security state of tokens.
-pub trait ITokensSecurityState<T: IsTokenId, TTokenState: ISecurityTokenState, S: HasStateApi>:
+pub trait ITokensSecurityState<T: IsTokenId, TTokenState: ISecurityTokenState<S>, S: HasStateApi>:
     ITokensState<T, TTokenState, S> {
     /// Checks if the token with the given ID is paused.
     ///
@@ -65,7 +66,7 @@ pub trait ITokensSecurityState<T: IsTokenId, TTokenState: ISecurityTokenState, S
         self.tokens_mut()
             .entry(token_id)
             .occupied_or(TokenSecurityError::InvalidTokenId)?
-            .modify(|t| t.set_paused(true));
+            .modify(|t| t.pause());
 
         Ok(())
     }
@@ -81,7 +82,7 @@ pub trait ITokensSecurityState<T: IsTokenId, TTokenState: ISecurityTokenState, S
         self.tokens_mut()
             .entry(token_id)
             .occupied_or(TokenSecurityError::InvalidTokenId)?
-            .modify(|t: &mut TTokenState| t.set_paused(false));
+            .modify(|t: &mut TTokenState| t.un_pause());
 
         Ok(())
     }

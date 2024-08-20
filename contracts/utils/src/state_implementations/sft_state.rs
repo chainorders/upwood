@@ -7,11 +7,11 @@ pub enum TokenStateError {
 
 pub type TokenStateResult<T> = Result<T, TokenStateError>;
 
-pub trait ITokenState: Serialize+Clone {
+pub trait ITokenState<S: HasStateApi>: Serial+DeserialWithState<S> {
     fn metadata_url(&self) -> &MetadataUrl;
 }
 
-pub trait ITokensState<T: IsTokenId, TTokenState: ITokenState, S: HasStateApi> {
+pub trait ITokensState<T: IsTokenId, TTokenState: ITokenState<S>, S: HasStateApi> {
     fn tokens(&self) -> &StateMap<T, TTokenState, S>;
     fn tokens_mut(&mut self) -> &mut StateMap<T, TTokenState, S>;
 
@@ -30,13 +30,6 @@ pub trait ITokensState<T: IsTokenId, TTokenState: ITokenState, S: HasStateApi> {
     fn ensure_token_exists(&self, token_id: &T) -> TokenStateResult<()> {
         ensure!(self.token_exists(token_id), TokenStateError::InvalidTokenId);
         Ok(())
-    }
-
-    fn token(&self, token_id: &T) -> TokenStateResult<TTokenState> {
-        self.tokens()
-            .get(token_id)
-            .map(|token| token.clone())
-            .ok_or(TokenStateError::InvalidTokenId)
     }
 
     /// Adds a token with the given ID and metadata URL to the state.

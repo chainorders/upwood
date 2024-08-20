@@ -10,9 +10,8 @@ use concordium_rwa_utils::conversions::to_additional_data;
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::cis2_state::ICis2State;
 use concordium_rwa_utils::state_implementations::rewards_state::{
-    AddRewardParam, IRewardTokenState, IRewardsState, RewardDeposited,
+    AddRewardParam, IRewardsState, RewardDeposited,
 };
-use concordium_rwa_utils::state_implementations::sft_state::ITokensState;
 use concordium_std::ops::Sub;
 use concordium_std::{
     bail, receive, Address, Get, HasCommonData, HasHost, HasLogger, HasReceiveContext, Host,
@@ -150,7 +149,7 @@ pub fn claim_rewards(
         let (state, state_builder) = host.state_and_builder();
         // exchange the reward token with the next reward token
 
-        let reward_token = state.token(&claim.token_id)?.reward();
+        let reward_token = state.reward(&claim.token_id)?;
 
         // if the reward token has attached rewards.
         // Upon removing the rewards the token is left but the attached rewards are removed
