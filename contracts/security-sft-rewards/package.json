@@ -1,5 +1,5 @@
 {
-	"name": "concordium-security-sft-single",
+	"name": "concordium-security-sft-rewards",
 	"version": "0.1.0",
 	"scripts": {
 		"format": "cargo +nightly-2023-04-01 fmt",

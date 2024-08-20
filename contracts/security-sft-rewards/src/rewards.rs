@@ -34,7 +34,7 @@ pub struct TransferAddRewardParams {
     contract = "security_sft_rewards",
     name = "transferAddReward",
     mutable,
-    parameter = "ReceiveAddRewardParam",
+    parameter = "TransferAddRewardParams",
     error = "Error"
 )]
 pub fn transfer_add_reward(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
@@ -98,7 +98,7 @@ pub fn receive_add_reward(
         state.is_agent(&Address::Account(ctx.invoker()), vec![AgentRole::Rewarder]),
         Error::Unauthorized
     );
-    let reward_token_id =
+    let (old_token_id, new_token_id) =
         state.add_reward(state.blank_reward_metadata_url.clone(), AddRewardParam {
             metadata_url: rewarded_token_metadata_url.clone(),
             reward:       RewardDeposited {
@@ -110,8 +110,12 @@ pub fn receive_add_reward(
         })?;
 
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
-        token_id:     reward_token_id,
+        token_id:     old_token_id,
         metadata_url: rewarded_token_metadata_url,
+    })))?;
+    logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        token_id:     new_token_id,
+        metadata_url: state.blank_reward_metadata_url.clone(),
     })))?;
 
     Ok(())
