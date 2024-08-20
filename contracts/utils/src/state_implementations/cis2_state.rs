@@ -1,3 +1,4 @@
+use concordium_cis2::TokenIdUnit;
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
 use concordium_std::*;
 
@@ -94,4 +95,45 @@ impl From<HolderStateError> for Cis2StateError {
             HolderStateError::InsufficientFunds => Cis2StateError::InsufficientFunds,
         }
     }
+}
+
+pub trait ICis2SingleState<
+    A: IsTokenAmount,
+    THolderState: IHolderState<TokenIdUnit, A, S>,
+    S: HasStateApi,
+>: IHoldersState<TokenIdUnit, A, THolderState, S>+ICis2TokenState<A> {
+    fn mint(
+        &mut self,
+        amount: A,
+        to: &Address,
+        state_builder: &mut StateBuilder<S>,
+    ) -> Result<(), Cis2StateError> {
+        self.inc_supply(amount);
+        self.add_balance(to, &TokenIdUnit(), amount, state_builder);
+
+        Ok(())
+    }
+
+    fn burn(&mut self, amount: A, from: &Address) -> Result<(), Cis2StateError> {
+        self.sub_balance(from, &TokenIdUnit(), amount)?;
+        self.dec_supply(amount)?;
+        Ok(())
+    }
+
+    fn transfer(
+        &mut self,
+        from: &Address,
+        to: &Address,
+        amount: A,
+        state_builder: &mut StateBuilder<S>,
+    ) -> Result<(), Cis2StateError> {
+        self.sub_balance(from, &TokenIdUnit(), amount)?;
+        self.add_balance(to, &TokenIdUnit(), amount, state_builder);
+
+        Ok(())
+    }
+
+    fn metadata_url(&self) -> MetadataUrl { ITokenState::metadata_url(self).clone() }
+
+    fn supply_of(&self) -> A { self.supply() }
 }

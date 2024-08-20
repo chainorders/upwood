@@ -1,7 +1,9 @@
 use concordium_cis2::{TokenAmountU64, TokenIdVec};
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
+use concordium_rwa_utils::state_implementations::cis2_security_state::{
+    ICis2SecurityState, ICis2SecurityTokenState,
+};
 use concordium_rwa_utils::state_implementations::cis2_state::{
     Cis2Result, Cis2StateError, ICis2State, ICis2TokenState,
 };
@@ -157,6 +159,7 @@ impl ICis2TokenState<TokenAmount> for TokenState {
 
     fn supply(&self) -> TokenAmount { self.supply }
 }
+impl ICis2SecurityTokenState<TokenAmount> for TokenState {}
 
 #[derive(Deserial, Serial)]
 pub struct HolderStateBalance {
@@ -222,6 +225,7 @@ pub struct HolderState<S=StateApi> {
     pub operators: StateSet<Address, S>,
     pub balances:  StateMap<TokenId, HolderStateBalance, S>,
 }
+
 impl IHolderState<TokenId, TokenAmount, StateApi> for HolderState {
     fn is_operator(&self, operator: &Address) -> bool { self.operators.contains(operator) }
 

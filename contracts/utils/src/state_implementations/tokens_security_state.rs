@@ -14,6 +14,11 @@ pub trait ISecurityTokenState: ITokenState {
     fn paused(&self) -> bool;
     /// Sets the `is_paused` field to the given value.
     fn set_paused(&mut self, is_paused: bool);
+
+    fn ensure_not_paused(&self) -> Result<(), TokenSecurityError> {
+        ensure!(!self.paused(), TokenSecurityError::PausedToken);
+        Ok(())
+    }
 }
 
 /// The `ITokensSecurityState` trait defines the interface for managing the
@@ -41,14 +46,12 @@ pub trait ITokensSecurityState<T: IsTokenId, TTokenState: ISecurityTokenState, S
     ///
     /// # Errors
     ///
-    /// Returns a `TokenSecurityError::TokenPaused` error if the token is
-    /// paused.
+    /// Returns a `TokenSecurityError::TokenPaused` error if the token is paused.
     fn ensure_not_paused(&self, token_id: &T) -> Result<(), TokenSecurityError> {
-        if self.is_paused(token_id) {
-            Err(TokenSecurityError::PausedToken)
-        } else {
-            Ok(())
-        }
+        self.tokens()
+            .get(token_id)
+            .map(|t| t.ensure_not_paused())
+            .unwrap_or(Ok(()))
     }
 
     /// Pauses the token with the given ID.

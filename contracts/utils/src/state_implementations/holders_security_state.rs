@@ -24,7 +24,7 @@ impl From<HolderStateError> for HolderSecurityStateError {
 
 pub type HolderSecurityStateResult<T> = Result<T, HolderSecurityStateError>;
 
-pub trait ISecurityHolderState<T, A, S> {
+pub trait ISecurityHolderState<T, A, S: HasStateApi>: IHolderState<T, A, S> {
     fn freeze(&mut self, token_id: &T, amount: A) -> HolderSecurityStateResult<()>;
     fn un_freeze(&mut self, token_id: &T, amount: A) -> HolderSecurityStateResult<()>;
     fn balance_of_frozen(&self, token_id: &T) -> A;
