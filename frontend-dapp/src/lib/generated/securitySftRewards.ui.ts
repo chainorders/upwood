@@ -5600,8 +5600,48 @@ export const receiveAddRewardRequestJsonSchema: RJSFSchema = {
 			type: "object",
 			title: "Data",
 			properties: {
-				numerator: { type: "integer", minimum: 0, title: "Numerator" },
-				denominator: { type: "integer", minimum: 0, title: "Denominator" },
+				metadata_url: {
+					type: "object",
+					title: "Metadata Url",
+					properties: {
+						url: { type: "string", title: "Url", default: "" },
+						hash: {
+							type: "object",
+							title: "Hash",
+							properties: { tag: { type: "string", enum: ["None", "Some"] } },
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["None"] },
+												None: { type: "object", title: "None", properties: {} },
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Some"] },
+												Some: {
+													type: "array",
+													items: { type: "string", title: "", default: "" },
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				rate: {
+					type: "object",
+					title: "Rate",
+					properties: {
+						numerator: { type: "integer", minimum: 0, title: "Numerator" },
+						denominator: { type: "integer", minimum: 0, title: "Denominator" },
+					},
+				},
 			},
 		},
 	},
@@ -5612,7 +5652,13 @@ export type ReceiveAddRewardRequestUi = {
 	from:
 		| { tag: "Account"; Account: [string] }
 		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	data: { numerator: number; denominator: number };
+	data: {
+		metadata_url: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+		rate: { numerator: number; denominator: number };
+	};
 };
 export const receiveAddRewardErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -8367,12 +8413,52 @@ export const transferAddRewardRequestJsonSchema: RJSFSchema = {
 			default: "",
 			format: "byte",
 		},
-		rate: {
+		data: {
 			type: "object",
-			title: "Rate",
+			title: "Data",
 			properties: {
-				numerator: { type: "integer", minimum: 0, title: "Numerator" },
-				denominator: { type: "integer", minimum: 0, title: "Denominator" },
+				metadata_url: {
+					type: "object",
+					title: "Metadata Url",
+					properties: {
+						url: { type: "string", title: "Url", default: "" },
+						hash: {
+							type: "object",
+							title: "Hash",
+							properties: { tag: { type: "string", enum: ["None", "Some"] } },
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["None"] },
+												None: { type: "object", title: "None", properties: {} },
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Some"] },
+												Some: {
+													type: "array",
+													items: { type: "string", title: "", default: "" },
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				rate: {
+					type: "object",
+					title: "Rate",
+					properties: {
+						numerator: { type: "integer", minimum: 0, title: "Numerator" },
+						denominator: { type: "integer", minimum: 0, title: "Denominator" },
+					},
+				},
 			},
 		},
 	},
@@ -8380,7 +8466,13 @@ export const transferAddRewardRequestJsonSchema: RJSFSchema = {
 export type TransferAddRewardRequestUi = {
 	token_contract: { index: number; subindex: number };
 	token_id: string;
-	rate: { numerator: number; denominator: number };
+	data: {
+		metadata_url: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+		rate: { numerator: number; denominator: number };
+	};
 };
 export const transferAddRewardErrorJsonSchema: RJSFSchema = {
 	type: "object",
