@@ -27,9 +27,7 @@ pub fn balance_of(
     let state = host.state();
     let res: Result<Vec<TokenAmount>, Error> = queries
         .iter()
-        .map(|q| {
-            Ok(state.balance_of(&q.address, &q.token_id))
-        })
+        .map(|q| Ok(state.balance_of(&q.address, &q.token_id)))
         .collect();
 
     Ok(concordium_cis2::BalanceOfQueryResponse(res?))

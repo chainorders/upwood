@@ -5600,8 +5600,48 @@ export const receiveAddRewardRequestJsonSchema: RJSFSchema = {
 			type: "object",
 			title: "Data",
 			properties: {
-				numerator: { type: "integer", minimum: 0, title: "Numerator" },
-				denominator: { type: "integer", minimum: 0, title: "Denominator" },
+				metadata_url: {
+					type: "object",
+					title: "Metadata Url",
+					properties: {
+						url: { type: "string", title: "Url", default: "" },
+						hash: {
+							type: "object",
+							title: "Hash",
+							properties: { tag: { type: "string", enum: ["None", "Some"] } },
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["None"] },
+												None: { type: "object", title: "None", properties: {} },
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Some"] },
+												Some: {
+													type: "array",
+													items: { type: "string", title: "", default: "" },
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				rate: {
+					type: "object",
+					title: "Rate",
+					properties: {
+						numerator: { type: "integer", minimum: 0, title: "Numerator" },
+						denominator: { type: "integer", minimum: 0, title: "Denominator" },
+					},
+				},
 			},
 		},
 	},
@@ -5612,7 +5652,13 @@ export type ReceiveAddRewardRequestUi = {
 	from:
 		| { tag: "Account"; Account: [string] }
 		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	data: { numerator: number; denominator: number };
+	data: {
+		metadata_url: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+		rate: { numerator: number; denominator: number };
+	};
 };
 export const receiveAddRewardErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -8353,67 +8399,80 @@ export const transferAddRewardRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Transfer Add Reward Request",
 	properties: {
+		token_contract: {
+			type: "object",
+			title: "Token Contract",
+			properties: {
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
+			},
+		},
 		token_id: {
 			type: "string",
 			title: "Token Id",
 			default: "",
 			format: "byte",
 		},
-		amount: { type: "string", title: "Amount" },
-		from: {
-			type: "object",
-			title: "From",
-			properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-			required: ["tag"],
-			dependencies: {
-				tag: {
-					oneOf: [
-						{
-							properties: {
-								tag: { enum: ["Account"] },
-								Account: {
-									type: "array",
-									items: { type: "string", title: "" },
-								},
-							},
-						},
-						{
-							properties: {
-								tag: { enum: ["Contract"] },
-								Contract: {
-									type: "array",
-									items: {
-										type: "object",
-										title: "",
-										properties: {
-											index: { type: "integer", minimum: 0 },
-											subindex: { type: "integer", minimum: 0 },
-										},
-									},
-								},
-							},
-						},
-					],
-				},
-			},
-		},
 		data: {
 			type: "object",
 			title: "Data",
 			properties: {
-				numerator: { type: "integer", minimum: 0, title: "Numerator" },
-				denominator: { type: "integer", minimum: 0, title: "Denominator" },
+				metadata_url: {
+					type: "object",
+					title: "Metadata Url",
+					properties: {
+						url: { type: "string", title: "Url", default: "" },
+						hash: {
+							type: "object",
+							title: "Hash",
+							properties: { tag: { type: "string", enum: ["None", "Some"] } },
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["None"] },
+												None: { type: "object", title: "None", properties: {} },
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Some"] },
+												Some: {
+													type: "array",
+													items: { type: "string", title: "", default: "" },
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+				rate: {
+					type: "object",
+					title: "Rate",
+					properties: {
+						numerator: { type: "integer", minimum: 0, title: "Numerator" },
+						denominator: { type: "integer", minimum: 0, title: "Denominator" },
+					},
+				},
 			},
 		},
 	},
 };
 export type TransferAddRewardRequestUi = {
+	token_contract: { index: number; subindex: number };
 	token_id: string;
-	amount: string;
-	from:
-		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	data: { numerator: number; denominator: number };
+	data: {
+		metadata_url: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+		rate: { numerator: number; denominator: number };
+	};
 };
 export const transferAddRewardErrorJsonSchema: RJSFSchema = {
 	type: "object",

@@ -9,7 +9,7 @@ use concordium_protocols::concordium_cis2_ext::PlusSubOne;
 use concordium_rwa_market::types::Rate;
 use concordium_smart_contract_testing::*;
 use security_sft_rewards::rewards::{
-    ClaimRewardsParam, ClaimRewardsParams, TransferAddRewardParams,
+    AddRewardContractParam, ClaimRewardsParam, ClaimRewardsParams, TransferAddRewardParams,
 };
 use security_sft_rewards::types::{ContractMetadataUrl, InitParam, MintParam};
 use utils::*;
@@ -66,7 +66,7 @@ fn normal_reward_distribution() {
         sponsors:                  vec![],
         blank_reward_metadata_url: ContractMetadataUrl {
             hash: None,
-            url:  "reward.example.com".to_string(),
+            url:  "blank_reward.example.com".to_string(),
         },
         tracked_token_id:          SFT_TOKEN_ID,
         min_reward_token_id:       MIN_REWARD_TOKEN_ID,
@@ -114,7 +114,13 @@ fn normal_reward_distribution() {
         &TransferAddRewardParams {
             token_id:       to_token_id_vec(TokenIdUnit()),
             token_contract: euroe,
-            rate:           Rate::new(10, 1).unwrap(),
+            data:           AddRewardContractParam {
+                metadata_url: ContractMetadataUrl {
+                    url:  "reward1.example.com".to_string(),
+                    hash: None,
+                },
+                rate:         Rate::new(10, 1).unwrap(),
+            },
         },
     );
 

@@ -578,10 +578,16 @@ export type ReceiveAddRewardRequest = {
 	from:
 		| { Account: [string] }
 		| { Contract: [{ index: number; subindex: number }] };
-	data: { numerator: bigint; denominator: bigint };
+	data: {
+		metadata_url: {
+			url: string;
+			hash: { None: Record<string, never> } | { Some: [string] };
+		};
+		rate: { numerator: bigint; denominator: bigint };
+	};
 };
 export const receiveAddRewardRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQ==";
+	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAwAAABtZXRhZGF0YV91cmwUAAIAAAADAAAAdXJsFgIEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAABYCBAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgU=";
 export type RecoverError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -854,15 +860,18 @@ export type TransferAddRewardError =
 export const transferAddRewardErrorSchemaBase64 =
 	"FRQAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICDwAAAENvbXBsaWFuY2VFcnJvcgIRAAAAQ2FsbENvbnRyYWN0RXJyb3ICCwAAAFBhdXNlZFRva2VuAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwISAAAAQWdlbnRBbHJlYWR5RXhpc3RzAg0AAABBZ2VudE5vdEZvdW5kAgsAAABPbmx5QWNjb3VudAISAAAASW52YWxpZERlcG9zaXREYXRhAhEAAABDaXMyV2l0aGRyYXdFcnJvcgIUAAAASW5zdWZmaWNpZW50RGVwb3NpdHMCDAAAAE5vdERlcG9zaXRlZAIRAAAASW52YWxpZFJld2FyZFJhdGUC";
 export type TransferAddRewardRequest = {
+	token_contract: { index: number; subindex: number };
 	token_id: string;
-	amount: string;
-	from:
-		| { Account: [string] }
-		| { Contract: [{ index: number; subindex: number }] };
-	data: { numerator: bigint; denominator: bigint };
+	data: {
+		metadata_url: {
+			url: string;
+			hash: { None: Record<string, never> } | { Some: [string] };
+		};
+		rate: { numerator: bigint; denominator: bigint };
+	};
 };
 export const transferAddRewardRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQ==";
+	"FAADAAAADgAAAHRva2VuX2NvbnRyYWN0DAgAAAB0b2tlbl9pZB0ABAAAAGRhdGEUAAIAAAAMAAAAbWV0YWRhdGFfdXJsFAACAAAAAwAAAHVybBYCBAAAAGhhc2gVAgAAAAQAAABOb25lAgQAAABTb21lAQEAAAAWAgQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IF";
 export type UnFreezeError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -1156,7 +1165,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const securitySftRewards = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"45307a427c8355b1fcbce2a9952cae5759628b9bcbdec7fa2e1a0bc0f440c0e0",
+			"2d284a0774102a00bd73447537489ab2c7e08d6e22ef5fe405da5b3d8f8346a2",
 		),
 		ContractName.fromString("security_sft_rewards"),
 		initRequestSchemaBase64,

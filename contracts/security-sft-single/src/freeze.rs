@@ -1,7 +1,7 @@
 use concordium_protocols::concordium_cis2_security::TokenFrozen;
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
 use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
-use concordium_rwa_utils::state_implementations::sft_state::{TokenStateResult};
+use concordium_rwa_utils::state_implementations::sft_state::TokenStateResult;
 use concordium_std::*;
 
 use super::error::*;
@@ -120,9 +120,7 @@ pub fn balance_of_frozen(
 
     let amounts = queries
         .iter()
-        .map(|query| {
-            Ok(state.balance_of_frozen(&query.address, &query.token_id))
-        })
+        .map(|query| Ok(state.balance_of_frozen(&query.address, &query.token_id)))
         .collect::<TokenStateResult<Vec<_>>>()?;
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
@@ -154,9 +152,7 @@ pub fn balance_of_un_frozen(
 
     let amounts = queries
         .iter()
-        .map(|query| {
-            Ok(state.balance_of_unfrozen(&query.address, &query.token_id))
-        })
+        .map(|query| Ok(state.balance_of_unfrozen(&query.address, &query.token_id)))
         .collect::<TokenStateResult<Vec<_>>>()?;
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
