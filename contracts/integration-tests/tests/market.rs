@@ -1,6 +1,6 @@
 #![allow(clippy::diverging_sub_expression, clippy::too_many_arguments)]
 
-pub mod utils;
+mod utils;
 
 use concordium_cis2::{
     AdditionalData, Receiver, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdUnit, TokenIdVec,
@@ -47,7 +47,7 @@ fn market_buy_via_transfer_of_cis2() {
 
     identity_registry::deploy_module(&mut chain, &admin);
     compliance::deploy_module(&mut chain, &admin);
-    sft_security::deploy_module(&mut chain, &admin);
+    security_sft_rewards_client::deploy_module(&mut chain, &admin);
     market::deploy_module(&mut chain, &admin);
     let ir_contract = identity_registry::init(&mut chain, &admin).contract_address;
     let compliance_contract = compliance::init_all(
@@ -64,7 +64,7 @@ fn market_buy_via_transfer_of_cis2() {
         &Address::Account(ir_agent.address),
     );
 
-    let token_contract = sft_security::init(&mut chain, &admin, &InitParam {
+    let token_contract = security_sft_rewards_client::init(&mut chain, &admin, &InitParam {
         compliance:                compliance_contract,
         identity_registry:         ir_contract,
         metadata_url:              ContractMetadataUrl {
@@ -80,7 +80,7 @@ fn market_buy_via_transfer_of_cis2() {
         min_reward_token_id:       TokenIdU32(1),
     })
     .contract_address;
-    sft_security::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
+    security_sft_rewards_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(token_contract_agent.address),
         roles:   vec![AgentRole::Mint],
     });
@@ -110,7 +110,7 @@ fn market_buy_via_transfer_of_cis2() {
         (Address::Account(seller.address), COMPLIANT_NATIONALITIES[1]),
     ]);
     let buy_token = TokenIdU32(0);
-    sft_security::mint(
+    security_sft_rewards_client::mint(
         &mut chain,
         &token_contract_agent,
         &token_contract,
@@ -138,7 +138,7 @@ fn market_buy_via_transfer_of_cis2() {
         id:       to_token_id_vec(buy_token),
     };
 
-    sft_security::transfer_single(
+    security_sft_rewards_client::transfer_single(
         &mut chain,
         &seller,
         token_contract,
@@ -279,7 +279,7 @@ fn market_buy_via_transfer_of_cis2() {
 
     // Settlement of the Buy Token
     assert_eq!(
-        sft_security::balance_of_single(
+        security_sft_rewards_client::balance_of_single(
             &mut chain,
             &admin,
             token_contract,
@@ -290,7 +290,7 @@ fn market_buy_via_transfer_of_cis2() {
         "Seller balance"
     );
     assert_eq!(
-        sft_security::balance_of_single(
+        security_sft_rewards_client::balance_of_single(
             &mut chain,
             &admin,
             token_contract,

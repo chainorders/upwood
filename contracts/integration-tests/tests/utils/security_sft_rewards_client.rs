@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use concordium_cis2::TransferParams;
 use concordium_smart_contract_testing::*;
 use security_sft_rewards::rewards::{ClaimRewardsParams, TransferAddRewardParams};
@@ -39,6 +41,32 @@ pub fn identity_registry(
     contract: ContractAddress,
 ) -> ContractAddress {
     cis2_security::identity_registry(chain, sender, contract, CONTRACT_NAME)
+}
+
+pub fn set_identity_registry(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: &ContractAddress,
+) -> ContractInvokeSuccess {
+    cis2_security::set_identity_registry(chain, sender, contract, CONTRACT_NAME, payload)
+}
+
+pub fn compliance(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+) -> ContractAddress {
+    cis2_security::compliance(chain, sender, contract, CONTRACT_NAME)
+}
+
+pub fn set_compliance(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: &ContractAddress,
+) -> ContractInvokeSuccess {
+    cis2_security::set_compliance(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
 pub fn add_agent(

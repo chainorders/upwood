@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId,
     OperatorOfQuery, OperatorOfQueryParams, OperatorOfQueryResponse, TransferParams,

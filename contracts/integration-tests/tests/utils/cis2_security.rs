@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use concordium_cis2::{
     BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId, TransferParams,
 };
@@ -149,7 +151,7 @@ where {
         .expect("Set Identity Registry")
 }
 
-pub fn set_compliance_registry(
+pub fn set_compliance(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
