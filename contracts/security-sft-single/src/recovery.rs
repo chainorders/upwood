@@ -1,6 +1,5 @@
 use concordium_protocols::concordium_cis2_security::{identity_registry_client, RecoverEvent};
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SingleSecurityState;
 use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
 use concordium_std::*;
 
@@ -33,7 +32,7 @@ pub fn recover(
     ensure!(
         identity_registry_client::is_same(
             host,
-            state.identity_registry(),
+            state.identity_registry,
             &lost_account,
             &new_account
         )?,

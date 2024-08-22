@@ -4,6 +4,7 @@ use security_sft_rewards::rewards::{ClaimRewardsParams, TransferAddRewardParams}
 use security_sft_rewards::types::*;
 
 use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
+
 pub const MODULE_PATH: &str = "../security-sft-rewards/contract.wasm.v1";
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_rewards");
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
@@ -75,26 +76,32 @@ pub fn mint(
     chain: &mut Chain,
     sender: &Account,
     contract: &ContractAddress,
-    payload: &MintParam,
-) -> ContractInvokeSuccess
-where {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      *contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    CONTRACT_NAME,
-                    EntrypointName::new_unchecked("mint"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("mint")
+    payload: &MintParams,
+) -> ContractInvokeSuccess {
+    mint_raw(chain, sender, contract, payload).expect("mint")
+}
+
+pub fn mint_raw(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: &ContractAddress,
+    payload: &MintParams,
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      *contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("mint"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn transfer_single(

@@ -325,17 +325,7 @@ impl IHoldersSecurityState<TokenId, TokenAmount, HolderState, StateApi> for Stat
     }
 }
 impl ICis2State<TokenId, TokenAmount, TokenState, HolderState, StateApi> for State {}
-impl ICis2SecurityState<TokenId, TokenAmount, TokenState, HolderState, StateApi> for State {
-    fn set_compliance(&mut self, compliance: ContractAddress) { self.compliance = compliance; }
-
-    fn set_identity_registry(&mut self, identity_registry: ContractAddress) {
-        self.identity_registry = identity_registry;
-    }
-
-    fn identity_registry(&self) -> ContractAddress { self.identity_registry }
-
-    fn compliance(&self) -> ContractAddress { self.compliance }
-}
+impl ICis2SecurityState<TokenId, TokenAmount, TokenState, HolderState, StateApi> for State {}
 
 // rewards state
 impl IRewardTokenState<TokenId, TokenAmount, TokenIdVec, TokenAmountU64, StateApi> for TokenState {

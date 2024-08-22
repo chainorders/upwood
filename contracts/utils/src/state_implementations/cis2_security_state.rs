@@ -1,6 +1,6 @@
 use concordium_cis2::TokenIdUnit;
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, IsTokenId};
-use concordium_std::{Address, ContractAddress, HasStateApi, StateBuilder};
+use concordium_std::{Address, HasStateApi, StateBuilder};
 
 use super::cis2_state::{Cis2StateError, ICis2SingleState, ICis2State, ICis2TokenState};
 use super::holders_security_state::{
@@ -24,18 +24,6 @@ pub trait ICis2SecurityState<
     S: HasStateApi,
 >: ITokensSecurityState<T, TTokenState, S>+IHoldersSecurityState<T, A, THolderState, S>+ICis2State<T, A, TTokenState, THolderState, S>
 {
-    /// Sets the compliance contract address.
-    fn set_compliance(&mut self, compliance: ContractAddress);
-
-    /// Sets the identity registry contract address.
-    fn set_identity_registry(&mut self, identity_registry: ContractAddress);
-
-    /// Returns the identity registry contract address.
-    fn identity_registry(&self) -> ContractAddress;
-
-    /// Returns the compliance contract address.
-    fn compliance(&self) -> ContractAddress;
-
     fn mint(
         &mut self,
         token_id: &T,
@@ -149,18 +137,6 @@ pub trait ICis2SingleSecurityState<
     S: HasStateApi,
 >: ICis2SecurityTokenState<A, S>+IHoldersSecurityState<TokenIdUnit, A, THolderState, S>+ICis2SingleState<A, THolderState, S>
 {
-    /// Sets the compliance contract address.
-    fn set_compliance(&mut self, compliance: ContractAddress);
-
-    /// Sets the identity registry contract address.
-    fn set_identity_registry(&mut self, identity_registry: ContractAddress);
-
-    /// Returns the identity registry contract address.
-    fn identity_registry(&self) -> ContractAddress;
-
-    /// Returns the compliance contract address.
-    fn compliance(&self) -> ContractAddress;
-
     fn mint(
         &mut self,
         amount: A,

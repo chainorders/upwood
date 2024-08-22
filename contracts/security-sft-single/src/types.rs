@@ -1,4 +1,4 @@
-use concordium_cis2::{Receiver, TokenIdUnit};
+use concordium_cis2::TokenIdUnit;
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, Cis2SecurityEvent};
 use concordium_std::{ContractAddress, SchemaType, Serialize};
@@ -60,6 +60,7 @@ pub type PauseParams = concordium_cis2_security::PauseParams<TokenId>;
 pub type IsPausedResponse = concordium_cis2_security::IsPausedResponse;
 pub type BalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
 pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
+pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 
@@ -69,14 +70,4 @@ pub struct InitParam {
     pub compliance:        ContractAddress,
     pub sponsors:          Vec<ContractAddress>,
     pub metadata_url:      ContractMetadataUrl,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct MintParam {
-    /// The owner of the minted token.
-    pub owner:    Receiver,
-    /// Token Id to Mint.
-    pub token_id: TokenId,
-    /// Amount to Mint.
-    pub amount:   TokenAmount,
 }

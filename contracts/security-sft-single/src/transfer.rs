@@ -67,7 +67,7 @@ pub fn transfer(
     };
 
     let concordium_cis2::TransferParams(transfers) = params;
-    let compliance = state.compliance();
+    let compliance = state.compliance;
 
     for concordium_cis2::Transfer {
         to,
@@ -80,11 +80,11 @@ pub fn transfer(
         let compliance_token = TokenUId::new(token_id, ctx.self_address());
         let state = host.state();
         ensure!(
-            identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
+            identity_registry_client::is_verified(host, state.identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
         );
         let compliance_can_transfer =
-            compliance_client::can_transfer(host, state.compliance(), &CanTransferParam {
+            compliance_client::can_transfer(host, state.compliance, &CanTransferParam {
                 token_id: compliance_token,
                 to: to.address(),
                 amount,
@@ -180,14 +180,14 @@ pub fn forced_transfer(
     {
         let state = host.state();
         ensure!(
-            identity_registry_client::is_verified(host, state.identity_registry(), &to.address())?,
+            identity_registry_client::is_verified(host, state.identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
         );
 
         let (state, state_builder) = host.state_and_builder();
         let un_frozen_balance =
             state.transfer(&from, &to.address(), amount, true, state_builder)?;
-        compliance_client::transferred(host, host.state().compliance(), &TransferredParam {
+        compliance_client::transferred(host, host.state().compliance, &TransferredParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             from,
             to: to.address(),

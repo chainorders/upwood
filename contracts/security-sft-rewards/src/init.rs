@@ -3,7 +3,6 @@ use concordium_protocols::concordium_cis2_security::{
     AgentUpdatedEvent, ComplianceAdded, IdentityRegistryAdded,
 };
 use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SecurityState;
 use concordium_rwa_utils::state_implementations::sft_state::ITokensState;
 use concordium_std::*;
 
@@ -87,7 +86,7 @@ pub fn identity_registry(
     _: &ReceiveContext,
     host: &Host<State>,
 ) -> ContractResult<ContractAddress> {
-    Ok(host.state().identity_registry())
+    Ok(host.state().identity_registry)
 }
 
 /// Sets the address of the identity registry contract.
@@ -119,7 +118,7 @@ pub fn set_identity_registry(
         Error::Unauthorized
     );
 
-    host.state_mut().set_identity_registry(identity_registry);
+    host.state_mut().identity_registry = identity_registry;
     logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
         identity_registry,
     )))?;
@@ -137,7 +136,7 @@ pub fn set_identity_registry(
     return_value = "ContractAddress"
 )]
 pub fn compliance(_: &ReceiveContext, host: &Host<State>) -> ContractResult<ContractAddress> {
-    Ok(host.state().compliance())
+    Ok(host.state().compliance)
 }
 
 /// Sets the compliance contract address.
@@ -175,7 +174,7 @@ pub fn set_compliance(
         Error::Unauthorized
     );
 
-    host.state_mut().set_compliance(compliance);
+    host.state_mut().compliance = compliance;
     logger.log(&Event::ComplianceAdded(ComplianceAdded(compliance)))?;
 
     Ok(())
