@@ -61,6 +61,7 @@ pub type IsPausedResponse = concordium_cis2_security::IsPausedResponse;
 pub type BalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
 pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
+pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 
@@ -68,7 +69,7 @@ pub use concordium_cis2_security::RecoverParam;
 pub struct InitParam {
     pub identity_registry:         ContractAddress,
     pub compliance:                ContractAddress,
-    pub sponsors:                  Vec<ContractAddress>,
+    pub sponsors:                  Option<ContractAddress>,
     pub metadata_url:              ContractMetadataUrl,
     pub blank_reward_metadata_url: ContractMetadataUrl,
     pub tracked_token_id:          TokenId,

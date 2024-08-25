@@ -80,9 +80,10 @@ fn normal_reward_distribution() {
         &admin,
         token_contract,
         &TransferAddRewardParams {
-            token_id:       to_token_id_vec(TokenIdUnit()),
-            token_contract: euroe,
-            data:           AddRewardContractParam {
+            token_id:              MIN_REWARD_TOKEN_ID,
+            reward_token_id:       to_token_id_vec(TokenIdUnit()),
+            reward_token_contract: euroe,
+            data:                  AddRewardContractParam {
                 metadata_url: ContractMetadataUrl {
                     url:  "reward1.example.com".to_string(),
                     hash: None,
@@ -335,7 +336,7 @@ fn create_token_contract(
             hash: None,
             url:  SFT_METADATA_URL.to_string(),
         },
-        sponsors:                  vec![],
+        sponsors:                  None,
         blank_reward_metadata_url: ContractMetadataUrl {
             hash: None,
             url:  MIN_REWARD_METADATA_URL.to_string(),

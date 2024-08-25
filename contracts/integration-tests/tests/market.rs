@@ -71,7 +71,7 @@ fn market_buy_via_transfer_of_cis2() {
             hash: None,
             url:  "example.com".to_string(),
         },
-        sponsors:                  vec![],
+        sponsors:                  None,
         blank_reward_metadata_url: ContractMetadataUrl {
             hash: None,
             url:  "reward.example.com".to_string(),

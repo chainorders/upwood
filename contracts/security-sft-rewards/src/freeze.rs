@@ -1,7 +1,5 @@
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::TokenFrozen;
-use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::holders_security_state::IHoldersSecurityState;
-use concordium_rwa_utils::state_implementations::sft_state::{ITokensState, TokenStateResult};
 use concordium_std::*;
 
 use super::error::*;
@@ -32,24 +30,43 @@ pub fn freeze(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
+    let is_authorized = host
+        .state()
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::Freeze]));
+    ensure!(is_authorized, Error::Unauthorized);
+
+    let FreezeParams {
+        owner: owner_address,
+        tokens: freezes,
+    }: FreezeParams = ctx.parameter_cursor().get()?;
+
+    let state = host.state();
+    for freeze in &freezes {
+        state
+            .token(&freeze.token_id)
+            .ok_or(Error::InvalidTokenId)?
+            .main()
+            .ok_or(Error::InvalidTokenId)?;
+    }
+
     let state = host.state_mut();
-    // Sender of this transaction should be a Trusted Agent
-    ensure!(
-        state.is_agent(&ctx.sender(), vec![AgentRole::Freeze]),
-        Error::Unauthorized
-    );
-    let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
-    for token in tokens {
-        ensure!(
-            token.token_id.eq(&state.tracked_token_id),
-            Error::InvalidTokenId
-        );
-        state.freeze(owner, &token.token_id, token.token_amount)?;
+    let mut owner = state
+        .address_mut(&owner_address)
+        .ok_or(Error::InvalidAddress)?;
+    let owner = owner.holder_mut().ok_or(Error::InvalidAddress)?;
+    let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
+
+    for freeze in freezes {
+        owner
+            .balance_mut(&freeze.token_id)
+            .ok_or(Error::InsufficientFunds)?
+            .freeze(freeze.token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
-            token_id: token.token_id,
-            amount:   token.token_amount,
-            address:  owner,
-        }))?;
+            token_id: freeze.token_id,
+            amount:   freeze.token_amount,
+            address:  owner_address,
+        }))?
     }
 
     Ok(())
@@ -78,24 +95,43 @@ pub fn un_freeze(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
+    let is_authorized = host
+        .state()
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::Freeze]));
+    ensure!(is_authorized, Error::Unauthorized);
+
+    let FreezeParams {
+        owner: owner_address,
+        tokens: freezes,
+    }: FreezeParams = ctx.parameter_cursor().get()?;
+
+    let state = host.state();
+    for freeze in &freezes {
+        state
+            .token(&freeze.token_id)
+            .ok_or(Error::InvalidTokenId)?
+            .main()
+            .ok_or(Error::InvalidTokenId)?;
+    }
+
     let state = host.state_mut();
-    // Sender of this transaction should be a Trusted Agent
-    ensure!(
-        state.is_agent(&ctx.sender(), vec![AgentRole::UnFreeze]),
-        Error::Unauthorized
-    );
-    let FreezeParams { owner, tokens }: FreezeParams = ctx.parameter_cursor().get()?;
-    for token in tokens {
-        ensure!(
-            token.token_id.eq(&state.tracked_token_id),
-            Error::InvalidTokenId
-        );
-        state.un_freeze(&owner, &token.token_id, token.token_amount)?;
+    let mut owner = state
+        .address_mut(&owner_address)
+        .ok_or(Error::InvalidAddress)?;
+    let owner = owner.holder_mut().ok_or(Error::InvalidAddress)?;
+    let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
+
+    for freeze in freezes {
+        owner
+            .balance_mut(&freeze.token_id)
+            .ok_or(Error::InsufficientFunds)?
+            .un_freeze(freeze.token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
-            token_id: token.token_id,
-            amount:   token.token_amount,
-            address:  owner,
-        }))?;
+            token_id: freeze.token_id,
+            amount:   freeze.token_amount,
+            address:  owner_address,
+        }))?
     }
 
     Ok(())
@@ -123,16 +159,34 @@ pub fn balance_of_frozen(
     ctx: &ReceiveContext,
     host: &Host<State>,
 ) -> ContractResult<BalanceOfQueryResponse> {
-    let state = host.state();
     let BalanceOfQueryParams { queries } = ctx.parameter_cursor().get()?;
 
-    let amounts = queries
-        .iter()
-        .map(|query| {
-            state.ensure_token_exists(&query.token_id)?;
-            Ok(state.balance_of_frozen(&query.address, &query.token_id))
-        })
-        .collect::<TokenStateResult<Vec<_>>>()?;
+    let mut amounts = Vec::with_capacity(queries.len());
+    let state = host.state();
+    for query in queries {
+        state
+            .token(&query.token_id)
+            .ok_or(Error::InvalidTokenId)?
+            .main()
+            .ok_or(Error::InvalidTokenId)?;
+
+        let balance = {
+            match state.address(&query.address) {
+                None => TokenAmount::zero(),
+                Some(address) => match address.holder() {
+                    None => TokenAmount::zero(),
+                    Some(holder) => match holder.active() {
+                        None => TokenAmount::zero(),
+                        Some(active) => active
+                            .balance(&query.token_id)
+                            .map(|b| b.frozen)
+                            .unwrap_or(TokenAmount::zero()),
+                    },
+                },
+            }
+        };
+        amounts.push(balance);
+    }
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
 }
@@ -158,16 +212,34 @@ pub fn balance_of_un_frozen(
     ctx: &ReceiveContext,
     host: &Host<State>,
 ) -> ContractResult<BalanceOfQueryResponse> {
-    let state = host.state();
     let BalanceOfQueryParams { queries } = ctx.parameter_cursor().get()?;
 
-    let amounts = queries
-        .iter()
-        .map(|query| {
-            state.ensure_token_exists(&query.token_id)?;
-            Ok(state.balance_of_unfrozen(&query.address, &query.token_id))
-        })
-        .collect::<TokenStateResult<Vec<_>>>()?;
+    let mut amounts = Vec::with_capacity(queries.len());
+    let state = host.state();
+    for query in queries {
+        state
+            .token(&query.token_id)
+            .ok_or(Error::InvalidTokenId)?
+            .main()
+            .ok_or(Error::InvalidTokenId)?;
+
+        let balance = {
+            match state.address(&query.address) {
+                None => TokenAmount::zero(),
+                Some(address) => match address.holder() {
+                    None => TokenAmount::zero(),
+                    Some(holder) => match holder.active() {
+                        None => TokenAmount::zero(),
+                        Some(active) => active
+                            .balance(&query.token_id)
+                            .map(|b| b.un_frozen)
+                            .unwrap_or(TokenAmount::zero()),
+                    },
+                },
+            }
+        };
+        amounts.push(balance);
+    }
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
 }
