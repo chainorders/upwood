@@ -7,6 +7,7 @@ pub mod euroe;
 pub mod identity_registry;
 pub mod market;
 pub mod security_sft_rewards_client;
+pub mod security_sft_single_client;
 
 use concordium_smart_contract_testing::Energy;
 const MAX_ENERGY: Energy = Energy { energy: 30000 };
