@@ -1,101 +1,186 @@
-use concordium_cis2::TokenIdUnit;
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
-use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::cis2_security_state::{
-    ICis2SecurityTokenState, ICis2SingleSecurityState,
-};
-use concordium_rwa_utils::state_implementations::cis2_state::{
-    Cis2Result, Cis2StateError, ICis2SingleState, ICis2TokenState,
-};
-use concordium_rwa_utils::state_implementations::holders_security_state::{
-    HolderSecurityStateResult, IHoldersSecurityState, ISecurityHolderState,
-};
-use concordium_rwa_utils::state_implementations::holders_state::{
-    HolderStateError, IHolderState, IHoldersState,
-};
-use concordium_rwa_utils::state_implementations::sft_state::ITokenState;
-use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
-use concordium_rwa_utils::state_implementations::tokens_security_state::ISecurityTokenState;
 use concordium_std::ops::{Add, AddAssign, Sub, SubAssign};
 use concordium_std::{
-    ensure, Address, ContractAddress, Deserial, DeserialWithState, HasStateApi, MetadataUrl,
-    Serial, StateApi, StateBuilder, StateMap, StateSet,
+    ensure, Address, ContractAddress, Deletable, Deserial, DeserialWithState, HasStateApi,
+    MetadataUrl, Serial, Serialize, StateApi, StateBuilder, StateMap, StateRef, StateRefMut,
+    StateSet,
 };
 
-use super::types::{Agent, AgentRole, TokenAmount};
+use super::types::{AgentRole, TokenAmount, TokenId};
+use crate::error::Error;
+
+#[derive(Serial, DeserialWithState, Deletable)]
+#[concordium(state_parameter = "S")]
+pub enum HolderAddressState<S> {
+    Holder(HolderState<S>),
+    Recovered(Address),
+}
+
+impl<S: HasStateApi> HolderAddressState<S> {
+    pub fn active(&self) -> Option<&HolderState<S>> {
+        match self {
+            HolderAddressState::Holder(holder) => Some(holder),
+            _ => None,
+        }
+    }
+
+    pub fn active_mut(&mut self) -> Option<&mut HolderState<S>> {
+        match self {
+            HolderAddressState::Holder(holder) => Some(holder),
+            _ => None,
+        }
+    }
+
+    pub fn recovered(&self) -> Option<&Address> {
+        match self {
+            HolderAddressState::Recovered(address) => Some(address),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Serialize, Clone)]
+pub struct AgentState(pub Vec<AgentRole>);
+impl AgentState {
+    pub fn has_roles(&self, roles: &[AgentRole]) -> bool {
+        roles.iter().all(|r| self.0.contains(r))
+    }
+
+    pub fn roles(&self) -> &Vec<AgentRole> { &self.0 }
+}
+
+#[derive(Serial, DeserialWithState, Deletable)]
+#[concordium(state_parameter = "S")]
+pub enum AddressState<S> {
+    Agent(AgentState),
+    Holder(HolderAddressState<S>),
+}
+
+impl<S> AddressState<S> {
+    pub fn agent(&self) -> Option<&AgentState> {
+        match self {
+            AddressState::Agent(agent) => Some(agent),
+            _ => None,
+        }
+    }
+
+    pub fn is_agent(&self, roles: &[AgentRole]) -> bool {
+        match self {
+            AddressState::Agent(agent) => agent.has_roles(roles),
+            _ => false,
+        }
+    }
+
+    pub fn holder(&self) -> Option<&HolderAddressState<S>> {
+        match self {
+            AddressState::Holder(holder) => Some(holder),
+            _ => None,
+        }
+    }
+
+    pub fn holder_mut(&mut self) -> Option<&mut HolderAddressState<S>> {
+        match self {
+            AddressState::Holder(holder) => Some(holder),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 /// Represents the state of the security NFT contract.
 pub struct State<S=StateApi> {
-    pub paused:            bool,
-    pub supply:            TokenAmount,
-    pub metadata_url:      MetadataUrl,
-    /// A set that stores the addresses of the agents in the contract.
-    agents:                StateMap<Address, StateSet<AgentRole, S>, S>,
-    /// A map that stores the state of each holder's address for each token.
-    holders:               StateMap<Address, HolderState, S>,
-    /// A set that stores the addresses of the sponsors of the contract.
-    sponsors:              StateSet<ContractAddress, S>,
+    pub token:             TokenState,
     pub identity_registry: ContractAddress,
     pub compliance:        ContractAddress,
-    recovery_addresses:    StateMap<Address, Address, S>,
+    pub addresses:         StateMap<Address, AddressState<S>, S>,
+    pub sponsor:           Option<ContractAddress>,
 }
 
 impl<S: HasStateApi> State<S> {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        identity_registry: ContractAddress,
-        compliance: ContractAddress,
-        sponsors: Vec<ContractAddress>,
-        agents: Vec<Agent>,
-        metadata_url: MetadataUrl,
+    pub fn address(&self, address: &Address) -> Option<StateRef<AddressState<S>>> {
+        self.addresses.get(address)
+    }
+
+    pub fn address_or_insert_holder(
+        &mut self,
+        address: &Address,
         state_builder: &mut StateBuilder<S>,
-    ) -> Self {
-        // Insert Agents
-        let mut state_agents = state_builder.new_map();
-        for agent in agents {
-            let mut agent_roles = state_builder.new_set();
-            agent.roles.iter().for_each(|r| {
-                agent_roles.insert(*r);
-            });
-            let _ = state_agents.insert(agent.address, agent_roles);
-        }
+    ) -> StateRefMut<AddressState<S>, S> {
+        self.addresses
+            .entry(*address)
+            .or_insert(AddressState::Holder(HolderAddressState::Holder(
+                HolderState::new(state_builder),
+            )));
+        self.address_mut(address).unwrap()
+    }
 
-        // Insert Sponsors
-        let mut state_sponsors = state_builder.new_set();
-        sponsors.iter().for_each(|s| {
-            let _ = state_sponsors.insert(*s);
-        });
+    pub fn address_mut(&mut self, address: &Address) -> Option<StateRefMut<AddressState<S>, S>> {
+        self.addresses.get_mut(address)
+    }
 
-        State {
-            metadata_url,
-            paused: false,
-            supply: 0.into(),
-            agents: state_agents,
-            holders: state_builder.new_map(),
-            sponsors: state_sponsors,
-            identity_registry,
-            compliance,
-            recovery_addresses: state_builder.new_map(),
-        }
+    pub fn add_address(
+        &mut self,
+        address: Address,
+        state: AddressState<S>,
+    ) -> Result<StateRefMut<AddressState<S>, S>, Error> {
+        self.addresses
+            .entry(address)
+            .vacant_or(Error::InvalidAddress)?
+            .insert(state);
+        let address = self.address_mut(&address).ok_or(Error::InvalidAddress)?;
+        Ok(address)
+    }
+
+    pub fn remove_and_get_address(&mut self, address: &Address) -> Result<AddressState<S>, Error> {
+        let address = self
+            .addresses
+            .remove_and_get(address)
+            .ok_or(Error::InvalidAddress)?;
+        Ok(address)
+    }
+
+    pub fn sub_assign_supply(&mut self, _: &TokenId, amount: TokenAmount) -> Result<(), Error> {
+        self.token.sub_assign_supply(amount)?;
+        Ok(())
+    }
+
+    pub fn add_assign_supply(&mut self, _: &TokenId, amount: TokenAmount) -> Result<(), Error> {
+        self.token.add_assign_supply(amount)
     }
 }
 
-impl IAgentWithRolesState<StateApi, AgentRole> for State {
-    fn agents(&self) -> &StateMap<Address, StateSet<AgentRole, StateApi>, StateApi> { &self.agents }
+#[derive(Serialize, Clone)]
+pub struct MainTokenState {
+    pub metadata_url: MetadataUrl,
+    pub paused:       bool,
+    pub supply:       TokenAmount,
+}
 
-    fn agents_mut(&mut self) -> &mut StateMap<Address, StateSet<AgentRole, StateApi>, StateApi> {
-        &mut self.agents
+impl MainTokenState {
+    pub fn pause(&mut self) { self.paused = true; }
+
+    pub fn un_pause(&mut self) { self.paused = false; }
+
+    pub fn sub_assign_supply(&mut self, amount: TokenAmount) -> Result<TokenAmount, Error> {
+        ensure!(!self.paused, Error::PausedToken);
+        ensure!(self.supply.ge(&amount), Error::InsufficientFunds);
+        self.supply.sub_assign(amount);
+        Ok(self.supply)
     }
-}
-impl ISponsorsState<StateApi> for State {
-    fn sponsors(&self) -> &StateSet<ContractAddress, StateApi> { &self.sponsors }
 
-    fn sponsors_mut(&mut self) -> &mut StateSet<ContractAddress, StateApi> { &mut self.sponsors }
+    pub fn add_assign_supply(&mut self, amount: TokenAmount) -> Result<(), Error> {
+        ensure!(!self.paused, Error::PausedToken);
+        self.supply.add_assign(amount);
+        Ok(())
+    }
+
+    pub fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
 }
 
-#[derive(Deserial, Serial)]
+pub type TokenState = MainTokenState;
+
+#[derive(Deserial, Serial, Clone)]
 pub struct HolderStateBalance {
     pub frozen:    TokenAmount,
     pub un_frozen: TokenAmount,
@@ -110,134 +195,107 @@ impl HolderStateBalance {
 
     pub fn total(&self) -> TokenAmount { self.frozen.add(self.un_frozen) }
 
-    pub fn freeze(&mut self, amount: TokenAmount) -> Result<(), HolderStateError> {
-        ensure!(
-            self.un_frozen.ge(&amount),
-            HolderStateError::InsufficientFunds
-        );
-        self.frozen = self.frozen.add(amount);
-        self.un_frozen = self.un_frozen.sub(amount);
+    pub fn sub_assign(&mut self, amount: TokenAmount) -> Result<TokenAmount, Error> {
+        ensure!(self.un_frozen.ge(&amount), Error::InsufficientFunds);
+        self.un_frozen.sub_assign(amount);
+        Ok(self.un_frozen)
+    }
+
+    pub fn add_assign(&mut self, amount: TokenAmount) { self.un_frozen.add_assign(amount); }
+
+    pub fn min(&self, amount: TokenAmount) -> TokenAmount { self.un_frozen.min(amount) }
+
+    pub fn freeze(&mut self, amount: TokenAmount) -> Result<(), Error> {
+        ensure!(self.un_frozen.ge(&amount), Error::InsufficientFunds);
+        self.frozen.add_assign(amount);
+        self.un_frozen.sub_assign(amount);
 
         Ok(())
     }
 
-    pub fn un_freeze(&mut self, amount: TokenAmount) -> Result<(), HolderStateError> {
-        ensure!(self.frozen.ge(&amount), HolderStateError::InsufficientFunds);
-        self.frozen = self.frozen.sub(amount);
-        self.un_frozen = self.un_frozen.add(amount);
+    pub fn un_freeze(&mut self, amount: TokenAmount) -> Result<(), Error> {
+        ensure!(self.frozen.ge(&amount), Error::InsufficientFunds);
+        self.frozen.sub_assign(amount);
+        self.un_frozen.add_assign(amount);
 
         Ok(())
-    }
-
-    pub fn add(&mut self, amount: TokenAmount) { self.un_frozen = self.un_frozen.add(amount); }
-
-    pub fn sub(&mut self, amount: TokenAmount) -> Result<(), HolderStateError> {
-        ensure!(
-            self.un_frozen.ge(&amount),
-            HolderStateError::InsufficientFunds
-        );
-        self.un_frozen = self.un_frozen.sub(amount);
-        Ok(())
-    }
-
-    pub fn sub_forced(&mut self, amount: TokenAmount) -> Result<TokenAmount, HolderStateError> {
-        ensure!(
-            self.total().ge(&amount),
-            HolderStateError::InsufficientFunds
-        );
-        self.un_frozen = self.un_frozen.sub(self.un_frozen.min(amount));
-        let un_freeze = amount.sub(self.un_frozen);
-        self.frozen = self.frozen.sub(un_freeze);
-
-        Ok(un_freeze)
     }
 }
 
-#[derive(DeserialWithState, Serial)]
+#[derive(DeserialWithState, Serial, Deletable)]
 #[concordium(state_parameter = "S")]
 pub struct HolderState<S=StateApi> {
     pub operators: StateSet<Address, S>,
-    pub balances:  HolderStateBalance,
+    pub balances:  StateMap<TokenId, HolderStateBalance, S>,
 }
-
-impl IHolderState<TokenIdUnit, TokenAmount, StateApi> for HolderState {
-    fn is_operator(&self, operator: &Address) -> bool { self.operators.contains(operator) }
-
-    fn add_operator(&mut self, operator: Address) { self.operators.insert(operator); }
-
-    fn remove_operator(&mut self, operator: &Address) { self.operators.remove(operator); }
-
-    fn balance_of(&self, _: &TokenIdUnit) -> TokenAmount { self.balances.total() }
-
-    fn add_balance(&mut self, _: &TokenIdUnit, amount: TokenAmount) { self.balances.add(amount); }
-
-    fn sub_balance(
-        &mut self,
-        _: &TokenIdUnit,
-        amount: TokenAmount,
-    ) -> Result<(), HolderStateError> {
-        self.balances.sub(amount)?;
-        Ok(())
-    }
-
-    fn new(state_builder: &mut StateBuilder<StateApi>) -> Self {
+impl<S: HasStateApi> HolderState<S> {
+    pub fn new(state_builder: &mut StateBuilder<S>) -> Self {
         HolderState {
             operators: state_builder.new_set(),
-            balances:  HolderStateBalance::default(),
+            balances:  state_builder.new_map(),
         }
     }
-}
-impl ISecurityHolderState<TokenIdUnit, TokenAmount, StateApi> for HolderState {
-    fn freeze(&mut self, _: &TokenIdUnit, amount: TokenAmount) -> HolderSecurityStateResult<()> {
-        self.balances.freeze(amount)?;
-        Ok(())
+
+    pub fn balance(&self, token_id: &TokenId) -> Option<StateRef<HolderStateBalance>> {
+        self.balances.get(token_id)
     }
 
-    fn un_freeze(&mut self, _: &TokenIdUnit, amount: TokenAmount) -> HolderSecurityStateResult<()> {
-        self.balances.un_freeze(amount)?;
-        Ok(())
+    pub fn balance_mut(
+        &mut self,
+        token_id: &TokenId,
+    ) -> Option<StateRefMut<HolderStateBalance, S>> {
+        self.balances.get_mut(token_id)
     }
 
-    fn balance_of_frozen(&self, _: &TokenIdUnit) -> TokenAmount { self.balances.frozen }
+    pub fn has_operator(&self, operator: &Address) -> bool { self.operators.contains(operator) }
 
-    fn balance_of_un_frozen(&self, _: &TokenIdUnit) -> TokenAmount { self.balances.un_frozen }
-}
+    pub fn add_operator(&mut self, operator: Address) { self.operators.insert(operator); }
 
-impl IHoldersState<TokenIdUnit, TokenAmount, HolderState, StateApi> for State {
-    fn holders(&self) -> &StateMap<Address, HolderState, StateApi> { &self.holders }
+    pub fn remove_operator(&mut self, operator: &Address) { self.operators.remove(operator); }
 
-    fn holders_mut(&mut self) -> &mut StateMap<Address, HolderState, StateApi> { &mut self.holders }
-}
-impl IHoldersSecurityState<TokenIdUnit, TokenAmount, HolderState, StateApi> for State {
-    fn recovery_addresses(&self) -> &StateMap<Address, Address, StateApi> {
-        &self.recovery_addresses
+    pub fn un_freeze_balance_to_match(
+        &mut self,
+        token_id: &TokenId,
+        amount: TokenAmount,
+    ) -> Result<TokenAmount, Error> {
+        let mut holder_balance = self.balance_mut(token_id).ok_or(Error::InsufficientFunds)?;
+        if holder_balance.un_frozen.ge(&amount) {
+            return Ok(TokenAmount::zero());
+        }
+
+        let un_frozen_amount = amount.sub(holder_balance.un_frozen);
+        if un_frozen_amount.gt(&holder_balance.frozen) {
+            return Err(Error::InsufficientFunds);
+        }
+
+        holder_balance.frozen.sub_assign(un_frozen_amount);
+        holder_balance.un_frozen.add_assign(un_frozen_amount);
+        Ok(un_frozen_amount)
     }
 
-    fn recovery_addresses_mut(&mut self) -> &mut StateMap<Address, Address, StateApi> {
-        &mut self.recovery_addresses
-    }
-}
-impl ICis2SingleState<TokenAmount, HolderState, StateApi> for State {}
-impl ICis2SingleSecurityState<TokenAmount, HolderState, StateApi> for State {}
-impl ITokenState<StateApi> for State {
-    fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
-}
-impl ICis2TokenState<TokenAmount, StateApi> for State {
-    fn inc_supply(&mut self, amount: TokenAmount) { self.supply.add_assign(amount) }
-
-    fn dec_supply(&mut self, amount: TokenAmount) -> Cis2Result<()> {
-        ensure!(amount.ge(&self.supply), Cis2StateError::InsufficientFunds);
-        self.supply.sub_assign(amount);
-        Ok(())
+    pub fn sub_assign_balance(
+        &mut self,
+        token_id: &TokenId,
+        amount: TokenAmount,
+    ) -> Result<TokenAmount, Error> {
+        self.balances
+            .entry(*token_id)
+            .occupied_or(Error::InsufficientFunds)?
+            .sub_assign(amount)
     }
 
-    fn supply(&self) -> TokenAmount { self.supply }
-}
-impl ISecurityTokenState<StateApi> for State {
-    fn paused(&self) -> bool { self.paused }
+    pub fn add_assign_balance(&mut self, token_id: &TokenId, amount: TokenAmount) {
+        self.balances
+            .entry(*token_id)
+            .or_insert(HolderStateBalance::default())
+            .modify(|balance| balance.add_assign(amount));
+    }
 
-    fn pause(&mut self) { self.paused = true; }
-
-    fn un_pause(&mut self) { self.paused = false; }
+    pub fn clone_for_recovery(&self, state_builder: &mut StateBuilder<S>) -> Self {
+        let mut new_holder = HolderState::new(state_builder);
+        for (token_id, balance) in self.balances.iter() {
+            let _ = new_holder.balances.insert(*token_id, balance.clone());
+        }
+        new_holder
+    }
 }
-impl ICis2SecurityTokenState<TokenAmount, StateApi> for State {}

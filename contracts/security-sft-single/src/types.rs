@@ -27,7 +27,6 @@ pub enum AgentRole {
     HolderRecovery,
     Pause,
     UnPause,
-    Rewarder,
 }
 
 impl AgentRole {
@@ -46,7 +45,6 @@ impl AgentRole {
             Self::HolderRecovery,
             Self::Pause,
             Self::UnPause,
-            Self::Rewarder,
         ]
     }
 }
@@ -61,6 +59,7 @@ pub type IsPausedResponse = concordium_cis2_security::IsPausedResponse;
 pub type BalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
 pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
+pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 
@@ -68,6 +67,6 @@ pub use concordium_cis2_security::RecoverParam;
 pub struct InitParam {
     pub identity_registry: ContractAddress,
     pub compliance:        ContractAddress,
-    pub sponsors:          Vec<ContractAddress>,
+    pub sponsors:          Option<ContractAddress>,
     pub metadata_url:      ContractMetadataUrl,
 }

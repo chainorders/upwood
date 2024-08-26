@@ -1,6 +1,4 @@
 use concordium_protocols::concordium_cis2_security::Paused;
-use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::tokens_security_state::ISecurityTokenState;
 use concordium_std::*;
 
 use super::error::*;
@@ -19,7 +17,7 @@ use super::types::*;
 /// Returns `Error::TokenDoesNotExist` if the token does not exist.
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
-    contract = "security_sft_rewards",
+    contract = "security_sft_single",
     name = "pause",
     mutable,
     enable_logger,
@@ -32,13 +30,14 @@ pub fn pause(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state_mut();
-    ensure!(
-        state.is_agent(&ctx.sender(), vec![AgentRole::Pause]),
-        Error::Unauthorized
-    );
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::Pause]));
+    ensure!(is_authorized, Error::Unauthorized);
+
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
     for token_id in tokens {
-        state.pause();
+        state.token.pause();
         logger.log(&Event::Paused(Paused { token_id }))?;
     }
 
@@ -57,7 +56,7 @@ pub fn pause(
 /// Returns `Error::TokenDoesNotExist` if the token does not exist.
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
-    contract = "security_sft_rewards",
+    contract = "security_sft_single",
     name = "unPause",
     mutable,
     enable_logger,
@@ -70,13 +69,14 @@ pub fn un_pause(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state_mut();
-    ensure!(
-        state.is_agent(&ctx.sender(), vec![AgentRole::UnPause]),
-        Error::Unauthorized
-    );
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::UnPause]));
+    ensure!(is_authorized, Error::Unauthorized);
+
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
     for token_id in tokens {
-        state.un_pause();
+        state.token.un_pause();
         logger.log(&Event::UnPaused(Paused { token_id }))?;
     }
 
@@ -94,7 +94,7 @@ pub fn un_pause(
 /// Returns `Error::TokenDoesNotExist` if the token does not exist.
 /// Returns `Error::ParseError` if the parameters could not be parsed.
 #[receive(
-    contract = "security_sft_rewards",
+    contract = "security_sft_single",
     name = "isPaused",
     parameter = "PauseParams",
     return_value = "IsPausedResponse",
@@ -108,7 +108,7 @@ pub fn is_paused(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<IsP
 
     let state = host.state();
     for _ in tokens {
-        res.tokens.push(state.paused())
+        res.tokens.push(state.token.paused);
     }
 
     Ok(res)

@@ -1,18 +1,16 @@
 use concordium_cis2::{Cis2Event, OnReceivingCis2Params, Receiver, TransferEvent};
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::{
     compliance_client, identity_registry_client, CanTransferParam, TokenFrozen, TokenUId,
     TransferredParam,
 };
 use concordium_protocols::concordium_global_sponsor::{SponsoredParams, SponsoredParamsRaw};
-use concordium_rwa_utils::state_implementations::agent_with_roles_state::IAgentWithRolesState;
-use concordium_rwa_utils::state_implementations::cis2_security_state::ICis2SingleSecurityState;
-use concordium_rwa_utils::state_implementations::holders_state::IHoldersState;
-use concordium_rwa_utils::state_implementations::sponsors_state::ISponsorsState;
 use concordium_std::*;
 
 use super::error::*;
 use super::state::State;
 use super::types::*;
+use crate::state::AddressState;
 
 /// Executes a compliant transfer of token ownership between verified accounts
 ///
@@ -41,7 +39,7 @@ use super::types::*;
 ///   rules
 /// * `Error::Custom(CustomContractError::LogError)` - Failed to log the transfer event
 #[receive(
-    contract = "security_sft_rewards",
+    contract = "security_sft_single",
     name = "transfer",
     enable_logger,
     mutable,
@@ -56,7 +54,7 @@ pub fn transfer(
     let state = host.state();
     let (sender, params) = {
         let sender = ctx.sender();
-        if state.is_sponsor(&sender) {
+        if state.sponsor.is_some_and(|s| sender.matches_contract(&s)) {
             let params: SponsoredParamsRaw = ctx.parameter_cursor().get()?;
             let params: SponsoredParams<TransferParams> = params.try_into()?;
             (Address::Account(params.signer), params.params)
@@ -66,8 +64,10 @@ pub fn transfer(
         }
     };
 
-    let concordium_cis2::TransferParams(transfers) = params;
     let compliance = state.compliance;
+    let identity_registry = state.identity_registry;
+    let self_address = ctx.self_address();
+    let concordium_cis2::TransferParams(transfers) = params;
 
     for concordium_cis2::Transfer {
         to,
@@ -77,29 +77,43 @@ pub fn transfer(
         data,
     } in transfers
     {
-        let compliance_token = TokenUId::new(token_id, ctx.self_address());
-        let state = host.state();
         ensure!(
-            identity_registry_client::is_verified(host, state.identity_registry, &to.address())?,
+            identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
         );
+        let compliance_token = TokenUId::new(token_id, self_address);
         let compliance_can_transfer =
-            compliance_client::can_transfer(host, state.compliance, &CanTransferParam {
+            compliance_client::can_transfer(host, &compliance, &CanTransferParam {
                 token_id: compliance_token,
                 to: to.address(),
                 amount,
             })?;
         ensure!(compliance_can_transfer, Error::InCompliantTransfer);
-        ensure!(
-            from.eq(&sender) || state.is_operator(&from, &sender),
-            Error::Unauthorized
-        );
 
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
-        state.transfer(&from, &to.address(), amount, false, state_builder)?;
+        let is_paused = state.token.paused;
+        ensure!(!is_paused, Error::PausedToken);
 
-        compliance_client::transferred(host, compliance, &TransferredParam {
+        {
+            let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
+            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
+            let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            ensure!(
+                from.eq(&sender) || from_holder.has_operator(&sender),
+                Error::Unauthorized
+            );
+            from_holder.sub_assign_balance(&token_id, amount)?;
+        };
+
+        {
+            let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
+            let to_holder = to_holder.holder_mut().ok_or(Error::InvalidAddress)?;
+            let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            to_holder.add_assign_balance(&token_id, amount);
+        }
+
+        compliance_client::transferred(host, &compliance, &TransferredParam {
             token_id: compliance_token,
             from,
             to: to.address(),
@@ -151,7 +165,7 @@ pub fn transfer(
 /// * `Error::Custom(CustomContractError::UnVerifiedIdentity)` - The receiver's identity is not verified.
 /// * `Error::Custom(CustomContractError::LogError)` - The logger failed to log the event.
 #[receive(
-    contract = "security_sft_rewards",
+    contract = "security_sft_single",
     name = "forcedTransfer",
     enable_logger,
     mutable,
@@ -163,12 +177,19 @@ pub fn forced_transfer(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let concordium_cis2::TransferParams(transfers) = ctx.parameter_cursor().get()?;
     let state = host.state();
-    ensure!(
-        state.is_agent(&ctx.sender(), vec![AgentRole::ForcedTransfer]),
-        Error::Unauthorized
-    );
+    let is_authorized =
+        state
+            .address(&ctx.sender())
+            .is_some_and(|a: StateRef<AddressState<ExternStateApi>>| {
+                a.is_agent(&[AgentRole::ForcedTransfer])
+            });
+    ensure!(is_authorized, Error::Unauthorized);
+
+    let compliance = state.compliance;
+    let identity_registry = state.identity_registry;
+    let self_address = ctx.self_address();
+    let params: TransferParams = ctx.parameter_cursor().get()?;
 
     for concordium_cis2::Transfer {
         to,
@@ -176,35 +197,59 @@ pub fn forced_transfer(
         amount,
         token_id,
         data,
-    } in transfers
+    } in params.0
     {
-        let state = host.state();
         ensure!(
-            identity_registry_client::is_verified(host, state.identity_registry, &to.address())?,
+            identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
         );
+        ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
 
+        let compliance_token = TokenUId::new(token_id, self_address);
+
+        // Transfer token
         let (state, state_builder) = host.state_and_builder();
-        let un_frozen_balance =
-            state.transfer(&from, &to.address(), amount, true, state_builder)?;
-        compliance_client::transferred(host, host.state().compliance, &TransferredParam {
-            token_id: TokenUId::new(token_id, ctx.self_address()),
+        let is_paused = state.token.paused;
+        ensure!(!is_paused, Error::PausedToken);
+
+        let un_frozen_amount = {
+            let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
+            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
+            let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            let un_frozen_amount = from_holder.un_freeze_balance_to_match(&token_id, amount)?;
+            from_holder.sub_assign_balance(&token_id, amount)?;
+
+            un_frozen_amount
+        };
+
+        {
+            let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
+            let to_holder = to_holder.holder_mut().ok_or(Error::InvalidAddress)?;
+            let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            to_holder.add_assign_balance(&token_id, amount);
+        }
+
+        compliance_client::transferred(host, &compliance, &TransferredParam {
+            token_id: compliance_token,
             from,
             to: to.address(),
             amount,
         })?;
 
-        logger.log(&Event::TokenUnFrozen(TokenFrozen {
-            token_id,
-            amount: un_frozen_balance,
-            address: from,
-        }))?;
+        if un_frozen_amount.gt(&TokenAmount::zero()) {
+            logger.log(&Event::TokenUnFrozen(TokenFrozen {
+                token_id,
+                amount: un_frozen_amount,
+                address: from,
+            }))?;
+        }
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
             token_id,
             from,
             to: to.address(),
         })))?;
+
         if let Address::Contract(_from_contract) = from {
             // TODO: there should be a way to notify that the transfer has been
             // forced Ex. A token is sent to the marketplace for

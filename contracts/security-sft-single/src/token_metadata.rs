@@ -1,5 +1,4 @@
 use concordium_cis2::{TokenMetadataQueryParams, TokenMetadataQueryResponse};
-use concordium_rwa_utils::state_implementations::cis2_state::ICis2SingleState;
 use concordium_std::*;
 
 use super::state::State;
@@ -18,7 +17,7 @@ use super::types::{ContractResult, TokenId};
 /// this method will return an `InvalidTokenId` if the token does not exist.
 /// parameters.
 #[receive(
-    contract = "security_sft_rewards",
+    contract = "security_sft_single",
     name = "tokenMetadata",
     parameter = "TokenMetadataQueryParams<TokenId>",
     return_value = "TokenMetadataQueryResponse",
@@ -31,7 +30,11 @@ pub fn token_metadata(
     let TokenMetadataQueryParams { queries }: TokenMetadataQueryParams<TokenId> =
         ctx.parameter_cursor().get()?;
     let state = host.state();
-    let res: Vec<_> = queries.iter().map(|_| state.metadata_url()).collect();
+    let mut res = Vec::with_capacity(queries.len());
+    for _ in queries {
+        let metadata_url = state.token.metadata_url().clone();
+        res.push(metadata_url);
+    }
 
     Ok(TokenMetadataQueryResponse(res))
 }
