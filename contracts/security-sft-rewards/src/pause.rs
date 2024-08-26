@@ -118,12 +118,9 @@ pub fn is_paused(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<IsP
 
     let state = host.state();
     for token_id in tokens {
-        let is_paused = match state.token(&token_id) {
+        let is_paused = match state.token(&token_id).ok_or(Error::InvalidTokenId)?.main() {
             None => false,
-            Some(token) => match token.main() {
-                None => false,
-                Some(token) => token.paused,
-            },
+            Some(token) => token.paused,
         };
         res.tokens.push(is_paused);
     }

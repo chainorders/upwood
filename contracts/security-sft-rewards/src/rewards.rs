@@ -6,14 +6,13 @@ use concordium_cis2::{
 use concordium_protocols::concordium_cis2_ext::{cis2_client, IsTokenAmount, PlusSubOne};
 use concordium_rwa_utils::conversions::exchange_rate::Rate;
 use concordium_rwa_utils::conversions::to_additional_data;
-use concordium_rwa_utils::state_implementations::rewards_state::RewardDeposited;
 use concordium_std::ops::{Sub, SubAssign};
 use concordium_std::*;
 
 use super::error::*;
 use super::state::State;
 use super::types::*;
-use crate::state::{RewardTokenState, TokenState};
+use crate::state::{RewardDeposited, RewardTokenState, TokenState};
 
 #[derive(Debug, Serialize, Clone, SchemaType)]
 pub struct TransferAddRewardParams {

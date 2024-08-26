@@ -34,9 +34,6 @@ pub fn mint(
     let compliance = state.compliance;
     let identity_registry_client = state.identity_registry;
     let (_, max_reward_token_id) = state.rewards_ids_range;
-    host.state()
-        .token(&params.token_id)
-        .ok_or(Error::InvalidTokenId)?;
 
     for MintParam {
         address: owner,
@@ -69,8 +66,18 @@ pub fn mint(
         }
         {
             // Update minted supply
-            state.add_assign_supply(&params.token_id, amount)?;
-            state.add_assign_supply(&max_reward_token_id, amount)?;
+            state
+                .token_mut(&params.token_id)
+                .ok_or(Error::InvalidTokenId)?
+                .main_mut()
+                .ok_or(Error::InvalidTokenId)?
+                .add_assign_supply(amount)?;
+            state
+                .token_mut(&max_reward_token_id)
+                .ok_or(Error::InvalidTokenId)?
+                .reward_mut()
+                .ok_or(Error::InvalidTokenId)?
+                .add_assign_supply(amount);
         }
 
         compliance_client::minted(host, &compliance, &MintedParam {

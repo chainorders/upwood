@@ -1,4 +1,6 @@
-pub mod utils;
+#![cfg(test)]
+
+mod utils;
 
 use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{
@@ -23,8 +25,7 @@ const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const AGENT_MINT: AccountAddress = AccountAddress([1; 32]);
 const HOLDER: AccountAddress = AccountAddress([2; 32]);
 const COMPLIANT_NATIONALITIES: [&str; 2] = ["IN", "US"];
-
-pub const DEFAULT_ACC_BALANCE: Amount = Amount {
+const DEFAULT_ACC_BALANCE: Amount = Amount {
     micro_ccd: 1_000_000_000_u64,
 };
 

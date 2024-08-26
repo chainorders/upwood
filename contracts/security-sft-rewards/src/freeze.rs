@@ -164,12 +164,7 @@ pub fn balance_of_frozen(
     let mut amounts = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state
-            .token(&query.token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main()
-            .ok_or(Error::InvalidTokenId)?;
-
+        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
         let balance = {
             match state.address(&query.address) {
                 None => TokenAmount::zero(),
@@ -217,12 +212,7 @@ pub fn balance_of_un_frozen(
     let mut amounts = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state
-            .token(&query.token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main()
-            .ok_or(Error::InvalidTokenId)?;
-
+        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
         let balance = {
             match state.address(&query.address) {
                 None => TokenAmount::zero(),

@@ -1,3 +1,4 @@
+#![cfg(test)]
 #![allow(clippy::diverging_sub_expression, clippy::too_many_arguments)]
 
 mod utils;

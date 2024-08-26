@@ -1,6 +1,6 @@
-use concordium_cis2::{TokenAmountU64, TokenIdVec};
+use concordium_cis2::{IsTokenId, TokenAmountU64, TokenIdVec};
 use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, PlusSubOne};
-use concordium_rwa_utils::state_implementations::rewards_state::RewardDeposited;
+use concordium_rwa_utils::conversions::exchange_rate::Rate;
 use concordium_std::ops::{Add, AddAssign, Sub, SubAssign};
 use concordium_std::{
     ensure, Address, ContractAddress, Deletable, Deserial, DeserialWithState, HasStateApi,
@@ -10,6 +10,14 @@ use concordium_std::{
 
 use super::types::{AgentRole, TokenAmount, TokenId};
 use crate::error::Error;
+
+#[derive(Serialize, Clone)]
+pub struct RewardDeposited<TDeposit: IsTokenId, ADeposit: IsTokenAmount> {
+    pub token_id:       TDeposit,
+    pub token_contract: ContractAddress,
+    pub token_amount:   ADeposit,
+    pub rate:           Rate,
+}
 
 #[derive(Serial, DeserialWithState, Deletable)]
 #[concordium(state_parameter = "S")]
@@ -184,16 +192,6 @@ impl<S: HasStateApi> State<S> {
                 .sub_assign_supply(*amount)?;
         }
         Ok(())
-    }
-
-    pub fn add_assign_supply(
-        &mut self,
-        token_id: &TokenId,
-        amount: TokenAmount,
-    ) -> Result<(), Error> {
-        self.token_mut(token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .add_assign_supply(amount)
     }
 }
 

@@ -3,7 +3,9 @@
 use concordium_cis2::{
     BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId, TransferParams,
 };
-use concordium_protocols::concordium_cis2_security::{AgentWithRoles, BurnParams, FreezeParams};
+use concordium_protocols::concordium_cis2_security::{
+    AgentWithRoles, BurnParams, FreezeParams, PauseParams,
+};
 use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, Serial};
 
@@ -241,23 +243,35 @@ where
     T: IsTokenId,
     A: IsTokenAmount,
 {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("burn"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("burn")
+    burn_raw(chain, sender, contract, contract_name, payload).expect("burn")
+}
+
+pub fn burn_raw<T, A>(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    contract_name: ContractName,
+    payload: &BurnParams<T, A>,
+) -> Result<ContractInvokeSuccess, ContractInvokeError>
+where
+    T: IsTokenId,
+    A: IsTokenAmount,
+{
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("burn"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn forced_burn<T, A>(
@@ -436,4 +450,30 @@ pub fn forced_transfer<T: IsTokenId, A: IsTokenAmount>(
             },
         )
         .expect("forced_transfer")
+}
+
+pub fn pause<T: IsTokenId>(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    contract_name: ContractName,
+    payload: &PauseParams<T>,
+) -> ContractInvokeSuccess {
+    chain
+        .contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            UpdateContractPayload {
+                address:      contract,
+                amount:       Amount::zero(),
+                receive_name: OwnedReceiveName::construct_unchecked(
+                    contract_name,
+                    EntrypointName::new_unchecked("pause"),
+                ),
+                message:      OwnedParameter::from_serial(payload).unwrap(),
+            },
+        )
+        .expect("pause")
 }
