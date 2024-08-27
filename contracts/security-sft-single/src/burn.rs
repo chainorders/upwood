@@ -43,6 +43,7 @@ pub fn burn(
         owner,
     } in params.0
     {
+        ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         let state = host.state_mut();
         {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;

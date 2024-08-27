@@ -44,6 +44,7 @@ pub fn burn(
         owner,
     } in params.0
     {
+        ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         let state = host.state_mut();
         let rewards = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
@@ -125,7 +126,6 @@ pub fn forced_burn(
     } in params.0
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-
         let state = host.state_mut();
         let rewards = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;

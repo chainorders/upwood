@@ -78,6 +78,7 @@ pub fn transfer(
         data,
     } in transfers
     {
+        ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         ensure!(
             identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
@@ -218,6 +219,7 @@ pub fn forced_transfer(
         data,
     } in params.0
     {
+        ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         ensure!(
             identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
             Error::UnVerifiedIdentity

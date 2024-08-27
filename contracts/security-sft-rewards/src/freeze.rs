@@ -1,5 +1,5 @@
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
-use concordium_protocols::concordium_cis2_security::TokenFrozen;
+use concordium_protocols::concordium_cis2_security::{FreezeParam, TokenFrozen};
 use concordium_std::*;
 
 use super::error::*;
@@ -57,15 +57,20 @@ pub fn freeze(
     let owner = owner.holder_mut().ok_or(Error::InvalidAddress)?;
     let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
 
-    for freeze in freezes {
+    for FreezeParam {
+        token_id,
+        token_amount,
+    } in freezes
+    {
+        ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         owner
-            .balance_mut(&freeze.token_id)
+            .balance_mut(&token_id)
             .ok_or(Error::InsufficientFunds)?
-            .freeze(freeze.token_amount)?;
+            .freeze(token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
-            token_id: freeze.token_id,
-            amount:   freeze.token_amount,
-            address:  owner_address,
+            token_id,
+            amount: token_amount,
+            address: owner_address,
         }))?
     }
 
@@ -122,15 +127,20 @@ pub fn un_freeze(
     let owner = owner.holder_mut().ok_or(Error::InvalidAddress)?;
     let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
 
-    for freeze in freezes {
+    for FreezeParam {
+        token_id,
+        token_amount,
+    } in freezes
+    {
+        ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         owner
-            .balance_mut(&freeze.token_id)
+            .balance_mut(&token_id)
             .ok_or(Error::InsufficientFunds)?
-            .un_freeze(freeze.token_amount)?;
+            .un_freeze(token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
-            token_id: freeze.token_id,
-            amount:   freeze.token_amount,
-            address:  owner_address,
+            token_id,
+            amount: token_amount,
+            address: owner_address,
         }))?
     }
 
