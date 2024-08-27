@@ -159,7 +159,8 @@ fn market_buy_via_transfer_of_cis2() {
             })
             .into(),
         },
-    );
+    )
+    .expect("Transfer");
 
     assert_eq!(
         market::balance_of_listed(
@@ -286,7 +287,8 @@ fn market_buy_via_transfer_of_cis2() {
             token_contract,
             TokenIdU32(0),
             Address::Account(seller.address),
-        ),
+        )
+        .unwrap(),
         TokenAmountU64(0),
         "Seller balance"
     );
@@ -297,7 +299,8 @@ fn market_buy_via_transfer_of_cis2() {
             token_contract,
             TokenIdU32(0),
             Address::Account(buyer.address),
-        ),
+        )
+        .unwrap(),
         TokenAmountU64(1),
         "Buyer balance"
     );

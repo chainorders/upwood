@@ -72,7 +72,8 @@ fn normal_reward_distribution() {
                     },
                 ],
             }
-        ),
+        )
+        .expect("balance of"),
         BalanceOfQueryResponse(vec![TokenAmountU64(10), TokenAmountU64(10),])
     );
 
@@ -115,7 +116,8 @@ fn normal_reward_distribution() {
                     }
                 ],
             }
-        ),
+        )
+        .expect("balance of"),
         BalanceOfQueryResponse(vec![
             TokenAmountU64(10),
             TokenAmountU64(10),
@@ -161,7 +163,8 @@ fn normal_reward_distribution() {
                     }
                 ],
             }
-        ),
+        )
+        .expect("balance of"),
         BalanceOfQueryResponse(vec![
             TokenAmountU64(10),
             TokenAmountU64(0),
@@ -319,7 +322,8 @@ fn mint() {
                     },
                 ],
             }
-        ),
+        )
+        .expect("balance of"),
         BalanceOfQueryResponse(vec![TokenAmountU64(10), TokenAmountU64(10),])
     );
 }

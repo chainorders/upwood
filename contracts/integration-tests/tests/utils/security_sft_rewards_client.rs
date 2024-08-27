@@ -137,7 +137,7 @@ pub fn transfer_single(
     sender: &Account,
     contract: ContractAddress,
     payload: concordium_cis2::Transfer<TokenId, TokenAmount>,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2::transfer_single(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -146,7 +146,7 @@ pub fn forced_transfer_single(
     sender: &Account,
     contract: ContractAddress,
     payload: concordium_cis2::Transfer<TokenId, TokenAmount>,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::forced_transfer(
         chain,
         sender,
@@ -161,7 +161,7 @@ pub fn balance_of(
     sender: &Account,
     contract: ContractAddress,
     payload: &concordium_cis2::BalanceOfQueryParams<TokenId>,
-) -> concordium_cis2::BalanceOfQueryResponse<TokenAmount> {
+) -> Result<BalanceOfQueryResponse, ContractInvokeError> {
     cis2::balance_of(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -171,7 +171,7 @@ pub fn balance_of_single(
     contract: ContractAddress,
     token_id: TokenId,
     address: Address,
-) -> TokenAmount {
+) -> Result<TokenAmount, ContractInvokeError> {
     cis2::balance_of_single(chain, sender, contract, token_id, address, CONTRACT_NAME)
 }
 
@@ -189,7 +189,7 @@ pub fn forced_burn(
     sender: &Account,
     contract: ContractAddress,
     payload: &BurnParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::forced_burn(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -198,7 +198,7 @@ pub fn freeze(
     sender: &Account,
     contract: ContractAddress,
     payload: &FreezeParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::freeze(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -207,7 +207,7 @@ pub fn un_freeze(
     sender: &Account,
     contract: ContractAddress,
     payload: &FreezeParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::un_freeze(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -216,7 +216,7 @@ pub fn balance_of_frozen(
     sender: &Account,
     contract: ContractAddress,
     payload: &BalanceOfQueryParams,
-) -> BalanceOfQueryResponse {
+) -> Result<BalanceOfQueryResponse, ContractInvokeError> {
     cis2_security::balance_of_frozen(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -225,7 +225,7 @@ pub fn balance_of_un_frozen(
     sender: &Account,
     contract: ContractAddress,
     payload: &BalanceOfQueryParams,
-) -> BalanceOfQueryResponse {
+) -> Result<BalanceOfQueryResponse, ContractInvokeError> {
     cis2_security::balance_of_un_frozen(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
