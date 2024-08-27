@@ -104,15 +104,6 @@ pub fn mint(
     sender: &Account,
     contract: &ContractAddress,
     payload: &MintParams,
-) -> ContractInvokeSuccess {
-    mint_raw(chain, sender, contract, payload).expect("mint")
-}
-
-pub fn mint_raw(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: &ContractAddress,
-    payload: &MintParams,
 ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     chain.contract_update(
         Signer::with_one_key(),

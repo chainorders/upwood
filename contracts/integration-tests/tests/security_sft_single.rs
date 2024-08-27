@@ -13,6 +13,7 @@ const METADATA_URL: &str = "example.com";
 const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const AGENT_MINT: AccountAddress = AccountAddress([1; 32]);
 const HOLDER: AccountAddress = AccountAddress([2; 32]);
+const HOLDER_2: AccountAddress = AccountAddress([3; 32]);
 const COMPLIANT_NATIONALITIES: [&str; 2] = ["IN", "US"];
 const DEFAULT_ACC_BALANCE: Amount = Amount {
     micro_ccd: 1_000_000_000_u64,
@@ -48,21 +49,19 @@ fn mint() {
         Address::Account(holder.address),
         COMPLIANT_NATIONALITIES[1],
     )]);
+    let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
+    chain.create_account(holder_2.clone());
+    // Holder 2 is not registered with the Identity Registry
 
-    security_sft_single_client::mint_raw(
-        &mut chain,
-        &non_agent_mint,
-        &token_contract,
-        &MintParams {
-            owners:   vec![MintParam {
-                amount:  TokenAmountU64(10),
-                address: holder.address,
-            }],
-            token_id: TOKEN_ID,
-        },
-    )
+    security_sft_single_client::mint(&mut chain, &non_agent_mint, &token_contract, &MintParams {
+        owners:   vec![MintParam {
+            amount:  TokenAmountU64(10),
+            address: holder.address,
+        }],
+        token_id: TOKEN_ID,
+    })
     .expect_err("non-agent-mint minted");
-    security_sft_single_client::mint_raw(&mut chain, &non_agent, &token_contract, &MintParams {
+    security_sft_single_client::mint(&mut chain, &non_agent, &token_contract, &MintParams {
         owners:   vec![MintParam {
             amount:  TokenAmountU64(10),
             address: holder.address,
@@ -73,10 +72,19 @@ fn mint() {
     security_sft_single_client::mint(&mut chain, &agent_mint, &token_contract, &MintParams {
         owners:   vec![MintParam {
             amount:  TokenAmountU64(10),
+            address: holder_2.address,
+        }],
+        token_id: TOKEN_ID,
+    })
+    .expect_err("non-compliant holder minted");
+    security_sft_single_client::mint(&mut chain, &agent_mint, &token_contract, &MintParams {
+        owners:   vec![MintParam {
+            amount:  TokenAmountU64(10),
             address: holder.address,
         }],
         token_id: TOKEN_ID,
-    });
+    })
+    .expect("should mint");
     assert_eq!(
         security_sft_single_client::balance_of(
             &mut chain,
@@ -103,13 +111,13 @@ fn burn() {
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
-    let holder2 = Account::new(AccountAddress([99; 32]), DEFAULT_ACC_BALANCE);
-    chain.create_account(holder2.clone());
+    let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
+    chain.create_account(holder_2.clone());
 
     identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
         (Address::Account(holder.address), COMPLIANT_NATIONALITIES[1]),
         (
-            Address::Account(holder2.address),
+            Address::Account(holder_2.address),
             COMPLIANT_NATIONALITIES[1],
         ),
     ]);
@@ -120,7 +128,8 @@ fn burn() {
             address: holder.address,
         }],
         token_id: TOKEN_ID,
-    });
+    })
+    .expect("should mint");
     security_sft_single_client::freeze(&mut chain, &admin, token_contract, &FreezeParams {
         owner:  Address::Account(holder.address),
         tokens: vec![FreezeParam {
@@ -130,7 +139,7 @@ fn burn() {
     });
     security_sft_single_client::burn_raw(
         &mut chain,
-        &holder2,
+        &holder_2,
         token_contract,
         &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
             amount:   TokenAmountU64(5),
@@ -187,11 +196,11 @@ fn burn() {
     .expect_err("burned more than minted");
     security_sft_single_client::burn_raw(
         &mut chain,
-        &holder2,
+        &holder_2,
         token_contract,
         &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
             amount:   TokenAmountU64(5),
-            owner:    Address::Account(holder2.address),
+            owner:    Address::Account(holder_2.address),
             token_id: TOKEN_ID,
         }]),
     )
