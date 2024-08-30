@@ -64,7 +64,6 @@
 					"concordium-protocols/Cargo.toml",
 					"identity-registry/Cargo.toml",
 					"integration-tests/Cargo.toml",
-					"market/Cargo.toml",
 					"security-sft-rewards/Cargo.toml",
 					"security-sft-single/Cargo.toml",
 					"utils/Cargo.toml"
