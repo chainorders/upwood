@@ -5,7 +5,7 @@ use concordium_protocols::concordium_cis2_ext::cis2_client::{self, CisClientErro
 use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_protocols::rate::Rate;
 use concordium_rwa_utils::conversions::to_additional_data;
-use concordium_std::ops::{Sub, SubAssign};
+use concordium_std::ops::SubAssign;
 use concordium_std::*;
 
 pub type TokenAmount = TokenAmountU64;
