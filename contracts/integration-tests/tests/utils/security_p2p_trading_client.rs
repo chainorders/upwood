@@ -3,7 +3,7 @@
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use security_p2p_trading::{
-    Deposit, ForceCancelSellParams, GetDepositParams, InitParam, TransferBuyParams,
+    Deposit, ForceCancelSellParams, GetDepositParams, InitParam, TransferExchangeParams,
     TransferSellParams,
 };
 
@@ -106,11 +106,11 @@ pub fn force_cancel_sell(
     )
 }
 
-pub fn transfer_buy(
+pub fn transfer_exchange(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
-    params: &TransferBuyParams,
+    params: &TransferExchangeParams,
 ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     chain.contract_update(
         Signer::with_one_key(),
@@ -122,7 +122,7 @@ pub fn transfer_buy(
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
                 CONTRACT_NAME,
-                EntrypointName::new_unchecked("transferBuy"),
+                EntrypointName::new_unchecked("transferExchange"),
             ),
             message:      OwnedParameter::from_serial(params).unwrap(),
         },

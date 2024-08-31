@@ -25,7 +25,7 @@ pub struct SellCancelledEvent {
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct BuyEvent {
+pub struct Exchange {
     pub payer:       AccountAddress,
     pub pay_amount:  TokenAmount,
     pub sell_amount: TokenAmount,
@@ -36,7 +36,7 @@ pub struct BuyEvent {
 pub enum Event {
     Sell(SellEvent),
     SellCancelled(SellCancelledEvent),
-    Buy(BuyEvent),
+    Exchange(Exchange),
 }
 
 #[derive(Serial, Reject, SchemaType)]
@@ -253,26 +253,26 @@ pub fn force_cancel_sell(
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct TransferBuyParams {
+pub struct TransferExchangeParams {
     pub pay: TokenAmount,
-    pub buy: BuyParams,
+    pub get: ExchangeParams,
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct BuyParams {
+pub struct ExchangeParams {
     pub from: AccountAddress,
     pub rate: Rate,
 }
 
 #[receive(
     contract = "security_p2p_trading",
-    name = "transferBuy",
+    name = "transferExchange",
     mutable,
-    parameter = "TransferBuyParams",
+    parameter = "TransferExchangeParams",
     error = "Error"
 )]
-pub fn transfer_buy(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
-    let params: TransferBuyParams = ctx.parameter_cursor().get()?;
+pub fn transfer_exchange(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
+    let params: TransferExchangeParams = ctx.parameter_cursor().get()?;
     let currency = host.state().currency.clone();
     cis2_client::transfer_single(host, &currency.contract, Transfer {
         token_id: currency.id,
@@ -280,33 +280,33 @@ pub fn transfer_buy(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractRes
         from:     ctx.sender(),
         to:       Receiver::from_contract(
             ctx.self_address(),
-            OwnedEntrypointName::new_unchecked("buy".into()),
+            OwnedEntrypointName::new_unchecked("exchange".into()),
         ),
-        data:     to_additional_data(params.buy).map_err(|_| Error::ParseError)?,
+        data:     to_additional_data(params.get).map_err(|_| Error::ParseError)?,
     })?;
     Ok(())
 }
 
-pub type BuyReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, BuyParams>;
+pub type ExchangeReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, ExchangeParams>;
 
 #[receive(
     contract = "security_p2p_trading",
-    name = "buy",
+    name = "exchange",
     mutable,
-    parameter = "BuyReceiveParams",
+    parameter = "ExchangeReceiveParams",
     error = "Error",
     enable_logger
 )]
-pub fn buy(
+pub fn exchange(
     ctx: &ReceiveContext,
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let BuyReceiveParams {
+    let ExchangeReceiveParams {
         amount: pay_amount,
         from: payer,
         token_id: currency_token_id,
-        data: BuyParams { from: seller, rate },
+        data: ExchangeParams { from: seller, rate },
     } = ctx.parameter_cursor().get()?;
     let currency = TokenUId {
         id:       currency_token_id,
@@ -358,7 +358,7 @@ pub fn buy(
         to:       Receiver::Account(payer),
         data:     AdditionalData::empty(),
     })?;
-    logger.log(&Event::Buy(BuyEvent {
+    logger.log(&Event::Exchange(Exchange {
         payer,
         pay_amount,
         sell_amount,

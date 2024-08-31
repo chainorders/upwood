@@ -11,7 +11,7 @@ use concordium_protocols::rate::Rate;
 use concordium_smart_contract_testing::*;
 use concordium_std::{AccountAddress, Amount};
 use security_p2p_trading::{
-    BuyParams, Deposit, GetDepositParams, InitParam, TransferBuyParams, TransferSellParams,
+    ExchangeParams, Deposit, GetDepositParams, InitParam, TransferExchangeParams, TransferSellParams,
 };
 use security_sft_single::types::{ContractMetadataUrl, MintParam, MintParams};
 use utils::cis2_conversions::to_token_id_vec;
@@ -131,13 +131,13 @@ pub fn normal_flow() {
         owner:  holder_2.address.into(),
         amount: TokenAmountU64(1000),
     });
-    security_p2p_trading_client::transfer_buy(
+    security_p2p_trading_client::transfer_exchange(
         &mut chain,
         &holder_2,
         trading_contract,
-        &TransferBuyParams {
+        &TransferExchangeParams {
             pay: TokenAmountU64(1000),
-            buy: BuyParams {
+            get: ExchangeParams {
                 from: holder.address,
                 rate,
             },
