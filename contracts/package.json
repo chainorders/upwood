@@ -11,6 +11,7 @@
     "identity-registry",
     "security-sft-rewards",
     "security-sft-single",
+    "security-p2p-trading",
     "integration-tests",
     "utils"
   ],

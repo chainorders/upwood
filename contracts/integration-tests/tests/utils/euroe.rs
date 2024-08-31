@@ -132,7 +132,7 @@ pub fn update_operator(
     contract: ContractAddress,
     payload: &UpdateOperatorParams,
 ) -> ContractInvokeSuccess {
-    cis2::update_operator(chain, sender, contract, CONTRACT_NAME, payload)
+    cis2::update_operator(chain, sender, contract, CONTRACT_NAME, payload).expect("update operator")
 }
 
 pub fn update_operator_single(

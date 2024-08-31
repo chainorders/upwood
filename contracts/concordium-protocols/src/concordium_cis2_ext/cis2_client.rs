@@ -7,12 +7,13 @@ use concordium_std::{
 };
 
 use crate::contract_client::{invoke_contract, invoke_contract_read_only, ContractClientError};
+pub type CisClientError = ContractClientError<()>;
 
 pub fn token_metadata<T: IsTokenId, State: Serial+DeserialWithState<ExternStateApi>>(
     host: &Host<State>,
     contract: &ContractAddress,
     params: &TokenMetadataQueryParams<T>,
-) -> Result<TokenMetadataQueryResponse, ContractClientError<()>> {
+) -> Result<TokenMetadataQueryResponse, CisClientError> {
     invoke_contract_read_only(
         host,
         contract,
@@ -25,7 +26,7 @@ pub fn token_metadata_single<T: IsTokenId, State: Serial+DeserialWithState<Exter
     host: &Host<State>,
     contract: &ContractAddress,
     token_id: T,
-) -> Result<MetadataUrl, ContractClientError<()>> {
+) -> Result<MetadataUrl, CisClientError> {
     let params = TokenMetadataQueryParams {
         queries: vec![token_id],
     };
@@ -38,7 +39,7 @@ pub fn transfer<T: IsTokenId, A: IsTokenAmount, State: Serial+DeserialWithState<
     host: &mut Host<State>,
     contract: &ContractAddress,
     params: &TransferParams<T, A>,
-) -> Result<(), ContractClientError<()>> {
+) -> Result<(), CisClientError> {
     invoke_contract(
         host,
         contract,
@@ -55,7 +56,7 @@ pub fn transfer_single<
     host: &mut Host<State>,
     contract: &ContractAddress,
     param: Transfer<T, A>,
-) -> Result<(), ContractClientError<()>> {
+) -> Result<(), CisClientError> {
     let params = TransferParams(vec![param]);
     transfer(host, contract, &params)
 }
