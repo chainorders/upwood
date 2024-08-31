@@ -11,7 +11,8 @@ use concordium_protocols::rate::Rate;
 use concordium_smart_contract_testing::*;
 use concordium_std::{AccountAddress, Amount};
 use security_p2p_trading::{
-    ExchangeParams, Deposit, GetDepositParams, InitParam, TransferExchangeParams, TransferSellParams,
+    Deposit, ExchangeParams, GetDepositParams, InitParam, TransferExchangeParams,
+    TransferSellParams,
 };
 use security_sft_single::types::{ContractMetadataUrl, MintParam, MintParams};
 use utils::cis2_conversions::to_token_id_vec;
