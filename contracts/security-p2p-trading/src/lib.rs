@@ -11,19 +11,28 @@ use concordium_std::*;
 pub type TokenAmount = TokenAmountU64;
 pub type AnyTokenUId = TokenUId<TokenIdVec>;
 
+/// Represents Sell event.
+/// This is the event that is emitted when a user deposits tokens to be sold.
 #[derive(Serialize, SchemaType)]
 pub struct SellEvent {
+    /// The address of the user who deposited the tokens.
     pub from:   AccountAddress,
+    /// The amount of tokens that were deposited.
     pub amount: TokenAmount,
+    /// The rate at which a buyer can convert deposited tokens to currency token.
     pub rate:   Rate,
 }
 
+/// Represents SellCancelled event.
+/// This is the event that is emitted when a user cancels a sell position.
 #[derive(Serialize, SchemaType)]
 pub struct SellCancelledEvent {
     pub from:   AccountAddress,
     pub amount: TokenAmount,
 }
 
+/// Represents Exchange event.
+/// This event is emitted when a user exchanges tokens with another user.
 #[derive(Serialize, SchemaType)]
 pub struct Exchange {
     pub payer:       AccountAddress,
@@ -76,9 +85,12 @@ pub struct State<S=StateApi> {
     deposits: StateMap<AccountAddress, Deposit, S>,
 }
 
+/// Initialization parameters for the contract.
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {
+    /// The token that is being sold.
     pub token:    AnyTokenUId,
+    /// The token that is being used to pay for the tokens being sold.
     pub currency: AnyTokenUId,
 }
 
@@ -97,12 +109,19 @@ pub fn init(ctx: &InitContext, state_builder: &mut StateBuilder) -> InitResult<S
     })
 }
 
+/// Represents a sell position.
 #[derive(Serialize, SchemaType)]
 pub struct TransferSellParams {
+    /// The amount of tokens that are being sold.
     pub amount: TokenAmount,
+    /// The rate at which a buyer can convert deposited tokens to currency token.
     pub rate:   Rate,
 }
 
+/// This function is called when a user wants to sell tokens.
+/// To be able to call this function the user must have added current contract as an operator in the token contract for the token which is to be sold.
+/// The function will transfer the tokens to be sold from the user to the current contract.
+/// Tokens are received in the `sell` entrypoint.
 #[receive(
     contract = "security_p2p_trading",
     name = "transferSell",
@@ -128,6 +147,10 @@ pub fn transfer_sell(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractRe
 
 pub type SellReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, Rate>;
 
+/// This function is called when a user wants to sell tokens.
+/// This function can only be called by a smart contract.
+/// In order to call this function the token holder should transfer the tokens to be sold to the current contract and token contract should call this function.
+/// Current contract will only allow trusted token contracts to call this function.
 #[receive(
     contract = "security_p2p_trading",
     name = "sell",
@@ -172,6 +195,8 @@ pub fn sell(
     Ok(())
 }
 
+/// This function should be called by the owner of the tokens being sold to cancel the sell position.
+/// The function will transfer the tokens back to the user.
 #[receive(
     contract = "security_p2p_trading",
     name = "cancelSell",
@@ -214,6 +239,10 @@ pub struct ForceCancelSellParams {
     pub to:   AccountAddress,
 }
 
+/// This function can only be called by the owner of the current contract.
+/// The function will transfer the tokens to the user specified in the `from` field to the user specified in the `to` field.
+/// The function will also remove the sell position of the user specified in the `from` field.
+/// This functions is intended to be called in cases where the security token holder has been recovered in the token contract but the sell position is still active.
 #[receive(
     contract = "security_p2p_trading",
     name = "forceCancelSell",
@@ -264,6 +293,9 @@ pub struct ExchangeParams {
     pub rate: Rate,
 }
 
+/// This function should be called by the buyer of the tracked security token.
+/// The function will transfer currency token from the sender to the contract. The transfer is received by the `exchange` entrypoint.
+/// To be able to call this function the sender must have the current contract added as an operator to the currency token contract.
 #[receive(
     contract = "security_p2p_trading",
     name = "transferExchange",
@@ -289,6 +321,10 @@ pub fn transfer_exchange(ctx: &ReceiveContext, host: &mut Host<State>) -> Contra
 
 pub type ExchangeReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, ExchangeParams>;
 
+/// This function is called by the currency token contract when the currency token is received.
+/// This would happen when the currency token holder transfers currency token to the current contract.
+/// The function will calculate the amounts of the security token to be transferred to the buyer and the currency token to be transferred to the seller
+/// and will settle the amounts.
 #[receive(
     contract = "security_p2p_trading",
     name = "exchange",
@@ -373,6 +409,7 @@ pub struct GetDepositParams {
     pub from: AccountAddress,
 }
 
+/// This function is non mutable and returns the deposit of the seller specified by the `from` parameter.
 #[receive(
     contract = "security_p2p_trading",
     name = "getDeposit",
