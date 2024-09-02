@@ -67,6 +67,7 @@
 					"security-sft-rewards/Cargo.toml",
 					"security-sft-single/Cargo.toml",
 					"security-p2p-trading/Cargo.toml",
+					"security-mint-fund/Cargo.toml",
 					"utils/Cargo.toml"
 				]
 			},
