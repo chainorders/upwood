@@ -136,7 +136,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "security-p2p-trading"
+name = "security-mint-fund"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
