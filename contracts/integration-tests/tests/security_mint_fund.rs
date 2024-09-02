@@ -41,10 +41,17 @@ fn normal_flow() {
     let mut chain = Chain::new();
     let (euroe_contract, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+    let treasury = Account::new(TREASURY, DEFAULT_ACC_BALANCE);
+    chain.create_account(treasury.clone());
+    let investor_1 = Account::new(INVESTOR_1, DEFAULT_ACC_BALANCE);
+    chain.create_account(investor_1.clone());
+    let investor_2 = Account::new(INVESTOR_2, DEFAULT_ACC_BALANCE);
+    chain.create_account(investor_2.clone());
     let investment_token_contract =
         create_rewards_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
     let wrapped_token_contract =
         create_wrapped_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
+
     let fund_contract = security_mint_fund_client::init(&mut chain, &admin, &State {
         token:            TokenUId {
             id:       to_token_id_vec(WRAPPED_TOKEN_ID),
@@ -65,13 +72,6 @@ fn normal_flow() {
         },
     })
     .contract_address;
-    let treasury = Account::new(TREASURY, DEFAULT_ACC_BALANCE);
-    chain.create_account(treasury.clone());
-
-    let investor_1 = Account::new(INVESTOR_1, DEFAULT_ACC_BALANCE);
-    chain.create_account(investor_1.clone());
-    let investor_2 = Account::new(INVESTOR_2, DEFAULT_ACC_BALANCE);
-    chain.create_account(investor_2.clone());
     identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
         (
             Address::Account(investor_1.address),

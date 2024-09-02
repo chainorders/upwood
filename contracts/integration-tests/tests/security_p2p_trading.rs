@@ -35,6 +35,11 @@ const DEFAULT_ACC_BALANCE: Amount = Amount {
 pub fn normal_flow() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
+    let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
+    chain.create_account(holder.clone());
+    let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
+    chain.create_account(holder_2.clone());
+
     let (euroe_contract, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
     let token_contract =
@@ -50,11 +55,6 @@ pub fn normal_flow() {
         },
     })
     .contract_address;
-    let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
-    chain.create_account(holder.clone());
-    let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
-    chain.create_account(holder_2.clone());
-
     identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
         (Address::Account(holder.address), COMPLIANT_NATIONALITIES[1]),
         (
