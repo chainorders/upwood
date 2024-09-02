@@ -82,7 +82,7 @@ pub fn force_burn<
     invoke_contract(
         host,
         contract,
-        EntrypointName::new_unchecked("forceBurn"),
+        EntrypointName::new_unchecked("forcedBurn"),
         params,
     )
 }

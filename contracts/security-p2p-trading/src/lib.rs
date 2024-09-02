@@ -43,6 +43,7 @@ pub struct Exchange {
 
 #[derive(Serialize, SchemaType)]
 pub enum Event {
+    Initialized(InitParam),
     Sell(SellEvent),
     SellCancelled(SellCancelledEvent),
     Exchange(Exchange),
@@ -86,7 +87,7 @@ pub struct State<S=StateApi> {
 }
 
 /// Initialization parameters for the contract.
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Clone)]
 pub struct InitParam {
     /// The token that is being sold.
     pub token:    AnyTokenUId,
@@ -98,10 +99,16 @@ pub struct InitParam {
     contract = "security_p2p_trading",
     event = "Event",
     error = "Error",
-    parameter = "InitParam"
+    parameter = "InitParam",
+    enable_logger
 )]
-pub fn init(ctx: &InitContext, state_builder: &mut StateBuilder) -> InitResult<State> {
+pub fn init(
+    ctx: &InitContext,
+    state_builder: &mut StateBuilder,
+    logger: &mut Logger,
+) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
+    logger.log(&Event::Initialized(params.clone()))?;
     Ok(State {
         token:    params.token,
         currency: params.currency,
