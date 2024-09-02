@@ -1,6 +1,11 @@
 {
 	"name": "contracts",
 	"dockerFile": "Dockerfile",
+	"build": {
+		"args": {
+			"VARIANT": "bookworm" // use bullseye for apple silicon
+		}
+	},
 	"context": ".",
 	"postCreateCommand": "/bootstrap.sh",
 	"postStartCommand": "yarn run",
@@ -11,7 +16,7 @@
 			"type": "volume"
 		},
 		{
-			"source": "${localEnv:HOME}/etc/concordium/default_account.export",
+			"source": "${localWorkspaceFolder}/.devcontainer/contracts/default_account.export",
 			"target": "/etc/concordium/default_account.export",
 			"type": "bind"
 		}
