@@ -1,7 +1,7 @@
 use concordium_cis2::{
     AdditionalData, OnReceivingCis2DataParams, Receiver, TokenAmountU64, TokenIdVec, Transfer,
 };
-use concordium_protocols::concordium_cis2_ext::cis2_client::{self, CisClientError};
+use concordium_protocols::concordium_cis2_ext::cis2_client::{self, Cis2ClientError};
 use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_protocols::rate::Rate;
 use concordium_rwa_utils::conversions::to_additional_data;
@@ -63,8 +63,8 @@ pub enum Error {
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Self { Error::ParseError }
 }
-impl From<CisClientError> for Error {
-    fn from(_: CisClientError) -> Self { Error::Cis2CallError }
+impl From<Cis2ClientError> for Error {
+    fn from(_: Cis2ClientError) -> Self { Error::Cis2CallError }
 }
 impl From<LogError> for Error {
     fn from(_: LogError) -> Self { Error::LogError }
