@@ -1,6 +1,8 @@
 #![allow(unused)]
 
-use concordium_cis2::{BalanceOfQueryResponse, TokenAmountU64, TokenIdUnit, UpdateOperator, UpdateOperatorParams};
+use concordium_cis2::{
+    BalanceOfQueryResponse, TokenAmountU64, TokenIdUnit, UpdateOperator, UpdateOperatorParams,
+};
 use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, SchemaType, Serial, Serialize};
 

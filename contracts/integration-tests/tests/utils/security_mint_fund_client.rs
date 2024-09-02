@@ -1,7 +1,9 @@
 #![allow(unused)]
 
 use concordium_smart_contract_testing::*;
-use security_mint_fund::{CancelInvestParams, ClaimInvestParams, FundState, InitParam, TransferInvestParams};
+use security_mint_fund::{
+    CancelInvestParams, ClaimInvestParams, FundState, InitParam, TransferInvestParams,
+};
 
 use super::MAX_ENERGY;
 
