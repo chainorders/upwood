@@ -13,6 +13,7 @@
     "security-sft-single",
     "security-p2p-trading",
     "security-mint-fund",
+    "nft-multi-rewarded",
     "integration-tests",
     "utils"
   ],
