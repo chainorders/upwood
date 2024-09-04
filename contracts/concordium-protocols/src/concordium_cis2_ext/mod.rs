@@ -1,7 +1,8 @@
 pub mod cis2_client;
 
 use concordium_cis2::{
-    TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU8, TokenIdUnit, TokenIdVec,
+    TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU64, TokenIdU8, TokenIdUnit,
+    TokenIdVec,
 };
 use concordium_std::*;
 
@@ -72,6 +73,14 @@ impl PlusSubOne<TokenIdU32> for TokenIdU32 {
     fn plus_one(&self) -> Self { TokenIdU32(self.0 + 1) }
 
     fn sub_one(&self) -> Self { TokenIdU32(self.0 - 1) }
+
+    fn plus_one_assign(&mut self) { self.0 += 1; }
+}
+
+impl PlusSubOne<TokenIdU64> for TokenIdU64 {
+    fn plus_one(&self) -> Self { TokenIdU64(self.0 + 1) }
+
+    fn sub_one(&self) -> Self { TokenIdU64(self.0 - 1) }
 
     fn plus_one_assign(&mut self) { self.0 += 1; }
 }
