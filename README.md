@@ -24,3 +24,10 @@ After installing the dev container extension. Execute the command `Dev Container
 Which will present a list of mentioned development environments.
 
 **Upon start of the container available yarn scripts will be shown on the terminal.**
+
+### Developing on Apple Silicon
+
+- Update the Container Image Variant `VARIANT` in the following files to `bullseye`
+  - [.devcontainer/contracts/devcontainer.json](.devcontainer/contracts/devcontainer.json)
+  - [.devcontainer/backend/docker-compose.yml](.devcontainer/backend/docker-compose.yml)
+  - [.devcontainer/frontend-dapp/devcontainer.json](.devcontainer/frontend-dapp/devcontainer.json)
