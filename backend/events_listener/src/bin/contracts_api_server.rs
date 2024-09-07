@@ -6,10 +6,10 @@ use concordium_rwa_events_listener::txn_processor;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use log::{debug, info};
 use poem::listener::TcpListener;
 use poem::middleware::{AddData, Cors};
 use poem::{EndpointExt, Route, Server};
+use tracing::{debug, info};
 
 /// Configuration struct for the contracts API.
 /// Configuration options for the Contracts API.

@@ -15,8 +15,8 @@ use concordium_rust_sdk::v2::{self, FinalizedBlockInfo};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use futures::StreamExt;
-use log::{debug, info, warn};
 use tokio::sync::RwLock;
+use tracing::{debug, info, warn};
 
 use super::db;
 
@@ -158,7 +158,7 @@ impl TransactionsListener {
 
         while let Some(block) = finalized_block_stream.next().await {
             self.process_block(&block).await?;
-            log::debug!("Processed block {}", block.height.height);
+            debug!("Processed block {}", block.height.height);
         }
 
         Err(ListenerError::FinalizedBlockStreamEnded)
@@ -258,7 +258,7 @@ impl TransactionsListener {
                                 ContractTraceElement::Resumed { address, .. } => (*address, vec![]),
                                 ContractTraceElement::Upgraded { address, from, to } => {
                                     warn!(
-                                        "NOT SUPPORTED: Contract: {} Upgrated from module: {} to \
+                                        "NOT SUPPORTED: Contract: {} Upgraded from module: {} to \
                                          module: {}",
                                         address, from, to
                                     );

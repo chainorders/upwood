@@ -6,7 +6,7 @@ use concordium_rust_sdk::types::smart_contracts::{
 use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::{DbConn, DbPool};
 use concordium_rwa_identity_registry::event::Event;
-use log::debug;
+use tracing::debug;
 
 use super::db::{self};
 use crate::txn_listener::{EventsProcessor, ProcessorError};

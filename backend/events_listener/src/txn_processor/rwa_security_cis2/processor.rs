@@ -16,9 +16,9 @@ use concordium_rust_sdk::common::types::Timestamp;
 use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::*;
 use diesel::Connection;
-use log::debug;
 use num_bigint::BigUint;
 use num_traits::Zero;
+use tracing::debug;
 
 use super::db;
 use crate::txn_listener::{EventsProcessor, ProcessorError};

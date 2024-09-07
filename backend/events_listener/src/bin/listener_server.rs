@@ -13,7 +13,7 @@ use concordium_rwa_events_listener::txn_processor::rwa_identity_registry::proces
 use concordium_rwa_events_listener::txn_processor::rwa_security_cis2::processor::RwaSecurityCIS2Processor;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use log::{debug, error, info};
+use tracing::{debug, error, info};
 use r2d2::Pool;
 use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
 use tokio::sync::RwLock;
@@ -56,10 +56,9 @@ async fn main() -> Result<(), Error> {
     info!("Contracts Listener: Starting");
     debug!("{:#?}", config);
 
-    let manager = ConnectionManager::<PgConnection>::new(&config.database_url);
-    let pool = Pool::builder()
+    let db_pool = Pool::builder()
         .max_size(config.db_pool_max_size)
-        .build(manager)
+        .build(ConnectionManager::<PgConnection>::new(&config.database_url))
         .expect("Failed to create connection pool");
 
     let endpoint: v2::Endpoint = config.concordium_node_uri.parse()?;
@@ -88,32 +87,28 @@ async fn main() -> Result<(), Error> {
     let ir_module = WasmModule::from_slice(include_bytes!(
         "../../../../contracts/identity-registry/contract.wasm.v1"
     ))
-    .unwrap();
-    info!(
-        "Identity Registry Module Reference: {:?}",
-        ir_module.get_module_ref()
-    );
-    let ir_contract_name: OwnedContractName =
-        OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string());
+    .expect("Failed to parse identity-registry module")
+    .get_module_ref();
+    info!("Identity Registry Module Reference: {:?}", ir_module);
     let security_sft_rewards_module = WasmModule::from_slice(include_bytes!(
         "../../../../contracts/security-sft-rewards/contract.wasm.v1"
     ))
-    .unwrap();
+    .expect("Failed to parse security-sft-rewards module")
+    .get_module_ref();
     info!(
         "Security SFT Rewards Module Reference: {:?}",
-        security_sft_rewards_module.get_module_ref()
+        security_sft_rewards_module
     );
-    let security_sft_rewards_contract_name: OwnedContractName =
-        OwnedContractName::new_unchecked("init_security_sft_rewards".to_string());
     let identity_registry_processor = RwaIdentityRegistryProcessor {
-        module_ref:    ir_module.get_module_ref(),
-        contract_name: ir_contract_name,
-        pool:          pool.clone(),
+        module_ref:    ir_module,
+        contract_name: OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string()),
+        pool:          db_pool.clone(),
     };
     let security_sft_processor = RwaSecurityCIS2Processor::<TokenId, TokenAmount, AgentRole>::new(
-        pool.clone(),
-        security_sft_rewards_module.get_module_ref(),
-        security_sft_rewards_contract_name,
+        db_pool.clone(),
+        security_sft_rewards_module,
+        OwnedContractName::new("init_security_sft_rewards".to_string())
+            .expect("Invalid contract name"),
     );
     let processors: Vec<Arc<RwLock<dyn EventsProcessor>>> = vec![
         Arc::new(RwLock::new(identity_registry_processor)),
@@ -121,7 +116,7 @@ async fn main() -> Result<(), Error> {
     ];
     let listener = TransactionsListener::new(
         concordium_client,
-        pool.clone(),
+        db_pool.clone(),
         processors,
         default_block_height,
     );
