@@ -190,7 +190,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const securityP2PTrading = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"e7fbb3435b3db019ebcb7d2ff3b625529841abe01c9456186515c4ab04c0ae23",
+			"880eb7f7268e366d8683d9cc70a8a0d8d673e88c9d9edce7af37b90f184546a1",
 		),
 		ContractName.fromString("security_p2p_trading"),
 		initRequestSchemaBase64,
