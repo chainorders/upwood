@@ -18,6 +18,7 @@ use diesel::PgConnection;
 use r2d2::Pool;
 use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
 use tracing::{debug, error, info, warn};
+use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug, Clone)]
@@ -36,9 +37,17 @@ pub struct Config {
     #[clap(env, long)]
     pub node_rate_limit: u64,
     #[clap(env, long)]
-    pub node_rate_limit_duration_secs: u64,
+    pub node_rate_limit_duration_millis: u64,
     #[clap(env, long)]
     pub account: String,
+    #[clap(env, long)]
+    pub node_connect_timeout_millis: u64,
+    #[clap(env, long)]
+    pub node_request_timeout_millis: u64,
+    #[clap(env, long)]
+    pub listener_retry_times: usize,
+    #[clap(env, long)]
+    pub listener_retry_min_delay_millis: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -57,7 +66,8 @@ async fn main() -> Result<(), Error> {
     let subscriber = tracing_subscriber::fmt()
         .compact()
         .with_env_filter(EnvFilter::from_default_env())
-        .with_target(true)
+        .with_target(false)
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
 
@@ -69,11 +79,15 @@ async fn main() -> Result<(), Error> {
         .build(ConnectionManager::<PgConnection>::new(&config.database_url))
         .expect("Failed to create connection pool");
 
-    let endpoint: v2::Endpoint = config.concordium_node_uri.parse()?;
-    let endpoint = endpoint.rate_limit(
-        config.node_rate_limit,
-        Duration::from_secs(config.node_rate_limit_duration_secs),
-    );
+    let endpoint = config
+        .concordium_node_uri
+        .parse::<v2::Endpoint>()?
+        .rate_limit(
+            config.node_rate_limit,
+            Duration::from_millis(config.node_rate_limit_duration_millis),
+        )
+        .timeout(Duration::from_millis(config.node_request_timeout_millis))
+        .connect_timeout(Duration::from_millis(config.node_connect_timeout_millis));
     let mut concordium_client = v2::Client::new(endpoint)
         .await
         .expect("Failed to create Concordium client");
@@ -127,15 +141,17 @@ async fn main() -> Result<(), Error> {
         default_block_height,
     );
     let listen = || async {
+        info!("Contracts Listener: Starting");
         txn_listener::listener::listen(listener.clone()).await?;
         Ok::<_, ListenerError>(())
     };
     let retry_policy = ExponentialBuilder::default()
-        .with_max_times(10)
-        .with_min_delay(Duration::from_millis(200))
-        .with_max_delay(Duration::from_secs(10));
+        .with_max_times(config.listener_retry_times)
+        .with_min_delay(Duration::from_millis(
+            config.listener_retry_min_delay_millis,
+        ))
+        .with_max_delay(Duration::from_millis(10000));
 
-    info!("Contracts Listener: Starting");
     listen
     .retry(retry_policy)
     .sleep(tokio::time::sleep)

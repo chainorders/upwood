@@ -36,7 +36,7 @@ pub struct ListenerConfigInsert {
 }
 
 /// Retrieves the last processed block from the database.
-#[instrument(skip(conn))]
+#[instrument(skip_all)]
 pub fn get_last_processed_block(
     conn: &mut DbConn,
 ) -> Result<Option<AbsoluteBlockHeight>, diesel::result::Error> {
@@ -56,7 +56,7 @@ pub fn get_last_processed_block(
 }
 
 /// Updates the last processed block in the database.
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(block_height = %block.block_height.height))]
 pub fn update_last_processed_block(
     conn: &mut DbConn,
     block: &BlockInfo,
@@ -85,7 +85,7 @@ pub struct ListenerContract {
 }
 
 /// Adds a contract to the database.
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(address = %address, origin_ref = %origin_ref, init_name = %init_name, owner = %owner))]
 pub fn add_contract(
     conn: &mut DbConn,
     address: &concordium_rust_sdk::types::ContractAddress,
@@ -106,7 +106,7 @@ pub fn add_contract(
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(contract_address = %contract_address, origin_ref = %origin_ref))]
 pub fn update_contract(
     conn: &mut DbConn,
     contract_address: &concordium_rust_sdk::types::ContractAddress,
@@ -121,7 +121,7 @@ pub fn update_contract(
 }
 
 /// Finds a contract in the database based on its address.
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(contract_address = %contract_address))]
 pub fn find_contract(
     conn: &mut DbConn,
     contract_address: &concordium_rust_sdk::types::ContractAddress,
@@ -210,7 +210,7 @@ pub struct ListenerContractCallInsert<'a> {
     pub call_type:        CallType,
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(contract_address = %contract_call.index, entrypoint_name = %contract_call.entrypoint_name))]
 pub fn add_contract_call(
     conn: &mut DbConn,
     contract_call: ListenerContractCallInsert,
@@ -246,7 +246,7 @@ impl ListenerTransaction {
     }
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(block_height = %transaction.block_height, txn_index = %transaction.transaction_index))]
 pub fn upsert_transaction(
     conn: &mut DbConn,
     transaction: ListenerTransaction,

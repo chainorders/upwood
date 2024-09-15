@@ -220,7 +220,6 @@ pub async fn listen(mut config: TransactionsListener) -> Result<(), ListenerErro
     }
 }
 
-#[instrument(skip_all)]
 /// Processes a block of transactions, extracting contract calls, processing them, and updating the last processed block in the database.
 ///
 /// # Arguments
@@ -232,6 +231,7 @@ pub async fn listen(mut config: TransactionsListener) -> Result<(), ListenerErro
 ///
 /// # Returns
 /// A `Result` indicating the success or failure of the operation.
+#[instrument(skip_all)]
 async fn process_block(
     client: &mut v2::Client,
     conn: &mut DbConn,
@@ -264,7 +264,7 @@ async fn process_block(
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, fields(block_height = block.block_height.height))]
 fn process_contract_calls(
     contract_owner: &AccountAddress,
     processors: &BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
@@ -410,6 +410,7 @@ async fn get_block_height_or(
 ///
 /// An optional vector of `ContractCall` instances, or `None` if the `BlockItemSummary` does not
 /// represent a relevant transaction.
+#[instrument(skip_all, fields(txn_hash = %summary.hash))]
 fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCall>> {
     let BlockItemSummary {
         details,

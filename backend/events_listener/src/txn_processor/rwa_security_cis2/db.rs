@@ -60,7 +60,10 @@ pub fn list_agents(
     Ok((res, page_count))
 }
 
-#[instrument(skip(conn))]
+#[instrument(
+    skip_all,
+    fields(contract = agent.cis2_address.to_string(), agent_address = agent.agent_address.to_string())
+)]
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<()> {
     let updated_rows = diesel::insert_into(cis2_agents::table)
         .values(agent)
@@ -69,7 +72,10 @@ pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<()> {
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(
+    skip_all,
+    fields(contract = cis2_address.to_string(), agent_address = agent_address.to_string())
+)]
 pub fn remove_agent(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -103,13 +109,16 @@ impl Compliance {
     }
 }
 
-#[instrument(skip(conn))]
-pub fn upsert_compliance(conn: &mut DbConn, record: &Compliance) -> DbResult<()> {
+#[instrument(
+    skip_all,
+    fields(contract = compliance.cis2_address.to_string(), compliance_address = compliance.compliance_address.to_string())
+)]
+pub fn upsert_compliance(conn: &mut DbConn, compliance: &Compliance) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_compliances::table)
-        .values(record)
+        .values(compliance)
         .on_conflict((cis2_compliances::cis2_address,))
         .do_update()
-        .set(record)
+        .set(compliance)
         .execute(conn)?;
 
     assert_eq!(row_count, 1, "More than one row updated");
@@ -139,7 +148,10 @@ impl IdentityRegistry {
     }
 }
 
-#[instrument(skip(conn))]
+#[instrument(
+    skip_all,
+    fields(contract = record.cis2_address.to_string(), identity_registry_address = record.identity_registry_address.to_string())
+)]
 pub fn upsert_identity_registry(conn: &mut DbConn, record: &IdentityRegistry) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_identity_registries::table)
         .values(record)

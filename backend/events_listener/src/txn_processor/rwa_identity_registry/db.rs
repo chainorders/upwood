@@ -56,16 +56,30 @@ pub fn list_identities(
     Ok((res, page_count))
 }
 
+#[instrument(
+    skip_all,
+    fields(identity_registry = identity.identity_registry_address,address = identity.identity_address.to_string())
+)]
 pub fn insert_identity(conn: &mut DbConn, identity: Identity) -> DbResult<usize> {
     diesel::insert_into(identity_registry_identities::table)
         .values(identity)
         .execute(conn)
 }
 
-pub fn remove_identity(conn: &mut DbConn, address: &Address) -> DbResult<usize> {
+#[instrument(skip_all, fields(identity_address = address.to_string()))]
+pub fn remove_identity(
+    conn: &mut DbConn,
+    identity_registry_address: &ContractAddress,
+    address: &Address,
+) -> DbResult<usize> {
     diesel::delete(QueryDsl::filter(
         identity_registry_identities::table,
-        identity_registry_identities::identity_address.eq(address.to_string()),
+        identity_registry_identities::identity_address
+            .eq(address.to_string())
+            .and(
+                identity_registry_identities::identity_registry_address
+                    .eq(identity_registry_address.to_string()),
+            ),
     ))
     .execute(conn)
 }
@@ -119,14 +133,20 @@ pub fn list_issuers(
     Ok((res, page_count))
 }
 
-#[instrument(skip(conn))]
+#[instrument(
+    skip_all,
+    fields(identity_registry = issuer.identity_registry_address,address = issuer.issuer_address.to_string()))
+]
 pub fn insert_issuer(conn: &mut DbConn, issuer: Issuer) -> DbResult<usize> {
     diesel::insert_into(identity_registry_issuers::table)
         .values(issuer)
         .execute(conn)
 }
 
-#[instrument(skip(conn))]
+#[instrument(
+    skip_all,
+    fields(identity_registry = identity_registry_address.to_string(),address = issuer_address.to_string()))
+]
 pub fn remove_issuer(
     conn: &mut DbConn,
     identity_registry_address: &ContractAddress,
@@ -193,14 +213,17 @@ pub fn list_agents(
     Ok((res, page_count))
 }
 
-#[instrument(skip(conn))]
+#[instrument(
+    skip_all,
+    fields(identity_registry_address=agent.identity_registry_address, agent_address = agent.agent_address)
+)]
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<usize> {
     diesel::insert_into(identity_registry_agents::table)
         .values(agent)
         .execute(conn)
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(identity_registry_address, agent_address))]
 pub fn remove_agent(
     conn: &mut DbConn,
     identity_registry_address: &ContractAddress,

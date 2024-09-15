@@ -21,7 +21,7 @@ use crate::txn_listener::listener::ProcessorError;
 /// # Returns
 ///
 /// * A `Result` indicating the success or failure of the operation.
-#[instrument(skip(conn))]
+#[instrument(name="" skip_all, fields(contract = %contract, events = events.len()))]
 pub fn process_events(
     conn: &mut DbConn,
     now: DateTime<Utc>,
@@ -47,7 +47,7 @@ pub fn process_events(
                 db::insert_identity(conn, db::Identity::new(&e.address, now, contract))?;
             }
             Event::IdentityRemoved(e) => {
-                db::remove_identity(conn, &e.address)?;
+                db::remove_identity(conn, contract, &e.address)?;
             }
             Event::IssuerAdded(e) => {
                 db::insert_issuer(conn, db::Issuer::new(&e.issuer, now, contract))?;
