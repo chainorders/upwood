@@ -2,20 +2,22 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
+use backon::{ExponentialBuilder, Retryable};
 use clap::Parser;
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
+use concordium_rwa_events_listener::txn_listener;
 use concordium_rwa_events_listener::txn_listener::listener::{
-    ListenerError, ProcessorFnType, TransactionsListener,
+    ListenerError, ProcessorError, ProcessorFnType, TransactionsListener,
 };
 use concordium_rwa_events_listener::txn_processor::{rwa_identity_registry, rwa_security_cis2};
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
 use r2d2::Pool;
 use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug, Clone)]
@@ -55,9 +57,7 @@ async fn main() -> Result<(), Error> {
     let subscriber = tracing_subscriber::fmt()
         .compact()
         .with_env_filter(EnvFilter::from_default_env())
-        .with_file(true)
-        .with_line_number(true)
-        .with_target(false)
+        .with_target(true)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
 
@@ -117,16 +117,44 @@ async fn main() -> Result<(), Error> {
         );
         map
     };
+
+    let owner_account = config.account.parse().expect("Invalid account");
     let listener = TransactionsListener::new(
         concordium_client,
-        db_pool.clone(),
-        config.account.parse().expect("Invalid account"),
+        db_pool,
+        owner_account,
         processors,
         default_block_height,
     );
+    let listen = || async {
+        txn_listener::listener::listen(listener.clone()).await?;
+        Ok::<_, ListenerError>(())
+    };
+    let retry_policy = ExponentialBuilder::default()
+        .with_max_times(10)
+        .with_min_delay(Duration::from_millis(200))
+        .with_max_delay(Duration::from_secs(10));
 
     info!("Contracts Listener: Starting");
-    listener.listen().await?;
-    error!("Contracts Listener: Stopped");
+    listen
+    .retry(retry_policy)
+    .sleep(tokio::time::sleep)
+    // When to retry
+    .when(|e: &ListenerError| match e {
+        ListenerError::DatabaseError(_) => false,
+        ListenerError::FinalizedBlockTimeout => true,
+        ListenerError::FinalizedBlockStreamEnded => true,
+        ListenerError::QueryError(_) => true,
+        ListenerError::DatabasePoolError(_) => true,
+        ListenerError::GrpcError(_) => true,
+        ListenerError::ProcessorError(ProcessorError::EventsParseError(_)) => false,
+        ListenerError::ProcessorError(ProcessorError::DatabaseError(_)) => false,
+        ListenerError::ProcessorError(ProcessorError::DatabasePoolError(_)) => true,
+    })
+    // Notify when retrying
+    .notify(|err: &_, dur: Duration| {
+        warn!("retrying {:?} after {:?}", err, dur);
+    })
+    .await?;
     Err(Error::ListenerStopped)
 }

@@ -144,6 +144,7 @@ pub type ProcessorFnType = fn(
 /// Concordium node and processes them. It maintains a connection to the node
 /// and a MongoDB database, and uses a set of processors to process the
 /// transactions.
+#[derive(Clone)]
 pub struct TransactionsListener {
     account:              AccountAddress, // Account address to listen to
     processors:           BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
@@ -172,47 +173,49 @@ impl TransactionsListener {
             default_block_height,
         }
     }
+}
 
-    /// Starts listening to transactions from the Concordium node.
-    ///
-    /// # Returns
-    ///
-    /// * A Result indicating the success or failure of the operation.
-    #[instrument(skip_all)]
-    pub async fn listen(mut self) -> Result<(), ListenerError> {
-        let mut conn = self.database.get()?;
-        let block_height = get_block_height_or(&mut conn, self.default_block_height).await?;
-        info!("Starting from block {}", block_height.height);
+/// Starts listening to transactions from the Concordium node.
+///
+/// # Returns
+///
+/// * A Result indicating the success or failure of the operation.
+#[instrument(skip_all)]
+pub async fn listen(mut config: TransactionsListener) -> Result<(), ListenerError> {
+    let mut conn = config.database.get()?;
+    let block_height = get_block_height_or(&mut conn, config.default_block_height).await?;
+    info!("Starting from block {}", block_height.height);
 
-        let mut finalized_block_stream =
-            self.client.get_finalized_blocks_from(block_height).await?;
+    let mut finalized_block_stream = config
+        .client
+        .get_finalized_blocks_from(block_height)
+        .await?;
 
-        loop {
-            let (error, finalized_blocks) = finalized_block_stream
-                .next_chunk_timeout(1000, Duration::from_millis(500))
-                .await
-                .map_err(|_| ListenerError::FinalizedBlockTimeout)?;
-            for block in &finalized_blocks {
-                let block = self.client.get_block_info(block.height).await?.response;
-                if block.transaction_count.eq(&0u64) {
-                    trace!("Block {block:?} has no transactions");
-                    continue;
-                }
-
-                process_block(
-                    &mut self.client,
-                    &mut conn,
-                    &block,
-                    &self.account,
-                    &self.processors,
-                )
-                .await?;
+    loop {
+        let (error, finalized_blocks) = finalized_block_stream
+            .next_chunk_timeout(1000, Duration::from_millis(500))
+            .await
+            .map_err(|_| ListenerError::FinalizedBlockTimeout)?;
+        for block in &finalized_blocks {
+            let block = config.client.get_block_info(block.height).await?.response;
+            if block.transaction_count.eq(&0u64) {
+                trace!("Block {block:?} has no transactions");
+                continue;
             }
 
-            info!("Processed chunk of {} blocks", finalized_blocks.len());
-            if error {
-                return Err(ListenerError::FinalizedBlockStreamEnded);
-            }
+            process_block(
+                &mut config.client,
+                &mut conn,
+                &block,
+                &config.account,
+                &config.processors,
+            )
+            .await?;
+        }
+
+        info!("Processed chunk of {} blocks", finalized_blocks.len());
+        if error {
+            return Err(ListenerError::FinalizedBlockStreamEnded);
         }
     }
 }
