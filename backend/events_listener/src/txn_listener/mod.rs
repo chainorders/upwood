@@ -7,5 +7,4 @@
 //! for processing events.
 
 mod db;
-mod listener;
-pub use listener::{EventsProcessor, ListenerError, ProcessorError, TransactionsListener};
+pub mod listener;

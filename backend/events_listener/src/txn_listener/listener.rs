@@ -1,24 +1,29 @@
 use std::collections::BTreeMap;
-use std::ops::AddAssign;
-use std::sync::Arc;
+use std::time::Duration;
 
-use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use concordium_rust_sdk::base::hashes::TransactionHash;
+use concordium_rust_sdk::base::smart_contracts::OwnedReceiveName;
+use concordium_rust_sdk::common::types::Amount;
+use concordium_rust_sdk::id::types::AccountAddress;
+use concordium_rust_sdk::types::queries::BlockInfo;
 use concordium_rust_sdk::types::smart_contracts::{
     ContractEvent, ModuleReference, OwnedContractName,
 };
 use concordium_rust_sdk::types::{
-    AbsoluteBlockHeight, AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
+    AbsoluteBlockHeight, AccountTransactionEffects, Address, BlockItemSummary,
     BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
-    InstanceUpdatedEvent,
+    InstanceUpdatedEvent, TransactionIndex,
 };
-use concordium_rust_sdk::v2::{self, FinalizedBlockInfo};
+use concordium_rust_sdk::v2;
+use concordium_rwa_backend_shared::db::DbConn;
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use futures::StreamExt;
-use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+use diesel::{Connection, PgConnection};
+use futures::TryStreamExt;
+use tracing::{info, instrument, trace, warn};
 
-use super::db;
+use super::db::{self, ListenerContractCallInsert, ListenerTransaction};
+use crate::txn_listener::db::CallType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProcessorError {
@@ -28,83 +33,81 @@ pub enum ProcessorError {
     EventsParseError(#[from] concordium_rust_sdk::base::contracts_common::ParseError),
     #[error("Database error: {0}")]
     DatabaseError(#[from] diesel::result::Error),
-    #[error("token id vector parse error: {0}")]
-    TokenIdParseError(#[from] concordium_rust_sdk::cis2::ParseTokenIdVecError),
 }
 
-/// `EventsProcessor` is a trait that defines the necessary methods for
-/// processing events of a specific contract. It is designed to be implemented
-/// by structs that handle the logic for processing events of a specific
-/// contract.
-#[async_trait]
-pub trait EventsProcessor: Send+Sync {
-    /// Returns the name of the contract this processor is responsible for.
-    ///
-    /// # Returns
-    ///
-    /// * A reference to the `OwnedContractName` of the contract.
-    fn contract_name(&self) -> &OwnedContractName;
+pub struct ContractCallTxn {
+    pub index:  TransactionIndex,
+    pub hash:   TransactionHash,
+    pub sender: AccountAddress,
+}
 
-    /// Returns the module reference of the contract this processor is
-    /// responsible for.
-    ///
-    /// # Returns
-    ///
-    /// * A reference to the `ModuleReference` of the contract.
-    fn module_ref(&self) -> &ModuleReference;
+impl ContractCallTxn {
+    pub fn new(index: TransactionIndex, hash: TransactionHash, sender: AccountAddress) -> Self {
+        Self {
+            index,
+            hash,
+            sender,
+        }
+    }
+}
 
-    /// Checks if this processor is responsible for the given contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `module_ref` - A reference to the `ModuleReference` of the contract to
-    ///   check.
-    /// * `contract_name` - A reference to the `OwnedContractName` of the
-    ///   contract to check.
-    ///
-    /// # Returns
-    ///
-    /// * `true` if this processor is responsible for the given contract,
-    ///   `false` otherwise.
-    fn matches(&self, module_ref: &ModuleReference, contract_name: &OwnedContractName) -> bool {
-        module_ref.eq(self.module_ref()) && contract_name.eq(self.contract_name())
+pub struct ContractCall {
+    call_type: ContractCallType,
+    contract:  ContractAddress,
+    txn:       ContractCallTxn,
+}
+
+pub struct Update {
+    pub sender:       Address,
+    pub amount:       Amount,
+    pub events:       Vec<ContractEvent>,
+    pub receive_name: OwnedReceiveName,
+}
+
+pub struct Init {
+    pub module_ref:    ModuleReference,
+    pub contract_name: OwnedContractName,
+    pub amount:        Amount,
+    pub events:        Vec<ContractEvent>,
+}
+
+pub enum ContractCallType {
+    Init(Init),
+    Update(Update),
+    Upgraded {
+        from: ModuleReference,
+        to:   ModuleReference,
+    },
+}
+
+impl ContractCallType {
+    pub fn create_init(init: ContractInitializedEvent) -> Self {
+        Self::Init(Init {
+            module_ref:    init.origin_ref,
+            contract_name: init.init_name,
+            amount:        init.amount,
+            events:        init.events,
+        })
     }
 
-    /// Processes the events of a contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `contract` - A reference to the `ContractAddress` of the contract
-    ///   whose events are to be processed.
-    /// * `events` - A slice of `ContractEvent`s to be processed.
-    ///
-    /// # Returns
-    ///
-    /// * A Result indicating the success or failure of the operation.
-    async fn process_events(
-        &mut self,
-        contract: &ContractAddress,
-        events: &[ContractEvent],
-    ) -> Result<u64, ProcessorError>;
-}
-
-pub enum ProcessedBlockItem {
-    Init(
-        (
-            ContractAddress,
-            ModuleReference,
-            OwnedContractName,
-            Vec<ContractEvent>,
-        ),
-    ),
-    Update(BTreeMap<ContractAddress, Vec<ContractEvent>>),
-    WithNoEvents,
+    pub fn create_update(
+        event: InstanceUpdatedEvent,
+        interrupt_events: Option<Vec<ContractEvent>>,
+    ) -> Self {
+        let events = interrupt_events
+            .map(|events| [events, event.events.clone()].concat())
+            .unwrap_or(event.events);
+        Self::Update(Update {
+            sender: event.instigator,
+            amount: event.amount,
+            receive_name: event.receive_name,
+            events,
+        })
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ListenerError {
-    #[error("Finalized Block Stream ended")]
-    FinalizedBlockStreamEnded,
     #[error("R2D2 pool Database error: {0}")]
     DatabasePoolError(#[from] r2d2::Error),
     #[error("Database error: {0}")]
@@ -113,16 +116,29 @@ pub enum ListenerError {
     QueryError(#[from] concordium_rust_sdk::endpoints::QueryError),
     #[error("Processor error: {0}")]
     ProcessorError(#[from] ProcessorError),
+    #[error("Grpc error: {0}")]
+    GrpcError(#[from] concordium_rust_sdk::v2::Status),
+    #[error("Finalized Block Timeout. Try increasing timeout and retrying")]
+    FinalizedBlockTimeout,
+    #[error("Finalized Block Stream ended")]
+    FinalizedBlockStreamEnded,
 }
+
+pub type ProcessorFnType = fn(
+    &mut DbConn,
+    now: DateTime<Utc>,
+    &ContractAddress,
+    &[ContractEvent],
+) -> Result<(), ProcessorError>;
 
 /// `TransactionsListener` is a struct that listens to transactions from a
 /// Concordium node and processes them. It maintains a connection to the node
 /// and a MongoDB database, and uses a set of processors to process the
 /// transactions.
 pub struct TransactionsListener {
-    database:             Pool<ConnectionManager<PgConnection>>, // popstgres pool
-    processors:           Vec<Arc<RwLock<dyn EventsProcessor>>>, /* Processors to process
-                                                                  * transactions */
+    account:              AccountAddress, // Account address to listen to
+    processors:           BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+    database:             Pool<ConnectionManager<PgConnection>>, // postgres pool
     default_block_height: AbsoluteBlockHeight, // Default block height to start from
     client:               v2::Client,
 }
@@ -135,10 +151,12 @@ impl TransactionsListener {
     pub fn new(
         client: v2::Client,
         pool: Pool<ConnectionManager<PgConnection>>,
-        processors: Vec<Arc<RwLock<dyn EventsProcessor>>>,
+        account: AccountAddress,
+        processors: BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
         default_block_height: AbsoluteBlockHeight,
     ) -> Self {
         Self {
+            account,
             client,
             database: pool,
             processors,
@@ -151,257 +169,251 @@ impl TransactionsListener {
     /// # Returns
     ///
     /// * A Result indicating the success or failure of the operation.
+    #[instrument(skip_all)]
     pub async fn listen(mut self) -> Result<(), ListenerError> {
-        let block_height = self.get_block_height().await?;
+        let mut conn = self.database.get()?;
+        let block_height = get_block_height_or(&mut conn, self.default_block_height).await?;
+        info!("Starting from block {}", block_height.height);
+
         let mut finalized_block_stream =
             self.client.get_finalized_blocks_from(block_height).await?;
 
-        while let Some(block) = finalized_block_stream.next().await {
-            self.process_block(&block).await?;
-            debug!("Processed block {}", block.height.height);
+        loop {
+            let (error, finalized_blocks) = finalized_block_stream
+                .next_chunk_timeout(1000, Duration::from_millis(500))
+                .await
+                .map_err(|_| ListenerError::FinalizedBlockTimeout)?;
+            for block in &finalized_blocks {
+                let block = self.client.get_block_info(block.height).await?.response;
+                if block.transaction_count.eq(&0u64) {
+                    trace!("Block {block:?} has no transactions");
+                    continue;
+                }
+
+                process_block(
+                    &mut self.client,
+                    &mut conn,
+                    &block,
+                    &self.account,
+                    &self.processors,
+                )
+                .await?;
+            }
+
+            info!("Processed chunk of {} blocks", finalized_blocks.len());
+            if error {
+                return Err(ListenerError::FinalizedBlockStreamEnded);
+            }
         }
-
-        Err(ListenerError::FinalizedBlockStreamEnded)
     }
+}
 
-    async fn get_block_height(&self) -> Result<AbsoluteBlockHeight, ListenerError> {
-        let mut conn = self.database.get()?;
-        let block_height =
-            db::get_last_processed_block(&mut conn)?.unwrap_or(self.default_block_height);
+#[instrument(skip_all)]
+async fn process_block(
+    client: &mut v2::Client,
+    conn: &mut DbConn,
+    block: &BlockInfo,
+    contract_owner: &AccountAddress,
+    processors: &BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+) -> Result<(), ListenerError> {
+    let contract_calls = client
+        .get_block_transaction_events(block.block_hash)
+        .await?
+        .response
+        .try_collect::<Vec<_>>()
+        .await?
+        .into_iter()
+        .filter_map(parse_block_item_summary)
+        .flatten()
+        .collect();
+    conn.transaction(|conn| {
+        process_contract_calls(contract_owner, processors, conn, block, contract_calls)?;
+        db::update_last_processed_block(conn, block).map_err(ListenerError::DatabaseError)
+    })?;
+    let lag = Utc::now() - block.block_slot_time;
+    info!(
+        "Processed block {}, lag: days:{}, hours:{}, mins: {}",
+        block.block_height.height,
+        lag.num_days(),
+        lag.num_hours(),
+        lag.num_minutes(),
+    );
+    Ok(())
+}
 
-        Ok(block_height)
-    }
-
-    /// Processes a block of transactions.
-    ///
-    /// # Arguments
-    ///
-    /// * `block` - The block of transactions to be processed.
-    ///
-    /// # Returns
-    ///
-    /// * A Result indicating the success or failure of the operation.
-    async fn process_block(&mut self, block: &FinalizedBlockInfo) -> Result<u64, ListenerError> {
-        let mut b_events_count = 0u64;
-        let mut summaries = self
-            .client
-            .get_block_transaction_events(block.block_hash)
-            .await?
-            .response;
-
-        while let Some(summary) = summaries
-            .next()
-            .await
-            .transpose()
-            .expect("error getting block item summary")
-        {
-            let events_count = self.process_block_item_summary(block, &summary).await?;
-            b_events_count += events_count;
-        }
-
-        info!(
-            "Processed block {}, events: {}",
-            block.height.height, b_events_count
-        );
-        let mut conn = self.database.get()?;
-        if b_events_count > 0 {
-            db::update_last_processed_block(&mut conn, block)?;
-        }
-        Ok(b_events_count)
-    }
-
-    async fn process_block_item_summary(
-        &mut self,
-        block: &FinalizedBlockInfo,
-        summary: &BlockItemSummary,
-    ) -> Result<u64, ListenerError> {
-        let BlockItemSummary {
-            index,
-            hash,
-            details,
-            ..
-        } = summary;
-
-        let summary = match details {
-            BlockItemSummaryDetails::AccountTransaction(details) => {
-                let AccountTransactionDetails { effects, .. } = details;
-                match effects {
-                    AccountTransactionEffects::ContractInitialized {
-                        data:
-                            ContractInitializedEvent {
-                                address,
-                                events,
-                                init_name,
-                                origin_ref,
-                                ..
-                            },
-                    } => ProcessedBlockItem::Init((
-                        *address,
-                        *origin_ref,
-                        init_name.clone(),
-                        events.to_vec(),
-                    )),
-                    AccountTransactionEffects::ContractUpdateIssued { effects } => {
-                        let mut updates = BTreeMap::<ContractAddress, Vec<ContractEvent>>::new();
-                        for trace_event in effects {
-                            let (address, events) = match trace_event {
-                                ContractTraceElement::Updated {
-                                    data:
-                                        InstanceUpdatedEvent {
-                                            address, events, ..
-                                        },
-                                } => (*address, events.clone()),
-                                ContractTraceElement::Transferred { from, .. } => (*from, vec![]),
-                                ContractTraceElement::Interrupted { address, events } => {
-                                    (*address, events.clone())
-                                }
-                                ContractTraceElement::Resumed { address, .. } => (*address, vec![]),
-                                ContractTraceElement::Upgraded { address, from, to } => {
-                                    warn!(
-                                        "NOT SUPPORTED: Contract: {} Upgraded from module: {} to \
-                                         module: {}",
-                                        address, from, to
-                                    );
-                                    (*address, vec![])
-                                }
-                            };
-
-                            match updates.get_mut(&address) {
-                                Some(existing_events) => existing_events.extend(events),
-                                None => {
-                                    updates.insert(address, events);
-                                }
-                            };
-                        }
-
-                        ProcessedBlockItem::Update(updates)
-                    }
-                    _ => ProcessedBlockItem::WithNoEvents,
+#[instrument(skip_all)]
+fn process_contract_calls(
+    contract_owner: &AccountAddress,
+    processors: &BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+    conn: &mut DbConn,
+    block: &BlockInfo,
+    contract_calls: Vec<ContractCall>,
+) -> Result<(), ListenerError> {
+    for contract_call in contract_calls {
+        let is_processed = match &contract_call.call_type {
+            ContractCallType::Init(init) => {
+                if contract_owner.eq(&contract_call.txn.sender) {
+                    processors
+                        .get(&(init.module_ref, init.contract_name.clone()))
+                        .map(|process| {
+                            db::add_contract(
+                                conn,
+                                &contract_call.contract,
+                                &init.module_ref,
+                                &init.contract_name,
+                                &contract_call.txn.sender,
+                            )?;
+                            process(
+                                conn,
+                                block.block_slot_time,
+                                &contract_call.contract,
+                                &init.events,
+                            )
+                        })
+                        .transpose()?
+                        .is_some()
+                } else {
+                    false
                 }
             }
-            _ => ProcessedBlockItem::WithNoEvents,
-        };
-
-        let mut conn = self.database.get()?;
-        let events_count = match summary {
-            ProcessedBlockItem::WithNoEvents => 0u64,
-            ProcessedBlockItem::Init((contract_address, module_ref, contract_name, events)) => {
-                let processor = self.find_processor(&module_ref, &contract_name).await;
-                match processor {
-                    Some(processor) => {
-                        db::add_contract(
-                            &mut conn,
-                            &contract_address,
-                            &module_ref,
-                            &contract_name,
-                        )?;
-                        info!(
-                            "[{}/{}], hash:{hash} contract: {contract_address} added",
-                            block.height.height, index.index,
-                        );
-
-                        let mut processor = processor.write().await;
-                        debug!(
-                            "[{}/{}], hash:{} processing init events, count: {}, processor: {}",
-                            block.height.height,
-                            index.index,
-                            hash,
-                            events.len(),
-                            processor.contract_name(),
-                        );
-                        let events_count =
-                            processor.process_events(&contract_address, &events).await?;
-                        debug!(
-                            "[{}/{}], hash:{} processed init events, count: {}, processor: {}",
-                            block.height.height,
-                            index.index,
-                            hash,
-                            events.len(),
-                            processor.contract_name(),
-                        );
-
-                        events_count
-                    }
-                    None => 0u64,
-                }
-            }
-            ProcessedBlockItem::Update(updates) => {
-                let mut event_counts = 0;
-                for (contract_address, events) in updates.into_iter() {
-                    let contract = db::find_contract(&mut conn, &contract_address)?;
-                    let processor = match contract {
-                        Some((module_ref, contract_name)) => {
-                            self.find_processor(&module_ref, &contract_name).await
-                        }
-                        None => None,
-                    };
-                    let contract_events_counts = match processor {
-                        Some(processor) => {
-                            let mut processor = processor.write().await;
-                            debug!(
-                                "[{}/{}], hash:{} processing update events, count: {}, processor: \
-                                 {}",
-                                block.height.height,
-                                index.index,
-                                hash,
-                                events.len(),
-                                processor.contract_name(),
-                            );
-                            // Processing Update events
-                            let processed_count =
-                                processor.process_events(&contract_address, &events).await?;
-                            debug!(
-                                "[{}/{}], hash:{} processed update events, count: {}, processor: \
-                                 {}",
-                                block.height.height,
-                                index.index,
-                                hash,
-                                events.len(),
-                                processor.contract_name(),
-                            );
-                            processed_count
-                        }
-                        None => 0u64,
-                    };
-                    event_counts.add_assign(contract_events_counts);
-                }
-
-                event_counts
+            ContractCallType::Update(update) => db::find_contract(conn, &contract_call.contract)?
+                .and_then(|(module_ref, contract_name)| {
+                    processors.get(&(module_ref, contract_name))
+                })
+                .map(|process| {
+                    process(
+                        conn,
+                        block.block_slot_time,
+                        &contract_call.contract,
+                        &update.events,
+                    )
+                })
+                .transpose()?
+                .is_some(),
+            ContractCallType::Upgraded { to, .. } => {
+                db::find_contract(conn, &contract_call.contract)?
+                    .map(|_| db::update_contract(conn, &contract_call.contract, to))
+                    .transpose()?
+                    .is_some()
             }
         };
 
-        info!(
-            "[{}/{}], hash:{} events count: {}",
-            block.height.height, index.index, hash, events_count
-        );
-        Ok(events_count)
+        if is_processed {
+            let (call_type, entrypoint_name, amount, sender, events_count) =
+                match &contract_call.call_type {
+                    ContractCallType::Init(init) => (
+                        CallType::Init,
+                        &init.contract_name.to_string(),
+                        init.amount,
+                        Address::Account(contract_call.txn.sender),
+                        init.events.len() as i32,
+                    ),
+                    ContractCallType::Update(update) => (
+                        CallType::Update,
+                        &update.receive_name.to_string(),
+                        update.amount,
+                        update.sender,
+                        update.events.len() as i32,
+                    ),
+                    ContractCallType::Upgraded { .. } => (
+                        CallType::Upgraded,
+                        &"".to_string(),
+                        Amount::zero(),
+                        Address::Account(contract_call.txn.sender),
+                        0i32,
+                    ),
+                };
+            db::upsert_transaction(
+                conn,
+                ListenerTransaction::new(block, contract_call.txn.hash, contract_call.txn.index),
+            )?;
+            db::add_contract_call(conn, ListenerContractCallInsert {
+                call_type,
+                ccd_amount: amount.micro_ccd.into(),
+                entrypoint_name,
+                events_count,
+                index: contract_call.contract.index.into(),
+                sub_index: contract_call.contract.subindex.into(),
+                instigator: &contract_call.txn.sender.to_string(),
+                sender: &sender.to_string(),
+                transaction_hash: contract_call.txn.hash.bytes.into(),
+            })?;
+            info!(
+                "Processed contract call txn: {}, contract: {}, sender: {}, events count: {}",
+                contract_call.txn.hash, contract_call.contract, sender, events_count
+            );
+        }
     }
 
-    /// Finds a processor that matches the given origin reference and contract
-    /// name.
-    ///
-    /// # Arguments
-    ///
-    /// * `origin_ref` - The origin reference to match.
-    /// * `init_name` - The contract name to match.
-    ///
-    /// # Returns
-    ///
-    /// * An Option containing a reference to the matching processor, or None if
-    ///   no match was found.
-    async fn find_processor(
-        &self,
-        origin_ref: &ModuleReference,
-        init_name: &OwnedContractName,
-    ) -> Option<Arc<RwLock<dyn EventsProcessor>>> {
-        for processor in self.processors.iter() {
-            let matches = processor.read().await.matches(origin_ref, init_name);
-            match matches {
-                true => return Some(processor.clone()),
-                false => continue,
-            }
-        }
+    Ok(())
+}
+/// Gets the last processed block height from the database, or the default block height if no
+/// last processed block is found.
+///
+/// # Returns
+///
+/// * A `Result` containing the last processed block height, or a `ListenerError` if there was
+///   an error retrieving the block height from the database.
+async fn get_block_height_or(
+    conn: &mut DbConn,
+    default_block_height: AbsoluteBlockHeight,
+) -> Result<AbsoluteBlockHeight, ListenerError> {
+    let block_height = db::get_last_processed_block(conn)?
+        .map(|b| b.next())
+        .unwrap_or(default_block_height);
 
+    Ok(block_height)
+}
+
+fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCall>> {
+    let BlockItemSummary {
+        details,
+        index,
+        hash,
+        ..
+    } = summary;
+    if let BlockItemSummaryDetails::AccountTransaction(at) = details {
+        match at.effects {
+            AccountTransactionEffects::ContractInitialized { data } => Some(vec![ContractCall {
+                txn:       ContractCallTxn::new(index, hash, at.sender),
+                contract:  data.address,
+                call_type: ContractCallType::create_init(data),
+            }]),
+            AccountTransactionEffects::ContractUpdateIssued { effects } => {
+                let mut res = Vec::with_capacity(effects.len());
+                let mut collected_events: BTreeMap<ContractAddress, Vec<ContractEvent>> =
+                    BTreeMap::new();
+                for effect in effects {
+                    match effect {
+                        ContractTraceElement::Interrupted { address, events } => {
+                            collected_events
+                                .entry(address)
+                                .and_modify(|e| e.extend(events.clone().into_iter()))
+                                .or_insert(events);
+                        }
+                        ContractTraceElement::Updated { data } => {
+                            let interrupt_events = collected_events.remove(&data.address);
+                            res.push(ContractCall {
+                                txn:       ContractCallTxn::new(index, hash, at.sender),
+                                contract:  data.address,
+                                call_type: ContractCallType::create_update(data, interrupt_events),
+                            });
+                        }
+                        ContractTraceElement::Upgraded { address, from, to } => {
+                            res.push(ContractCall {
+                                txn:       ContractCallTxn::new(index, hash, at.sender),
+                                contract:  address,
+                                call_type: ContractCallType::Upgraded { from, to },
+                            });
+                        }
+                        _ => {}
+                    }
+                }
+                Some(res)
+            }
+            _ => None,
+        }
+    } else {
         None
     }
 }

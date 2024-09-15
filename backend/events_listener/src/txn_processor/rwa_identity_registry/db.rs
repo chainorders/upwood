@@ -2,6 +2,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::types::{Address, ContractAddress};
 use concordium_rwa_backend_shared::db::{DbConn, DbResult};
 use diesel::prelude::*;
+use tracing::instrument;
 
 use crate::schema::{
     identity_registry_agents, identity_registry_identities, identity_registry_issuers,
@@ -93,6 +94,7 @@ impl Issuer {
     }
 }
 
+#[instrument(skip(conn))]
 #[allow(dead_code)]
 pub fn list_issuers(
     conn: &mut DbConn,
@@ -117,12 +119,14 @@ pub fn list_issuers(
     Ok((res, page_count))
 }
 
+#[instrument(skip(conn))]
 pub fn insert_issuer(conn: &mut DbConn, issuer: Issuer) -> DbResult<usize> {
     diesel::insert_into(identity_registry_issuers::table)
         .values(issuer)
         .execute(conn)
 }
 
+#[instrument(skip(conn))]
 pub fn remove_issuer(
     conn: &mut DbConn,
     identity_registry_address: &ContractAddress,
@@ -165,6 +169,7 @@ impl Agent {
 }
 
 #[allow(dead_code)]
+#[instrument(skip(conn))]
 pub fn list_agents(
     conn: &mut DbConn,
     identity_registry_address: &ContractAddress,
@@ -188,12 +193,14 @@ pub fn list_agents(
     Ok((res, page_count))
 }
 
+#[instrument(skip(conn))]
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<usize> {
     diesel::insert_into(identity_registry_agents::table)
         .values(agent)
         .execute(conn)
 }
 
+#[instrument(skip(conn))]
 pub fn remove_agent(
     conn: &mut DbConn,
     identity_registry_address: &ContractAddress,

@@ -15,7 +15,6 @@ pub struct Config {
 }
 
 fn main() {
-    env_logger::init();
     let config = Config::parse();
 
     let api_service = txn_processor::create_service();

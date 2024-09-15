@@ -1,7 +1,5 @@
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDateTime};
 use concordium_rust_sdk::cis2;
-use concordium_rust_sdk::common::types::Timestamp;
 use diesel::PgConnection;
 use num_bigint::BigInt;
 
@@ -14,12 +12,6 @@ pub fn token_amount_to_sql(amount: &cis2::TokenAmount) -> BigDecimal {
         BigInt::new(num_bigint::Sign::Plus, amount.0.to_u32_digits()),
         0,
     )
-}
-
-pub fn to_naive_utc(time: Timestamp) -> NaiveDateTime {
-    DateTime::from_timestamp_millis(time.millis as i64)
-        .unwrap()
-        .naive_utc()
 }
 
 #[cfg(test)]

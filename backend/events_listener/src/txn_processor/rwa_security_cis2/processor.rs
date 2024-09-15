@@ -1,31 +1,28 @@
 use core::fmt;
-use std::marker::PhantomData;
 
-use async_trait::async_trait;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use concordium_cis2::{
     BurnEvent, Cis2Event, IsTokenAmount, IsTokenId, MintEvent, OperatorUpdate, TokenMetadataEvent,
     TransferEvent, UpdateOperatorEvent,
 };
 use concordium_protocols::concordium_cis2_security::*;
 use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Serial};
-use concordium_rust_sdk::base::hashes::ModuleReference;
-use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName};
+use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::cis2;
-use concordium_rust_sdk::common::types::Timestamp;
 use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::*;
 use diesel::Connection;
 use num_bigint::BigUint;
 use num_traits::Zero;
-use tracing::debug;
+use security_sft_rewards::types::Event;
+use tracing::{debug, instrument};
 
 use super::db;
-use crate::txn_listener::{EventsProcessor, ProcessorError};
+use crate::txn_listener::listener::ProcessorError;
 
 fn cis2<T, A>(
     conn: &mut DbConn,
-    now: Timestamp,
+    now: DateTime<Utc>,
     cis2_address: &ContractAddress,
     event: Cis2Event<T, A>,
 ) -> DbResult<()>
@@ -144,10 +141,10 @@ where T: IsTokenId+Serial {
     cis2::TokenId::deserial(&mut cursor).unwrap()
 }
 
-type Event<T, A, R> = Cis2SecurityEvent<T, A, R>;
+#[instrument(skip(conn))]
 pub fn process_events<T, A, R>(
     conn: &mut DbConn,
-    now: Timestamp,
+    now: DateTime<Utc>,
     cis2_address: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError>
@@ -157,7 +154,7 @@ where
     R: Deserial+fmt::Debug,
 {
     for event in events {
-        let parsed_event = event.parse::<Event<T, A, R>>()?;
+        let parsed_event = event.parse::<Event>().expect("Failed to parse event");
         debug!("Event: {}/{}", cis2_address.index, cis2_address.subindex);
         debug!("{:#?}", parsed_event);
 
@@ -227,81 +224,6 @@ where
     }
 
     Ok(())
-}
-
-pub struct RwaSecurityCIS2Processor<T, A, R> {
-    pub pool:                  DbPool,
-    /// Module reference of the contract.
-    pub module_ref:            ModuleReference,
-    /// Name of the contract.
-    pub contract_name:         OwnedContractName,
-    pub _phantom_token_id:     PhantomData<T>,
-    pub _phantom_token_amount: PhantomData<A>,
-    pub _phantom_agent_role:   PhantomData<R>,
-}
-
-impl<T, A, R> RwaSecurityCIS2Processor<T, A, R> {
-    pub fn new(
-        pool: DbPool,
-        module_ref: ModuleReference,
-        contract_name: OwnedContractName,
-    ) -> Self {
-        Self {
-            pool,
-            module_ref,
-            contract_name,
-            _phantom_token_id: Default::default(),
-            _phantom_token_amount: Default::default(),
-            _phantom_agent_role: Default::default(),
-        }
-    }
-}
-
-#[async_trait]
-impl<T, A, R> EventsProcessor for RwaSecurityCIS2Processor<T, A, R>
-where
-    T: IsTokenId+Send+Sync+fmt::Debug,
-    A: IsTokenAmount+Send+Sync+fmt::Debug,
-    R: Send+Sync+Deserial+fmt::Debug,
-{
-    /// Returns the name of the contract this processor is responsible for.
-    ///
-    /// # Returns
-    ///
-    /// * A reference to the `OwnedContractName` of the contract.
-    fn contract_name(&self) -> &OwnedContractName { &self.contract_name }
-
-    /// Returns the module reference of the contract this processor is
-    /// responsible for.
-    ///
-    /// # Returns
-    ///
-    /// * A reference to the `ModuleReference` of the contract.
-    fn module_ref(&self) -> &ModuleReference { &self.module_ref }
-
-    /// Processes the events of the contract.
-    ///
-    /// # Arguments
-    ///
-    /// * `contract` - A reference to the `ContractAddress` of the contract
-    ///   whose events are to be processed.
-    /// * `events` - A slice of `ContractEvent`s to be processed.
-    ///
-    /// # Returns
-    ///
-    /// * A Result indicating the success or failure of the operation.
-    async fn process_events(
-        &mut self,
-        contract: &ContractAddress,
-        events: &[ContractEvent],
-    ) -> Result<u64, ProcessorError> {
-        let mut conn = self.pool.get()?;
-        let now = Timestamp {
-            millis: Utc::now().timestamp_millis() as u64,
-        };
-        process_events::<T, A, R>(&mut conn, now, contract, events)?;
-        Ok(events.len() as u64)
-    }
 }
 
 #[cfg(test)]

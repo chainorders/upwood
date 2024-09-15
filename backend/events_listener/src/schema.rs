@@ -104,22 +104,37 @@ diesel::table! {
 }
 
 diesel::table! {
+    listener_contract_calls (id) {
+        id -> Int8,
+        transaction_hash -> Bytea,
+        index -> Numeric,
+        sub_index -> Numeric,
+        entrypoint_name -> Varchar,
+        ccd_amount -> Numeric,
+        instigator -> Varchar,
+        sender -> Varchar,
+        events_count -> Int4,
+        call_type -> Int4,
+    }
+}
+
+diesel::table! {
     listener_contracts (index) {
         module_ref -> Bytea,
         contract_name -> Varchar,
         index -> Numeric,
         sub_index -> Numeric,
+        owner -> Varchar,
     }
 }
 
 diesel::table! {
-    token_market (market_address, token_contract_address, token_id, token_owner_address) {
-        market_address -> Varchar,
-        token_contract_address -> Varchar,
-        token_id -> Varchar,
-        token_owner_address -> Varchar,
-        token_listed_amount -> Numeric,
-        token_unlisted_amount -> Numeric,
+    listener_transactions (transaction_hash) {
+        transaction_hash -> Bytea,
+        block_hash -> Bytea,
+        block_height -> Numeric,
+        block_slot_time -> Timestamp,
+        transaction_index -> Numeric,
     }
 }
 
@@ -136,6 +151,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     identity_registry_identities,
     identity_registry_issuers,
     listener_config,
+    listener_contract_calls,
     listener_contracts,
-    token_market,
+    listener_transactions,
 );
