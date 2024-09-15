@@ -81,6 +81,10 @@ pub enum ContractCallType {
 }
 
 impl ContractCallType {
+    /// Creates a new `Init` variant of `ContractCallType` from a `ContractInitializedEvent`.
+    ///
+    /// This function takes a `ContractInitializedEvent` and constructs an `Init` variant of `ContractCallType`
+    /// with the relevant information from the event, such as the module reference, contract name, amount, and events.
     pub fn create_init(init: ContractInitializedEvent) -> Self {
         Self::Init(Init {
             module_ref:    init.origin_ref,
@@ -90,6 +94,11 @@ impl ContractCallType {
         })
     }
 
+    /// Creates a new `Update` variant of `ContractCallType` from an `InstanceUpdatedEvent`.
+    ///
+    /// This function takes an `InstanceUpdatedEvent` and constructs an `Update` variant of `ContractCallType`
+    /// with the relevant information from the event, such as the sender, amount, receive name, and events.
+    /// If `interrupt_events` is provided, it will be concatenated with the events from the `InstanceUpdatedEvent`.
     pub fn create_update(
         event: InstanceUpdatedEvent,
         interrupt_events: Option<Vec<ContractEvent>>,
@@ -209,6 +218,17 @@ impl TransactionsListener {
 }
 
 #[instrument(skip_all)]
+/// Processes a block of transactions, extracting contract calls, processing them, and updating the last processed block in the database.
+///
+/// # Arguments
+/// * `client` - A mutable reference to the Concordium client used to fetch block information.
+/// * `conn` - A mutable reference to the database connection.
+/// * `block` - A reference to the block information.
+/// * `contract_owner` - A reference to the contract owner's account address.
+/// * `processors` - A reference to the map of contract processors.
+///
+/// # Returns
+/// A `Result` indicating the success or failure of the operation.
 async fn process_block(
     client: &mut v2::Client,
     conn: &mut DbConn,
@@ -252,10 +272,13 @@ fn process_contract_calls(
     for contract_call in contract_calls {
         let is_processed = match &contract_call.call_type {
             ContractCallType::Init(init) => {
+                // If the contract is owned by the owner, then we process the init call
                 if contract_owner.eq(&contract_call.txn.sender) {
                     processors
                         .get(&(init.module_ref, init.contract_name.clone()))
                         .map(|process| {
+                            // Processor exists, so we process the init call
+                            // Add the contract to the database
                             db::add_contract(
                                 conn,
                                 &contract_call.contract,
@@ -263,6 +286,7 @@ fn process_contract_calls(
                                 &init.contract_name,
                                 &contract_call.txn.sender,
                             )?;
+                            // Process the init call
                             process(
                                 conn,
                                 block.block_slot_time,
@@ -281,6 +305,7 @@ fn process_contract_calls(
                     processors.get(&(module_ref, contract_name))
                 })
                 .map(|process| {
+                    // Processor exists, so we process the update call
                     process(
                         conn,
                         block.block_slot_time,
@@ -298,6 +323,7 @@ fn process_contract_calls(
             }
         };
 
+        // If the contract is not processed, then we skip it
         if is_processed {
             let (call_type, entrypoint_name, amount, sender, events_count) =
                 match &contract_call.call_type {
@@ -323,10 +349,12 @@ fn process_contract_calls(
                         0i32,
                     ),
                 };
+            // Add the transaction to the database
             db::upsert_transaction(
                 conn,
                 ListenerTransaction::new(block, contract_call.txn.hash, contract_call.txn.index),
             )?;
+            // Add the contract call to the database
             db::add_contract_call(conn, ListenerContractCallInsert {
                 call_type,
                 ccd_amount: amount.micro_ccd.into(),
@@ -365,6 +393,20 @@ async fn get_block_height_or(
     Ok(block_height)
 }
 
+/// Parses a `BlockItemSummary` and returns an optional vector of `ContractCall` instances.
+///
+/// If the `BlockItemSummary` represents an `AccountTransaction` with either a `ContractInitialized` or
+/// `ContractUpdateIssued` effect, this function will parse the details and return a vector of
+/// `ContractCall` instances. Otherwise, it will return `None`.
+///
+/// # Arguments
+///
+/// * `summary` - The `BlockItemSummary` to parse.
+///
+/// # Returns
+///
+/// An optional vector of `ContractCall` instances, or `None` if the `BlockItemSummary` does not
+/// represent a relevant transaction.
 fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCall>> {
     let BlockItemSummary {
         details,
@@ -386,12 +428,15 @@ fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCal
                 for effect in effects {
                     match effect {
                         ContractTraceElement::Interrupted { address, events } => {
+                            // If we have events for this address, add them to the interrupt events and continue
                             collected_events
                                 .entry(address)
                                 .and_modify(|e| e.extend(events.clone().into_iter()))
                                 .or_insert(events);
                         }
                         ContractTraceElement::Updated { data } => {
+                            // after interrupt the contract is resumed and updated.
+                            // So we can add the interrupt events to the update events
                             let interrupt_events = collected_events.remove(&data.address);
                             res.push(ContractCall {
                                 txn:       ContractCallTxn::new(index, hash, at.sender),
