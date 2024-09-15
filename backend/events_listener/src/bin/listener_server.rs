@@ -4,19 +4,19 @@ use std::time::Duration;
 
 use backon::{ExponentialBuilder, Retryable};
 use clap::Parser;
-use concordium_rust_sdk::base::hashes::ModuleReference;
-use concordium_rust_sdk::base::smart_contracts::{OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use concordium_rwa_events_listener::txn_listener;
 use concordium_rwa_events_listener::txn_listener::listener::{
     ListenerError, ProcessorError, ProcessorFnType, TransactionsListener,
 };
-use concordium_rwa_events_listener::txn_processor::{rwa_identity_registry, rwa_security_cis2};
+use concordium_rwa_events_listener::txn_processor::cis2_security::{
+    security_sft_rewards, security_sft_single,
+};
+use concordium_rwa_events_listener::txn_processor::identity_registry;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
 use r2d2::Pool;
-use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::EnvFilter;
@@ -105,29 +105,27 @@ async fn main() -> Result<(), Error> {
     };
     info!("default block height: {}", default_block_height);
     let processors = {
-        let mut map: BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType> =
-            BTreeMap::new();
+        let mut map = BTreeMap::new();
         map.insert(
             (
-                WasmModule::from_slice(include_bytes!(
-                    "../../../../contracts/security-sft-rewards/contract.wasm.v1"
-                ))
-                .expect("Failed to parse security-sft-rewards module")
-                .get_module_ref(),
-                OwnedContractName::new_unchecked("init_security_sft_rewards".to_string()),
+                security_sft_rewards::module_ref(),
+                security_sft_rewards::contract_name(),
             ),
-            rwa_security_cis2::processor::process_events::<TokenId, TokenAmount, AgentRole>,
+            security_sft_rewards::process_events as ProcessorFnType,
         );
         map.insert(
             (
-                WasmModule::from_slice(include_bytes!(
-                    "../../../../contracts/identity-registry/contract.wasm.v1"
-                ))
-                .expect("Failed to parse identity-registry module")
-                .get_module_ref(),
-                OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string()),
+                security_sft_single::module_ref(),
+                security_sft_single::contract_name(),
             ),
-            rwa_identity_registry::processor::process_events,
+            security_sft_single::process_events as ProcessorFnType,
+        );
+        map.insert(
+            (
+                identity_registry::module_ref(),
+                identity_registry::contract_name(),
+            ),
+            identity_registry::processor::process_events as ProcessorFnType,
         );
         map
     };

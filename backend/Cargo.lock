@@ -1027,6 +1027,7 @@ dependencies = [
  "poem-openapi",
  "r2d2",
  "security-sft-rewards",
+ "security-sft-single",
  "serde_json",
  "sha2",
  "thiserror",
@@ -3276,6 +3277,17 @@ dependencies = [
 
 [[package]]
 name = "security-sft-rewards"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-protocols",
+ "concordium-rwa-utils",
+ "concordium-std",
+ "hex",
+]
+
+[[package]]
+name = "security-sft-single"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",

@@ -141,7 +141,7 @@ where T: IsTokenId+Serial {
     cis2::TokenId::deserial(&mut cursor).unwrap()
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(contract = %cis2_address, events = events.len()))]
 pub fn process_events<T, A, R>(
     conn: &mut DbConn,
     now: DateTime<Utc>,

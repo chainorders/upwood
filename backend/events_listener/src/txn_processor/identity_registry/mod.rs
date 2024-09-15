@@ -4,9 +4,22 @@
 //! trait to fetch data from the database. The API endpoints are defined using
 //! the `poem_openapi` and `poem` crates, and the responses are serialized as
 //! JSON using the `Json` type.
-
-pub mod db;
+mod db;
 pub mod processor;
+
+use concordium_rust_sdk::base::hashes::ModuleReference;
+use concordium_rust_sdk::base::smart_contracts::{OwnedContractName, WasmModule};
+pub fn module_ref() -> ModuleReference {
+    WasmModule::from_slice(include_bytes!(
+        "../../../../../contracts/identity-registry/contract.wasm.v1"
+    ))
+    .expect("Failed to parse identity-registry module")
+    .get_module_ref()
+}
+
+pub fn contract_name() -> OwnedContractName {
+    OwnedContractName::new_unchecked("init_rwa_identity_registry".to_string())
+}
 // todo add api module exposing open api
 // todo update integration tests using the api
 #[cfg(test)]
@@ -24,7 +37,7 @@ mod integration_tests {
     use diesel_migrations::{embed_migrations, EmbeddedMigrations};
     use r2d2::Pool;
 
-    use crate::txn_processor::rwa_identity_registry::{db, processor};
+    use crate::txn_processor::identity_registry::{db, processor};
 
     const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 

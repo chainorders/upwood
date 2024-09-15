@@ -6,11 +6,11 @@
 //! functions to run the contracts API server and listener, as well as to
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
-pub mod rwa_identity_registry;
-pub mod rwa_security_cis2;
+pub mod cis2_security;
+pub mod identity_registry;
 
+use cis2_security::api::Cis2Api;
 use poem_openapi::OpenApiService;
-use rwa_security_cis2::api::Cis2Api;
 
 /// Creates the service for the contracts API.
 pub fn create_service() -> OpenApiService<Cis2Api, ()> {

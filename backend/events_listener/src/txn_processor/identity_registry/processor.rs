@@ -21,7 +21,7 @@ use crate::txn_listener::listener::ProcessorError;
 /// # Returns
 ///
 /// * A `Result` indicating the success or failure of the operation.
-#[instrument(name="" skip_all, fields(contract = %contract, events = events.len()))]
+#[instrument(skip_all, fields(contract = %contract, events = events.len()))]
 pub fn process_events(
     conn: &mut DbConn,
     now: DateTime<Utc>,
