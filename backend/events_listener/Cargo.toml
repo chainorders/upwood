@@ -31,6 +31,7 @@ async-trait = "0.1.77"
 concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
 security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
+nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
 concordium-rwa-utils = { path = "../../contracts/utils" }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 dotenvy = "0.15.7"

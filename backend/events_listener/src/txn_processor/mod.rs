@@ -8,6 +8,7 @@
 //! listener, server routes, and service for the contracts API.
 pub mod cis2_security;
 pub mod identity_registry;
+pub mod nft_multi_rewarded;
 
 use cis2_security::api::Cis2Api;
 use poem_openapi::OpenApiService;

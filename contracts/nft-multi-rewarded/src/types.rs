@@ -1,4 +1,4 @@
-use concordium_cis2::{Cis2Event, TokenIdU32, TokenIdU64, TokenIdVec};
+use concordium_cis2::{Cis2Event, TokenIdU32, TokenIdU64};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, TokenUId};
 use concordium_std::{Address, SchemaType, Serialize};
@@ -21,14 +21,17 @@ pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>
 pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct InitParam {
-    pub reward_token: TokenUId<TokenIdVec>,
+    /// token id of the fungible token to be used as reward token.
+    /// upon receiving this token nft's would be allowed to mint equal to the amount of reward token received.
+    /// the reward token would be burned.
+    pub reward_token: TokenUId<RewardTokenId>,
 }
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub enum Event {
-    Init(InitParam),
+    RewardTokenUpdated(InitParam),
     AgentAdded(Address),
     AgentRemoved(Address),
     Cis2(Cis2Event<TokenId, TokenAmount>),

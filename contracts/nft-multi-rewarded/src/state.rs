@@ -1,11 +1,10 @@
-use concordium_cis2::TokenIdVec;
 use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_std::{
     Address, Deletable, DeserialWithState, HasStateApi, MetadataUrl, Serial, StateApi,
     StateBuilder, StateMap, StateRef, StateRefMut, StateSet,
 };
 
-use super::types::TokenId;
+use super::types::{RewardTokenId, TokenId};
 use crate::error::Error;
 
 #[derive(Serial, DeserialWithState, Deletable)]
@@ -45,7 +44,7 @@ impl<S> AddressState<S> {
 #[concordium(state_parameter = "S")]
 /// Represents the state of the security NFT contract.
 pub struct State<S=StateApi> {
-    pub reward_token:  TokenUId<TokenIdVec>,
+    pub reward_token:  TokenUId<RewardTokenId>,
     pub curr_token_id: TokenId,
     pub tokens:        StateMap<TokenId, MetadataUrl, S>,
     pub addresses:     StateMap<Address, AddressState<S>, S>,

@@ -32,7 +32,7 @@ pub fn init(
         tokens:        state_builder.new_map(),
         addresses:     state_builder.new_map(),
     };
-    logger.log(&Event::Init(params))?;
+    logger.log(&Event::RewardTokenUpdated(params))?;
 
     Ok(state)
 }
@@ -310,7 +310,7 @@ pub struct SignedMetadataUrls {
     pub agent_account: AccountAddress,
     pub signature:     AccountSignatures,
 }
-pub type MintParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmountU64, SignedMetadataUrls>;
+pub type MintParams = OnReceivingCis2DataParams<RewardTokenId, TokenAmountU64, SignedMetadataUrls>;
 
 #[receive(
     contract = "nft_multi_rewarded",

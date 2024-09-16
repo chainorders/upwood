@@ -1021,6 +1021,7 @@ dependencies = [
  "dotenvy",
  "futures",
  "hex",
+ "nft-multi-rewarded",
  "num-bigint",
  "num-traits",
  "poem",
@@ -2331,6 +2332,17 @@ dependencies = [
  "spin",
  "tokio",
  "version_check",
+]
+
+[[package]]
+name = "nft-multi-rewarded"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-protocols",
+ "concordium-rwa-utils",
+ "concordium-std",
+ "hex",
 ]
 
 [[package]]

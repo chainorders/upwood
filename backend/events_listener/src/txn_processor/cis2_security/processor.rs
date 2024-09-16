@@ -20,7 +20,7 @@ use tracing::{debug, instrument};
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
 
-fn cis2<T, A>(
+pub fn process_events_cis2<T, A>(
     conn: &mut DbConn,
     now: DateTime<Utc>,
     cis2_address: &ContractAddress,
@@ -219,7 +219,7 @@ where
                 &to_cis2_token_amount(&amount),
                 false,
             )?,
-            Event::Cis2(e) => cis2(conn, now, cis2_address, e)?,
+            Event::Cis2(e) => process_events_cis2(conn, now, cis2_address, e)?,
         }
     }
 

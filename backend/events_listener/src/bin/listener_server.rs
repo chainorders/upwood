@@ -14,6 +14,7 @@ use concordium_rwa_events_listener::txn_processor::cis2_security::{
     security_sft_rewards, security_sft_single,
 };
 use concordium_rwa_events_listener::txn_processor::identity_registry;
+use concordium_rwa_events_listener::txn_processor::nft_multi_rewarded;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
 use r2d2::Pool;
@@ -126,6 +127,13 @@ async fn main() -> Result<(), Error> {
                 identity_registry::contract_name(),
             ),
             identity_registry::processor::process_events as ProcessorFnType,
+        );
+        map.insert(
+            (
+                nft_multi_rewarded::module_ref(),
+                nft_multi_rewarded::contract_name(),
+            ),
+            nft_multi_rewarded::processor::process_events as ProcessorFnType,
         );
         map
     };

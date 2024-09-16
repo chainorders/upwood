@@ -138,6 +138,15 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    nft_multi_rewarded_contracts (contract_address) {
+        contract_address -> Varchar,
+        reward_token_id -> Varchar,
+        reward_token_address -> Varchar,
+        update_time -> Timestamp,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     cis2_agents,
     cis2_compliances,
@@ -154,4 +163,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     listener_contract_calls,
     listener_contracts,
     listener_transactions,
+    nft_multi_rewarded_contracts,
 );
