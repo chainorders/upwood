@@ -65,7 +65,7 @@ impl ToSql<Integer, diesel::pg::Pg> for SecurityMintFundState {
 #[diesel(table_name = security_mint_fund_contracts)]
 #[diesel(primary_key(contract_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityMintFundContract {
+pub struct Contract {
     pub contract_address: String,
     pub token_contract_address: String,
     pub token_id: String,
@@ -82,7 +82,7 @@ pub struct SecurityMintFundContract {
     pub update_time: NaiveDateTime,
 }
 
-impl SecurityMintFundContract {
+impl Contract {
     pub fn new(
         contract: &ContractAddress,
         token: AnyTokenUId,
@@ -115,7 +115,7 @@ impl SecurityMintFundContract {
 #[diesel(table_name = security_mint_fund_investors)]
 #[diesel(primary_key(contract_address, investor))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityMintFundInvestor {
+pub struct Investor {
     pub contract_address: String,
     pub investor:         String,
     pub currency_amount:  BigDecimal,
@@ -124,7 +124,7 @@ pub struct SecurityMintFundInvestor {
     pub update_time:      NaiveDateTime,
 }
 
-impl SecurityMintFundInvestor {
+impl Investor {
     pub fn new(
         contract: &ContractAddress,
         investor: &AccountAddress,
@@ -147,7 +147,7 @@ impl SecurityMintFundInvestor {
 #[diesel(table_name = security_mint_fund_investment_records)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityMintFundInvestmentRecord {
+pub struct InvestmentRecord {
     pub id:                     i64,
     pub contract_address:       String,
     pub investor:               String,
@@ -193,7 +193,7 @@ impl ToSql<Integer, diesel::pg::Pg> for InvestmentRecordType {
 #[derive(Insertable, Debug, PartialEq)]
 #[diesel(table_name = security_mint_fund_investment_records)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SecurityMintFundInvestmentRecordInsert {
+pub struct InvestmentRecordInsert {
     pub contract_address:       String,
     pub investor:               String,
     pub currency_amount:        Option<BigDecimal>,
@@ -201,7 +201,7 @@ pub struct SecurityMintFundInvestmentRecordInsert {
     pub investment_record_type: InvestmentRecordType,
     pub create_time:            NaiveDateTime,
 }
-impl SecurityMintFundInvestmentRecordInsert {
+impl InvestmentRecordInsert {
     pub fn new(
         contract: &ContractAddress,
         investor: &Address,
@@ -222,7 +222,7 @@ impl SecurityMintFundInvestmentRecordInsert {
 }
 
 #[instrument(skip_all)]
-pub fn insert_fund(conn: &mut DbConn, fund: SecurityMintFundContract) -> DbResult<()> {
+pub fn insert_fund(conn: &mut DbConn, fund: Contract) -> DbResult<()> {
     diesel::insert_into(security_mint_fund_contracts::table)
         .values(fund)
         .execute(conn)?;
@@ -329,10 +329,7 @@ pub fn update_fund_state(
 }
 
 #[instrument(skip_all, fields(investor = %record.investor))]
-pub fn insert_investment_record(
-    conn: &mut DbConn,
-    record: SecurityMintFundInvestmentRecordInsert,
-) -> DbResult<()> {
+pub fn insert_investment_record(conn: &mut DbConn, record: InvestmentRecordInsert) -> DbResult<()> {
     diesel::insert_into(security_mint_fund_investment_records::table)
         .values(record)
         .execute(conn)?;
@@ -342,7 +339,7 @@ pub fn insert_investment_record(
 #[instrument(skip_all, fields(investor = %investor.investor))]
 pub fn insert_investor_or_update_add_investment(
     conn: &mut DbConn,
-    investor: SecurityMintFundInvestor,
+    investor: Investor,
 ) -> DbResult<()> {
     diesel::insert_into(security_mint_fund_investors::table)
         .values(investor.clone())

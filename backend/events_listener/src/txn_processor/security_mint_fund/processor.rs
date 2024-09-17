@@ -31,7 +31,7 @@ pub fn process_events(
             Event::Initialized(event) => {
                 db::insert_fund(
                     conn,
-                    db::SecurityMintFundContract::new(
+                    db::Contract::new(
                         contract,
                         event.token,
                         event.investment_token,
@@ -48,7 +48,7 @@ pub fn process_events(
             Event::Invested(event) => {
                 db::insert_investor_or_update_add_investment(
                     conn,
-                    db::SecurityMintFundInvestor::new(
+                    db::Investor::new(
                         contract,
                         &event.investor,
                         event.currency_amount,
@@ -65,7 +65,7 @@ pub fn process_events(
                 )?;
                 db::insert_investment_record(
                     conn,
-                    db::SecurityMintFundInvestmentRecordInsert::new(
+                    db::InvestmentRecordInsert::new(
                         contract,
                         &event.investor.into(),
                         Some(&event.currency_amount),
@@ -93,7 +93,7 @@ pub fn process_events(
                 )?;
                 db::insert_investment_record(
                     conn,
-                    db::SecurityMintFundInvestmentRecordInsert::new(
+                    db::InvestmentRecordInsert::new(
                         contract,
                         &event.investor.into(),
                         Some(&event.currency_amount),
@@ -114,7 +114,7 @@ pub fn process_events(
                 db::update_fund_sub_token_amount(conn, contract, &event.security_amount, now)?;
                 db::insert_investment_record(
                     conn,
-                    db::SecurityMintFundInvestmentRecordInsert::new(
+                    db::InvestmentRecordInsert::new(
                         contract,
                         &event.investor.into(),
                         None,
@@ -128,7 +128,7 @@ pub fn process_events(
                 db::update_fund_sub_currency_amount(conn, contract, &event.currency_amount, now)?;
                 db::insert_investment_record(
                     conn,
-                    db::SecurityMintFundInvestmentRecordInsert::new(
+                    db::InvestmentRecordInsert::new(
                         contract,
                         &event.receiver.address(),
                         Some(&event.currency_amount),

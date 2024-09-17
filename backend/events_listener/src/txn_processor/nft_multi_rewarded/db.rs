@@ -6,7 +6,7 @@ use nft_multi_rewarded::types::RewardTokenId;
 
 use crate::schema::nft_multi_rewarded_contracts;
 
-pub fn update_reward_token(
+pub fn upsert_reward_token(
     conn: &mut DbConn,
     now: DateTime<Utc>,
     contract: &ContractAddress,

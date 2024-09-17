@@ -42,7 +42,7 @@ pub fn process_events(
                 cis2_security::processor::process_events_cis2(conn, now, contract, event)?;
             }
             Event::RewardTokenUpdated(e) => {
-                db::update_reward_token(
+                db::upsert_reward_token(
                     conn,
                     now,
                     contract,
