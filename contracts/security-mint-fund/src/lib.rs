@@ -63,7 +63,7 @@ impl From<LogError> for Error {
     fn from(_: LogError) -> Self { Error::LogError }
 }
 /// Current state fo the func represented by this contract.
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Debug)]
 pub enum FundState {
     Open,
     Success(Receiver),
@@ -80,7 +80,7 @@ impl FundState {
     pub fn can_claim_investment(&self) -> bool { matches!(self, FundState::Success(_)) }
 }
 
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Debug)]
 pub struct State {
     /// Token representing the security. Security token represented by `investment_token` will be minted after completion of this fund.
     /// Upon completion of this contract's fund this is is the token which will be burned.
@@ -94,25 +94,28 @@ pub struct State {
     /// Current state of the fund.
     pub fund_state:       FundState,
 }
-#[derive(Serialize, SchemaType)]
+
+#[derive(Serialize, SchemaType, Debug)]
 pub struct InvestedEvent {
-    currency_amount: CurrencyTokenAmount,
-    security_amount: TokenAmount,
-    investor:        AccountAddress,
+    pub currency_amount: CurrencyTokenAmount,
+    pub security_amount: TokenAmount,
+    pub investor:        AccountAddress,
 }
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct InvestmentClaimedEvent {
-    pub amount: TokenAmount,
+    pub investor:        AccountAddress,
+    pub security_amount: TokenAmount,
 }
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct InvestmentDisbursedEvent {
-    pub amount: CurrencyTokenAmount,
+    pub currency_amount: CurrencyTokenAmount,
+    pub receiver:        Receiver,
 }
 
-#[derive(Serialize, SchemaType)]
-enum Event {
+#[derive(Serialize, SchemaType, Debug)]
+pub enum Event {
     Initialized(State),
     Invested(InvestedEvent),
     InvestmentCancelled(InvestedEvent),
@@ -353,7 +356,8 @@ fn update_fund_state(
         })
         .map_err(|_| Error::CurrencyTokenTransfer)?;
         logger.log(&Event::InvestmentDisbursed(InvestmentDisbursedEvent {
-            amount: balance_of_currency,
+            currency_amount: balance_of_currency,
+            receiver:        funds_receiver.clone(),
         }))?;
     }
 
@@ -427,7 +431,8 @@ fn claim_investment(
         .map_err(|_| Error::TokenMint)?;
 
         logger.log(&Event::InvestmentClaimed(InvestmentClaimedEvent {
-            amount: security_amount,
+            security_amount,
+            investor: investment.investor,
         }))?;
     }
 

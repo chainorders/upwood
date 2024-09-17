@@ -1027,6 +1027,7 @@ dependencies = [
  "poem",
  "poem-openapi",
  "r2d2",
+ "security-mint-fund",
  "security-sft-rewards",
  "security-sft-single",
  "serde_json",
@@ -3285,6 +3286,16 @@ checksum = "75da29fe9b9b08fe9d6b22b5b4bcbc75d8db3aa31e639aa56bb62e9d46bfceaf"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "security-mint-fund"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-protocols",
+ "concordium-rwa-utils",
+ "concordium-std",
 ]
 
 [[package]]

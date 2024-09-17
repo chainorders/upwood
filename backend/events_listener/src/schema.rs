@@ -147,6 +147,48 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    security_mint_fund_contracts (contract_address) {
+        contract_address -> Varchar,
+        token_contract_address -> Varchar,
+        token_id -> Varchar,
+        investment_token_contract_address -> Varchar,
+        investment_token_id -> Varchar,
+        currency_token_contract_address -> Varchar,
+        currency_token_id -> Varchar,
+        rate_numerator -> Int8,
+        rate_denominator -> Int8,
+        fund_state -> Int4,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_mint_fund_investment_records (id) {
+        id -> Int8,
+        contract_address -> Varchar,
+        investor -> Varchar,
+        currency_amount -> Nullable<Numeric>,
+        token_amount -> Nullable<Numeric>,
+        investment_record_type -> Int4,
+        create_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_mint_fund_investors (contract_address, investor) {
+        contract_address -> Varchar,
+        investor -> Varchar,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     cis2_agents,
     cis2_compliances,
@@ -164,4 +206,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     listener_contracts,
     listener_transactions,
     nft_multi_rewarded_contracts,
+    security_mint_fund_contracts,
+    security_mint_fund_investment_records,
+    security_mint_fund_investors,
 );

@@ -32,6 +32,7 @@ concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" 
 security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
 nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
+security-mint-fund = { path = "../../contracts/security-mint-fund" }
 concordium-rwa-utils = { path = "../../contracts/utils" }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 dotenvy = "0.15.7"
