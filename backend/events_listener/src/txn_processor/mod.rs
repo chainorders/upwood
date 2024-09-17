@@ -7,6 +7,7 @@
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
 pub mod cis2_security;
+pub mod cis2_utils;
 pub mod identity_registry;
 pub mod nft_multi_rewarded;
 

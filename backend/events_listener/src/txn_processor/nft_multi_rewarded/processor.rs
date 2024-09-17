@@ -8,7 +8,12 @@ use tracing::{debug, instrument};
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_security;
-#[instrument(skip_all, fields(contract = %contract, events = events.len()))]
+
+#[instrument(
+    name="nft_multi_rewarded_process_events",
+    skip_all,
+    fields(contract = %contract, events = events.len())
+)]
 pub fn process_events(
     conn: &mut DbConn,
     now: DateTime<Utc>,

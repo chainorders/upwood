@@ -21,7 +21,11 @@ use crate::txn_listener::listener::ProcessorError;
 /// # Returns
 ///
 /// * A `Result` indicating the success or failure of the operation.
-#[instrument(skip_all, fields(contract = %contract, events = events.len()))]
+#[instrument(
+    name="identity_registry_process_events",
+    skip_all,
+    fields(contract = %contract, events = events.len())
+)]
 pub fn process_events(
     conn: &mut DbConn,
     now: DateTime<Utc>,

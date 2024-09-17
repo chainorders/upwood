@@ -246,7 +246,7 @@ impl ListenerTransaction {
     }
 }
 
-#[instrument(skip_all, fields(block_height = %transaction.block_height, txn_index = %transaction.transaction_index))]
+#[instrument(skip_all, fields(txn_index = %transaction.transaction_index))]
 pub fn upsert_transaction(
     conn: &mut DbConn,
     transaction: ListenerTransaction,

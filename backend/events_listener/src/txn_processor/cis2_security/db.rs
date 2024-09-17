@@ -111,7 +111,7 @@ impl Compliance {
 
 #[instrument(
     skip_all,
-    fields(contract = compliance.cis2_address.to_string(), compliance_address = compliance.compliance_address.to_string())
+    fields(compliance_address = compliance.compliance_address.to_string())
 )]
 pub fn upsert_compliance(conn: &mut DbConn, compliance: &Compliance) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_compliances::table)
@@ -150,7 +150,7 @@ impl IdentityRegistry {
 
 #[instrument(
     skip_all,
-    fields(contract = record.cis2_address.to_string(), identity_registry_address = record.identity_registry_address.to_string())
+    fields(identity_registry_address = record.identity_registry_address.to_string())
 )]
 pub fn upsert_identity_registry(conn: &mut DbConn, record: &IdentityRegistry) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_identity_registries::table)
@@ -165,7 +165,7 @@ pub fn upsert_identity_registry(conn: &mut DbConn, record: &IdentityRegistry) ->
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(token_id = token_id.to_string()))]
 pub fn update_token_paused(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -271,7 +271,7 @@ pub fn list_holders_by_token(
     Ok((tokens, page_count))
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(token_id = token_id.to_string()))]
 pub fn update_balance_frozen(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -308,7 +308,7 @@ pub fn update_balance_frozen(
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(holder = holder.holder_address.to_string()))]
 pub fn insert_holder_or_add_balance(conn: &mut DbConn, holder: &TokenHolder) -> DbResult<()> {
     let updated_rows = diesel::insert_into(cis2_token_holders::table)
         .values(holder)
@@ -325,7 +325,7 @@ pub fn insert_holder_or_add_balance(conn: &mut DbConn, holder: &TokenHolder) -> 
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(holder = holder_address.to_string()))]
 pub fn update_sub_balance(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -355,7 +355,7 @@ pub fn update_sub_balance(
     })
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(holder = holder_address.to_string()))]
 pub fn update_replace_holder(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -430,7 +430,7 @@ pub fn list_tokens_for_contract(
     Ok((tokens, page_count))
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(token_id))]
 pub fn insert_token_or_update_metadata(conn: &mut DbConn, token: &Token) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_tokens::table)
         .values(token)
@@ -446,7 +446,7 @@ pub fn insert_token_or_update_metadata(conn: &mut DbConn, token: &Token) -> DbRe
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(token_id))]
 pub fn update_supply(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -493,7 +493,7 @@ impl Operator {
     }
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(holder_address))]
 pub fn insert_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
     diesel::insert_into(cis2_operators::table)
         .values(record)
@@ -502,7 +502,7 @@ pub fn insert_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
     Ok(())
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(holder_address))]
 pub fn delete_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
     let delete_filter = cis2_operators::cis2_address.eq(&record.cis2_address).and(
         cis2_operators::holder_address
@@ -540,7 +540,7 @@ impl RecoveryRecord {
     }
 }
 
-#[instrument(skip(conn))]
+#[instrument(skip_all, fields(holder_address))]
 pub fn insert_recovery_record(conn: &mut DbConn, record: &RecoveryRecord) -> DbResult<()> {
     diesel::insert_into(cis2_recovery_records::table)
         .values(record)

@@ -6,7 +6,7 @@ use concordium_cis2::{
     TransferEvent, UpdateOperatorEvent,
 };
 use concordium_protocols::concordium_cis2_security::*;
-use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Serial};
+use concordium_rust_sdk::base::contracts_common::{Deserial, Serial};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::ContractAddress;
@@ -15,10 +15,11 @@ use diesel::Connection;
 use num_bigint::BigUint;
 use num_traits::Zero;
 use security_sft_rewards::types::Event;
-use tracing::{debug, instrument};
+use tracing::debug;
 
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
+use crate::txn_processor::cis2_utils::*;
 
 pub fn process_events_cis2<T, A>(
     conn: &mut DbConn,
@@ -122,26 +123,6 @@ where
     }
 }
 
-fn to_cis2_token_amount<A>(amount: &A) -> cis2::TokenAmount
-where A: IsTokenAmount+Serial {
-    let mut bytes = vec![];
-    amount.serial(&mut bytes).unwrap();
-    let mut cursor: Cursor<_> = Cursor::new(bytes);
-
-    cis2::TokenAmount::deserial(&mut cursor).unwrap()
-}
-
-fn to_cis2_token_id<T>(token_id: &T) -> cis2::TokenId
-where T: IsTokenId+Serial {
-    let mut bytes = vec![];
-
-    token_id.serial(&mut bytes).unwrap();
-    let mut cursor: Cursor<_> = Cursor::new(bytes);
-
-    cis2::TokenId::deserial(&mut cursor).unwrap()
-}
-
-#[instrument(skip_all, fields(contract = %cis2_address, events = events.len()))]
 pub fn process_events<T, A, R>(
     conn: &mut DbConn,
     now: DateTime<Utc>,

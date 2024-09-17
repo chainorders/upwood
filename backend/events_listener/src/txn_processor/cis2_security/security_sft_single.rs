@@ -4,6 +4,7 @@ use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractNam
 use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_backend_shared::db::DbConn;
 use security_sft_single::types::{AgentRole, TokenAmount, TokenId};
+use tracing::instrument;
 
 use crate::txn_listener::listener::ProcessorError;
 
@@ -19,16 +20,16 @@ pub fn contract_name() -> OwnedContractName {
     OwnedContractName::new_unchecked("init_security_sft_single".to_string())
 }
 
+#[instrument(
+    name="security_sft_single_process_events",
+    skip_all,
+    fields(contract = %contract, events = events.len())
+)]
 pub fn process_events(
     conn: &mut DbConn,
     now: DateTime<Utc>,
-    cis2_address: &ContractAddress,
+    contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
-    super::processor::process_events::<TokenId, TokenAmount, AgentRole>(
-        conn,
-        now,
-        cis2_address,
-        events,
-    )
+    super::processor::process_events::<TokenId, TokenAmount, AgentRole>(conn, now, contract, events)
 }
