@@ -18,6 +18,7 @@ diesel = { version = "2.1.6", features = [
     "postgres",
     "r2d2",
     "chrono",
+    "serde_json"
 ] }
 diesel_migrations = { version = "2.1.0", features = ["postgres"] }
 r2d2 = "0.8.10"
@@ -33,6 +34,7 @@ security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
 nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
 security-mint-fund = { path = "../../contracts/security-mint-fund" }
+security-p2p-trading = { path = "../../contracts/security-p2p-trading" }
 concordium-rwa-utils = { path = "../../contracts/utils" }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 dotenvy = "0.15.7"
@@ -40,6 +42,8 @@ thiserror = "1.0.63"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 backon = "1.2.0"
+diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
+serde = "1.0.210"
 
 [dev-dependencies]
 concordium_rwa_backend_shared = { path = "../shared", features = ["test"] }

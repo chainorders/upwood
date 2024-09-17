@@ -11,6 +11,7 @@ pub mod cis2_utils;
 pub mod identity_registry;
 pub mod nft_multi_rewarded;
 pub mod security_mint_fund;
+pub mod security_p2p_trading;
 
 use cis2_security::api::Cis2Api;
 use poem_openapi::OpenApiService;
