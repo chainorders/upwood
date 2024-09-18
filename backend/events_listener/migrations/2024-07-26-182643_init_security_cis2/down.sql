@@ -5,4 +5,3 @@ drop table cis2_token_holders;
 drop table cis2_agents;
 drop table cis2_operators;
 drop table cis2_recovery_records;
-drop table cis2_deposits;

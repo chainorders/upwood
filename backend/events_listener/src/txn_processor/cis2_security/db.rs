@@ -10,8 +10,8 @@ use num_traits::Zero;
 use tracing::instrument;
 
 use crate::schema::{
-    cis2_agents, cis2_compliances, cis2_deposits, cis2_identity_registries, cis2_operators,
-    cis2_recovery_records, cis2_token_holders, cis2_tokens,
+    cis2_agents, cis2_compliances, cis2_identity_registries, cis2_operators, cis2_recovery_records,
+    cis2_token_holders, cis2_tokens,
 };
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
@@ -547,112 +547,4 @@ pub fn insert_recovery_record(conn: &mut DbConn, record: &RecoveryRecord) -> DbR
         .execute(conn)?;
 
     Ok(())
-}
-
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
-#[diesel(table_name = cis2_deposits)]
-#[diesel(primary_key(
-    cis2_address,
-    deposited_cis2_address,
-    deposited_token_id,
-    deposited_holder_address
-))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Cis2Deposit {
-    pub cis2_address:             String,
-    pub deposited_cis2_address:   String,
-    pub deposited_token_id:       String,
-    pub deposited_holder_address: String,
-    pub deposited_amount:         BigDecimal,
-}
-
-impl Cis2Deposit {
-    pub fn new(
-        cis2_address: &ContractAddress,
-        deposited_cis2_address: &ContractAddress,
-        deposited_token_id: &cis2::TokenId,
-        deposited_holder_address: &Address,
-        deposited_amount: &cis2::TokenAmount,
-    ) -> Self {
-        Self {
-            cis2_address:             cis2_address.to_string(),
-            deposited_cis2_address:   deposited_cis2_address.to_string(),
-            deposited_token_id:       deposited_token_id.to_string(),
-            deposited_holder_address: deposited_holder_address.to_string(),
-            deposited_amount:         token_amount_to_sql(deposited_amount),
-        }
-    }
-}
-
-#[instrument(skip(conn))]
-pub fn list_deposits_by_holder(
-    conn: &mut DbConn,
-    cis2_address: &ContractAddress,
-    holder_address: &Address,
-    page_size: i64,
-    page: i64,
-) -> DbResult<(Vec<Cis2Deposit>, i64)> {
-    let query = cis2_deposits::table.filter(
-        cis2_deposits::cis2_address
-            .eq(cis2_address.to_string())
-            .and(cis2_deposits::deposited_holder_address.eq(holder_address.to_string())),
-    );
-
-    let tokens = query
-        .clone()
-        .select(Cis2Deposit::as_select())
-        .order(cis2_deposits::deposited_cis2_address)
-        .offset(page * page_size)
-        .limit(page_size)
-        .get_results(conn)?;
-    let count_total: i64 = query.count().get_result(conn)?;
-
-    let page_count = (count_total + page_size - 1) / page_size;
-    Ok((tokens, page_count))
-}
-
-#[instrument(skip(conn))]
-pub fn insert_or_inc_deposit_amount(conn: &mut DbConn, record: &Cis2Deposit) -> DbResult<()> {
-    let row_count = diesel::insert_into(cis2_deposits::table)
-        .values(record)
-        .on_conflict((
-            cis2_deposits::cis2_address,
-            cis2_deposits::deposited_cis2_address,
-            cis2_deposits::deposited_token_id,
-            cis2_deposits::deposited_holder_address,
-        ))
-        .do_update()
-        .set(
-            cis2_deposits::deposited_amount
-                .eq(cis2_deposits::deposited_amount.add(&record.deposited_amount)),
-        )
-        .execute(conn)?;
-    assert_eq!(row_count, 1, "error {} rows updated", row_count);
-    Ok(())
-}
-
-#[instrument(skip(conn))]
-pub fn update_sub_deposit_amount(conn: &mut DbConn, record: &Cis2Deposit) -> DbResult<()> {
-    conn.transaction(|conn| {
-        let update_filter = cis2_deposits::cis2_address
-            .eq(&record.cis2_address)
-            .and(cis2_deposits::deposited_cis2_address.eq(&record.deposited_cis2_address))
-            .and(cis2_deposits::deposited_token_id.eq(&record.deposited_token_id))
-            .and(cis2_deposits::deposited_holder_address.eq(&record.deposited_holder_address));
-        let update_query = cis2_deposits::deposited_amount
-            .eq(cis2_deposits::deposited_amount.sub(&record.deposited_amount));
-        let row_count = diesel::update(cis2_deposits::table)
-            .filter(&update_filter)
-            .set(update_query)
-            .execute(conn)?;
-        assert_eq!(row_count, 1, "error {} rows updated", row_count);
-
-        let delete_filter =
-            update_filter.and(cis2_deposits::deposited_amount.eq(BigDecimal::zero()));
-        diesel::delete(cis2_deposits::table)
-            .filter(delete_filter)
-            .execute(conn)?;
-
-        Ok(())
-    })
 }

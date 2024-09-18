@@ -24,7 +24,7 @@ use crate::txn_processor::cis2_utils::*;
 pub fn process_events_cis2<T, A>(
     conn: &mut DbConn,
     now: DateTime<Utc>,
-    cis2_address: &ContractAddress,
+    contract: &ContractAddress,
     event: Cis2Event<T, A>,
 ) -> DbResult<()>
 where
@@ -43,7 +43,7 @@ where
                 db::insert_holder_or_add_balance(
                     conn,
                     &db::TokenHolder::new(
-                        cis2_address,
+                        contract,
                         &token_id,
                         &owner,
                         &token_amount,
@@ -51,7 +51,7 @@ where
                         now,
                     ),
                 )?;
-                db::update_supply(conn, cis2_address, &token_id, &token_amount, true)?;
+                db::update_supply(conn, contract, &token_id, &token_amount, true)?;
                 DbResult::Ok(())
             })
         }
@@ -63,7 +63,7 @@ where
             db::insert_token_or_update_metadata(
                 conn,
                 &db::Token::new(
-                    cis2_address,
+                    contract,
                     &token_id,
                     false,
                     metadata_url.url,
@@ -81,8 +81,8 @@ where
             let token_id = to_cis2_token_id(&token_id);
             let token_amount = to_cis2_token_amount(&amount);
             conn.transaction(|conn| {
-                db::update_sub_balance(conn, cis2_address, &token_id, &owner, &token_amount)?;
-                db::update_supply(conn, cis2_address, &token_id, &token_amount, false)?;
+                db::update_sub_balance(conn, contract, &token_id, &owner, &token_amount)?;
+                db::update_supply(conn, contract, &token_id, &token_amount, false)?;
                 DbResult::Ok(())
             })
         }
@@ -95,11 +95,11 @@ where
             let token_id = to_cis2_token_id(&token_id);
             let token_amount = to_cis2_token_amount(&amount);
             conn.transaction(|conn| {
-                db::update_sub_balance(conn, cis2_address, &token_id, &from, &token_amount)?;
+                db::update_sub_balance(conn, contract, &token_id, &from, &token_amount)?;
                 db::insert_holder_or_add_balance(
                     conn,
                     &db::TokenHolder::new(
-                        cis2_address,
+                        contract,
                         &token_id,
                         &to,
                         &token_amount,
@@ -114,7 +114,7 @@ where
             operator,
             update,
         }) => {
-            let record = db::Operator::new(cis2_address, &owner, &operator);
+            let record = db::Operator::new(contract, &owner, &operator);
             match update {
                 OperatorUpdate::Add => db::insert_operator(conn, &record),
                 OperatorUpdate::Remove => db::delete_operator(conn, &record),
@@ -126,7 +126,7 @@ where
 pub fn process_events<T, A, R>(
     conn: &mut DbConn,
     now: DateTime<Utc>,
-    cis2_address: &ContractAddress,
+    contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError>
 where
@@ -136,32 +136,31 @@ where
 {
     for event in events {
         let parsed_event = event.parse::<Event>().expect("Failed to parse event");
-        debug!("Event: {}/{}", cis2_address.index, cis2_address.subindex);
+        debug!("Event: {}/{}", contract.index, contract.subindex);
         debug!("{:#?}", parsed_event);
 
         match parsed_event {
             Event::AgentAdded(AgentUpdatedEvent {
                 agent,
                 roles: _, // todo: add roles to the database
-            }) => db::insert_agent(conn, db::Agent::new(agent, now, cis2_address))?,
+            }) => db::insert_agent(conn, db::Agent::new(agent, now, contract))?,
             Event::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
-                db::remove_agent(conn, cis2_address, &agent)?
+                db::remove_agent(conn, contract, &agent)?
             }
-            Event::ComplianceAdded(ComplianceAdded(compliance_contract)) => db::upsert_compliance(
-                conn,
-                &db::Compliance::new(cis2_address, &compliance_contract),
-            )?,
+            Event::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
+                db::upsert_compliance(conn, &db::Compliance::new(contract, &compliance_contract))?
+            }
             Event::IdentityRegistryAdded(IdentityRegistryAdded(identity_registry_contract)) => {
                 db::upsert_identity_registry(
                     conn,
-                    &db::IdentityRegistry::new(cis2_address, &identity_registry_contract),
+                    &db::IdentityRegistry::new(contract, &identity_registry_contract),
                 )?
             }
             Event::Paused(Paused { token_id }) => {
-                db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id), true)?
+                db::update_token_paused(conn, contract, &to_cis2_token_id(&token_id), true)?
             }
             Event::UnPaused(Paused { token_id }) => {
-                db::update_token_paused(conn, cis2_address, &to_cis2_token_id(&token_id), false)?
+                db::update_token_paused(conn, contract, &to_cis2_token_id(&token_id), false)?
             }
             Event::Recovered(RecoverEvent {
                 lost_account,
@@ -170,9 +169,9 @@ where
                 let updated_rows = conn.transaction(|conn| {
                     db::insert_recovery_record(
                         conn,
-                        &db::RecoveryRecord::new(cis2_address, &lost_account, &new_account),
+                        &db::RecoveryRecord::new(contract, &lost_account, &new_account),
                     )?;
-                    db::update_replace_holder(conn, cis2_address, &lost_account, &new_account)
+                    db::update_replace_holder(conn, contract, &lost_account, &new_account)
                 })?;
                 debug!("account recovery, {} token ids updated", updated_rows);
             }
@@ -182,7 +181,7 @@ where
                 token_id,
             }) => db::update_balance_frozen(
                 conn,
-                cis2_address,
+                contract,
                 &to_cis2_token_id(&token_id),
                 &address,
                 &to_cis2_token_amount(&amount),
@@ -194,13 +193,13 @@ where
                 token_id,
             }) => db::update_balance_frozen(
                 conn,
-                cis2_address,
+                contract,
                 &to_cis2_token_id(&token_id),
                 &address,
                 &to_cis2_token_amount(&amount),
                 false,
             )?,
-            Event::Cis2(e) => process_events_cis2(conn, now, cis2_address, e)?,
+            Event::Cis2(e) => process_events_cis2(conn, now, contract, e)?,
         }
     }
 
