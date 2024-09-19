@@ -35,6 +35,12 @@ pub enum ProcessorError {
     DatabaseError(#[from] diesel::result::Error),
 }
 
+pub struct ContractCall {
+    call_type: ContractCallType,
+    contract:  ContractAddress,
+    txn:       ContractCallTxn,
+}
+
 pub struct ContractCallTxn {
     pub index:  TransactionIndex,
     pub hash:   TransactionHash,
@@ -51,29 +57,9 @@ impl ContractCallTxn {
     }
 }
 
-pub struct ContractCall {
-    call_type: ContractCallType,
-    contract:  ContractAddress,
-    txn:       ContractCallTxn,
-}
-
-pub struct Update {
-    pub sender:       Address,
-    pub amount:       Amount,
-    pub events:       Vec<ContractEvent>,
-    pub receive_name: OwnedReceiveName,
-}
-
-pub struct Init {
-    pub module_ref:    ModuleReference,
-    pub contract_name: OwnedContractName,
-    pub amount:        Amount,
-    pub events:        Vec<ContractEvent>,
-}
-
 pub enum ContractCallType {
-    Init(Init),
-    Update(Update),
+    Init(ContractCallTypeInit),
+    Update(ContractCallTypeUpdate),
     Upgraded {
         from: ModuleReference,
         to:   ModuleReference,
@@ -86,7 +72,7 @@ impl ContractCallType {
     /// This function takes a `ContractInitializedEvent` and constructs an `Init` variant of `ContractCallType`
     /// with the relevant information from the event, such as the module reference, contract name, amount, and events.
     pub fn create_init(init: ContractInitializedEvent) -> Self {
-        Self::Init(Init {
+        Self::Init(ContractCallTypeInit {
             module_ref:    init.origin_ref,
             contract_name: init.init_name,
             amount:        init.amount,
@@ -106,13 +92,27 @@ impl ContractCallType {
         let events = interrupt_events
             .map(|events| [events, event.events.clone()].concat())
             .unwrap_or(event.events);
-        Self::Update(Update {
+        Self::Update(ContractCallTypeUpdate {
             sender: event.instigator,
             amount: event.amount,
             receive_name: event.receive_name,
             events,
         })
     }
+}
+
+pub struct ContractCallTypeUpdate {
+    pub sender:       Address,
+    pub amount:       Amount,
+    pub events:       Vec<ContractEvent>,
+    pub receive_name: OwnedReceiveName,
+}
+
+pub struct ContractCallTypeInit {
+    pub module_ref:    ModuleReference,
+    pub contract_name: OwnedContractName,
+    pub amount:        Amount,
+    pub events:        Vec<ContractEvent>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -145,7 +145,7 @@ pub type ProcessorFnType = fn(
 /// and a MongoDB database, and uses a set of processors to process the
 /// transactions.
 #[derive(Clone)]
-pub struct TransactionsListener {
+pub struct ListenerConfig {
     account:              AccountAddress, // Account address to listen to
     processors:           BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
     database:             Pool<ConnectionManager<PgConnection>>, // postgres pool
@@ -153,11 +153,7 @@ pub struct TransactionsListener {
     client:               v2::Client,
 }
 
-impl TransactionsListener {
-    /// Constructs a new `TransactionsListener`.
-    /// # Returns
-    ///
-    /// * A new `TransactionsListener`.
+impl ListenerConfig {
     pub fn new(
         client: v2::Client,
         pool: Pool<ConnectionManager<PgConnection>>,
@@ -181,7 +177,7 @@ impl TransactionsListener {
 ///
 /// * A Result indicating the success or failure of the operation.
 #[instrument(skip_all)]
-pub async fn listen(mut config: TransactionsListener) -> Result<(), ListenerError> {
+pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
     let mut conn = config.database.get()?;
     let block_height = get_block_height_or(&mut conn, config.default_block_height).await?;
     info!("Starting from block {}", block_height.height);
@@ -264,6 +260,24 @@ async fn process_block(
     Ok(())
 }
 
+/// Processes a list of contract calls, handling initialization, updates, and upgrades.
+///
+/// This function is responsible for processing a list of contract calls, which can include contract
+/// initialization, updates, and upgrades. It checks if the contract is owned by the specified
+/// contract owner, and if so, it processes the contract call using the appropriate processor
+/// function. It also updates the database with the processed contract calls.
+///
+/// # Arguments
+///
+/// * `contract_owner` - A reference to the contract owner's account address.
+/// * `processors` - A reference to the map of contract processors.
+/// * `conn` - A mutable reference to the database connection.
+/// * `block` - A reference to the block information.
+/// * `contract_calls` - A vector of contract calls to process.
+///
+/// # Returns
+///
+/// A `Result` indicating the success or failure of the operation.
 #[instrument(skip_all, fields(block_height = block.block_height.height))]
 fn process_contract_calls(
     contract_owner: &AccountAddress,
@@ -378,6 +392,7 @@ fn process_contract_calls(
 
     Ok(())
 }
+
 /// Gets the last processed block height from the database, or the default block height if no
 /// last processed block is found.
 ///

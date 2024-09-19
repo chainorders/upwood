@@ -8,7 +8,7 @@ use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use concordium_rwa_events_listener::txn_listener;
 use concordium_rwa_events_listener::txn_listener::listener::{
-    ListenerError, ProcessorError, ProcessorFnType, TransactionsListener,
+    ListenerConfig, ListenerError, ProcessorError, ProcessorFnType,
 };
 use concordium_rwa_events_listener::txn_processor::cis2_security::{
     security_sft_rewards, security_sft_single,
@@ -50,6 +50,8 @@ pub struct Config {
     pub listener_retry_times: usize,
     #[clap(env, long)]
     pub listener_retry_min_delay_millis: u64,
+    #[clap(env, long)]
+    pub listener_retry_max_delay_millis: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -147,7 +149,7 @@ async fn main() -> Result<(), Error> {
     };
 
     let owner_account = config.account.parse().expect("Invalid account");
-    let listener = TransactionsListener::new(
+    let listener_config = ListenerConfig::new(
         concordium_client,
         db_pool,
         owner_account,
@@ -156,7 +158,7 @@ async fn main() -> Result<(), Error> {
     );
     let listen = || async {
         info!("Contracts Listener: Starting");
-        txn_listener::listener::listen(listener.clone()).await?;
+        txn_listener::listener::listen(listener_config.clone()).await?;
         Ok::<_, ListenerError>(())
     };
     let retry_policy = ExponentialBuilder::default()
@@ -164,7 +166,9 @@ async fn main() -> Result<(), Error> {
         .with_min_delay(Duration::from_millis(
             config.listener_retry_min_delay_millis,
         ))
-        .with_max_delay(Duration::from_millis(10000));
+        .with_max_delay(Duration::from_millis(
+            config.listener_retry_max_delay_millis,
+        ));
 
     listen
     .retry(retry_policy)
