@@ -18,10 +18,16 @@ use concordium_rwa_events_listener::txn_processor::{
 };
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
+use opentelemetry::trace::{TraceError, TracerProvider};
+use opentelemetry::KeyValue;
+use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
+use opentelemetry_semantic_conventions::resource::SERVICE_NAME;
 use r2d2::Pool;
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::util::TryInitError;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
@@ -52,6 +58,8 @@ pub struct Config {
     pub listener_retry_min_delay_millis: u64,
     #[clap(env, long)]
     pub listener_retry_max_delay_millis: u64,
+    #[clap(env, long)]
+    pub jaeger_host: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -62,21 +70,46 @@ pub enum Error {
     ListenerError(#[from] ListenerError),
     #[error("Listener stopped")]
     ListenerStopped,
+    #[error("Tracing subscriber error: {0}")]
+    TracingSubscriberError(#[from] TryInitError),
+}
+
+fn init_tracer_provider(
+    jaeger_host: String,
+) -> Result<opentelemetry_sdk::trace::TracerProvider, TraceError> {
+    opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint(jaeger_host),
+        )
+        .with_trace_config(
+            sdktrace::Config::default().with_resource(Resource::new(vec![KeyValue::new(
+                SERVICE_NAME,
+                "tracing-jaeger",
+            )])),
+        )
+        .install_batch(runtime::Tokio)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    let subscriber = tracing_subscriber::fmt()
-        .compact()
-        .with_env_filter(EnvFilter::from_default_env())
-        .with_target(false)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
-
     let config = Config::parse();
     debug!("{:#?}", config);
+
+    let tracer_provider =
+        init_tracer_provider(config.jaeger_host).expect("Failed to initialize tracer provider.");
+    let subscriber = tracing_subscriber::fmt::layer()
+        .compact()
+        .with_target(false)
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE);
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new("INFO"))
+        .with(subscriber)
+        .with(tracing_opentelemetry::layer().with_tracer(tracer_provider.tracer("tracing-jaeger")))
+        .try_init()?;
 
     let db_pool = Pool::builder()
         .max_size(config.db_pool_max_size)
@@ -149,6 +182,15 @@ async fn main() -> Result<(), Error> {
     };
 
     let owner_account = config.account.parse().expect("Invalid account");
+    let retry_policy = ExponentialBuilder::default()
+        .with_max_times(config.listener_retry_times)
+        .with_min_delay(Duration::from_millis(
+            config.listener_retry_min_delay_millis,
+        ))
+        .with_max_delay(Duration::from_millis(
+            config.listener_retry_max_delay_millis,
+        ));
+
     let listener_config = ListenerConfig::new(
         concordium_client,
         db_pool,
@@ -161,14 +203,6 @@ async fn main() -> Result<(), Error> {
         txn_listener::listener::listen(listener_config.clone()).await?;
         Ok::<_, ListenerError>(())
     };
-    let retry_policy = ExponentialBuilder::default()
-        .with_max_times(config.listener_retry_times)
-        .with_min_delay(Duration::from_millis(
-            config.listener_retry_min_delay_millis,
-        ))
-        .with_max_delay(Duration::from_millis(
-            config.listener_retry_max_delay_millis,
-        ));
 
     listen
     .retry(retry_policy)
