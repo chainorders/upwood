@@ -51,15 +51,18 @@
 				]
 			},
 			"extensions": [
-				"shardulm94.trailing-spaces",
-				"spikespaz.vscode-smoothtype",
-				"eamodio.gitlens",
 				"ms-azuretools.vscode-docker",
-				"Gruntfuggly.todo-tree",
-				"streetsidesoftware.code-spell-checker",
 				"rust-lang.rust-analyzer",
 				"swellaby.rust-pack",
 				"vadimcn.vscode-lldb",
+				"inferrinizzard.prettier-sql-vscode",
+				"ms-ossdata.vscode-postgresql",
+				"ckolkman.vscode-postgres",
+				"shardulm94.trailing-spaces",
+				"spikespaz.vscode-smoothtype",
+				"eamodio.gitlens",
+				"Gruntfuggly.todo-tree",
+				"streetsidesoftware.code-spell-checker",
 				"mutantdino.resourcemonitor",
 				"gamunu.vscode-yarn",
 				"tamasfe.even-better-toml",
@@ -69,9 +72,6 @@
 				"bierner.markdown-emoji",
 				"bierner.github-markdown-preview",
 				"formulahendry.docker-extension-pack",
-				"inferrinizzard.prettier-sql-vscode",
-				"ms-ossdata.vscode-postgresql",
-				"ckolkman.vscode-postgres",
 				"MS-CST-E.vscode-devskim"
 			]
 		}
