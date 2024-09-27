@@ -13,10 +13,10 @@ pub mod nft_multi_rewarded;
 pub mod security_mint_fund;
 pub mod security_p2p_trading;
 
-use cis2_security::api::Cis2Api;
+use cis2_security::api::Api;
 use poem_openapi::OpenApiService;
 
 /// Creates the service for the contracts API.
-pub fn create_service() -> OpenApiService<Cis2Api, ()> {
-    OpenApiService::new(Cis2Api, "RWA Contracts API", "1.0.0")
+pub fn create_service() -> OpenApiService<Api, ()> {
+    OpenApiService::new(Api, "RWA Contracts API", "1.0.0")
 }

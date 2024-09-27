@@ -56,22 +56,18 @@ impl From<db::TokenHolder> for TokenHolder {
 }
 
 #[derive(Clone, Copy)]
-pub struct Cis2Api;
+pub struct Api;
 
 #[OpenApi]
-impl Cis2Api {
-    #[oai(
-        path = "/rwa-security-cis2/:index/:subindex/tokens/:page",
-        method = "get"
-    )]
+impl Api {
+    #[oai(path = "/security-cis2/:cis2_address/tokens/:page", method = "get")]
     pub async fn tokens(
         &self,
         Data(pool): Data<&DbPool>,
-        Path(index): Path<u64>,
-        Path(subindex): Path<u64>,
+        Path(cis2_address): Path<String>,
         Path(page): Path<i64>,
     ) -> ApiResult<PagedResponse<Token>> {
-        let cis2_address = ContractAddress { index, subindex };
+        let cis2_address: ContractAddress = cis2_address.parse()?;
         let mut conn = pool.get()?;
         let (tokens, page_count) =
             db::list_tokens_for_contract(&mut conn, &cis2_address, PAGE_SIZE, page)?;
@@ -86,18 +82,17 @@ impl Cis2Api {
     }
 
     #[oai(
-        path = "/rwa-security-cis2/:index/:subindex/holders/:address/:page",
+        path = "/security-cis2/:cis2_address/holders/:address/:page",
         method = "get"
     )]
     pub async fn holders(
         self,
         Data(pool): Data<&DbPool>,
-        Path(index): Path<u64>,
-        Path(subindex): Path<u64>,
+        Path(cis2_address): Path<String>,
         Path(address): Path<String>,
         Path(page): Path<i64>,
     ) -> ApiResult<PagedResponse<TokenHolder>> {
-        let cis2_address = ContractAddress { index, subindex };
+        let cis2_address: ContractAddress = cis2_address.parse()?;
         let holder_address: Address = address.parse()?;
         let mut conn = pool.get()?;
 
@@ -114,18 +109,17 @@ impl Cis2Api {
     }
 
     #[oai(
-        path = "/rwa-security-cis2/:index/:subindex/holdersOf/:token_id/:page",
+        path = "/security-cis2/:cis2_address/holdersOf/:token_id/:page",
         method = "get"
     )]
     pub async fn holders_of(
         &self,
         Data(pool): Data<&DbPool>,
-        Path(index): Path<u64>,
-        Path(subindex): Path<u64>,
+        Path(cis2_address): Path<String>,
         Path(token_id): Path<String>,
         Path(page): Path<i64>,
     ) -> ApiResult<PagedResponse<TokenHolder>> {
-        let cis2_address = ContractAddress { index, subindex };
+        let cis2_address: ContractAddress = cis2_address.parse()?;
         let token_id: cis2::TokenId = token_id.parse()?;
         let mut conn = pool.get()?;
         let (tokens, page_count) =

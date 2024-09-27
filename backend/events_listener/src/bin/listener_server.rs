@@ -6,18 +6,14 @@ use backon::{ExponentialBuilder, Retryable};
 use clap::Parser;
 use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
-use concordium_rwa_events_listener::txn_listener;
-use concordium_rwa_events_listener::txn_listener::listener::{
-    ListenerConfig, ListenerError, ProcessorError, ProcessorFnType,
-};
-use concordium_rwa_events_listener::txn_processor::cis2_security::{
-    security_sft_rewards, security_sft_single,
-};
-use concordium_rwa_events_listener::txn_processor::{
-    identity_registry, nft_multi_rewarded, security_mint_fund,
-};
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
+use events_listener::txn_listener;
+use events_listener::txn_listener::listener::{
+    ListenerConfig, ListenerError, ProcessorError, ProcessorFnType,
+};
+use events_listener::txn_processor::cis2_security::{security_sft_rewards, security_sft_single};
+use events_listener::txn_processor::{identity_registry, nft_multi_rewarded, security_mint_fund};
 use opentelemetry::trace::{TraceError, TracerProvider};
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;

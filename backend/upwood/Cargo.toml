@@ -1,0 +1,34 @@
+[package]
+name = "upwood"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+poem-openapi = { workspace = true, features = ["swagger-ui", "uuid"] }
+poem = { workspace = true }
+uuid = "1.10.0"
+diesel = { workspace = true, features = [
+    "numeric",
+    "postgres",
+    "r2d2",
+    "chrono",
+    "uuid",
+] }
+diesel_migrations = { workspace = true, features = ["postgres"] }
+r2d2 = { workspace = true }
+libotp = "0.2.0"
+chrono = { workspace = true }
+tokio = { workspace = true, features = ["full", "tracing"] }
+dotenvy = { workspace = true }
+clap = { workspace = true, features = ["derive", "env"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+concordium-rust-sdk = { workspace = true }
+events_listener = { path = "../events_listener" }
+jsonwebtokens-cognito = "0.1.1"
+jsonwebtokens = "1.2.0"
+serde_json = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+tracing-test = "0.2.5"
