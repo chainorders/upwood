@@ -1,16 +1,13 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { OrganizationEnv, StackProps } from "./shared";
 import * as cognito from "aws-cdk-lib/aws-cognito";
-
-export interface StackProps extends cdk.StackProps {
-	organization: string;
-	organization_env: string;
-}
 
 export class CognitoStack extends cdk.Stack {
 	userPool: cdk.aws_cognito.UserPool;
 	client: cdk.aws_cognito.UserPoolClient;
 	adminGroup: cdk.aws_cognito.CfnUserPoolGroup;
+
 	constructor(scope: Construct, id: string, props: StackProps) {
 		super(scope, id, props);
 		this.userPool = new cognito.UserPool(this, `${props.organization}-${props.organization_env}-user-pool`, {
@@ -25,7 +22,9 @@ export class CognitoStack extends cdk.Stack {
 			signInAliases: { email: true },
 			email: cognito.UserPoolEmail.withCognito(), // TODO: Implement email configuration with SES
 			// userInvitation: {}, // TODO: Implement user invitation
-			// userVerification: {}, //TODO: Implement user verification
+			// userVerification: {}, //TODO: Implement user verification,
+			removalPolicy:
+				props.organization_env === OrganizationEnv.PROD ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
 		});
 		cdk.Tags.of(this.userPool).add("organization", props.organization);
 		cdk.Tags.of(this.userPool).add("environment", props.organization_env);
