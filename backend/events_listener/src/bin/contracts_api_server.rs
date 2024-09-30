@@ -2,7 +2,7 @@ use std::path::Path;
 
 use clap::Parser;
 use concordium_rwa_backend_shared::db::DbPool;
-use concordium_rwa_events_listener::txn_processor;
+use events_listener::txn_processor;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};

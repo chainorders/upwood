@@ -4,6 +4,7 @@
 //! trait to fetch data from the database. The API endpoints are defined using
 //! the `poem_openapi` and `poem` crates, and the responses are serialized as
 //! JSON using the `Json` type.
+pub mod api;
 mod db;
 pub mod processor;
 

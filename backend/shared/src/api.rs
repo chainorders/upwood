@@ -1,3 +1,4 @@
+use concordium_rust_sdk::base::contracts_common::ContractAddressParseError;
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::smart_contracts::common::{AccountAddressParseError, AddressParseError};
 use concordium_rust_sdk::types::{Address, ContractAddress};
@@ -30,7 +31,9 @@ impl From<AccountAddressParseError> for Error {
 impl From<AddressParseError> for Error {
     fn from(_: AddressParseError) -> Self { Self::ParseError }
 }
-
+impl From<ContractAddressParseError> for Error {
+    fn from(_: ContractAddressParseError) -> Self { Self::ParseError }
+}
 /// A wrapper around the `ContractAddress` type that can be used in the API.
 #[derive(Object, Debug, Clone, Copy, PartialEq)]
 pub struct ApiContractAddress {

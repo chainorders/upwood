@@ -3,7 +3,6 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use clap::Parser;
-use events_listener::txn_processor;
 use tracing::info;
 
 #[derive(Parser, Debug, Clone)]
@@ -17,7 +16,7 @@ pub struct Config {
 fn main() {
     let config = Config::parse();
 
-    let api_service = txn_processor::create_service();
+    let api_service = upwood::api::create_service();
     let spec_json = api_service.spec();
     let mut file = fs::File::create(&config.output).expect("Error creating file");
     file.write_all(spec_json.as_bytes())

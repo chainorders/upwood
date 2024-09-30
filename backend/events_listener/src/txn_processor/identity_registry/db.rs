@@ -56,6 +56,21 @@ pub fn list_identities(
     Ok((res, page_count))
 }
 
+pub fn find_identity(
+    conn: &mut DbConn,
+    identity_registry_address: &ContractAddress,
+    address: &Address,
+) -> DbResult<Option<Identity>> {
+    let select_filter = identity_registry_identities::identity_registry_address
+        .eq(identity_registry_address.to_string())
+        .and(identity_registry_identities::identity_address.eq(address.to_string()));
+    identity_registry_identities::table
+        .filter(select_filter)
+        .select(Identity::as_select())
+        .first(conn)
+        .optional()
+}
+
 #[instrument(
     skip_all,
     fields(identity_registry = identity.identity_registry_address,address = identity.identity_address.to_string())
