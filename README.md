@@ -11,7 +11,7 @@ git submodule update --init --recursive
 
 - Download & Install the [VS code Development env extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers). Please follow through the prerequisites like docker needed by the extension.
 - Deploying contract requires access to a testnet wallet.
-  Export your wallet and copy it to the location `~/etc/concordium/default_account.export`.
+  Export your wallet and copy it to the location [`.devcontainer/contracts/default_account.export`](.devcontainer/contracts/default_account.export).
   Or change the path in [contracts container file](.devcontainer/contracts/devcontainer.json)
 
 ### Environments
@@ -24,3 +24,10 @@ After installing the dev container extension. Execute the command `Dev Container
 Which will present a list of mentioned development environments.
 
 **Upon start of the container available yarn scripts will be shown on the terminal.**
+
+### Developing on Apple Silicon
+
+- Update the Container Image Variant `VARIANT` in the following files to `bullseye`
+  - [.devcontainer/contracts/devcontainer.json](.devcontainer/contracts/devcontainer.json)
+  - [.devcontainer/backend/docker-compose.yml](.devcontainer/backend/docker-compose.yml)
+  - [.devcontainer/frontend-dapp/devcontainer.json](.devcontainer/frontend-dapp/devcontainer.json)
