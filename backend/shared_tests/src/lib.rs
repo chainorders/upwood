@@ -1,3 +1,4 @@
+
 use concordium_cis2::{TokenIdU64, TokenIdU8, TokenIdVec};
 use concordium_rust_sdk::base::contracts_common::Serial;
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
@@ -6,11 +7,6 @@ use diesel_migrations::{EmbeddedMigrations, MigrationHarness};
 use testcontainers::runners::AsyncRunner;
 use testcontainers::{ContainerAsync, ImageExt};
 use testcontainers_modules::postgres::{self, Postgres};
-
-pub struct TestDbContext {
-    pub base_url: String,
-    pub db_name:  String,
-}
 
 pub async fn create_new_database_container(
     migrations: EmbeddedMigrations,

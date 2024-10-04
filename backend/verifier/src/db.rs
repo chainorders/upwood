@@ -2,9 +2,9 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::base::hashes::TransactionHash;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::ContractAddress;
-use concordium_rwa_backend_shared::db::{DbConn, DbResult};
 use diesel::dsl::*;
 use diesel::prelude::*;
+use shared::db::{DbConn, DbResult};
 
 use crate::schema::verifier_challenges::dsl::*;
 use crate::schema::{self};

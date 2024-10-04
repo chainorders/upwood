@@ -1,5 +1,5 @@
 [workspace]
-members = ["verifier", "events_listener", "shared", "upwood"]
+members = ["verifier", "events_listener", "shared", "upwood", "shared_tests"]
 resolver = "2"
 
 [workspace.dependencies]

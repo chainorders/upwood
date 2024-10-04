@@ -10,7 +10,7 @@ use concordium_rust_sdk::base::contracts_common::{Deserial, Serial};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::ContractAddress;
-use concordium_rwa_backend_shared::db::*;
+use shared::db::*;
 use diesel::Connection;
 use num_bigint::BigUint;
 use num_traits::Zero;

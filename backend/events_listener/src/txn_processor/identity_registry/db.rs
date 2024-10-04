@@ -1,6 +1,6 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use concordium_rwa_backend_shared::db::{DbConn, DbResult};
+use shared::db::{DbConn, DbResult};
 use diesel::prelude::*;
 use tracing::instrument;
 

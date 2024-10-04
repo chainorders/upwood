@@ -8,8 +8,6 @@ use concordium_rust_sdk::types::smart_contracts::InstanceInfo;
 use concordium_rust_sdk::types::{Address, ContractAddress, Energy, WalletAccount};
 use concordium_rust_sdk::v2::{BlockIdentifier, QueryError};
 use concordium_rust_sdk::web3id::did::Network;
-use concordium_rwa_backend_shared::api::ApiContractAddress;
-use concordium_rwa_backend_shared::db::DbPool;
 use hex::encode;
 use log::debug;
 use poem::web::Data;
@@ -17,6 +15,8 @@ use poem_openapi::payload::Json;
 use poem_openapi::{ApiResponse, Object, OpenApi, OpenApiService};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use shared::api::ApiContractAddress;
+use shared::db::DbPool;
 
 use crate::db;
 use crate::identity_registry_client::{self, IdentityRegistryClient};

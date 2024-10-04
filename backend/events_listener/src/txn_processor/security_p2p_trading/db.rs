@@ -6,7 +6,7 @@ use concordium_cis2::TokenAmountU64;
 use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::ContractAddress;
-use concordium_rwa_backend_shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
+use shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
 use diesel::prelude::*;
 use num_traits::Zero;
 use security_mint_fund::AnyTokenUId;

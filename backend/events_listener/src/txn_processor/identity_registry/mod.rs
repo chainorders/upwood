@@ -29,7 +29,7 @@ mod integration_tests {
     use concordium_rust_sdk::base::smart_contracts::ContractEvent;
     use concordium_rust_sdk::id::types::{AccountAddress, ACCOUNT_ADDRESS_SIZE};
     use concordium_rust_sdk::types::{Address, ContractAddress};
-    use concordium_rwa_backend_shared::test::{create_new_database_container, to_contract_event};
+    use shared_tests::{create_new_database_container, to_contract_event};
     use concordium_rwa_identity_registry::event::{
         AgentUpdatedEvent, Event, IdentityUpdatedEvent, IssuerUpdatedEvent,
     };

@@ -1,6 +1,6 @@
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use concordium_rwa_backend_shared::api::ApiResult;
-use concordium_rwa_backend_shared::db::DbPool;
+use shared::api::ApiResult;
+use shared::db::DbPool;
 use poem::web::Data;
 use poem_openapi::param::Path;
 use poem_openapi::payload::Json;

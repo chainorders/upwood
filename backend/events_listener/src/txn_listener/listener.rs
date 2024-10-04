@@ -16,7 +16,7 @@ use concordium_rust_sdk::types::{
     InstanceUpdatedEvent, TransactionIndex,
 };
 use concordium_rust_sdk::v2;
-use concordium_rwa_backend_shared::db::DbConn;
+use shared::db::DbConn;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use futures::TryStreamExt;
@@ -247,7 +247,7 @@ async fn process_block(
         .collect();
     conn.transaction(|conn| {
         process_contract_calls(contract_owner, processors, conn, block, contract_calls)?;
-        db::update_last_processed_block(conn, block).map_err(ListenerError::DatabaseError)
+        db::update_last_processed_block(conn, block.into()).map_err(ListenerError::DatabaseError)
     })?;
     let lag = Utc::now() - block.block_slot_time;
     info!(
@@ -404,7 +404,7 @@ async fn get_block_height_or(
     conn: &mut DbConn,
     default_block_height: AbsoluteBlockHeight,
 ) -> Result<AbsoluteBlockHeight, ListenerError> {
-    let block_height = db::get_last_processed_block(conn)?
+    let block_height = db::get_last_processed_block_height(conn)?
         .map(|b| b.next())
         .unwrap_or(default_block_height);
 

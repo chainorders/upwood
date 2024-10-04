@@ -4,7 +4,7 @@ use concordium_rust_sdk::base::hashes::{ModuleReference, TransactionHash};
 use concordium_rust_sdk::base::smart_contracts::OwnedContractName;
 use concordium_rust_sdk::types::queries::BlockInfo;
 use concordium_rust_sdk::types::{AbsoluteBlockHeight, TransactionIndex};
-use concordium_rwa_backend_shared::db::DbConn;
+use shared::db::DbConn;
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::dsl::*;
 use diesel::expression::AsExpression;
@@ -22,22 +22,34 @@ use crate::schema::{
 #[diesel(table_name = schema::listener_config)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerConfig {
-    pub id:                i32,
-    pub last_block_height: BigDecimal,
-    pub last_block_hash:   Vec<u8>,
+    pub id:                   i32,
+    pub last_block_height:    BigDecimal,
+    pub last_block_hash:      Vec<u8>,
+    pub last_block_slot_time: NaiveDateTime,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::listener_config)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerConfigInsert {
-    pub last_block_height: BigDecimal,
-    pub last_block_hash:   Vec<u8>,
+    pub last_block_height:    BigDecimal,
+    pub last_block_hash:      Vec<u8>,
+    pub last_block_slot_time: NaiveDateTime,
+}
+
+impl From<&BlockInfo> for ListenerConfigInsert {
+    fn from(block: &BlockInfo) -> Self {
+        Self {
+            last_block_height:    block.block_height.height.into(),
+            last_block_hash:      block.block_hash.to_vec(),
+            last_block_slot_time: block.block_slot_time.naive_utc(),
+        }
+    }
 }
 
 /// Retrieves the last processed block from the database.
 #[instrument(skip_all)]
-pub fn get_last_processed_block(
+pub fn get_last_processed_block_height(
     conn: &mut DbConn,
 ) -> Result<Option<AbsoluteBlockHeight>, diesel::result::Error> {
     let config = listener_config::table
@@ -55,17 +67,26 @@ pub fn get_last_processed_block(
     Ok(config)
 }
 
+#[instrument(skip_all)]
+pub fn get_last_processed_block(
+    conn: &mut DbConn,
+) -> Result<Option<ListenerConfig>, diesel::result::Error> {
+    let config = listener_config::table
+        .order(listener_config::last_block_height.desc())
+        .limit(1)
+        .first(conn)
+        .optional()?;
+    Ok(config)
+}
+
 /// Updates the last processed block in the database.
-#[instrument(skip_all, fields(block_height = %block.block_height.height))]
+#[instrument(skip_all, fields(block_height = %block.last_block_height))]
 pub fn update_last_processed_block(
     conn: &mut DbConn,
-    block: &BlockInfo,
+    block: ListenerConfigInsert,
 ) -> Result<i32, diesel::result::Error> {
     let created_id: i32 = insert_into(listener_config::table)
-        .values(ListenerConfigInsert {
-            last_block_hash:   block.block_hash.bytes.to_vec(),
-            last_block_height: block.block_height.height.into(),
-        })
+        .values(block)
         .returning(listener_config::id)
         .get_result(conn)?;
 

@@ -1,5 +1,5 @@
 [package]
-name = "concordium_rwa_backend_shared"
+name = "shared"
 edition = "2021"
 rust-version = "1.74"
 authors = ["parv@stactrace.com"]
@@ -16,8 +16,3 @@ r2d2 = "0.8.10"
 num-bigint = "0.4.4"
 num-traits = "0.2.14"
 bigdecimal = "0.4.5"
-testcontainers = { version = "0.21" }
-testcontainers-modules = { version = "0.9", features = ["postgres"] }
-
-[features]
-test = []

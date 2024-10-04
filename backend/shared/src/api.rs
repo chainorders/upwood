@@ -15,6 +15,8 @@ pub enum Error {
     ParseError,
     #[oai(status = 500)]
     InternalServerError,
+    #[oai(status = 404)]
+    NotFound,
 }
 impl From<diesel::result::Error> for Error {
     fn from(_: diesel::result::Error) -> Self { Self::InternalServerError }

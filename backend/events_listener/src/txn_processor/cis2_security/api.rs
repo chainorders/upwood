@@ -1,9 +1,9 @@
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use concordium_rwa_backend_shared::api::{ApiAddress, ApiResult, PagedResponse, PAGE_SIZE};
-use concordium_rwa_backend_shared::db::DbPool;
+use shared::api::{ApiAddress, ApiResult, PagedResponse, PAGE_SIZE};
+use shared::db::DbPool;
 use poem::web::Data;
-use poem_openapi::param::Path;
+use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::Json;
 use poem_openapi::{Object, OpenApi};
 
@@ -60,12 +60,12 @@ pub struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/security-cis2/:cis2_address/tokens/:page", method = "get")]
+    #[oai(path = "/security-cis2/:cis2_address/tokens", method = "get")]
     pub async fn tokens(
         &self,
         Data(pool): Data<&DbPool>,
         Path(cis2_address): Path<String>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
     ) -> ApiResult<PagedResponse<Token>> {
         let cis2_address: ContractAddress = cis2_address.parse()?;
         let mut conn = pool.get()?;
@@ -82,15 +82,15 @@ impl Api {
     }
 
     #[oai(
-        path = "/security-cis2/:cis2_address/holders/:address/:page",
+        path = "/security-cis2/:cis2_address/holder/:address/tokens",
         method = "get"
     )]
-    pub async fn holders(
+    pub async fn tokens_of_holder(
         self,
         Data(pool): Data<&DbPool>,
         Path(cis2_address): Path<String>,
         Path(address): Path<String>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
     ) -> ApiResult<PagedResponse<TokenHolder>> {
         let cis2_address: ContractAddress = cis2_address.parse()?;
         let holder_address: Address = address.parse()?;
@@ -109,15 +109,15 @@ impl Api {
     }
 
     #[oai(
-        path = "/security-cis2/:cis2_address/holdersOf/:token_id/:page",
+        path = "/security-cis2/:cis2_address/token/:token_id/holders",
         method = "get"
     )]
-    pub async fn holders_of(
+    pub async fn holders_of_token(
         &self,
         Data(pool): Data<&DbPool>,
         Path(cis2_address): Path<String>,
         Path(token_id): Path<String>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
     ) -> ApiResult<PagedResponse<TokenHolder>> {
         let cis2_address: ContractAddress = cis2_address.parse()?;
         let token_id: cis2::TokenId = token_id.parse()?;
