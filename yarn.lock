@@ -67,6 +67,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"concordium-nft-multi-rewarded@workspace:contracts/nft-multi-rewarded":
+  version: 0.0.0-use.local
+  resolution: "concordium-nft-multi-rewarded@workspace:contracts/nft-multi-rewarded"
+  languageName: unknown
+  linkType: soft
+
 "concordium-rwa-compliance@workspace:contracts/compliance":
   version: 0.0.0-use.local
   resolution: "concordium-rwa-compliance@workspace:contracts/compliance"

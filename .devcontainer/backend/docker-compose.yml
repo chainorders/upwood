@@ -17,6 +17,8 @@ services:
         RUSTUP_HOME: /usr/local/rustup
     env_file:
       - .env
+    environment:
+      - JAEGER_HOST=http://jaeger:4317/v1/traces
     command: sleep infinity
     network_mode: service:db
     security_opt:
@@ -40,3 +42,13 @@ services:
       - PG_DATA=/var/lib/progresql/data
     volumes:
       - postgres-data:/var/lib/progresql/data
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - 5778:5778
+      - 16686:16686

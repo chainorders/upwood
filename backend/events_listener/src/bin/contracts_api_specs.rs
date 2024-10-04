@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use concordium_rwa_events_listener::txn_processor;
-use log::info;
+use tracing::info;
 
 #[derive(Parser, Debug, Clone)]
 /// Configuration struct for OpenAPI.
@@ -15,7 +15,6 @@ pub struct Config {
 }
 
 fn main() {
-    env_logger::init();
     let config = Config::parse();
 
     let api_service = txn_processor::create_service();

@@ -1,5 +1,11 @@
 // @generated automatically by Diesel CLI.
 
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "security_p2p_trading_record_type"))]
+    pub struct SecurityP2pTradingRecordType;
+}
+
 diesel::table! {
     cis2_agents (id) {
         id -> Int8,
@@ -12,16 +18,6 @@ diesel::table! {
     cis2_compliances (cis2_address) {
         cis2_address -> Varchar,
         compliance_address -> Varchar,
-    }
-}
-
-diesel::table! {
-    cis2_deposits (cis2_address, deposited_cis2_address, deposited_token_id, deposited_holder_address) {
-        cis2_address -> Varchar,
-        deposited_cis2_address -> Varchar,
-        deposited_token_id -> Varchar,
-        deposited_holder_address -> Varchar,
-        deposited_amount -> Numeric,
     }
 }
 
@@ -104,29 +100,134 @@ diesel::table! {
 }
 
 diesel::table! {
+    listener_contract_calls (id) {
+        id -> Int8,
+        transaction_hash -> Bytea,
+        index -> Numeric,
+        sub_index -> Numeric,
+        entrypoint_name -> Varchar,
+        ccd_amount -> Numeric,
+        instigator -> Varchar,
+        sender -> Varchar,
+        events_count -> Int4,
+        call_type -> Int4,
+    }
+}
+
+diesel::table! {
     listener_contracts (index) {
         module_ref -> Bytea,
         contract_name -> Varchar,
         index -> Numeric,
         sub_index -> Numeric,
+        owner -> Varchar,
     }
 }
 
 diesel::table! {
-    token_market (market_address, token_contract_address, token_id, token_owner_address) {
-        market_address -> Varchar,
+    listener_transactions (transaction_hash) {
+        transaction_hash -> Bytea,
+        block_hash -> Bytea,
+        block_height -> Numeric,
+        block_slot_time -> Timestamp,
+        transaction_index -> Numeric,
+    }
+}
+
+diesel::table! {
+    nft_multi_rewarded_contracts (contract_address) {
+        contract_address -> Varchar,
+        reward_token_id -> Varchar,
+        reward_token_address -> Varchar,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_mint_fund_contracts (contract_address) {
+        contract_address -> Varchar,
         token_contract_address -> Varchar,
         token_id -> Varchar,
-        token_owner_address -> Varchar,
-        token_listed_amount -> Numeric,
-        token_unlisted_amount -> Numeric,
+        investment_token_contract_address -> Varchar,
+        investment_token_id -> Varchar,
+        currency_token_contract_address -> Varchar,
+        currency_token_id -> Varchar,
+        rate_numerator -> Int8,
+        rate_denominator -> Int8,
+        fund_state -> Int4,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_mint_fund_investment_records (id) {
+        id -> Int8,
+        contract_address -> Varchar,
+        investor -> Varchar,
+        currency_amount -> Nullable<Numeric>,
+        token_amount -> Nullable<Numeric>,
+        investment_record_type -> Int4,
+        create_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_mint_fund_investors (contract_address, investor) {
+        contract_address -> Varchar,
+        investor -> Varchar,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_p2p_trading_contracts (contract_address) {
+        contract_address -> Varchar,
+        token_contract_address -> Varchar,
+        token_id -> Varchar,
+        currency_token_contract_address -> Varchar,
+        currency_token_id -> Varchar,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_p2p_trading_deposits (contract_address, trader_address) {
+        contract_address -> Varchar,
+        trader_address -> Varchar,
+        rate_numerator -> Int8,
+        rate_denominator -> Int8,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::SecurityP2pTradingRecordType;
+
+    security_p2p_trading_records (id) {
+        id -> Int8,
+        contract_address -> Varchar,
+        trader_address -> Varchar,
+        record_type -> SecurityP2pTradingRecordType,
+        token_amount -> Numeric,
+        metadata -> Jsonb,
+        create_time -> Timestamp,
     }
 }
 
 diesel::allow_tables_to_appear_in_same_query!(
     cis2_agents,
     cis2_compliances,
-    cis2_deposits,
     cis2_identity_registries,
     cis2_operators,
     cis2_recovery_records,
@@ -136,6 +237,14 @@ diesel::allow_tables_to_appear_in_same_query!(
     identity_registry_identities,
     identity_registry_issuers,
     listener_config,
+    listener_contract_calls,
     listener_contracts,
-    token_market,
+    listener_transactions,
+    nft_multi_rewarded_contracts,
+    security_mint_fund_contracts,
+    security_mint_fund_investment_records,
+    security_mint_fund_investors,
+    security_p2p_trading_contracts,
+    security_p2p_trading_deposits,
+    security_p2p_trading_records,
 );

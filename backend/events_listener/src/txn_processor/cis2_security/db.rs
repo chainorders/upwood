@@ -1,17 +1,17 @@
 use std::ops::{Add, Sub};
 
 use bigdecimal::BigDecimal;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::cis2;
-use concordium_rust_sdk::common::types::Timestamp;
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use concordium_rwa_backend_shared::db::{to_naive_utc, token_amount_to_sql, DbConn, DbResult};
+use concordium_rwa_backend_shared::db::{token_amount_to_sql, DbConn, DbResult};
 use diesel::prelude::*;
 use num_traits::Zero;
+use tracing::instrument;
 
 use crate::schema::{
-    cis2_agents, cis2_compliances, cis2_deposits, cis2_identity_registries, cis2_operators,
-    cis2_recovery_records, cis2_token_holders, cis2_tokens,
+    cis2_agents, cis2_compliances, cis2_identity_registries, cis2_operators, cis2_recovery_records,
+    cis2_token_holders, cis2_tokens,
 };
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
@@ -24,7 +24,11 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(agent_address: Address, _time: Timestamp, cis2_address: &ContractAddress) -> Self {
+    pub fn new(
+        agent_address: Address,
+        _time: DateTime<Utc>,
+        cis2_address: &ContractAddress,
+    ) -> Self {
         Self {
             agent_address: agent_address.to_string(),
             cis2_address:  cis2_address.to_string(),
@@ -32,6 +36,7 @@ impl Agent {
     }
 }
 
+#[instrument(skip(conn))]
 #[allow(dead_code)]
 pub fn list_agents(
     conn: &mut DbConn,
@@ -55,6 +60,10 @@ pub fn list_agents(
     Ok((res, page_count))
 }
 
+#[instrument(
+    skip_all,
+    fields(contract = agent.cis2_address.to_string(), agent_address = agent.agent_address.to_string())
+)]
 pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<()> {
     let updated_rows = diesel::insert_into(cis2_agents::table)
         .values(agent)
@@ -63,6 +72,10 @@ pub fn insert_agent(conn: &mut DbConn, agent: Agent) -> DbResult<()> {
     Ok(())
 }
 
+#[instrument(
+    skip_all,
+    fields(contract = cis2_address.to_string(), agent_address = agent_address.to_string())
+)]
 pub fn remove_agent(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -96,12 +109,16 @@ impl Compliance {
     }
 }
 
-pub fn upsert_compliance(conn: &mut DbConn, record: &Compliance) -> DbResult<()> {
+#[instrument(
+    skip_all,
+    fields(compliance_address = compliance.compliance_address.to_string())
+)]
+pub fn upsert_compliance(conn: &mut DbConn, compliance: &Compliance) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_compliances::table)
-        .values(record)
+        .values(compliance)
         .on_conflict((cis2_compliances::cis2_address,))
         .do_update()
-        .set(record)
+        .set(compliance)
         .execute(conn)?;
 
     assert_eq!(row_count, 1, "More than one row updated");
@@ -131,6 +148,10 @@ impl IdentityRegistry {
     }
 }
 
+#[instrument(
+    skip_all,
+    fields(identity_registry_address = record.identity_registry_address.to_string())
+)]
 pub fn upsert_identity_registry(conn: &mut DbConn, record: &IdentityRegistry) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_identity_registries::table)
         .values(record)
@@ -144,6 +165,7 @@ pub fn upsert_identity_registry(conn: &mut DbConn, record: &IdentityRegistry) ->
     Ok(())
 }
 
+#[instrument(skip_all, fields(token_id = token_id.to_string()))]
 pub fn update_token_paused(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -184,7 +206,7 @@ impl TokenHolder {
         holder_address: &Address,
         balance: &cis2::TokenAmount,
         frozen_balance: &cis2::TokenAmount,
-        create_time: Timestamp,
+        create_time: DateTime<Utc>,
     ) -> Self {
         Self {
             cis2_address:   cis2_address.to_string(),
@@ -192,11 +214,12 @@ impl TokenHolder {
             holder_address: holder_address.to_string(),
             balance:        token_amount_to_sql(balance),
             frozen_balance: token_amount_to_sql(frozen_balance),
-            create_time:    to_naive_utc(create_time),
+            create_time:    create_time.naive_utc(),
         }
     }
 }
 
+#[instrument(skip(conn))]
 pub fn list_tokens_by_holder(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -222,6 +245,7 @@ pub fn list_tokens_by_holder(
     Ok((tokens, page_count))
 }
 
+#[instrument(skip(conn))]
 pub fn list_holders_by_token(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -247,6 +271,7 @@ pub fn list_holders_by_token(
     Ok((tokens, page_count))
 }
 
+#[instrument(skip_all, fields(token_id = token_id.to_string()))]
 pub fn update_balance_frozen(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -283,6 +308,7 @@ pub fn update_balance_frozen(
     Ok(())
 }
 
+#[instrument(skip_all, fields(holder = holder.holder_address.to_string()))]
 pub fn insert_holder_or_add_balance(conn: &mut DbConn, holder: &TokenHolder) -> DbResult<()> {
     let updated_rows = diesel::insert_into(cis2_token_holders::table)
         .values(holder)
@@ -299,6 +325,7 @@ pub fn insert_holder_or_add_balance(conn: &mut DbConn, holder: &TokenHolder) -> 
     Ok(())
 }
 
+#[instrument(skip_all, fields(holder = holder_address.to_string()))]
 pub fn update_sub_balance(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -328,6 +355,7 @@ pub fn update_sub_balance(
     })
 }
 
+#[instrument(skip_all, fields(holder = holder_address.to_string()))]
 pub fn update_replace_holder(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -367,7 +395,7 @@ impl Token {
         metadata_url: String,
         metadata_hash: Option<[u8; 32]>,
         supply: &cis2::TokenAmount,
-        create_time: Timestamp,
+        create_time: DateTime<Utc>,
     ) -> Self {
         Self {
             cis2_address: cis2_address.to_string(),
@@ -376,11 +404,12 @@ impl Token {
             metadata_url,
             metadata_hash: metadata_hash.map(|value: [u8; 32]| value.to_vec()),
             supply: token_amount_to_sql(supply),
-            create_time: to_naive_utc(create_time),
+            create_time: create_time.naive_utc(),
         }
     }
 }
 
+#[instrument(skip(conn))]
 pub fn list_tokens_for_contract(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -401,6 +430,7 @@ pub fn list_tokens_for_contract(
     Ok((tokens, page_count))
 }
 
+#[instrument(skip_all, fields(token_id))]
 pub fn insert_token_or_update_metadata(conn: &mut DbConn, token: &Token) -> DbResult<()> {
     let row_count = diesel::insert_into(cis2_tokens::table)
         .values(token)
@@ -416,6 +446,7 @@ pub fn insert_token_or_update_metadata(conn: &mut DbConn, token: &Token) -> DbRe
     Ok(())
 }
 
+#[instrument(skip_all, fields(token_id))]
 pub fn update_supply(
     conn: &mut DbConn,
     cis2_address: &ContractAddress,
@@ -462,6 +493,7 @@ impl Operator {
     }
 }
 
+#[instrument(skip_all, fields(holder_address))]
 pub fn insert_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
     diesel::insert_into(cis2_operators::table)
         .values(record)
@@ -470,6 +502,7 @@ pub fn insert_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
     Ok(())
 }
 
+#[instrument(skip_all, fields(holder_address))]
 pub fn delete_operator(conn: &mut DbConn, record: &Operator) -> DbResult<()> {
     let delete_filter = cis2_operators::cis2_address.eq(&record.cis2_address).and(
         cis2_operators::holder_address
@@ -507,115 +540,11 @@ impl RecoveryRecord {
     }
 }
 
+#[instrument(skip_all, fields(holder_address))]
 pub fn insert_recovery_record(conn: &mut DbConn, record: &RecoveryRecord) -> DbResult<()> {
     diesel::insert_into(cis2_recovery_records::table)
         .values(record)
         .execute(conn)?;
 
     Ok(())
-}
-
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
-#[diesel(table_name = cis2_deposits)]
-#[diesel(primary_key(
-    cis2_address,
-    deposited_cis2_address,
-    deposited_token_id,
-    deposited_holder_address
-))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Cis2Deposit {
-    pub cis2_address:             String,
-    pub deposited_cis2_address:   String,
-    pub deposited_token_id:       String,
-    pub deposited_holder_address: String,
-    pub deposited_amount:         BigDecimal,
-}
-
-impl Cis2Deposit {
-    pub fn new(
-        cis2_address: &ContractAddress,
-        deposited_cis2_address: &ContractAddress,
-        deposited_token_id: &cis2::TokenId,
-        deposited_holder_address: &Address,
-        deposited_amount: &cis2::TokenAmount,
-    ) -> Self {
-        Self {
-            cis2_address:             cis2_address.to_string(),
-            deposited_cis2_address:   deposited_cis2_address.to_string(),
-            deposited_token_id:       deposited_token_id.to_string(),
-            deposited_holder_address: deposited_holder_address.to_string(),
-            deposited_amount:         token_amount_to_sql(deposited_amount),
-        }
-    }
-}
-
-pub fn list_deposits_by_holder(
-    conn: &mut DbConn,
-    cis2_address: &ContractAddress,
-    holder_address: &Address,
-    page_size: i64,
-    page: i64,
-) -> DbResult<(Vec<Cis2Deposit>, i64)> {
-    let query = cis2_deposits::table.filter(
-        cis2_deposits::cis2_address
-            .eq(cis2_address.to_string())
-            .and(cis2_deposits::deposited_holder_address.eq(holder_address.to_string())),
-    );
-
-    let tokens = query
-        .clone()
-        .select(Cis2Deposit::as_select())
-        .order(cis2_deposits::deposited_cis2_address)
-        .offset(page * page_size)
-        .limit(page_size)
-        .get_results(conn)?;
-    let count_total: i64 = query.count().get_result(conn)?;
-
-    let page_count = (count_total + page_size - 1) / page_size;
-    Ok((tokens, page_count))
-}
-
-pub fn insert_or_inc_deposit_amount(conn: &mut DbConn, record: &Cis2Deposit) -> DbResult<()> {
-    let row_count = diesel::insert_into(cis2_deposits::table)
-        .values(record)
-        .on_conflict((
-            cis2_deposits::cis2_address,
-            cis2_deposits::deposited_cis2_address,
-            cis2_deposits::deposited_token_id,
-            cis2_deposits::deposited_holder_address,
-        ))
-        .do_update()
-        .set(
-            cis2_deposits::deposited_amount
-                .eq(cis2_deposits::deposited_amount.add(&record.deposited_amount)),
-        )
-        .execute(conn)?;
-    assert_eq!(row_count, 1, "error {} rows updated", row_count);
-    Ok(())
-}
-
-pub fn update_sub_deposit_amount(conn: &mut DbConn, record: &Cis2Deposit) -> DbResult<()> {
-    conn.transaction(|conn| {
-        let update_filter = cis2_deposits::cis2_address
-            .eq(&record.cis2_address)
-            .and(cis2_deposits::deposited_cis2_address.eq(&record.deposited_cis2_address))
-            .and(cis2_deposits::deposited_token_id.eq(&record.deposited_token_id))
-            .and(cis2_deposits::deposited_holder_address.eq(&record.deposited_holder_address));
-        let update_query = cis2_deposits::deposited_amount
-            .eq(cis2_deposits::deposited_amount.sub(&record.deposited_amount));
-        let row_count = diesel::update(cis2_deposits::table)
-            .filter(&update_filter)
-            .set(update_query)
-            .execute(conn)?;
-        assert_eq!(row_count, 1, "error {} rows updated", row_count);
-
-        let delete_filter =
-            update_filter.and(cis2_deposits::deposited_amount.eq(BigDecimal::zero()));
-        diesel::delete(cis2_deposits::table)
-            .filter(delete_filter)
-            .execute(conn)?;
-
-        Ok(())
-    })
 }

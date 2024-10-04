@@ -59,7 +59,10 @@ pub struct RecoverParam {
     pub new_account:  Address,
 }
 
-pub type Agent = Address;
+#[derive(Serialize, SchemaType)]
+pub struct Agent {
+    pub address: Address,
+}
 
 #[derive(Serialize, SchemaType, Clone)]
 pub struct AgentWithRoles<TAgentRole> {

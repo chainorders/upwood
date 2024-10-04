@@ -55,25 +55,6 @@ impl From<db::TokenHolder> for TokenHolder {
     }
 }
 
-#[derive(Object, PartialEq, Debug)]
-pub struct Cis2Deposit {
-    pub deposited_cis2_address: String,
-    pub token_id:               String,
-    pub holder_address:         String,
-    pub deposited_amount:       String,
-}
-
-impl From<db::Cis2Deposit> for Cis2Deposit {
-    fn from(value: db::Cis2Deposit) -> Self {
-        Cis2Deposit {
-            deposited_cis2_address: value.deposited_cis2_address,
-            token_id:               value.deposited_token_id,
-            holder_address:         value.deposited_holder_address,
-            deposited_amount:       value.deposited_amount.to_string(),
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub struct Cis2Api;
 
@@ -158,33 +139,5 @@ impl Cis2Api {
         };
         ApiResult::Ok(Json(res))
     }
-
-    #[oai(
-        path = "/rwa-security-cis2/:index/:subindex/deposited/:owner/:page",
-        method = "get"
-    )]
-    pub async fn list_deposited(
-        &self,
-        Data(pool): Data<&DbPool>,
-        Path(index): Path<u64>,
-        Path(subindex): Path<u64>,
-        Path(owner): Path<String>,
-        Path(page): Path<i64>,
-    ) -> ApiResult<PagedResponse<Cis2Deposit>> {
-        let cis2_address = ContractAddress { index, subindex };
-        let owner: Address = owner.parse()?;
-        let mut conn = pool.get()?;
-        let (tokens, page_count) =
-            db::list_deposits_by_holder(&mut conn, &cis2_address, &owner, PAGE_SIZE, page)?;
-
-        let tokens = tokens.into_iter().map(|t| t.into()).collect();
-        let res = PagedResponse {
-            data: tokens,
-            page,
-            page_count,
-        };
-        ApiResult::Ok(Json(res))
-    }
-
     // todo copy contract functions for the api, ex balanceOf
 }

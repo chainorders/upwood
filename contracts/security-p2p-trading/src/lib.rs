@@ -13,7 +13,7 @@ pub type AnyTokenUId = TokenUId<TokenIdVec>;
 
 /// Represents Sell event.
 /// This is the event that is emitted when a user deposits tokens to be sold.
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct SellEvent {
     /// The address of the user who deposited the tokens.
     pub from:   AccountAddress,
@@ -25,15 +25,17 @@ pub struct SellEvent {
 
 /// Represents SellCancelled event.
 /// This is the event that is emitted when a user cancels a sell position.
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct SellCancelledEvent {
+    // The address of the user who cancelled the sell position.
     pub from:   AccountAddress,
+    // The amount of tokens that were returned to the user.
     pub amount: TokenAmount,
 }
 
 /// Represents Exchange event.
 /// This event is emitted when a user exchanges tokens with another user.
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct Exchange {
     pub payer:       AccountAddress,
     pub pay_amount:  TokenAmount,
@@ -41,7 +43,7 @@ pub struct Exchange {
     pub seller:      AccountAddress,
 }
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub enum Event {
     Initialized(InitParam),
     Sell(SellEvent),
@@ -87,7 +89,7 @@ pub struct State<S=StateApi> {
 }
 
 /// Initialization parameters for the contract.
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Debug)]
 pub struct InitParam {
     /// The token that is being sold.
     pub token:    AnyTokenUId,

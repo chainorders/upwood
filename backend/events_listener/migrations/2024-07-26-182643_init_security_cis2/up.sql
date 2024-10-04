@@ -59,18 +59,3 @@ create table
         recovered_address varchar not null,
         primary key (cis2_address, holder_address)
     );
-
-create table
-    cis2_deposits (
-        cis2_address varchar not null,
-        deposited_cis2_address varchar not null,
-        deposited_token_id varchar not null,
-        deposited_holder_address varchar not null,
-        deposited_amount numeric(78) not null,
-        primary key (
-            cis2_address,
-            deposited_cis2_address,
-            deposited_token_id,
-            deposited_holder_address
-        )
-    )
