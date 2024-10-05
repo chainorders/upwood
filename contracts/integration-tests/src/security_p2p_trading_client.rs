@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-use concordium_base::smart_contracts::WasmModule;
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use security_p2p_trading::{
@@ -10,17 +9,18 @@ use security_p2p_trading::{
 
 use super::MAX_ENERGY;
 
-const MODULE_BYTES: &[u8] = include_bytes!("../../security-p2p-trading/contract.wasm.v1");
+const MODULE_PATH: &str = "../security-p2p-trading/contract.wasm.v1";
 const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_p2p_trading");
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
-    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
+    let module = module_load_v1(MODULE_PATH).unwrap();
     chain
         .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
 }
 
 pub fn init(chain: &mut Chain, sender: &Account, params: &InitParam) -> ContractInitSuccess {
+    let module = module_load_v1(MODULE_PATH).unwrap();
     chain
         .contract_init(
             Signer::with_one_key(),
@@ -29,9 +29,7 @@ pub fn init(chain: &mut Chain, sender: &Account, params: &InitParam) -> Contract
             InitContractPayload {
                 amount:    Amount::zero(),
                 init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   WasmModule::from_slice(MODULE_BYTES)
-                    .unwrap()
-                    .get_module_ref(),
+                mod_ref:   module.get_module_ref(),
                 param:     OwnedParameter::from_serial(params).unwrap(),
             },
         )

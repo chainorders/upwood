@@ -15,7 +15,6 @@ security-p2p-trading = { path = "../security-p2p-trading" }
 security-mint-fund = { path = "../security-mint-fund" }
 rand_core = "0.6.4"
 concordium-smart-contract-testing = "4.2.0"
-concordium_base = "5.0.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
