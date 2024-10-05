@@ -1,7 +1,6 @@
 #![cfg(test)]
 
-mod utils;
-
+use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, Receiver,
     TokenIdU32, TokenIdUnit, UpdateOperator,
@@ -9,17 +8,13 @@ use concordium_cis2::{
 use concordium_protocols::concordium_cis2_security::{AgentWithRoles, TokenUId};
 use concordium_protocols::rate::Rate;
 use concordium_smart_contract_testing::*;
+use integration_tests::*;
 use security_mint_fund::{
     CancelInvestParams, CancelInvestmentParam, ClaimInvestParams, ClaimInvestmentParam, FundState,
     State, TransferInvestParams,
 };
 use security_sft_rewards::types::InitParam;
 use security_sft_single::types::ContractMetadataUrl;
-use utils::cis2_conversions::to_token_id_vec;
-use utils::{
-    compliance, euroe, identity_registry, security_mint_fund_client, security_p2p_trading_client,
-    security_sft_rewards_client, security_sft_single_client,
-};
 
 const INVESTMENT_TOKEN_ID: TokenIdU32 = TokenIdU32(0);
 const INVESTMENT_TOKEN_METADATA_URL: &str = "example.com";

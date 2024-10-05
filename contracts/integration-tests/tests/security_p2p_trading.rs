@@ -1,7 +1,6 @@
 #![cfg(test)]
 
-mod utils;
-
+use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, TokenAmountU64,
     TokenIdU32, TokenIdUnit, UpdateOperator,
@@ -10,17 +9,13 @@ use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_protocols::rate::Rate;
 use concordium_smart_contract_testing::*;
 use concordium_std::{AccountAddress, Amount};
+use euroe::RoleTypes;
+use integration_tests::*;
 use security_p2p_trading::{
     Deposit, ExchangeParams, GetDepositParams, InitParam, TransferExchangeParams,
     TransferSellParams,
 };
 use security_sft_single::types::ContractMetadataUrl;
-use utils::cis2_conversions::to_token_id_vec;
-use utils::euroe::RoleTypes;
-use utils::{
-    compliance, euroe, identity_registry, security_p2p_trading_client, security_sft_rewards_client,
-    security_sft_single_client,
-};
 
 const TOKEN_ID: TokenIdUnit = TokenIdUnit();
 const METADATA_URL_SFT_SINGLE: &str = "example.com";
@@ -228,10 +223,7 @@ pub fn normal_flow_sft_rewards() {
     .contract_address;
     identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
         (Address::Account(seller.address), COMPLIANT_NATIONALITIES[1]),
-        (
-            Address::Account(buyer.address),
-            COMPLIANT_NATIONALITIES[1],
-        ),
+        (Address::Account(buyer.address), COMPLIANT_NATIONALITIES[1]),
         (
             Address::Contract(trading_contract),
             COMPLIANT_NATIONALITIES[1],
@@ -322,12 +314,7 @@ pub fn normal_flow_sft_rewards() {
     )
     .expect("should transfer buy");
     assert_eq!(
-        euroe::balance_of_single(
-            &mut chain,
-            &buyer,
-            euroe_contract,
-            buyer.address.into()
-        ),
+        euroe::balance_of_single(&mut chain, &buyer, euroe_contract, buyer.address.into()),
         TokenAmountU64(0)
     );
     assert_eq!(

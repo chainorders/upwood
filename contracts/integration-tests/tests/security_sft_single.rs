@@ -1,14 +1,12 @@
 #![cfg(test)]
 
-mod utils;
-
 use concordium_cis2::{AdditionalData, BalanceOfQuery, TokenAmountU64, TokenIdUnit, Transfer};
 use concordium_protocols::concordium_cis2_security::{
     AgentWithRoles, BurnParams, FreezeParam, FreezeParams, PauseParams,
 };
 use concordium_smart_contract_testing::*;
+use integration_tests::*;
 use security_sft_single::types::*;
-use utils::{compliance, euroe, identity_registry, security_sft_single_client};
 
 const TOKEN_ID: TokenIdUnit = TokenIdUnit();
 const METADATA_URL: &str = "example.com";

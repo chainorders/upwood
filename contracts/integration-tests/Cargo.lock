@@ -1376,6 +1376,7 @@ dependencies = [
  "concordium-rwa-identity-registry",
  "concordium-smart-contract-testing",
  "concordium-std",
+ "concordium_base",
  "rand_core",
  "security-mint-fund",
  "security-p2p-trading",

@@ -1,7 +1,5 @@
 #![cfg(test)]
 
-mod utils;
-
 use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryResponse, OperatorUpdate, Receiver, TokenAmountU64, TokenIdU32,
@@ -11,11 +9,11 @@ use concordium_protocols::concordium_cis2_ext::PlusSubOne;
 use concordium_protocols::concordium_cis2_security::{AgentWithRoles, MintParam};
 use concordium_protocols::rate::Rate;
 use concordium_smart_contract_testing::*;
+use integration_tests::*;
 use security_sft_rewards::rewards::{
     AddRewardContractParam, ClaimRewardsParam, ClaimRewardsParams, TransferAddRewardParams,
 };
 use security_sft_rewards::types::{ContractMetadataUrl, InitParam, MintParams};
-use utils::*;
 
 const SFT_TOKEN_ID: TokenIdU32 = TokenIdU32(0);
 const SFT_METADATA_URL: &str = "example.com";

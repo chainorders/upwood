@@ -61,7 +61,7 @@ pub mod nationalities_module {
     use concordium_smart_contract_testing::*;
 
     use super::MODULE_PATH;
-    use crate::utils::MAX_ENERGY;
+    use crate::MAX_ENERGY;
 
     pub fn init(chain: &mut Chain, sender: &Account, param: &InitParams) -> ContractInitSuccess {
         chain

@@ -1,19 +1,22 @@
 #![allow(unused)]
 
+use concordium_base::smart_contracts::WasmModule;
 use concordium_cis2::{TransferParams, UpdateOperator, UpdateOperatorParams};
 use concordium_smart_contract_testing::*;
-use security_sft_single::types::*;
+use security_sft_rewards::rewards::{ClaimRewardsParams, TransferAddRewardParams};
+use security_sft_rewards::types::*;
 
 use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
 
-pub const MODULE_PATH: &str = "../security-sft-single/contract.wasm.v1";
-pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_single");
+pub const MODULE_BYTES: &[u8] = include_bytes!("../../security-sft-rewards/contract.wasm.v1");
+pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_rewards");
+
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     chain
         .module_deploy_v1(
             Signer::with_one_key(),
             sender.address,
-            module_load_v1(MODULE_PATH).unwrap(),
+            WasmModule::from_slice(MODULE_BYTES).unwrap(),
         )
         .expect("deploying module")
 }
@@ -27,7 +30,9 @@ pub fn init(chain: &mut Chain, sender: &Account, param: &InitParam) -> ContractI
             InitContractPayload {
                 amount:    Amount::zero(),
                 init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                mod_ref:   WasmModule::from_slice(MODULE_BYTES)
+                    .unwrap()
+                    .get_module_ref(),
                 param:     OwnedParameter::from_serial(param).unwrap(),
             },
         )
@@ -104,6 +109,15 @@ pub fn mint(
     sender: &Account,
     contract: &ContractAddress,
     payload: &MintParams,
+) -> ContractInvokeSuccess {
+    mint_raw(chain, sender, contract, payload).expect("mint")
+}
+
+pub fn mint_raw(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: &ContractAddress,
+    payload: &MintParams,
 ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     chain.contract_update(
         Signer::with_one_key(),
@@ -151,7 +165,7 @@ pub fn balance_of(
     sender: &Account,
     contract: ContractAddress,
     payload: &concordium_cis2::BalanceOfQueryParams<TokenId>,
-) -> Result<concordium_cis2::BalanceOfQueryResponse<TokenAmount>, ContractInvokeError> {
+) -> Result<BalanceOfQueryResponse, ContractInvokeError> {
     cis2::balance_of(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -172,15 +186,6 @@ pub fn burn(
     payload: &BurnParams,
 ) -> ContractInvokeSuccess {
     cis2_security::burn(chain, sender, contract, CONTRACT_NAME, payload)
-}
-
-pub fn burn_raw(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: &BurnParams,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    cis2_security::burn_raw(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
 pub fn forced_burn(
@@ -228,13 +233,22 @@ pub fn balance_of_un_frozen(
     cis2_security::balance_of_un_frozen(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
-pub fn pause(
+pub fn transfer_add_reward(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,
-    payload: &PauseParams,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    cis2_security::pause(chain, sender, contract, CONTRACT_NAME, payload)
+    payload: &TransferAddRewardParams,
+) -> ContractInvokeSuccess {
+    cis2_security_rewards::transfer_add_reward(chain, sender, contract, CONTRACT_NAME, payload)
+}
+
+pub fn claim_rewards(
+    chain: &mut Chain,
+    sender: &Account,
+    contract: ContractAddress,
+    payload: &ClaimRewardsParams,
+) -> ContractInvokeSuccess {
+    cis2_security_rewards::claim_rewards(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
 pub fn update_operator(
