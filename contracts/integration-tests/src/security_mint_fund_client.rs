@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use concordium_base::smart_contracts::WasmModule;
 use concordium_smart_contract_testing::*;
 use security_mint_fund::{
     CancelInvestParams, ClaimInvestParams, FundState, InitParam, TransferInvestParams,
@@ -7,18 +8,18 @@ use security_mint_fund::{
 
 use super::MAX_ENERGY;
 
-const MODULE_PATH: &str = "../security-mint-fund/contract.wasm.v1";
+const MODULE_BYTES: &[u8] = include_bytes!("../../security-mint-fund/contract.wasm.v1");
 const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_mint_fund");
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
-    let module = module_load_v1(MODULE_PATH).unwrap();
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
 }
 
 pub fn init(chain: &mut Chain, sender: &Account, params: &InitParam) -> ContractInitSuccess {
-    let module = module_load_v1(MODULE_PATH).unwrap();
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .contract_init(
             Signer::with_one_key(),

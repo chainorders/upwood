@@ -13,8 +13,10 @@ security-sft-rewards = { path = "../security-sft-rewards" }
 security-sft-single = { path = "../security-sft-single" }
 security-p2p-trading = { path = "../security-p2p-trading" }
 security-mint-fund = { path = "../security-mint-fund" }
+nft-multi-rewarded = { path = "../nft-multi-rewarded" }
 rand_core = "0.6.4"
-concordium-smart-contract-testing = "4.2.0"
+concordium-smart-contract-testing = { version = "4.2.0" }
+concordium_base = "5.0.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

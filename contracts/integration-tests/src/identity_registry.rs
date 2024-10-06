@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use concordium_base::smart_contracts::WasmModule;
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
 use concordium_rwa_identity_registry::types::{Identity, IdentityAttribute};
 use concordium_smart_contract_testing::{
@@ -13,22 +14,20 @@ use concordium_std::{
 
 use super::MAX_ENERGY;
 
-const MODULE_PATH: &str = "../identity-registry/contract.wasm.v1";
+const MODULE_BYTES: &[u8] = include_bytes!("../../identity-registry/contract.wasm.v1");
 const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_rwa_identity_registry");
 
 const NATIONALITY_ATTRIBUTE_TAG: u8 = 5;
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
-        .module_deploy_v1(
-            Signer::with_one_key(),
-            sender.address,
-            module_load_v1(MODULE_PATH).unwrap(),
-        )
+        .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
 }
 
 pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .contract_init(
             Signer::with_one_key(),
@@ -37,7 +36,7 @@ pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
             InitContractPayload {
                 amount:    Amount::zero(),
                 init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                mod_ref:   module.get_module_ref(),
                 param:     OwnedParameter::empty(),
             },
         )

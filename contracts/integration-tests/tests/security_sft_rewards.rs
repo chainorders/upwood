@@ -32,7 +32,7 @@ fn normal_reward_distribution() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (euroe, ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
 
@@ -184,7 +184,7 @@ fn init() {
     let admin = Account::new(AccountAddress([0; 32]), DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (_, ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
 
@@ -233,7 +233,7 @@ fn mint() {
     let admin = Account::new(AccountAddress([0; 32]), DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (_, ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let agent_mint = Account::new(AGENT_MINT, DEFAULT_ACC_BALANCE);
     let non_agent_mint = Account::new(AccountAddress([99; 32]), DEFAULT_ACC_BALANCE);
     let non_agent = Account::new(AccountAddress([98; 32]), DEFAULT_ACC_BALANCE);
@@ -353,7 +353,7 @@ fn create_token_contract(
 fn setup_chain(
     chain: &mut Chain,
     admin: &Account,
-    compliant_nationalities: Vec<&str>,
+    compliant_nationalities: &[&str],
 ) -> (ContractAddress, ContractAddress, ContractAddress) {
     chain.create_account(admin.clone());
 

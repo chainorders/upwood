@@ -27,7 +27,7 @@ fn mint() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let agent_mint = Account::new(AGENT_MINT, DEFAULT_ACC_BALANCE);
     chain.create_account(agent_mint.clone());
     let non_agent_mint = Account::new(AccountAddress([99; 32]), DEFAULT_ACC_BALANCE);
@@ -110,7 +110,7 @@ fn burn() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
@@ -272,7 +272,7 @@ fn forced_burn() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
 
@@ -497,7 +497,7 @@ fn transfer() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
@@ -619,7 +619,7 @@ fn forced_transfer() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
     let agent_forced_transfer = Account::new(AGENT_FORCED_TRANSFER, DEFAULT_ACC_BALANCE);
@@ -888,7 +888,7 @@ fn create_token_contract(
 fn setup_chain(
     chain: &mut Chain,
     admin: &Account,
-    compliant_nationalities: Vec<&str>,
+    compliant_nationalities: &[&str],
 ) -> (ContractAddress, ContractAddress) {
     chain.create_account(admin.clone());
 

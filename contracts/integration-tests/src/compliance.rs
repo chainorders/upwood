@@ -1,15 +1,13 @@
+use concordium_base::smart_contracts::WasmModule;
 use concordium_smart_contract_testing::*;
 
 use super::MAX_ENERGY;
-const MODULE_PATH: &str = "../compliance/contract.wasm.v1";
+const MODULE_BYTES: &[u8] = include_bytes!("../../compliance/contract.wasm.v1");
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
-        .module_deploy_v1(
-            Signer::with_one_key(),
-            sender.address,
-            module_load_v1(MODULE_PATH).unwrap(),
-        )
+        .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
 }
 
@@ -18,6 +16,7 @@ pub fn init(
     sender: &Account,
     compliance_modules: Vec<ContractAddress>,
 ) -> ContractInitSuccess {
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .contract_init(
             Signer::with_one_key(),
@@ -26,7 +25,7 @@ pub fn init(
             InitContractPayload {
                 amount:    Amount::zero(),
                 init_name: OwnedContractName::new_unchecked("init_rwa_compliance".to_string()),
-                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                mod_ref:   module.get_module_ref(),
                 param:     OwnedParameter::from_serial(
                     &concordium_rwa_compliance::compliance::init::InitParams {
                         modules: compliance_modules,
@@ -42,7 +41,7 @@ pub fn init_all(
     chain: &mut Chain,
     sender: &Account,
     identity_registry: ContractAddress,
-    nationalities: Vec<&str>,
+    nationalities: &[&str],
 ) -> ContractInitSuccess {
     let compliance_module = nationalities_module::init(
         chain,
@@ -57,13 +56,15 @@ pub fn init_all(
 }
 
 pub mod nationalities_module {
+    use concordium_base::smart_contracts::WasmModule;
     use concordium_rwa_compliance::compliance_modules::allowed_nationalities::init::InitParams;
     use concordium_smart_contract_testing::*;
 
-    use super::MODULE_PATH;
+    use super::MODULE_BYTES;
     use crate::MAX_ENERGY;
 
     pub fn init(chain: &mut Chain, sender: &Account, param: &InitParams) -> ContractInitSuccess {
+        let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
         chain
             .contract_init(
                 Signer::with_one_key(),
@@ -74,7 +75,7 @@ pub mod nationalities_module {
                     init_name: OwnedContractName::new_unchecked(
                         "init_rwa_compliance_module_allowed_nationalities".to_string(),
                     ),
-                    mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                    mod_ref:   module.get_module_ref(),
                     param:     OwnedParameter::from_serial(param).unwrap(),
                 },
             )

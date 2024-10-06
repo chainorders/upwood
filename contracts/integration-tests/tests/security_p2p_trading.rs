@@ -41,7 +41,7 @@ pub fn normal_flow_sft_single() {
     chain.create_account(holder_2.clone());
 
     let (euroe_contract, ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract_sft_single(&mut chain, &admin, compliance_contract, ir_contract);
     let trading_contract = security_p2p_trading_client::init(&mut chain, &admin, &InitParam {
@@ -207,7 +207,7 @@ pub fn normal_flow_sft_rewards() {
     chain.create_account(buyer.clone());
 
     let (euroe_contract, ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract_sft_rewards(&mut chain, &admin, compliance_contract, ir_contract);
     let trading_contract = security_p2p_trading_client::init(&mut chain, &admin, &InitParam {
@@ -400,7 +400,7 @@ fn create_token_contract_sft_rewards(
 fn setup_chain(
     chain: &mut Chain,
     admin: &Account,
-    compliant_nationalities: Vec<&str>,
+    compliant_nationalities: &[&str],
 ) -> (ContractAddress, ContractAddress, ContractAddress) {
     chain.create_account(admin.clone());
 

@@ -35,7 +35,7 @@ fn normal_flow() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
     let (euroe_contract, ir_contract, compliance_contract) =
-        setup_chain(&mut chain, &admin, COMPLIANT_NATIONALITIES.to_vec());
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let treasury = Account::new(TREASURY, DEFAULT_ACC_BALANCE);
     chain.create_account(treasury.clone());
     let investor_1 = Account::new(INVESTOR_1, DEFAULT_ACC_BALANCE);
@@ -369,7 +369,7 @@ fn create_wrapped_token_contract(
 fn setup_chain(
     chain: &mut Chain,
     admin: &Account,
-    compliant_nationalities: Vec<&str>,
+    compliant_nationalities: &[&str],
 ) -> (ContractAddress, ContractAddress, ContractAddress) {
     chain.create_account(admin.clone());
 

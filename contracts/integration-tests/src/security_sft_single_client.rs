@@ -1,23 +1,24 @@
 #![allow(unused)]
 
+use concordium_base::smart_contracts::WasmModule;
 use concordium_cis2::{TransferParams, UpdateOperator, UpdateOperatorParams};
 use concordium_smart_contract_testing::*;
 use security_sft_single::types::*;
 
 use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
 
-pub const MODULE_PATH: &str = "../security-sft-single/contract.wasm.v1";
+pub const MODULE_BYTES: &[u8] = include_bytes!("../../security-sft-single/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_single");
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
-    let module = module_load_v1(MODULE_PATH).unwrap();
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
 }
 
 pub fn init(chain: &mut Chain, sender: &Account, param: &InitParam) -> ContractInitSuccess {
-    let module = module_load_v1(MODULE_PATH).unwrap();
+    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .contract_init(
             Signer::with_one_key(),

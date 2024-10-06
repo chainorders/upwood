@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use concordium_base::smart_contracts::WasmModule;
 use concordium_cis2::{
     BalanceOfQueryResponse, TokenAmountU64, TokenIdUnit, UpdateOperator, UpdateOperatorParams,
 };
@@ -7,7 +8,7 @@ use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, SchemaType, Serial, Serialize};
 
 use super::{cis2, MAX_ENERGY};
-pub const MODULE_PATH: &str = "../euroe/dist/module.wasm.v1";
+pub const MODULE_BYTES: &[u8] = include_bytes!("../../euroe/dist/module.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_euroe_stablecoin");
 
 #[derive(Serial, Deserial, SchemaType)]
@@ -26,11 +27,12 @@ pub struct RoleTypes {
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
+    WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .module_deploy_v1(
             Signer::with_one_key(),
             sender.address,
-            module_load_v1(MODULE_PATH).unwrap(),
+            WasmModule::from_slice(MODULE_BYTES).unwrap(),
         )
         .expect("deploying module")
 }
@@ -44,7 +46,9 @@ pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
             InitContractPayload {
                 amount:    Amount::zero(),
                 init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   module_load_v1(MODULE_PATH).unwrap().get_module_ref(),
+                mod_ref:   WasmModule::from_slice(MODULE_BYTES)
+                    .unwrap()
+                    .get_module_ref(),
                 param:     OwnedParameter::empty(),
             },
         )
