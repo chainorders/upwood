@@ -1,4 +1,4 @@
-use concordium_cis2::{Cis2Event, TokenIdU32, TokenIdU64};
+use concordium_cis2::{Cis2Event, TokenIdU64, TokenIdVec};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, TokenUId};
 use concordium_std::{Address, SchemaType, Serialize};
@@ -8,7 +8,7 @@ use super::error::Error;
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU8;
 pub type TokenId = TokenIdU64;
-pub type RewardTokenId = TokenIdU32;
+pub type RewardTokenId = TokenIdVec;
 pub type RewardTokenAmount = concordium_cis2::TokenAmountU64;
 
 pub type Agent = concordium_cis2_security::Agent;
@@ -34,5 +34,6 @@ pub enum Event {
     RewardTokenUpdated(InitParam),
     AgentAdded(Address),
     AgentRemoved(Address),
+    NonceUpdated(Address, u64),
     Cis2(Cis2Event<TokenId, TokenAmount>),
 }

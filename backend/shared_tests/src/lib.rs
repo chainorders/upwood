@@ -1,16 +1,11 @@
-
 use concordium_cis2::{TokenIdU64, TokenIdU8, TokenIdVec};
 use concordium_rust_sdk::base::contracts_common::Serial;
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
-use diesel::{Connection, PgConnection};
-use diesel_migrations::{EmbeddedMigrations, MigrationHarness};
 use testcontainers::runners::AsyncRunner;
 use testcontainers::{ContainerAsync, ImageExt};
 use testcontainers_modules::postgres::{self, Postgres};
 
-pub async fn create_new_database_container(
-    migrations: EmbeddedMigrations,
-) -> (String, ContainerAsync<Postgres>) {
+pub async fn create_new_database_container() -> (String, ContainerAsync<Postgres>) {
     let pg_container = postgres::Postgres::default()
         .with_tag("14-alpine")
         .start()
@@ -20,11 +15,6 @@ pub async fn create_new_database_container(
         "postgres://postgres:postgres@127.0.0.1:{}/postgres",
         pg_container.get_host_port_ipv4(5432).await.unwrap()
     );
-
-    PgConnection::establish(&database_url)
-        .expect("Error connecting to Postgres")
-        .run_pending_migrations(migrations)
-        .expect("Error running migrations");
 
     (database_url, pg_container)
 }

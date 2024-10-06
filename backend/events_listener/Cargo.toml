@@ -4,7 +4,7 @@ edition = "2021"
 authors = ["parv@stactrace.com"]
 
 [dependencies]
-concordium_rwa_backend_shared = { path = "../shared" }
+shared = { path = "../shared" }
 concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
 security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
@@ -15,7 +15,7 @@ concordium-rwa-utils = { path = "../../contracts/utils" }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 concordium-cis2 = { workspace = true, default-features = false }
 concordium-rust-sdk = { workspace = true }
-poem-openapi = { workspace = true, features = ["swagger-ui"] }
+poem-openapi = { workspace = true, features = ["swagger-ui", "chrono"] }
 poem = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 hex = { workspace = true }
@@ -49,4 +49,4 @@ opentelemetry = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 
 [dev-dependencies]
-concordium_rwa_backend_shared = { path = "../shared", features = ["test"] }
+shared_tests = { path = "../shared_tests" }

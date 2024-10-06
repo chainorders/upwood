@@ -1,14 +1,13 @@
 use std::path::Path;
 
 use clap::Parser;
-use shared::db::DbPool;
-use events_listener::txn_processor;
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{Connection, PgConnection};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use diesel::PgConnection;
+use events_listener::{db_setup, txn_processor};
 use poem::listener::TcpListener;
 use poem::middleware::{AddData, Cors};
 use poem::{EndpointExt, Route, Server};
+use shared::db::DbPool;
 use tracing::{debug, info};
 
 /// Configuration struct for the contracts API.
@@ -32,7 +31,7 @@ async fn main() {
     info!("Contracts API: Starting Server");
     debug!("{:#?}", config);
 
-    run_migrations(&config.database_url);
+    db_setup::run_migrations(&config.database_url);
     let api_service = txn_processor::create_service();
     let ui = api_service.swagger_ui();
     let manager = ConnectionManager::<PgConnection>::new(&config.database_url);
@@ -50,16 +49,4 @@ async fn main() {
         .run(routes)
         .await
         .expect("Server runtime error");
-}
-
-const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-fn run_migrations(database_url: &str) {
-    info!("Running migrations on database: {}", database_url);
-    let mut conn = PgConnection::establish(database_url).expect("Error connecting to Postgres");
-    let applied_migrations = conn
-        .run_pending_migrations(MIGRATIONS)
-        .expect("Error running migrations");
-    applied_migrations
-        .iter()
-        .for_each(|m| info!("Applied migration: {}", m));
 }

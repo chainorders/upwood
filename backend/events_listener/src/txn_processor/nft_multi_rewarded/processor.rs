@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
-use concordium_rwa_backend_shared::db::DbConn;
+use shared::db::DbConn;
 use nft_multi_rewarded::types::Event;
 use tracing::{debug, instrument};
 
@@ -49,6 +49,13 @@ pub fn process_events(
                     &e.reward_token.contract,
                     &e.reward_token.id,
                 )?;
+            }
+            Event::NonceUpdated(address, nonce) => {
+                db::upsert_address_nonce(conn, &db::AddressNonce {
+                    address:          address.to_string(),
+                    contract_address: contract.to_string(),
+                    nonce:            nonce as i64,
+                })?;
             }
         }
     }

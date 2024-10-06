@@ -1,8 +1,10 @@
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{OwnedContractName, WasmModule};
 
+pub mod api;
 pub mod db;
 pub mod processor;
+
 pub fn module_ref() -> ModuleReference {
     WasmModule::from_slice(include_bytes!(
         "../../../../../contracts/nft-multi-rewarded/contract.wasm.v1"

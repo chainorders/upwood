@@ -4,7 +4,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use concordium_rwa_backend_shared::db::{token_amount_to_sql, DbConn, DbResult};
+use shared::db::{token_amount_to_sql, DbConn, DbResult};
 use diesel::prelude::*;
 use num_traits::Zero;
 use tracing::instrument;
@@ -241,6 +241,38 @@ pub fn list_tokens_by_holder(
         .get_results(conn)?;
     let count_total: i64 = query.count().get_result(conn)?;
 
+    let page_count = (count_total + page_size - 1) / page_size;
+    Ok((tokens, page_count))
+}
+
+#[instrument(skip_all)]
+pub fn list_holders_by_token_metadata_url(
+    conn: &mut DbConn,
+    cis2_address: &ContractAddress,
+    metadata_url: &str,
+    page_size: i64,
+    page: i64,
+) -> DbResult<(Vec<TokenHolder>, i64)> {
+    let query = cis2_token_holders::table
+        .inner_join(
+            cis2_tokens::table.on(cis2_token_holders::token_id
+                .eq(cis2_tokens::token_id)
+                .and(cis2_tokens::cis2_address.eq(cis2_address.to_string()))),
+        )
+        .filter(
+            cis2_tokens::cis2_address
+                .eq(cis2_address.to_string())
+                .and(cis2_tokens::metadata_url.eq(metadata_url)),
+        );
+
+    let tokens = query
+        .clone()
+        .select(TokenHolder::as_select())
+        .order(cis2_token_holders::create_time)
+        .offset(page * page_size)
+        .limit(page_size)
+        .get_results(conn)?;
+    let count_total: i64 = query.count().get_result(conn)?;
     let page_count = (count_total + page_size - 1) / page_size;
     Ok((tokens, page_count))
 }

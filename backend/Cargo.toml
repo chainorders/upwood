@@ -3,6 +3,7 @@ members = ["verifier", "events_listener", "shared", "upwood", "shared_tests"]
 resolver = "2"
 
 [workspace.dependencies]
+concordium-smart-contract-testing = "4.2.0"
 concordium-cis2 = { version = "6.1.0", default-features = false }
 concordium-rust-sdk = "4.3.0"
 poem-openapi = { version = "3.0.5", features = ["swagger-ui"] }

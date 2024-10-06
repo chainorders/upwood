@@ -2,7 +2,8 @@ create table
     listener_config (
         id serial primary key,
         last_block_height numeric(20) not null,
-        last_block_hash bytea not null
+        last_block_hash bytea not null,
+        last_block_slot_time timestamp not null
     );
 
 create unique index listener_config_block_height on listener_config (last_block_height desc);

@@ -24,6 +24,8 @@ create table
         primary key (cis2_address, token_id)
     );
 
+create index cis2_token_metadata_url on cis2_tokens (metadata_url);
+
 create table
     cis2_token_holders (
         cis2_address varchar not null,
@@ -32,7 +34,8 @@ create table
         balance numeric(78) not null,
         frozen_balance numeric(78) not null,
         create_time timestamp not null,
-        primary key (cis2_address, token_id, holder_address)
+        primary key (cis2_address, token_id, holder_address),
+        foreign key (cis2_address, token_id) references cis2_tokens (cis2_address, token_id)
     );
 
 create index cis2_token_holder on cis2_token_holders (cis2_address, holder_address);

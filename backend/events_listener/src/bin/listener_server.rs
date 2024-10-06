@@ -8,7 +8,7 @@ use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use events_listener::txn_listener;
+use events_listener::{db_setup, txn_listener};
 use events_listener::txn_listener::listener::{
     ListenerConfig, ListenerError, ProcessorError, ProcessorFnType,
 };
@@ -106,7 +106,7 @@ async fn main() -> Result<(), Error> {
         .with(subscriber)
         .with(tracing_opentelemetry::layer().with_tracer(tracer_provider.tracer("tracing-jaeger")))
         .try_init()?;
-
+    db_setup::run_migrations(&config.database_url);
     let db_pool = Pool::builder()
         .max_size(config.db_pool_max_size)
         .build(ConnectionManager::<PgConnection>::new(&config.database_url))

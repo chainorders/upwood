@@ -29,22 +29,22 @@ mod integration_tests {
     use concordium_rust_sdk::base::smart_contracts::ContractEvent;
     use concordium_rust_sdk::id::types::{AccountAddress, ACCOUNT_ADDRESS_SIZE};
     use concordium_rust_sdk::types::{Address, ContractAddress};
-    use shared_tests::{create_new_database_container, to_contract_event};
     use concordium_rwa_identity_registry::event::{
         AgentUpdatedEvent, Event, IdentityUpdatedEvent, IssuerUpdatedEvent,
     };
     use diesel::r2d2::ConnectionManager;
-    use diesel::{Connection, PgConnection};
-    use diesel_migrations::{embed_migrations, EmbeddedMigrations};
+    use diesel::Connection;
     use r2d2::Pool;
+    use shared::db::DbPool;
+    use shared_tests::{create_new_database_container, to_contract_event};
 
+    use crate::db_setup;
     use crate::txn_processor::identity_registry::{db, processor};
-
-    const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
     #[tokio::test]
     async fn add_identity() {
-        let (database_url, _container) = create_new_database_container(MIGRATIONS).await;
+        let (database_url, _container) = create_new_database_container().await;
+        db_setup::run_migrations(&database_url);
         let now = DateTime::<Utc>::from_timestamp_millis(Utc::now().timestamp_millis()).unwrap();
 
         let contract_address = ContractAddress::new(0, 0);
@@ -88,10 +88,9 @@ mod integration_tests {
         ];
         let events: Vec<ContractEvent> = events.iter().map(to_contract_event).collect();
 
-        let manager = ConnectionManager::<PgConnection>::new(database_url);
-        let pool = Pool::builder()
+        let pool: DbPool = Pool::builder()
             .max_size(1)
-            .build(manager)
+            .build(ConnectionManager::new(database_url))
             .expect("Error creating database pool");
         let mut conn = pool.get().expect("Error getting database connection");
 

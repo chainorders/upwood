@@ -19,9 +19,10 @@ pub enum Error {
     TransferInvokeError,
     InvalidRewardToken,
     UnauthorizedInvalidAgent,
-    UnauthorizedCheckSignature,
-    UnauthorizedInvalidSignature,
-    MetadataUrlSerialization,
+    CheckSignature,
+    InvalidSignature,
+    InvalidNonce,
+    InvalidContractAddress,
 }
 
 impl Error {
@@ -39,9 +40,10 @@ impl Error {
             Error::TransferInvokeError => -6,
             Error::InvalidRewardToken => -7,
             Error::UnauthorizedInvalidAgent => -8,
-            Error::UnauthorizedCheckSignature => -9,
-            Error::UnauthorizedInvalidSignature => -10,
-            Error::MetadataUrlSerialization => -11,
+            Error::CheckSignature => -9,
+            Error::InvalidSignature => -10,
+            Error::InvalidNonce => -11,
+            Error::InvalidContractAddress => -12,
         })
         .unwrap()
     }

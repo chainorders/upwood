@@ -119,6 +119,7 @@ impl<S: HasStateApi> State<S> {
 pub struct HolderState<S=StateApi> {
     pub operators: StateSet<Address, S>,
     pub balances:  StateSet<TokenId, S>,
+    pub nonce:     u64,
 }
 impl<S: HasStateApi> HolderState<S> {
     #[inline]
@@ -126,6 +127,7 @@ impl<S: HasStateApi> HolderState<S> {
         HolderState {
             operators: state_builder.new_set(),
             balances:  state_builder.new_set(),
+            nonce:     0,
         }
     }
 
@@ -146,4 +148,13 @@ impl<S: HasStateApi> HolderState<S> {
 
     #[inline]
     pub fn remove_operator(&mut self, operator: &Address) { self.operators.remove(operator); }
+
+    #[inline]
+    pub fn nonce(&self) -> u64 { self.nonce }
+
+    #[inline]
+    pub fn increment_nonce(&mut self) -> u64 {
+        self.nonce += 1;
+        self.nonce
+    }
 }

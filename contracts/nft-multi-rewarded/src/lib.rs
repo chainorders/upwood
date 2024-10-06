@@ -6,6 +6,7 @@ use concordium_cis2::*;
 use concordium_protocols::concordium_cis2_ext::PlusSubOne;
 use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_std::*;
+pub use concordium_std::{MetadataUrl, Timestamp};
 use error::Error;
 use state::{AddressState, State};
 use types::*;
@@ -26,11 +27,12 @@ pub fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
+    let reward_token = params.reward_token.clone();
     let state = State {
-        reward_token:  params.reward_token.clone(),
+        reward_token,
         curr_token_id: 0.into(),
-        tokens:        state_builder.new_map(),
-        addresses:     state_builder.new_map(),
+        tokens: state_builder.new_map(),
+        addresses: state_builder.new_map(),
     };
     logger.log(&Event::RewardTokenUpdated(params))?;
 
@@ -305,12 +307,77 @@ pub fn transfer(
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct SignedMetadataUrls {
-    pub metadata_urls: Vec<MetadataUrl>,
-    pub agent_account: AccountAddress,
-    pub signature:     AccountSignatures,
+pub struct MintData {
+    pub signed_metadata: SignedMetadata,
+    pub signer:          AccountAddress,
+    pub signature:       AccountSignatures,
 }
-pub type MintParams = OnReceivingCis2DataParams<RewardTokenId, TokenAmountU64, SignedMetadataUrls>;
+
+impl From<&MintData> for Vec<u8> {
+    fn from(val: &MintData) -> Self {
+        let mut data = Vec::new();
+        val.serial(&mut data).unwrap();
+        data
+    }
+}
+
+#[derive(Serialize, SchemaType)]
+pub struct SignedMetadata {
+    pub contract_address: ContractAddress,
+    pub metadata_url:     MetadataUrl,
+    pub account:          AccountAddress,
+    pub account_nonce:    u64,
+}
+
+impl From<&SignedMetadata> for Vec<u8> {
+    fn from(val: &SignedMetadata) -> Self {
+        let mut data = Vec::new();
+        val.serial(&mut data).unwrap();
+        data
+    }
+}
+
+impl SignedMetadata {
+    pub fn hash<T>(&self, hasher: T) -> ContractResult<[u8; 32]>
+    where T: FnOnce(Vec<u8>) -> [u8; 32] {
+        let hash: Vec<u8> = self.into();
+        let hash = hasher(hash);
+        Ok(hash)
+    }
+}
+
+pub type TransferMintParams = MintData;
+
+#[receive(
+    contract = "nft_multi_rewarded",
+    name = "transferMint",
+    mutable,
+    parameter = "TransferMintParams",
+    error = "Error"
+)]
+pub fn transfer_mint(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
+    let params: TransferMintParams = ctx.parameter_cursor().get()?;
+    let reward_token = host.state().reward_token.clone();
+    host.invoke_contract(
+        &reward_token.contract,
+        &concordium_cis2::TransferParams(vec![concordium_cis2::Transfer {
+            amount:   TokenAmountU64(1),
+            token_id: reward_token.id,
+            from:     ctx.sender(),
+            to:       Receiver::Contract(
+                ctx.self_address(),
+                OwnedEntrypointName::new_unchecked("mint".to_string()),
+            ),
+            data:     AdditionalData::from(Into::<Vec<u8>>::into(&params)),
+        }]),
+        EntrypointName::new_unchecked("transfer"),
+        Amount::zero(),
+    )
+    .map_err(|_| Error::TransferInvokeError)?;
+    Ok(())
+}
+
+pub type MintParams = OnReceivingCis2DataParams<RewardTokenId, TokenAmountU64, MintData>;
 
 #[receive(
     contract = "nft_multi_rewarded",
@@ -331,24 +398,27 @@ pub fn mint(
         token_id,
         amount,
         from,
-        data: signed_metadata_urls,
+        data:
+            MintData {
+                signed_metadata,
+                signer,
+                signature,
+            },
     }: MintParams = ctx.parameter_cursor().get()?;
     ensure!(
-        amount
-            .0
-            .eq(&(signed_metadata_urls.metadata_urls.len() as u64)),
-        Error::InvalidAmount
+        signed_metadata.contract_address.eq(&ctx.self_address()),
+        Error::InvalidContractAddress
     );
-    let data_to_hash = to_data(&signed_metadata_urls.metadata_urls)?;
-    let hash: HashSha3256 = crypto_primitives.hash_sha3_256(&data_to_hash);
+    ensure!(amount.eq(&1.into()), Error::InvalidAmount);
     ensure!(
-        host.check_account_signature(
-            signed_metadata_urls.agent_account,
-            &signed_metadata_urls.signature,
-            &hash.0
-        )
-        .map_err(|_| { Error::UnauthorizedCheckSignature })?,
-        Error::UnauthorizedInvalidSignature
+        from.matches_account(&signed_metadata.account),
+        Error::Unauthorized
+    );
+    let hash = signed_metadata.hash(|data| crypto_primitives.hash_sha2_256(&data).0)?;
+    ensure!(
+        host.check_account_signature(signer, &signature, &hash)
+            .map_err(|_| { Error::CheckSignature })?,
+        Error::InvalidSignature
     );
 
     let reward_token = TokenUId {
@@ -365,43 +435,42 @@ pub fn mint(
     );
     ensure!(
         state
-            .address(&signed_metadata_urls.agent_account.into())
+            .address(&signer.into())
             .map(|a| a.agent().is_some())
             .is_some_and(|v| v),
         Error::UnauthorizedInvalidAgent
     );
+    ensure!(
+        state
+            .address(&from)
+            .and_then(|a| a.holder().map(|h| h.nonce()))
+            .unwrap_or(0)
+            .eq(&signed_metadata.account_nonce),
+        Error::InvalidNonce
+    );
 
     let (state, builder) = host.state_and_builder();
-    for metadata_url in signed_metadata_urls.metadata_urls {
-        let curr_token_id = state.curr_token_id;
-        state.curr_token_id = curr_token_id.plus_one();
-
-        state.add_token(curr_token_id, metadata_url.clone())?;
+    let curr_token_id = state.curr_token_id;
+    state.add_token(curr_token_id, signed_metadata.metadata_url.clone())?;
+    let nonce = {
         let mut holder = state.address_or_insert_holder(&from, builder);
-        holder
-            .holder_mut()
-            .ok_or(Error::InvalidAddress)?
-            .add_balance(curr_token_id);
+        let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
+        holder.add_balance(curr_token_id);
+        holder.increment_nonce()
+    };
+    state.curr_token_id = curr_token_id.plus_one();
 
-        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
-            token_id: curr_token_id,
-            metadata_url,
-        })))?;
-        logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
-            token_id: curr_token_id,
-            amount:   1.into(),
-            owner:    from,
-        })))?;
-    }
+    // logs
+    logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        token_id:     curr_token_id,
+        metadata_url: signed_metadata.metadata_url,
+    })))?;
+    logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+        token_id: curr_token_id,
+        amount:   1.into(),
+        owner:    from,
+    })))?;
+    logger.log(&Event::NonceUpdated(from, nonce))?;
 
     Ok(())
-}
-
-fn to_data(metadata_urls: &[MetadataUrl]) -> ContractResult<Vec<u8>> {
-    let mut data = Vec::new();
-    for url in metadata_urls {
-        url.serial(&mut data)
-            .map_err(|_| Error::MetadataUrlSerialization)?;
-    }
-    Ok(data)
 }

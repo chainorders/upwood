@@ -96,6 +96,7 @@ diesel::table! {
         id -> Int4,
         last_block_height -> Numeric,
         last_block_hash -> Bytea,
+        last_block_slot_time -> Timestamp,
     }
 }
 
@@ -131,6 +132,14 @@ diesel::table! {
         block_height -> Numeric,
         block_slot_time -> Timestamp,
         transaction_index -> Numeric,
+    }
+}
+
+diesel::table! {
+    nft_multi_address_nonces (contract_address, address) {
+        contract_address -> Varchar,
+        address -> Varchar,
+        nonce -> Int8,
     }
 }
 
@@ -240,6 +249,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     listener_contract_calls,
     listener_contracts,
     listener_transactions,
+    nft_multi_address_nonces,
     nft_multi_rewarded_contracts,
     security_mint_fund_contracts,
     security_mint_fund_investment_records,
