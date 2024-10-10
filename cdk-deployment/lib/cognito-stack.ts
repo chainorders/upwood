@@ -1,6 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { OrganizationEnv, StackProps } from "./shared";
+import { constructName, OrganizationEnv, StackProps } from "./shared";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as iam from "aws-cdk-lib/aws-iam";
 
@@ -12,14 +12,19 @@ export class CognitoStack extends cdk.Stack {
 
 	constructor(scope: Construct, id: string, props: StackProps) {
 		super(scope, id, props);
-		this.userPool = new cognito.UserPool(this, `${props.organization}-${props.organization_env}-user-pool`, {
-			userPoolName: `${props.organization}-${props.organization_env}-user-pool`,
+		this.userPool = new cognito.UserPool(this, constructName(props, "user-pool"), {
+			userPoolName: constructName(props, "user-pool"),
 			standardAttributes: {
 				email: { required: true, mutable: false },
 				givenName: { required: true, mutable: true },
 				familyName: { required: true, mutable: true },
 				// This is the Concordium Account Address attribute
 				preferredUsername: { required: false, mutable: true },
+			},
+			customAttributes: {
+				// This is affiliate concordium account address alias
+				affiliateAddress: new cognito.StringAttribute({ mutable: true }),
+				kycVerified: new cognito.BooleanAttribute({ mutable: true }),
 			},
 			autoVerify: { email: true },
 			accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
