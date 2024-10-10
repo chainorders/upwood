@@ -62,6 +62,7 @@ export class RdsStack extends Stack {
 		}
 
 		this.db = new DatabaseInstance(this, constructName(props, "rds"), {
+			instanceIdentifier: constructName(props, "rds-instance"),
 			allocatedStorage: props.dbStorageGiB,
 			databaseName: props.dbName,
 			port: props.dbPort,
