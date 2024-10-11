@@ -19,10 +19,18 @@
         "AWS_PROFILE": "default"
     },
     "features": {
-        "ghcr.io/devcontainers/features/aws-cli": "latest"
+        "ghcr.io/devcontainers/features/aws-cli": "latest",
+        "docker-in-docker": {
+            "version": "latest",
+            "moby": true,
+            "dockerDashComposeVersion": "v2"
+        }
     },
     "customizations": {
         "vscode": {
+            "settings": {
+                "dev.containers.dockerCredentialHelper": false
+            },
             "extensions": [
                 "dbaeumer.vscode-eslint",
                 "amazonwebservices.aws-toolkit-vscode",
@@ -42,7 +50,8 @@
                 "bierner.github-markdown-preview",
                 "formulahendry.docker-extension-pack",
                 "MS-CST-E.vscode-devskim",
-                "mark-tucker.aws-cli-configure"
+                "mark-tucker.aws-cli-configure",
+                "sourcegraph.cody-ai"
             ]
         }
     },

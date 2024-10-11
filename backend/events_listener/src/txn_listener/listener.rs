@@ -16,10 +16,10 @@ use concordium_rust_sdk::types::{
     InstanceUpdatedEvent, TransactionIndex,
 };
 use concordium_rust_sdk::v2;
-use shared::db::DbConn;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use futures::TryStreamExt;
+use shared::db::DbConn;
 use tracing::{info, instrument, trace, warn};
 
 use super::db::{self, ListenerContractCallInsert, ListenerTransaction};
@@ -131,6 +131,22 @@ pub enum ListenerError {
     FinalizedBlockTimeout,
     #[error("Finalized Block Stream ended")]
     FinalizedBlockStreamEnded,
+}
+
+impl ListenerError {
+    pub fn is_retryable(&self) -> bool {
+        match self {
+            ListenerError::DatabaseError(_) => false,
+            ListenerError::FinalizedBlockTimeout => true,
+            ListenerError::FinalizedBlockStreamEnded => true,
+            ListenerError::QueryError(_) => true,
+            ListenerError::DatabasePoolError(_) => true,
+            ListenerError::GrpcError(_) => true,
+            ListenerError::ProcessorError(ProcessorError::EventsParseError(_)) => false,
+            ListenerError::ProcessorError(ProcessorError::DatabaseError(_)) => false,
+            ListenerError::ProcessorError(ProcessorError::DatabasePoolError(_)) => true,
+        }
+    }
 }
 
 pub type ProcessorFnType = fn(

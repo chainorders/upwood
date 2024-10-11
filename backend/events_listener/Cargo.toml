@@ -42,11 +42,6 @@ tracing-subscriber = { workspace = true, features = ["env-filter"] }
 backon = { workspace = true }
 diesel-derive-enum = { workspace = true, features = ["postgres"] }
 serde = { workspace = true }
-opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
-opentelemetry-otlp = { workspace = true, features = ["tonic"] }
-opentelemetry-semantic-conventions = { workspace = true }
-opentelemetry = { workspace = true }
-tracing-opentelemetry = { workspace = true }
 
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }

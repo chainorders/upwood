@@ -1,9 +1,21 @@
 import { Construct } from "constructs";
 import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
-import { DatabaseInstance, DatabaseInstanceEngine, PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
-import { InstanceClass, InstanceSize, InstanceType, IVpc, Peer, SecurityGroup, SubnetType } from "aws-cdk-lib/aws-ec2";
-import { aws_ec2, Duration, RemovalPolicy, SecretValue, Stack, Tags } from "aws-cdk-lib";
-import { ParameterDataType, StringParameter } from "aws-cdk-lib/aws-ssm";
+import {
+	InstanceClass,
+	InstanceSize,
+	InstanceType,
+	IVpc,
+	Peer,
+	Port,
+	SecurityGroup,
+	SubnetType,
+	Vpc,
+} from "aws-cdk-lib/aws-ec2";
+import { Duration, RemovalPolicy, SecretValue, Stack, Tags } from "aws-cdk-lib";
+import { PostgresEngineVersion, DatabaseInstance, DatabaseInstanceEngine } from "aws-cdk-lib/aws-rds";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import { Cluster, Ec2Service } from "aws-cdk-lib/aws-ecs";
+import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 
 export interface StackProps extends SP {
 	dbStorageGiB: number;
@@ -13,43 +25,49 @@ export interface StackProps extends SP {
 	dbUsername: string;
 	dbPassword: SecretValue;
 	dbBackupRetentionDays: number;
-	vpc: IVpc;
 	dbPort: number;
 	dbName: string;
+	listenerLogsRetentionDays: RetentionDays;
+	backendInstanceSize: InstanceSize;
+	backendInstanceClass: InstanceClass;
 }
 
-export class RdsStack extends Stack {
-	db: DatabaseInstance;
-	dbEndpointParam: StringParameter;
-	dbPortParam: StringParameter;
+export class InfraStack extends Stack {
+	vpc: IVpc;
+	dbInstance: DatabaseInstance;
 	dbUsernameParam: StringParameter;
 	dbPasswordParam: StringParameter;
+	cluster: Cluster;
+	listenerService: Ec2Service;
+	logGroupListener: LogGroup;
 
 	constructor(scope: Construct, id: string, props: StackProps) {
 		super(scope, id, props);
-		const engine = DatabaseInstanceEngine.postgres({ version: props.dbEngineVersion });
-		const instanceType = InstanceType.of(props.dbInstanceClass, props.dbInstanceSize);
+		this.vpc = Vpc.fromLookup(this, "Vpc", {
+			region: props.env!.region,
+			isDefault: true,
+		});
 		const dbSg = new SecurityGroup(this, constructName(props, "rds-sg"), {
 			securityGroupName: constructName(props, "rds-sg"),
-			vpc: props.vpc,
+			vpc: this.vpc,
 			description: "This security group allows access to the RDS instance from within the VPC",
 		});
 		dbSg.addIngressRule(
-			Peer.ipv4(props.vpc.vpcCidrBlock),
-			aws_ec2.Port.tcp(props.dbPort),
-			`Allow port  ${props.dbPort} from VPC ${props.vpc.vpcId}`
+			Peer.ipv4(this.vpc.vpcCidrBlock),
+			Port.tcp(props.dbPort),
+			`Allow port  ${props.dbPort} from VPC ${this.vpc.vpcId}`
 		);
 		Tags.of(dbSg).add("organization", props.organization);
 		Tags.of(dbSg).add("environment", props.organization_env);
 
 		const dbSgPublic = new SecurityGroup(this, constructName(props, "rds-sg-public"), {
 			securityGroupName: constructName(props, "rds-sg-public"),
-			vpc: props.vpc,
+			vpc: this.vpc,
 			description: "This security group allows access to the RDS instance from the internet",
 		});
 		dbSgPublic.addIngressRule(
 			Peer.ipv4("0.0.0.0/0"),
-			aws_ec2.Port.tcp(props.dbPort),
+			Port.tcp(props.dbPort),
 			`Allow port  ${props.dbPort} from the internet`
 		);
 		Tags.of(dbSgPublic).add("organization", props.organization);
@@ -61,7 +79,7 @@ export class RdsStack extends Stack {
 			securityGroups.push(dbSgPublic);
 		}
 
-		this.db = new DatabaseInstance(this, constructName(props, "rds"), {
+		this.dbInstance = new DatabaseInstance(this, constructName(props, "rds"), {
 			instanceIdentifier: constructName(props, "rds-instance"),
 			allocatedStorage: props.dbStorageGiB,
 			databaseName: props.dbName,
@@ -72,11 +90,11 @@ export class RdsStack extends Stack {
 				username: props.dbUsername,
 				password: props.dbPassword,
 			},
-			engine: engine,
-			vpc: props.vpc,
+			engine: DatabaseInstanceEngine.postgres({ version: props.dbEngineVersion }),
+			vpc: this.vpc,
 			// The database is kept in public subnet to allow tools like pgAdmin to connect to it
 			vpcSubnets: { subnetType: SubnetType.PUBLIC },
-			instanceType: instanceType,
+			instanceType: InstanceType.of(props.dbInstanceClass, props.dbInstanceSize),
 			securityGroups,
 			backupRetention:
 				props.organization_env === OrganizationEnv.PROD ? Duration.days(props.dbBackupRetentionDays) : Duration.days(0),
@@ -84,43 +102,50 @@ export class RdsStack extends Stack {
 			// If the stack is removed then retain the database if the env is `PROD` or destroy it if the env is `DEV`
 			removalPolicy: props.organization_env === OrganizationEnv.PROD ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
 		});
-		Tags.of(this.db).add("organization", props.organization);
-		Tags.of(this.db).add("environment", props.organization_env);
-
-		this.dbEndpointParam = new StringParameter(this, constructName(props, "rds-endpoint"), {
-			parameterName: constructName(props, "rds-endpoint"),
-			stringValue: this.db.dbInstanceEndpointAddress,
-			description: `The endpoint of the RDS instance`,
-		});
-		Tags.of(this.dbEndpointParam).add("organization", props.organization);
-		Tags.of(this.dbEndpointParam).add("environment", props.organization_env);
-		Tags.of(this.dbEndpointParam).add("service", "rds");
-
-		this.dbPortParam = new StringParameter(this, constructName(props, "rds-port"), {
-			parameterName: constructName(props, "rds-port"),
-			stringValue: this.db.dbInstanceEndpointPort,
-			description: `The port of the RDS instance`,
-		});
-		Tags.of(this.dbPortParam).add("organization", props.organization);
-		Tags.of(this.dbPortParam).add("environment", props.organization_env);
-		Tags.of(this.dbPortParam).add("service", "rds");
+		Tags.of(this.dbInstance).add("organization", props.organization);
+		Tags.of(this.dbInstance).add("environment", props.organization_env);
+		Tags.of(this.dbInstance).add("infra", "rds");
 
 		this.dbUsernameParam = new StringParameter(this, constructName(props, "rds-username"), {
-			parameterName: constructName(props, "rds-username"),
+			parameterName: `/${props.organization}/${props.organization_env}/rds/username`,
 			stringValue: props.dbUsername,
 			description: `The username of the RDS instance`,
 		});
 		Tags.of(this.dbUsernameParam).add("organization", props.organization);
 		Tags.of(this.dbUsernameParam).add("environment", props.organization_env);
-		Tags.of(this.dbUsernameParam).add("service", "rds");
+		Tags.of(this.dbUsernameParam).add("infra", "rds");
 
 		this.dbPasswordParam = new StringParameter(this, constructName(props, "rds-password"), {
-			parameterName: constructName(props, "rds-password"),
+			parameterName: `/${props.organization}/${props.organization_env}/rds/password`,
 			stringValue: props.dbPassword.unsafeUnwrap(),
 			description: `The password of the RDS instance`,
 		});
 		Tags.of(this.dbPasswordParam).add("organization", props.organization);
 		Tags.of(this.dbPasswordParam).add("environment", props.organization_env);
-		Tags.of(this.dbPasswordParam).add("service", "rds");
+		Tags.of(this.dbPasswordParam).add("infra", "rds");
+
+		// ECS Cluster setup
+		this.cluster = new Cluster(this, constructName(props, "backend-cluster"), {
+			clusterName: constructName(props, "backend-cluster"),
+            vpc: this.vpc,
+			capacity: {
+				instanceType: InstanceType.of(props.backendInstanceClass, props.backendInstanceSize),
+				minCapacity: 1,
+				maxCapacity: 1,
+            },
+		});
+
+		Tags.of(this.cluster).add("organization", props.organization);
+		Tags.of(this.cluster).add("environment", props.organization_env);
+		Tags.of(this.cluster).add("infra", "backend");
+
+		this.logGroupListener = new LogGroup(this, constructName(props, "listener-log-group"), {
+			logGroupName: constructName(props, "listener-log-group"),
+			retention: props.listenerLogsRetentionDays,
+			removalPolicy: props.organization_env === OrganizationEnv.PROD ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+		});
+		Tags.of(this.logGroupListener).add("organization", props.organization);
+		Tags.of(this.logGroupListener).add("environment", props.organization_env);
+		Tags.of(this.logGroupListener).add("service", "listener");
 	}
 }

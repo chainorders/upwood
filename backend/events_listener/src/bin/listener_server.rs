@@ -8,17 +8,10 @@ use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use events_listener::{db_setup, txn_listener};
-use events_listener::txn_listener::listener::{
-    ListenerConfig, ListenerError, ProcessorError, ProcessorFnType,
-};
+use events_listener::txn_listener::listener::{ListenerConfig, ListenerError, ProcessorFnType};
 use events_listener::txn_processor::cis2_security::{security_sft_rewards, security_sft_single};
 use events_listener::txn_processor::{identity_registry, nft_multi_rewarded, security_mint_fund};
-use opentelemetry::trace::{TraceError, TracerProvider};
-use opentelemetry::KeyValue;
-use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
-use opentelemetry_semantic_conventions::resource::SERVICE_NAME;
+use events_listener::{db_setup, txn_listener};
 use r2d2::Pool;
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -27,9 +20,16 @@ use tracing_subscriber::util::TryInitError;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
-    /// Postgres Database Url
     #[clap(env, long)]
-    pub database_url: String,
+    pub postgres_user: String,
+    #[clap(env, long)]
+    pub postgres_password: String,
+    #[clap(env, long)]
+    pub postgres_host: String,
+    #[clap(env, long)]
+    pub postgres_port: u16,
+    #[clap(env, long)]
+    pub postgres_db: String,
     #[clap(env, long)]
     pub db_pool_max_size: u32,
     /// The Concordium node URI.
@@ -54,8 +54,6 @@ pub struct Config {
     pub listener_retry_min_delay_millis: u64,
     #[clap(env, long)]
     pub listener_retry_max_delay_millis: u64,
-    #[clap(env, long)]
-    pub jaeger_host: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -70,33 +68,9 @@ pub enum Error {
     TracingSubscriberError(#[from] TryInitError),
 }
 
-fn init_tracer_provider(
-    jaeger_host: String,
-) -> Result<opentelemetry_sdk::trace::TracerProvider, TraceError> {
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(jaeger_host),
-        )
-        .with_trace_config(
-            sdktrace::Config::default().with_resource(Resource::new(vec![KeyValue::new(
-                SERVICE_NAME,
-                "tracing-jaeger",
-            )])),
-        )
-        .install_batch(runtime::Tokio)
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    let config = Config::parse();
-    debug!("{:#?}", config);
-
-    let tracer_provider =
-        init_tracer_provider(config.jaeger_host).expect("Failed to initialize tracer provider.");
     let subscriber = tracing_subscriber::fmt::layer()
         .compact()
         .with_target(false)
@@ -104,14 +78,23 @@ async fn main() -> Result<(), Error> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new("INFO"))
         .with(subscriber)
-        .with(tracing_opentelemetry::layer().with_tracer(tracer_provider.tracer("tracing-jaeger")))
         .try_init()?;
-    db_setup::run_migrations(&config.database_url);
+
+    let config = Config::parse();
+    debug!("{:#?}", config);
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        config.postgres_user,
+        config.postgres_password,
+        config.postgres_host,
+        config.postgres_port,
+        config.postgres_db
+    );
+    db_setup::run_migrations(&database_url);
     let db_pool = Pool::builder()
         .max_size(config.db_pool_max_size)
-        .build(ConnectionManager::<PgConnection>::new(&config.database_url))
+        .build(ConnectionManager::<PgConnection>::new(&database_url))
         .expect("Failed to create connection pool");
-
     let endpoint = config
         .concordium_node_uri
         .parse::<v2::Endpoint>()?
@@ -121,9 +104,12 @@ async fn main() -> Result<(), Error> {
         )
         .timeout(Duration::from_millis(config.node_request_timeout_millis))
         .connect_timeout(Duration::from_millis(config.node_connect_timeout_millis));
-    let mut concordium_client = v2::Client::new(endpoint)
-        .await
-        .expect("Failed to create Concordium client");
+    let mut concordium_client = v2::Client::new(endpoint).await.unwrap_or_else(|_| {
+        panic!(
+            "Failed to connect to Concordium node at {}",
+            config.concordium_node_uri
+        )
+    });
 
     let default_block_height = match config.default_block_height {
         Some(height) => AbsoluteBlockHeight { height },
@@ -203,18 +189,7 @@ async fn main() -> Result<(), Error> {
     listen
     .retry(retry_policy)
     .sleep(tokio::time::sleep)
-    // When to retry
-    .when(|e: &ListenerError| match e {
-        ListenerError::DatabaseError(_) => false,
-        ListenerError::FinalizedBlockTimeout => true,
-        ListenerError::FinalizedBlockStreamEnded => true,
-        ListenerError::QueryError(_) => true,
-        ListenerError::DatabasePoolError(_) => true,
-        ListenerError::GrpcError(_) => true,
-        ListenerError::ProcessorError(ProcessorError::EventsParseError(_)) => false,
-        ListenerError::ProcessorError(ProcessorError::DatabaseError(_)) => false,
-        ListenerError::ProcessorError(ProcessorError::DatabasePoolError(_)) => true,
-    })
+    .when(|e: &ListenerError| e.is_retryable())
     // Notify when retrying
     .notify(|err: &_, dur: Duration| {
         warn!("retrying {:?} after {:?}", err, dur);

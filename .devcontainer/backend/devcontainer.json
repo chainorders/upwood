@@ -72,7 +72,8 @@
 				"bierner.markdown-emoji",
 				"bierner.github-markdown-preview",
 				"formulahendry.docker-extension-pack",
-				"MS-CST-E.vscode-devskim"
+				"MS-CST-E.vscode-devskim",
+				"sourcegraph.cody-ai"
 			]
 		}
 	}

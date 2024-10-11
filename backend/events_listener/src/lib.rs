@@ -9,7 +9,7 @@ pub mod db_setup {
 
     const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
     pub fn run_migrations(database_url: &str) {
-        info!("Running migrations on database: {}", database_url);
+        info!("Running migrations on database");
         let mut conn = PgConnection::establish(database_url).expect("Error connecting to Postgres");
         let applied_migrations = conn
             .run_pending_migrations(MIGRATIONS)
