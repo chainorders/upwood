@@ -142,7 +142,7 @@ export class InfraStack extends Stack {
 		this.logGroupListener = new LogGroup(this, constructName(props, "listener-log-group"), {
 			logGroupName: constructName(props, "listener-log-group"),
 			retention: props.listenerLogsRetentionDays,
-			removalPolicy: props.organization_env === OrganizationEnv.PROD ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+            removalPolicy: props.organization_env === OrganizationEnv.PROD ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
 		});
 		Tags.of(this.logGroupListener).add("organization", props.organization);
 		Tags.of(this.logGroupListener).add("environment", props.organization_env);

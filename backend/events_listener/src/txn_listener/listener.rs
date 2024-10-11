@@ -20,7 +20,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use futures::TryStreamExt;
 use shared::db::DbConn;
-use tracing::{info, instrument, trace, warn};
+use tracing::{debug, info, instrument, trace, warn};
 
 use super::db::{self, ListenerContractCallInsert, ListenerTransaction};
 use crate::txn_listener::db::CallType;
@@ -225,7 +225,7 @@ pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
             .await?;
         }
 
-        info!("Processed chunk of {} blocks", finalized_blocks.len());
+        debug!("Processed chunk of {} blocks", finalized_blocks.len());
         if error {
             return Err(ListenerError::FinalizedBlockStreamEnded);
         }

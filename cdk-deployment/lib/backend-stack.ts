@@ -38,7 +38,6 @@ export class BackendStack extends Stack {
 			constructName(props, "backend-listener-task-definition"),
 			{
 				family: constructName(props, "backend-listener-task-definition"),
-				// networkMode: ecs.NetworkMode.AWS_VPC,
 			}
 		);
 		listenerTaskDefinition.addContainer("backend-listener", {
@@ -68,6 +67,8 @@ export class BackendStack extends Stack {
 			logging: new ecs.AwsLogDriver({
 				streamPrefix: "backend-listener",
 				logGroup: props.logGroupListener,
+				mode: ecs.AwsLogDriverMode.NON_BLOCKING,
+				multilinePattern: "^d{4}-d{2}-d{2}Td{2}:d{2}:d{2}.d{6}Z",
 			}),
 			containerName: "backend-listener",
 			dockerLabels: {
@@ -86,10 +87,9 @@ export class BackendStack extends Stack {
 			cluster: props.cluster,
 			serviceName: constructName(props, "backend-listener-service"),
 			desiredCount: 1,
-			// vpcSubnets: {
-			// 	subnets: props.vpc.publicSubnets,
-			// },
-			// assignPublicIp: true,
+			deploymentController: {
+				type: ecs.DeploymentControllerType.ECS,
+			}
 		});
 		Tags.of(this.listenerService).add("organization", props.organization);
 		Tags.of(this.listenerService).add("environment", props.organization_env);

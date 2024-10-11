@@ -94,7 +94,7 @@ new BackendStack(app, "BackendStack", {
 	listenerAccountAddress: "4fWTMJSAymJoFeTbohJzwejT6Wzh1dAa2BtnbDicgjQrc94TgW",
 	listenerDefaultBlockHeight: 19010377,
 	dbPoolMaxSize: 10,
-	listenerMemoryReservationSoftMiB: 256,
+	listenerMemoryReservationSoftMiB: 50,
 	postgresPort: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : DB_PORT,
 	postgresHostname: infraStack.dbInstance.dbInstanceEndpointAddress,
 	postgresDb: process.env.DB_NAME || DB_NAME,
