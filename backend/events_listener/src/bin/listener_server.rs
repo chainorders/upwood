@@ -14,7 +14,6 @@ use events_listener::txn_processor::{identity_registry, nft_multi_rewarded, secu
 use events_listener::{db_setup, txn_listener};
 use r2d2::Pool;
 use tracing::{debug, error, info, warn};
-use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::TryInitError;
 
@@ -72,9 +71,11 @@ pub enum Error {
 async fn main() -> Result<(), Error> {
     dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
     let subscriber = tracing_subscriber::fmt::layer()
-        .compact()
-        .with_target(false)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE);
+        .json()
+        .flatten_event(false)
+        .with_current_span(false)
+        .with_span_list(true)
+        .with_target(false);
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new("INFO"))
         .with(subscriber)
@@ -194,6 +195,7 @@ async fn main() -> Result<(), Error> {
     .notify(|err: &_, dur: Duration| {
         warn!("retrying {:?} after {:?}", err, dur);
     })
-    .await?;
+    .await
+    .expect("Listener stopped");
     Err(Error::ListenerStopped)
 }

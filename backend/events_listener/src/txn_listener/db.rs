@@ -4,7 +4,6 @@ use concordium_rust_sdk::base::hashes::{ModuleReference, TransactionHash};
 use concordium_rust_sdk::base::smart_contracts::OwnedContractName;
 use concordium_rust_sdk::types::queries::BlockInfo;
 use concordium_rust_sdk::types::{AbsoluteBlockHeight, TransactionIndex};
-use shared::db::DbConn;
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::dsl::*;
 use diesel::expression::AsExpression;
@@ -12,6 +11,7 @@ use diesel::prelude::*;
 use diesel::serialize::ToSql;
 use diesel::sql_types::Integer;
 use num_traits::ToPrimitive;
+use shared::db::DbConn;
 use tracing::instrument;
 
 use crate::schema::{
@@ -84,11 +84,13 @@ pub fn get_last_processed_block(
 pub fn update_last_processed_block(
     conn: &mut DbConn,
     block: ListenerConfigInsert,
-) -> Result<i32, diesel::result::Error> {
-    let created_id: i32 = insert_into(listener_config::table)
+) -> Result<Option<i32>, diesel::result::Error> {
+    let created_id = insert_into(listener_config::table)
         .values(block)
+        .on_conflict_do_nothing()
         .returning(listener_config::id)
-        .get_result(conn)?;
+        .get_result(conn)
+        .optional()?;
 
     Ok(created_id)
 }

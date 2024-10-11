@@ -5,7 +5,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
-import { IVpc, Port } from "aws-cdk-lib/aws-ec2";
+import { IVpc } from "aws-cdk-lib/aws-ec2";
 
 interface StackProps extends SP {
 	cluster: ecs.ICluster;
@@ -28,22 +28,28 @@ export class BackendStack extends Stack {
 
 	constructor(scope: Construct, id: string, props: StackProps) {
 		super(scope, id, props);
-		let containerImage = new DockerImageAsset(this, constructName(props, "backend-listener-image"), {
-			directory: "../",
-			file: "backend.Dockerfile",
-			assetName: "backend-listener",
-		});
+		let containerImage = new DockerImageAsset(
+			this,
+			constructName(props, "backend-listener-image"),
+			{
+				directory: "../",
+				file: "backend.Dockerfile",
+				assetName: "backend-listener",
+			},
+		);
 		const listenerTaskDefinition = new ecs.Ec2TaskDefinition(
 			this,
 			constructName(props, "backend-listener-task-definition"),
 			{
 				family: constructName(props, "backend-listener-task-definition"),
-			}
+			},
 		);
 		listenerTaskDefinition.addContainer("backend-listener", {
 			image: ecs.ContainerImage.fromDockerImageAsset(containerImage),
 			secrets: {
-				POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(props.postgresPasswordParameter),
+				POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(
+					props.postgresPasswordParameter,
+				),
 				POSTGRES_USER: ecs.Secret.fromSsmParameter(props.postgresUserParameter),
 			},
 			environment: {
@@ -68,7 +74,6 @@ export class BackendStack extends Stack {
 				streamPrefix: "backend-listener",
 				logGroup: props.logGroupListener,
 				mode: ecs.AwsLogDriverMode.NON_BLOCKING,
-				multilinePattern: "^d{4}-d{2}-d{2}Td{2}:d{2}:d{2}.d{6}Z",
 			}),
 			containerName: "backend-listener",
 			dockerLabels: {
@@ -82,15 +87,19 @@ export class BackendStack extends Stack {
 		Tags.of(listenerTaskDefinition).add("environment", props.organization_env);
 		Tags.of(listenerTaskDefinition).add("service", "backend");
 
-		this.listenerService = new ecs.Ec2Service(this, constructName(props, "backend-listener-service"), {
-			taskDefinition: listenerTaskDefinition,
-			cluster: props.cluster,
-			serviceName: constructName(props, "backend-listener-service"),
-			desiredCount: 1,
-			deploymentController: {
-				type: ecs.DeploymentControllerType.ECS,
-			}
-		});
+		this.listenerService = new ecs.Ec2Service(
+			this,
+			constructName(props, "backend-listener-service"),
+			{
+				taskDefinition: listenerTaskDefinition,
+				cluster: props.cluster,
+				serviceName: constructName(props, "backend-listener-service"),
+				desiredCount: 1,
+				deploymentController: {
+					type: ecs.DeploymentControllerType.ECS,
+				},
+			},
+		);
 		Tags.of(this.listenerService).add("organization", props.organization);
 		Tags.of(this.listenerService).add("environment", props.organization_env);
 		Tags.of(this.listenerService).add("service", "backend");

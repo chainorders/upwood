@@ -61,19 +61,29 @@ const infraStack = new InfraStack(app, "InfraStack", {
 		organization: ORGANIZATION,
 		environment: ORGANIZATION_ENV,
 	},
-	dbInstanceSize: (process.env.DB_INSTANCE_SIZE as InstanceSize) || DB_INSTANCE_SIZE,
-	dbInstanceClass: (process.env.DB_INSTANCE_CLASS as InstanceClass) || DB_INSTANCE_CLASS,
+	dbInstanceSize:
+		(process.env.DB_INSTANCE_SIZE as InstanceSize) || DB_INSTANCE_SIZE,
+	dbInstanceClass:
+		(process.env.DB_INSTANCE_CLASS as InstanceClass) || DB_INSTANCE_CLASS,
 	dbEngineVersion: DB_ENGINE_VERSION,
 	dbUsername: process.env.DB_USERNAME || DB_USERNAME,
-	dbPassword: cdk.SecretValue.unsafePlainText(process.env.DB_PASSWORD || DB_PASSWORD),
+	dbPassword: cdk.SecretValue.unsafePlainText(
+		process.env.DB_PASSWORD || DB_PASSWORD,
+	),
 	dbBackupRetentionDays: process.env.DB_BACKUP_RETENTION_DAYS
 		? parseInt(process.env.DB_BACKUP_RETENTION_DAYS)
 		: DB_BACKUP_RETENTION_DAYS,
 	dbPort: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : DB_PORT,
 	dbName: process.env.DB_NAME || DB_NAME,
-	dbStorageGiB: process.env.DB_STORAGE_GB ? parseInt(process.env.DB_STORAGE_GB) : DB_STORAGE_GB,
-	backendInstanceClass: (process.env.BACKEND_INSTANCE_CLASS as InstanceClass) || BACKEND_INSTANCE_CLASS,
-	backendInstanceSize: (process.env.BACKEND_INSTANCE_SIZE as InstanceSize) || BACKEND_INSTANCE_SIZE,
+	dbStorageGiB: process.env.DB_STORAGE_GB
+		? parseInt(process.env.DB_STORAGE_GB)
+		: DB_STORAGE_GB,
+	backendInstanceClass:
+		(process.env.BACKEND_INSTANCE_CLASS as InstanceClass) ||
+		BACKEND_INSTANCE_CLASS,
+	backendInstanceSize:
+		(process.env.BACKEND_INSTANCE_SIZE as InstanceSize) ||
+		BACKEND_INSTANCE_SIZE,
 	listenerLogsRetentionDays: process.env.LISTENER_LOGS_RETENTION_DAYS
 		? parseInt(process.env.LISTENER_LOGS_RETENTION_DAYS)
 		: LISTENER_LOGS_RETENTION_DAYS,

@@ -261,10 +261,15 @@ async fn process_block(
         .filter_map(parse_block_item_summary)
         .flatten()
         .collect();
-    conn.transaction(|conn| {
+    let res = conn.transaction(|conn| {
         process_contract_calls(contract_owner, processors, conn, block, contract_calls)?;
         db::update_last_processed_block(conn, block.into()).map_err(ListenerError::DatabaseError)
     })?;
+
+    if res.is_none() {
+        warn!("block {} already processed", block.block_height.height);
+    }
+
     let lag = Utc::now() - block.block_slot_time;
     info!(
         "Processed block {}, lag: days:{}, hours:{}, mins: {}",

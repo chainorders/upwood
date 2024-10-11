@@ -10,17 +10,21 @@ use concordium_rust_sdk::base::contracts_common::{Deserial, Serial};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::ContractAddress;
-use shared::db::*;
 use diesel::Connection;
 use num_bigint::BigUint;
 use num_traits::Zero;
-use security_sft_rewards::types::Event;
-use tracing::debug;
+use shared::db::*;
+use tracing::{debug, instrument};
 
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_utils::*;
 
+#[instrument(
+    name="cis2_security_process_events",
+    skip_all,
+    fields(contract = %contract)
+)]
 pub fn process_events_cis2<T, A>(
     conn: &mut DbConn,
     now: DateTime<Utc>,
@@ -135,34 +139,36 @@ where
     R: Deserial+fmt::Debug,
 {
     for event in events {
-        let parsed_event = event.parse::<Event>().expect("Failed to parse event");
+        let parsed_event = event
+            .parse::<Cis2SecurityEvent<T, A, R>>()
+            .expect("Failed to parse event");
         debug!("Event: {}/{}", contract.index, contract.subindex);
         debug!("{:#?}", parsed_event);
 
         match parsed_event {
-            Event::AgentAdded(AgentUpdatedEvent {
+            Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent {
                 agent,
                 roles: _, // todo: add roles to the database
             }) => db::insert_agent(conn, db::Agent::new(agent, now, contract))?,
-            Event::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
+            Cis2SecurityEvent::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
                 db::remove_agent(conn, contract, &agent)?
             }
-            Event::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
+            Cis2SecurityEvent::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
                 db::upsert_compliance(conn, &db::Compliance::new(contract, &compliance_contract))?
             }
-            Event::IdentityRegistryAdded(IdentityRegistryAdded(identity_registry_contract)) => {
-                db::upsert_identity_registry(
-                    conn,
-                    &db::IdentityRegistry::new(contract, &identity_registry_contract),
-                )?
-            }
-            Event::Paused(Paused { token_id }) => {
+            Cis2SecurityEvent::IdentityRegistryAdded(IdentityRegistryAdded(
+                identity_registry_contract,
+            )) => db::upsert_identity_registry(
+                conn,
+                &db::IdentityRegistry::new(contract, &identity_registry_contract),
+            )?,
+            Cis2SecurityEvent::Paused(Paused { token_id }) => {
                 db::update_token_paused(conn, contract, &to_cis2_token_id(&token_id), true)?
             }
-            Event::UnPaused(Paused { token_id }) => {
+            Cis2SecurityEvent::UnPaused(Paused { token_id }) => {
                 db::update_token_paused(conn, contract, &to_cis2_token_id(&token_id), false)?
             }
-            Event::Recovered(RecoverEvent {
+            Cis2SecurityEvent::Recovered(RecoverEvent {
                 lost_account,
                 new_account,
             }) => {
@@ -175,7 +181,7 @@ where
                 })?;
                 debug!("account recovery, {} token ids updated", updated_rows);
             }
-            Event::TokenFrozen(TokenFrozen {
+            Cis2SecurityEvent::TokenFrozen(TokenFrozen {
                 address,
                 amount,
                 token_id,
@@ -187,7 +193,7 @@ where
                 &to_cis2_token_amount(&amount),
                 true,
             )?,
-            Event::TokenUnFrozen(TokenFrozen {
+            Cis2SecurityEvent::TokenUnFrozen(TokenFrozen {
                 address,
                 amount,
                 token_id,
@@ -199,7 +205,7 @@ where
                 &to_cis2_token_amount(&amount),
                 false,
             )?,
-            Event::Cis2(e) => process_events_cis2(conn, now, contract, e)?,
+            Cis2SecurityEvent::Cis2(e) => process_events_cis2(conn, now, contract, e)?,
         }
     }
 

@@ -2895,6 +2895,7 @@ __metadata:
     aws-cdk-lib: "npm:2.160.0"
     constructs: "npm:^10.0.0"
     jest: "npm:^29.7.0"
+    prettier: "npm:3.2.5"
     source-map-support: "npm:^0.5.21"
     ts-jest: "npm:^29.2.5"
     ts-node: "npm:^10.9.2"

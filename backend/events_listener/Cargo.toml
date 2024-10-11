@@ -38,7 +38,7 @@ futures = { workspace = true }
 dotenvy = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "json"] }
 backon = { workspace = true }
 diesel-derive-enum = { workspace = true, features = ["postgres"] }
 serde = { workspace = true }
