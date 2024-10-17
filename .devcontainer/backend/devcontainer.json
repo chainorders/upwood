@@ -6,6 +6,7 @@
 	"remoteUser": "root",
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {},
+		"ghcr.io/devcontainers/features/aws-cli": "latest",
 		"docker-in-docker": {
 			"version": "latest",
 			"moby": true,

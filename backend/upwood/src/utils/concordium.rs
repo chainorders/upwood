@@ -143,3 +143,17 @@ pub mod account {
         }
     }
 }
+
+pub mod chain {
+    use concordium_rust_sdk::v2::{self, BlockIdentifier};
+
+    use super::identity::GlobalContext;
+
+    pub async fn concordium_global_context(concordium_client: &mut v2::Client) -> GlobalContext {
+        concordium_client
+            .get_cryptographic_parameters(BlockIdentifier::LastFinal)
+            .await
+            .expect("Failed to get concordium cryptographic parameters")
+            .response
+    }
+}

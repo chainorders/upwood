@@ -5,8 +5,11 @@ import { CognitoStack } from "../lib/cognito-stack";
 import { OrganizationEnv } from "../lib/shared";
 import { PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
 import { InstanceClass, InstanceSize, Vpc } from "aws-cdk-lib/aws-ec2";
-import { BackendStack } from "../lib/backend-stack";
+import { BackendListenerStack } from "../lib/backend-listener-stack";
 import { InfraStack } from "../lib/infra-stack";
+import { BackendApiStack } from "../lib/backend-api-stack";
+import * as path from "path";
+import * as fs from "fs";
 
 const ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT!;
 const REGION = process.env.CDK_DEFAULT_REGION || "eu-west-2";
@@ -21,11 +24,19 @@ const DB_STORAGE_GB = 20;
 const BACKEND_INSTANCE_SIZE = InstanceSize.NANO;
 const BACKEND_INSTANCE_CLASS = InstanceClass.T2;
 const LISTENER_LOGS_RETENTION_DAYS = 1;
-const DB_USERNAME = "postgres";
 const DB_PORT = 5432;
 const DB_NAME = "postgres";
 const DB_BACKUP_RETENTION_DAYS = 1;
-const DB_PASSWORD = "postgres"; // TODO: use a secure secret
+const LISTENER_DB_POOL_MAX_SIZE = 10;
+const BACKEND_DB_POOL_MAX_SIZE = 10;
+
+// TODO: use a secure secret
+const DB_PASSWORD = "postgres";
+const DB_USERNAME = "postgres";
+const TREE_NFT_AGENT_WALLET_JSON_STR = fs.readFileSync(
+	path.join(__dirname, "../tree-nft-agent-wallet.json"),
+	"utf8",
+);
 
 const app = new cdk.App({
 	autoSynth: true,
@@ -37,7 +48,7 @@ const app = new cdk.App({
 		"@aws-cdk/core:newStyleStackSynthesis": true,
 	},
 });
-new CognitoStack(app, "CognitoStack", {
+let cognitoStack = new CognitoStack(app, "CognitoStack", {
 	env: {
 		account: ACCOUNT,
 		region: REGION,
@@ -84,12 +95,12 @@ const infraStack = new InfraStack(app, "InfraStack", {
 	backendInstanceSize:
 		(process.env.BACKEND_INSTANCE_SIZE as InstanceSize) ||
 		BACKEND_INSTANCE_SIZE,
-	listenerLogsRetentionDays: process.env.LISTENER_LOGS_RETENTION_DAYS
+	logsRetentionDays: process.env.LISTENER_LOGS_RETENTION_DAYS
 		? parseInt(process.env.LISTENER_LOGS_RETENTION_DAYS)
 		: LISTENER_LOGS_RETENTION_DAYS,
 });
 
-new BackendStack(app, "BackendStack", {
+new BackendListenerStack(app, "BackendListenerStack", {
 	env: {
 		account: ACCOUNT,
 		region: REGION,
@@ -103,16 +114,58 @@ new BackendStack(app, "BackendStack", {
 	concordiumNodeUri: "http://node.testnet.concordium.com:20000",
 	listenerAccountAddress: "4fWTMJSAymJoFeTbohJzwejT6Wzh1dAa2BtnbDicgjQrc94TgW",
 	listenerDefaultBlockHeight: 19010377,
-	dbPoolMaxSize: 10,
-	listenerMemoryReservationSoftMiB: 50,
+	dbPoolMaxSize: process.env.LISTENER_DB_POOL_MAX_SIZE
+		? parseInt(process.env.LISTENER_DB_POOL_MAX_SIZE)
+		: LISTENER_DB_POOL_MAX_SIZE,
+	memoryReservationSoftMiB: 50,
 	postgresPort: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : DB_PORT,
 	postgresHostname: infraStack.dbInstance.dbInstanceEndpointAddress,
 	postgresDb: process.env.DB_NAME || DB_NAME,
 	postgresPasswordParameter: infraStack.dbPasswordParam,
 	postgresUserParameter: infraStack.dbUsernameParam,
 	cluster: infraStack.cluster,
-	logGroupListener: infraStack.logGroupListener,
+	logGroup: infraStack.logGroup,
 	vpc: infraStack.vpc,
+});
+
+new BackendApiStack(app, "BackendApiStack", {
+	env: {
+		account: ACCOUNT,
+		region: REGION,
+	},
+	organization: ORGANIZATION,
+	organization_env: ORGANIZATION_ENV,
+	tags: {
+		organization: ORGANIZATION,
+		environment: ORGANIZATION_ENV,
+	},
+	cluster: infraStack.cluster,
+	vpc: infraStack.vpc,
+	vpcLink: infraStack.vpcLink,
+	discoveryNamespace: infraStack.discoveryNamespace,
+	logGroup: infraStack.logGroup,
+	apiSocketAddress: "0.0.0.0",
+	apiSocketPort: 3000,
+	awsUserPoolId: cognitoStack.userPool.userPoolId,
+	awsUserPoolClientId: cognitoStack.userPoolClient.userPoolClientId,
+	awsUserPoolRegion: cognitoStack.userPool.env.region,
+	concordiumNodeUri: "http://node.testnet.concordium.com:20000",
+	concordiumNetwork: "testnet",
+	postgresPort: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : DB_PORT,
+	postgresHostname: infraStack.dbInstance.dbInstanceEndpointAddress,
+	postgresDb: process.env.DB_NAME || DB_NAME,
+	postgresPasswordParameter: infraStack.dbPasswordParam,
+	postgresUserParameter: infraStack.dbUsernameParam,
+	dbPoolMaxSize: process.env.API_DB_POOL_MAX_SIZE
+		? parseInt(process.env.API_DB_POOL_MAX_SIZE)
+		: BACKEND_DB_POOL_MAX_SIZE,
+	containerCount: 1,
+	userChallengeExpiryDurationMins: 1,
+	treeNftAgentWalletJsonStr: cdk.SecretValue.unsafePlainText(
+		process.env.TREE_NFT_AGENT_WALLET_JSON_STR ||
+			TREE_NFT_AGENT_WALLET_JSON_STR,
+	),
+	memoryReservationSoftMiB: 50,
 });
 
 app.synth();

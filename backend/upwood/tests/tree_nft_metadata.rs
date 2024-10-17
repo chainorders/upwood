@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{TokenIdUnit, UpdateOperator};
 use concordium_protocols::concordium_cis2_security::TokenUId;
@@ -11,6 +11,7 @@ use integration_tests::*;
 use nft_multi_rewarded::types::{Agent, ContractMetadataUrl};
 use nft_multi_rewarded::{MintData, SignedMetadata};
 use poem::web::Data;
+use poem_openapi::param::Path;
 use shared::db::DbPool;
 use upwood::api::tree_nft_metadata::AddMetadataRequest;
 use upwood::api::{self, BearerAuthorization};
@@ -41,31 +42,27 @@ async fn signature_tests() {
     let mut processor_db_conn = pool.get().expect("db connection");
 
     // api
-    let nft_multi_rewarded_listener_api =
-        events_listener::txn_processor::nft_multi_rewarded::api::Api;
-    let api = api::tree_nft_metadata::Api;
-    api.metadata_insert(
-        BearerAuthorization(Claims {
-            sub:              "USER_ID".to_string(),
-            cognito_username: "admin@example.com".to_string(),
-            email:            "admin@example.com".to_string(),
-            given_name:       "Admin".to_string(),
-            family_name:      "FamilyName".to_string(),
-            account_address:  Some(ADMIN.to_string()),
-            cognito_groups:   Some(vec!["admin".to_string()]),
-            email_verified:   true,
-        }),
-        Data(&pool),
-        poem_openapi::payload::Json(AddMetadataRequest {
-            metadata_url:          api::tree_nft_metadata::MetadataUrl {
-                url:  NFT_METADATA.to_string(),
-                hash: None,
-            },
-            probablity_percentage: 100,
-        }),
-    )
-    .await
-    .expect("metadata insert");
+    let metadata_api = api::tree_nft_metadata::Api;
+    metadata_api
+        .metadata_insert(
+            BearerAuthorization(Claims {
+                sub:              "USER_ID".to_string(),
+                cognito_username: "admin@example.com".to_string(),
+                email:            "admin@example.com".to_string(),
+                cognito_groups:   Some(vec!["admin".to_string()]),
+                email_verified:   Some(true),
+            }),
+            Data(&pool),
+            poem_openapi::payload::Json(AddMetadataRequest {
+                metadata_url:          api::tree_nft_metadata::MetadataUrl {
+                    url:  NFT_METADATA.to_string(),
+                    hash: None,
+                },
+                probablity_percentage: 100,
+            }),
+        )
+        .await
+        .expect("metadata insert");
 
     // Setup Chain
     let now = Utc::now();
@@ -120,7 +117,7 @@ async fn signature_tests() {
     let nft_contract = init_res.contract_address;
     nft_processor(
         &mut processor_db_conn,
-        block_time_to_utc(&chain),
+        to_utc(&chain.block_time()),
         &nft_contract,
         &init_res.events,
     )
@@ -137,16 +134,15 @@ async fn signature_tests() {
             address: NFT_AGENT.into(),
         })
         .expect("add agent");
-    let tree_nft_config = api::tree_nft_metadata::TreeNftConfig {
-        contract: nft_contract.to_string(),
-        agent:    Arc::new(api::tree_nft_metadata::TreeNftAgent(WalletAccount {
+    let tree_nft_config = api::tree_nft_contract::TreeNftConfig {
+        agent: Arc::new(api::tree_nft_contract::TreeNftAgent(WalletAccount {
             address: agent.address,
             keys:    agent_account_keys,
         })),
     };
     nft_processor(
         &mut processor_db_conn,
-        block_time_to_utc(&chain),
+        to_utc(&chain.block_time()),
         &nft_contract,
         &add_agent_res
             .events()
@@ -185,19 +181,17 @@ async fn signature_tests() {
         sub:              "NORMAL_USER_ID".to_string(),
         cognito_groups:   None,
         cognito_username: "normal_user@example.com".to_string(),
-        email_verified:   true,
+        email_verified:   Some(true),
         email:            "normal_user@example.com".to_string(),
-        given_name:       "Normal".to_string(),
-        family_name:      "User".to_string(),
-        account_address:  Some(HOLDER.to_string()),
     });
 
-    let poem_openapi::payload::Json(random_metadata) = api
+    let contract_api = api::tree_nft_contract::Api;
+    let poem_openapi::payload::Json(random_metadata) = contract_api
         .metadata_get_random(
             api_user_claims.clone(),
             Data(&pool),
             Data(&tree_nft_config),
-            Data(&nft_multi_rewarded_listener_api),
+            Path(nft_contract.index),
         )
         .await
         .expect("metadata get random");
@@ -220,7 +214,7 @@ async fn signature_tests() {
         .expect("mint");
     nft_processor(
         &mut processor_db_conn,
-        block_time_to_utc(&chain),
+        to_utc(&chain.block_time()),
         &nft_contract,
         &transfer_mint_res
             .events()
@@ -243,13 +237,8 @@ async fn signature_tests() {
         .expect("balance of");
     assert_eq!(balance, 1.into());
 
-    let poem_openapi::payload::Json(nonce) = api
-        .nonce(
-            api_user_claims,
-            Data(&pool),
-            Data(&tree_nft_config),
-            Data(&nft_multi_rewarded_listener_api),
-        )
+    let poem_openapi::payload::Json(nonce) = contract_api
+        .nonce(api_user_claims, Path(nft_contract.index), Data(&pool))
         .await
         .expect("metadata get random");
     assert_eq!(nonce, 1);
@@ -281,7 +270,7 @@ fn setup_chain(
     (euroe, ir_contract, compliance_contract)
 }
 
-fn block_time_to_utc(chain: &Chain) -> DateTime<Utc> {
-    Utc.timestamp_opt((chain.block_time().timestamp_millis() / 1000) as i64, 0)
-        .unwrap()
+fn to_utc(timestamp: &Timestamp) -> DateTime<Utc> {
+    DateTime::from_timestamp_millis(timestamp.timestamp_millis() as i64)
+        .expect("block_time_to_utc conversion")
 }

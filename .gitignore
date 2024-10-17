@@ -5,4 +5,4 @@ node_modules
 out
 data
 .devcontainer/**/*.export
-.devcontainer/cdk-deployment/*.csv
+.devcontainer/aws_accessKeys.csv

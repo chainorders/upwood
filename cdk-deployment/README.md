@@ -1,8 +1,7 @@
-# Welcome to your CDK TypeScript project
+# Deployment
 
-This is a blank project for CDK development with TypeScript.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+This project contains AWS CDK scripts to deploy all the AWS components.
+The deployment of Blockchain components is a prerequisite for the deployment of the backend.
 
 ## Useful commands
 
@@ -19,8 +18,16 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
 - [ ] Concordium Blockchain Node: [Amazon ECS](./lib/concordium-node-ecs-stack.ts)
 - [x] User Authentication & Management: [Amazon Cognito](./lib/cognito-stack.ts)
-- [ ] Database Server: [Amazon RDS](./lib/rds-stack.ts)
-- [ ] Concordium Listener Server: [Amazon ECS](./lib/ecs-stack.ts)
-- [ ] Upwood APIs/Web Server: [Amazon ECS](./lib/ecs-stack.ts)
-- [ ] API Gateway using [Caddy](https://caddyserver.com/): [Amazon ECS](./lib/ecs-stack.ts)
+- [x] Database Server: [Amazon RDS](./lib/rds-stack.ts)
+- [x] Concordium Listener Server: [Amazon ECS](./lib/backend-listener-stack.ts)
+- [ ] Upwood APIs/Web Server: [Amazon ECS](./lib/backend-api-stack.ts)
+- [x] API Gateway using Amazon API Gateway: [Amazon API Gateway](./lib/backend-api-stack.ts)
 - [ ] Frontend Deployment & Distribution: [Amazon S3 & Cloudfront](./lib/frontend-stack.ts)
+- [ ] Frontend Deployment & Distribution Dapp: [Amazon S3 & Cloudfront](./lib/frontend-stack.ts)
+
+### Prerequisites
+
+- AWS Account
+- Db Username SSM Parameter
+- Db Password SSM Parameter
+- Tree NFT Agent Wallet SSM Parameter

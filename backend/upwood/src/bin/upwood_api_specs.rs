@@ -2,19 +2,23 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use clap::Parser;
+use serde::Deserialize;
 use tracing::info;
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 /// Configuration struct for OpenAPI.
 pub struct Config {
-    /// Output file path for the generated OpenAPI specs
-    #[clap(long)]
     pub output: PathBuf,
 }
 
-fn main() {
-    let config = Config::parse();
+#[tokio::main]
+async fn main() {
+    let config: Config = config::Config::builder()
+        .add_source(config::Environment::default())
+        .build()
+        .expect("Failed to build config")
+        .try_deserialize()
+        .expect("Failed to deserialize config");
 
     let api_service = upwood::api::create_service();
     let spec_json = api_service.spec();

@@ -33,7 +33,7 @@ impl TreeNftMetadataInsert {
     }
 }
 
-#[derive(Selectable, Queryable, Identifiable, Debug, PartialEq)]
+#[derive(poem_openapi::Object, Selectable, Queryable, Identifiable, Debug, PartialEq)]
 #[diesel(table_name = crate::schema::tree_nft_metadatas)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -45,13 +45,9 @@ pub struct TreeNftMetadata {
     pub created_at:            chrono::NaiveDateTime,
 }
 
-define_sql_function! {fn random() -> diesel::sql_types::Float8}
-define_sql_function! {fn power(base: diesel::sql_types::Float8, exponent: diesel::sql_types::Float8) -> diesel::sql_types::Float8}
-define_sql_function! {fn div(dividend: diesel::sql_types::Integer, divisor: diesel::sql_types::Integer) -> diesel::sql_types::Integer}
-
 pub fn insert(
     conn: &mut DbConn,
-    metadata: &TreeNftMetadataInsert,
+    metadata: TreeNftMetadataInsert,
 ) -> DbResult<Option<TreeNftMetadata>> {
     let inserted = diesel::insert_into(tree_nft_metadatas::table)
         .values(metadata)
@@ -71,11 +67,9 @@ pub fn find(conn: &mut DbConn, id: &str) -> DbResult<Option<TreeNftMetadata>> {
 
 pub fn find_random(conn: &mut DbConn) -> DbResult<Option<TreeNftMetadata>> {
     tree_nft_metadatas::table
-        // .order_by(power(
-        //     random(),
-        //     sql("1.0 / ").,
-        // ))
-        .order(sql::<diesel::sql_types::Float>("random() ^ (1.0 / probablity_percentage)"))
+        .order(sql::<diesel::sql_types::Float>(
+            "random() ^ (1.0 / probablity_percentage)",
+        ))
         .first(conn)
         .optional()
 }

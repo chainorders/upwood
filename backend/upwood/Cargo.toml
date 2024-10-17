@@ -2,6 +2,7 @@
 name = "upwood"
 version = "0.1.0"
 edition = "2021"
+default-run = "upwood_api_server"
 
 [dependencies]
 shared = { path = "../shared" }
@@ -35,12 +36,18 @@ hex.workspace = true
 aws-config = "1.5.7"
 aws-sdk-cognitoidentityprovider = "1.52.0"
 sha2 = "0.10.8"
+thiserror = { workspace = true }
+config.workspace = true
+secure-string = { version = "0.3.0", features = ["serde"] }
 
 [dev-dependencies]
+passwords = "3.1.16"
 shared_tests = { path = "../shared_tests" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
 integration-tests = { path = "../../contracts/integration-tests" }
 concordium-smart-contract-testing = "4.2.0"
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 concordium-cis2 = { workspace = true, default-features = false }
-rand = {version = "*"}
+rand = { version = "*" }
+poem = { workspace = true, features = ["test"] }
+tracing-test = { version = "*" }

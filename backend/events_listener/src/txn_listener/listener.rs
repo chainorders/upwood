@@ -205,7 +205,7 @@ pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
 
     loop {
         let (error, finalized_blocks) = finalized_block_stream
-            .next_chunk_timeout(1000, Duration::from_millis(500))
+            .next_chunk_timeout(1000, Duration::from_millis(10000))
             .await
             .map_err(|_| ListenerError::FinalizedBlockTimeout)?;
         for block in &finalized_blocks {

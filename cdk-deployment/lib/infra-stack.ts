@@ -16,10 +16,17 @@ import {
 	PostgresEngineVersion,
 	DatabaseInstance,
 	DatabaseInstanceEngine,
+	IDatabaseInstance,
 } from "aws-cdk-lib/aws-rds";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Cluster, Ec2Service } from "aws-cdk-lib/aws-ecs";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
+import { IVpcLink, VpcLink } from "aws-cdk-lib/aws-apigatewayv2";
+import {
+	IPrivateDnsNamespace,
+	PrivateDnsNamespace,
+} from "aws-cdk-lib/aws-servicediscovery";
+import { Monitoring } from "aws-cdk-lib/aws-autoscaling";
 
 export interface StackProps extends SP {
 	dbStorageGiB: number;
@@ -31,36 +38,38 @@ export interface StackProps extends SP {
 	dbBackupRetentionDays: number;
 	dbPort: number;
 	dbName: string;
-	listenerLogsRetentionDays: RetentionDays;
+	logsRetentionDays: RetentionDays;
 	backendInstanceSize: InstanceSize;
 	backendInstanceClass: InstanceClass;
 }
 
 export class InfraStack extends Stack {
-	vpc: IVpc;
-	dbInstance: DatabaseInstance;
 	dbUsernameParam: StringParameter;
 	dbPasswordParam: StringParameter;
 	cluster: Cluster;
 	listenerService: Ec2Service;
-	logGroupListener: LogGroup;
+	logGroup: LogGroup;
+	vpc: IVpc;
+	vpcLink: IVpcLink;
+	discoveryNamespace: IPrivateDnsNamespace;
+	dbInstance: IDatabaseInstance;
 
 	constructor(scope: Construct, id: string, props: StackProps) {
 		super(scope, id, props);
-		this.vpc = Vpc.fromLookup(this, "Vpc", {
+		const vpc = Vpc.fromLookup(this, "Vpc", {
 			region: props.env!.region,
 			isDefault: true,
 		});
 		const dbSg = new SecurityGroup(this, constructName(props, "rds-sg"), {
 			securityGroupName: constructName(props, "rds-sg"),
-			vpc: this.vpc,
+			vpc: vpc,
 			description:
 				"This security group allows access to the RDS instance from within the VPC",
 		});
 		dbSg.addIngressRule(
-			Peer.ipv4(this.vpc.vpcCidrBlock),
+			Peer.ipv4(vpc.vpcCidrBlock),
 			Port.tcp(props.dbPort),
-			`Allow port  ${props.dbPort} from VPC ${this.vpc.vpcId}`,
+			`Allow port  ${props.dbPort} from VPC ${vpc.vpcId}`,
 		);
 		Tags.of(dbSg).add("organization", props.organization);
 		Tags.of(dbSg).add("environment", props.organization_env);
@@ -70,7 +79,7 @@ export class InfraStack extends Stack {
 			constructName(props, "rds-sg-public"),
 			{
 				securityGroupName: constructName(props, "rds-sg-public"),
-				vpc: this.vpc,
+				vpc: vpc,
 				description:
 					"This security group allows access to the RDS instance from the internet",
 			},
@@ -89,7 +98,7 @@ export class InfraStack extends Stack {
 			securityGroups.push(dbSgPublic);
 		}
 
-		this.dbInstance = new DatabaseInstance(this, constructName(props, "rds"), {
+		const dbInstance = new DatabaseInstance(this, constructName(props, "rds"), {
 			instanceIdentifier: constructName(props, "rds-instance"),
 			allocatedStorage: props.dbStorageGiB,
 			databaseName: props.dbName,
@@ -103,7 +112,7 @@ export class InfraStack extends Stack {
 			engine: DatabaseInstanceEngine.postgres({
 				version: props.dbEngineVersion,
 			}),
-			vpc: this.vpc,
+			vpc: vpc,
 			// The database is kept in public subnet to allow tools like pgAdmin to connect to it
 			vpcSubnets: { subnetType: SubnetType.PUBLIC },
 			instanceType: InstanceType.of(
@@ -124,9 +133,9 @@ export class InfraStack extends Stack {
 					? RemovalPolicy.RETAIN
 					: RemovalPolicy.DESTROY,
 		});
-		Tags.of(this.dbInstance).add("organization", props.organization);
-		Tags.of(this.dbInstance).add("environment", props.organization_env);
-		Tags.of(this.dbInstance).add("infra", "rds");
+		Tags.of(dbInstance).add("organization", props.organization);
+		Tags.of(dbInstance).add("environment", props.organization_env);
+		Tags.of(dbInstance).add("infra", "rds");
 
 		this.dbUsernameParam = new StringParameter(
 			this,
@@ -155,9 +164,9 @@ export class InfraStack extends Stack {
 		Tags.of(this.dbPasswordParam).add("infra", "rds");
 
 		// ECS Cluster setup
-		this.cluster = new Cluster(this, constructName(props, "backend-cluster"), {
+		const cluster = new Cluster(this, constructName(props, "backend-cluster"), {
 			clusterName: constructName(props, "backend-cluster"),
-			vpc: this.vpc,
+			vpc: vpc,
 			capacity: {
 				instanceType: InstanceType.of(
 					props.backendInstanceClass,
@@ -165,27 +174,79 @@ export class InfraStack extends Stack {
 				),
 				minCapacity: 1,
 				maxCapacity: 1,
+				// this is needed for the containers to access
+				// * Cognito JWKS
+				// * Blockchain Nodes
+				allowAllOutbound: true,
+				// autoScalingGroupName: constructName(props, "backend-asg"),
 			},
 		});
+		cluster.applyRemovalPolicy(RemovalPolicy.DESTROY);
+		cluster.connections.allowFrom(
+			Peer.ipv4(vpc.vpcCidrBlock),
+			Port.allTcp(),
+			"Allow inbound traffic from the VPC",
+		);
+		// cluster.connections.allowTo(
+		// 	Peer.ipv4(vpc.vpcCidrBlock),
+		// 	Port.allTcp(),
+		// 	"Allow outbound traffic to the VPC",
+		// );
+		Tags.of(cluster).add("organization", props.organization);
+		Tags.of(cluster).add("environment", props.organization_env);
+		Tags.of(cluster).add("infra", "backend");
 
-		Tags.of(this.cluster).add("organization", props.organization);
-		Tags.of(this.cluster).add("environment", props.organization_env);
-		Tags.of(this.cluster).add("infra", "backend");
-
-		this.logGroupListener = new LogGroup(
+		const logGroup = new LogGroup(
 			this,
 			constructName(props, "listener-log-group"),
 			{
 				logGroupName: constructName(props, "listener-log-group"),
-				retention: props.listenerLogsRetentionDays,
+				retention: props.logsRetentionDays,
 				removalPolicy:
 					props.organization_env === OrganizationEnv.PROD
 						? RemovalPolicy.RETAIN
 						: RemovalPolicy.DESTROY,
 			},
 		);
-		Tags.of(this.logGroupListener).add("organization", props.organization);
-		Tags.of(this.logGroupListener).add("environment", props.organization_env);
-		Tags.of(this.logGroupListener).add("service", "listener");
+		Tags.of(logGroup).add("organization", props.organization);
+		Tags.of(logGroup).add("environment", props.organization_env);
+		Tags.of(logGroup).add("infra", "backend");
+
+		const vpcLink = new VpcLink(this, constructName(props, "vpc-link"), {
+			vpc: vpc,
+			vpcLinkName: constructName(props, "vpc-link"),
+			subnets: { subnetType: SubnetType.PUBLIC },
+		});
+		vpcLink.applyRemovalPolicy(
+			props.organization_env === OrganizationEnv.PROD
+				? RemovalPolicy.RETAIN
+				: RemovalPolicy.DESTROY,
+		);
+		Tags.of(vpcLink).add("organization", props.organization);
+		Tags.of(vpcLink).add("environment", props.organization_env);
+
+		const namespace = new PrivateDnsNamespace(
+			this,
+			constructName(props, "discovery-namespace"),
+			{
+				name: constructName(props, "discovery-namespace"),
+				description: "namespace for backend-api in service discovery",
+				vpc: vpc,
+			},
+		);
+		namespace.applyRemovalPolicy(
+			props.organization_env === OrganizationEnv.PROD
+				? RemovalPolicy.RETAIN
+				: RemovalPolicy.DESTROY,
+		);
+		Tags.of(namespace).add("organization", props.organization);
+		Tags.of(namespace).add("environment", props.organization_env);
+
+		this.cluster = cluster;
+		this.logGroup = logGroup;
+		this.vpc = vpc;
+		this.vpcLink = vpcLink;
+		this.discoveryNamespace = namespace;
+		this.dbInstance = dbInstance;
 	}
 }

@@ -27,10 +27,11 @@ services:
       - ../..:/workspace:cached
       - cargo:/usr/local/cargo
       - rustup:/usr/local/rustup
+      - ../aws_accessKeys.csv:/etc/aws/aws_accessKeys.export
     deploy:
       resources:
         limits:
-          memory: 25G
+          memory: 15G
   db:
     image: postgres:14-alpine
     restart: unless-stopped

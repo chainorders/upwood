@@ -10,7 +10,7 @@
     "workspaceFolder": "/workspace/cdk-deployment",
     "mounts": [
         {
-            "source": "${localWorkspaceFolder}/.devcontainer/cdk-deployment/aws_accessKeys.csv",
+            "source": "${localWorkspaceFolder}/.devcontainer/aws_accessKeys.csv",
             "target": "/etc/aws/aws_accessKeys.export",
             "type": "bind"
         }

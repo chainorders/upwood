@@ -1,18 +1,131 @@
+pub mod tree_nft_contract;
 pub mod tree_nft_metadata;
 pub mod user;
 
-use concordium_rust_sdk::id::types::AccountAddress;
+use std::sync::Arc;
+
+use concordium::chain::concordium_global_context;
+use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
 use concordium_rust_sdk::v2;
+use concordium_rust_sdk::web3id::did::Network;
+use diesel::r2d2::ConnectionManager;
+use events_listener::txn_processor::identity_registry::model::IdentityRegistry;
+use poem::http::StatusCode;
+use poem::middleware::{AddData, Cors, Tracing};
+use poem::{EndpointExt, Route};
 use poem_openapi::auth::Bearer;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{ApiResponse, SecurityScheme};
+use r2d2::Pool;
+use secure_string::SecureString;
+use serde::Deserialize;
 use sha2::Digest;
+use shared::db::DbPool;
 
-use crate::utils::*;
-pub type OpenApiServiceType = poem_openapi::OpenApiService<(user::Api, tree_nft_metadata::Api), ()>;
-pub fn create_service() -> OpenApiServiceType {
-    poem_openapi::OpenApiService::new((user::Api, tree_nft_metadata::Api), "Upwood API", "1.0.0")
+use crate::db;
+use crate::utils::{self, *};
+pub type OpenApiServiceType =
+    poem_openapi::OpenApiService<(user::Api, tree_nft_metadata::Api, tree_nft_contract::Api), ()>;
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Config {
+    pub api_socket_port: u32,
+    pub api_socket_address: String,
+    pub postgres_user: String,
+    pub postgres_password: SecureString,
+    pub postgres_host: String,
+    pub postgres_port: u32,
+    pub postgres_db: String,
+    pub db_pool_max_size: u32,
+    pub aws_user_pool_id: String,
+    pub aws_user_pool_client_id: String,
+    pub aws_user_pool_region: String,
+    pub user_challenge_expiry_duration_mins: i64,
+    pub concordium_node_uri: String,
+    pub concordium_network: String,
+    pub tree_nft_agent_wallet_json_str: String,
+    pub identity_registry_contract_index: u64,
 }
+
+pub async fn create_web_app(config: &Config) -> Route {
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        config.postgres_user,
+        config.postgres_password,
+        config.postgres_host,
+        config.postgres_port,
+        config.postgres_db
+    );
+    // Database Dependencies
+    db::db_setup::run_migrations(&database_url);
+    let db_pool: DbPool = Pool::builder()
+        .max_size(config.db_pool_max_size)
+        .build(ConnectionManager::new(&database_url))
+        .expect("Failed to create database connection pool");
+
+    // AWS Dependencies
+    let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+    let user_pool = utils::aws::cognito::UserPool::new(
+        sdk_config,
+        &config.aws_user_pool_id,
+        &config.aws_user_pool_client_id,
+        &config.aws_user_pool_region,
+    )
+    .await
+    .expect("Failed to create user pool");
+
+    // Concordium Dependencies
+    let endpoint: v2::Endpoint = config
+        .concordium_node_uri
+        .parse()
+        .expect("Failed to parse Concordium Node URI");
+    let mut concordium_client = v2::Client::new(endpoint)
+        .await
+        .expect("Failed to create Concordium Client");
+    let global_context = concordium_global_context(&mut concordium_client).await;
+    let network: Network = config
+        .concordium_network
+        .parse()
+        .expect("Failed to parse Concordium Network");
+    let tree_nft_agent_wallet =
+        WalletAccount::from_json_str(&config.tree_nft_agent_wallet_json_str)
+            .expect("Failed to parse Tree NFT Agent Wallet JSON");
+    let identity_registry = IdentityRegistry::new(ContractAddress::new(
+        config.identity_registry_contract_index,
+        0,
+    ));
+
+    let api = create_service();
+    let ui = api.swagger_ui();
+    let api = api
+        .with(AddData::new(db_pool))
+        .with(AddData::new(user_pool))
+        .with(AddData::new(global_context))
+        .with(AddData::new(concordium_client))
+        .with(AddData::new(network))
+        .with(AddData::new(identity_registry))
+        .with(AddData::new(user::UserChallengeConfig {
+            challenge_expiry_duration: chrono::Duration::minutes(
+                config.user_challenge_expiry_duration_mins,
+            ),
+        }))
+        .with(AddData::new(tree_nft_contract::TreeNftConfig {
+            agent: Arc::new(tree_nft_contract::TreeNftAgent(tree_nft_agent_wallet)),
+        }))
+        .with(Cors::new())
+        .with(Tracing);
+
+    Route::new().nest("/", api).nest("/ui", ui)
+}
+
+pub fn create_service() -> OpenApiServiceType {
+    poem_openapi::OpenApiService::new(
+        (user::Api, tree_nft_metadata::Api, tree_nft_contract::Api),
+        "Upwood API",
+        "1.0.0",
+    )
+}
+pub const PAGE_SIZE: i64 = 20;
 
 /// ApiKey authorization
 #[derive(SecurityScheme, Clone)]
@@ -34,7 +147,17 @@ async fn decode_token(req: &poem::Request, bearer: Bearer) -> poem::Result<aws::
         ))?
         .verify_decode_id_token(&bearer.token)
         .await
-        .map_err(|_| poem::Error::from_status(poem::http::StatusCode::UNAUTHORIZED))
+        .map_err(|e| match e {
+            aws::cognito::Error::CognitoVerification(error) => poem::Error::from_string(
+                format!("Cognito verification error: {}", error),
+                poem::http::StatusCode::UNAUTHORIZED,
+            ),
+            aws::cognito::Error::ClaimsDeserialization(error) => poem::Error::from_string(
+                format!("Claims Deserialization Error: {}", error),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ),
+            _ => unreachable!(),
+        })
 }
 
 /// Ensure that the account is an admin
@@ -45,21 +168,6 @@ pub fn ensure_is_admin(claims: &aws::cognito::Claims) -> Result<()> {
         )));
     }
     Ok(())
-}
-
-///  Ensure that the Concordium account address is present in the Claims received from the User Pool Token
-pub fn ensure_account_registered(claims: &aws::cognito::Claims) -> Result<AccountAddress> {
-    let account_address: AccountAddress = claims
-        .account_address
-        .as_ref()
-        .ok_or(Error::Forbidden(PlainText(
-            "Account is not registered".to_string(),
-        )))?
-        .parse()
-        .map_err(|_| {
-            Error::InternalServer(PlainText("Failed to parse account address".to_string()))
-        })?;
-    Ok(account_address)
 }
 
 #[derive(Debug, ApiResponse)]

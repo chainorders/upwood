@@ -20,6 +20,7 @@ pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenA
 pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
 pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
+pub use concordium_std::ContractAddress;
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct InitParam {

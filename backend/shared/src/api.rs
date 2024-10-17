@@ -96,6 +96,24 @@ pub struct PagedResponse<T: Sync+Send+Type+ToJSON+ParseFromJSON> {
     pub data:       Vec<T>,
 }
 
+impl<T: ToJSON+ParseFromJSON+Sync+Send+Type> PagedResponse<T> {
+    pub fn new(data: Vec<T>, page: i64, page_count: i64) -> Self {
+        Self {
+            page_count,
+            page,
+            data,
+        }
+    }
+
+    pub fn into_new(data: Vec<impl Into<T>>, page: i64, page_count: i64) -> Self {
+        Self {
+            page_count,
+            page,
+            data: data.into_iter().map(|x| x.into()).collect(),
+        }
+    }
+}
+
 /// A wrapper around the `AccountAddress` type that can be used in the API.
 pub type ApiAccountAddress = String;
 

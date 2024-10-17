@@ -13,7 +13,7 @@ use crate::schema::user_challenges;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct UserChallenge {
     pub id:              i32,
-    pub user_id:         String,
+    pub cognito_user_id: String,
     pub challenge:       Vec<u8>,
     pub account_address: String,
     pub created_at:      chrono::NaiveDateTime,
@@ -32,19 +32,19 @@ impl UserChallenge {
 #[derive(Debug, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::user_challenges)]
 pub struct UserChallengeInsert {
-    pub user_id:         String,
+    pub cognito_user_id: String,
     pub challenge:       Vec<u8>,
     pub account_address: String,
 }
 
 impl UserChallengeInsert {
     pub fn new(
-        user_id: String,
+        cognito_user_id: String,
         challenge: [u8; constants::SHA256],
         account_address: AccountAddress,
     ) -> Self {
         Self {
-            user_id,
+            cognito_user_id,
             challenge: challenge.to_vec(),
             account_address: account_address.to_string(),
         }
@@ -61,14 +61,14 @@ pub fn insert(conn: &mut DbConn, db_challenge: &UserChallengeInsert) -> DbResult
 
 pub fn find_by_user_id(
     conn: &mut DbConn,
-    user_id: &str,
+    cognito_user_id: &str,
     now: chrono::DateTime<chrono::Utc>,
     expiry: Duration,
 ) -> DbResult<Option<UserChallenge>> {
     let user = user_challenges::table
         .filter(
-            user_challenges::user_id
-                .eq(user_id)
+            user_challenges::cognito_user_id
+                .eq(cognito_user_id)
                 .and(user_challenges::created_at.gt(now - expiry)),
         )
         .order_by(user_challenges::created_at.desc())
@@ -77,8 +77,10 @@ pub fn find_by_user_id(
     Ok(user)
 }
 
-pub fn delete_by_user_id(conn: &mut DbConn, user_id: &str) -> DbResult<usize> {
-    let count = diesel::delete(user_challenges::table.filter(user_challenges::user_id.eq(user_id)))
-        .execute(conn)?;
+pub fn delete_by_user_id(conn: &mut DbConn, cognito_user_id: &str) -> DbResult<usize> {
+    let count = diesel::delete(
+        user_challenges::table.filter(user_challenges::cognito_user_id.eq(cognito_user_id)),
+    )
+    .execute(conn)?;
     Ok(count)
 }

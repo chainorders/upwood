@@ -6,6 +6,7 @@
 //! JSON using the `Json` type.
 pub mod api;
 mod db;
+pub mod model;
 pub mod processor;
 
 use concordium_rust_sdk::base::hashes::ModuleReference;

@@ -5,22 +5,13 @@
 		"format": "cargo +nightly fmt",
 		"build": "cargo clean && cargo build --release",
 		"test": "cargo test",
-		"generate:spec": "yarn run generate:contracts-api-specs && yarn run generate:verifier-api-specs && yarn run generate:sponsor-api-specs",
-		"generate:client": "yarn run generate:contracts-api-client && yarn run generate:verifier-api-client && yarn run generate:sponsor-api-client",
-		"debug:listener": "cargo run --bin listener_server --quiet",
+		"generate:spec": "yarn run generate:app-api-spec",
+		"generate:client": "yarn run generate:contracts-api-client",
+		"debug:listener": "cargo run --bin listener_server",
 		"watch:listener": "cargo watch -x 'run --bin listener_server'",
-		"debug:contracts-api": "cargo run --bin contracts_api_server --quiet",
-		"watch:contracts-api": "cargo watch -x 'run --bin contracts_api_server'",
-		"generate:contracts-api-specs": "cargo run --quiet --bin contracts_api_specs -- --output contracts-api-specs.json",
-		"generate:contracts-api-client": "yarn run generate:contracts-api-specs && openapi --input ./contracts-api-specs.json --output ../frontend/src/lib/contracts-api-client --name ContractsApi --useOptions",
-		"debug:verifier-api": "cargo run --bin verifier_api_server --quiet",
-		"watch:verifier-api": "cargo watch -x 'run --bin verifier_api_server'",
-		"generate:verifier-api-specs": "cargo run --bin verifier_api_specs --quiet -- --output verifier-api-specs.json",
-		"generate:verifier-api-client": "yarn run generate:verifier-api-specs && openapi --input ./verifier-api-specs.json --output ../frontend/src/lib/verifier-api-client --name VerifierApi --useOptions",
-		"debug:sponsor-api": "cargo run --bin sponsor_api_server --quiet",
-		"watch:sponsor-api": "cargo watch -x 'run --bin sponsor_api_server'",
-		"generate:sponsor-api-specs": "cargo run --bin sponsor_api_specs --quiet -- --output sponsor-api-specs.json",
-		"generate:sponsor-api-client": "yarn run generate:sponsor-api-specs && openapi --input ./sponsor-api-specs.json --output ../frontend/src/lib/sponsor-api-client --name SponsorApi --useOptions"
+		"generate:app-api-spec": "OUTPUT=app-api-specs.json && cargo  run --bin upwood_api_specs",
+		"debug:app-api": "cargo run --bin upwood_api_server",
+		"watch:app-api": "cargo watch -x 'run --bin upwood_api_server'"
 	},
 	"devDependencies": {
 		"openapi-typescript-codegen": "^0.25.0"
