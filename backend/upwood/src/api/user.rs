@@ -483,6 +483,8 @@ impl User {
     }
 }
 
+/// This is the user being returned by the Users Admin Api.
+/// This dosent have the field is_admin.
 #[derive(Object, Serialize, Deserialize, PartialEq, Debug)]
 pub struct AdminUser {
     /// The email address of the user
@@ -585,8 +587,6 @@ impl UpdateAccountAddressReq {
         Ok(proof)
     }
 }
-#[derive(Object)]
-pub struct UpdateAccountAddressRes {}
 
 async fn verify_presentation(
     concordium_client: &mut v2::Client,
