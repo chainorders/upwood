@@ -5,6 +5,7 @@ use concordium_rust_sdk::types::{Address, ContractAddress};
 use poem_openapi::payload::Json;
 use poem_openapi::types::{ParseFromJSON, ToJSON, Type};
 use poem_openapi::{ApiResponse, Object};
+use serde::Deserialize;
 
 pub const PAGE_SIZE: i64 = 20;
 
@@ -89,7 +90,7 @@ impl From<Address> for ApiAddress {
 
 /// Pages Response. This is a generic response that can be used to return a list
 /// of items with pagination.
-#[derive(Object)]
+#[derive(Object, Deserialize, PartialEq, Debug)]
 pub struct PagedResponse<T: Sync+Send+Type+ToJSON+ParseFromJSON> {
     pub page_count: i64,
     pub page:       i64,

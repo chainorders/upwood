@@ -21,3 +21,4 @@ r2d2 = "0.8.10"
 num-bigint = "0.4.4"
 num-traits = "0.2.14"
 bigdecimal = "0.4.5"
+serde.workspace = true

@@ -13,6 +13,27 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_affiliate_accounts (account_address) {
+        #[max_length = 255]
+        account_address -> Varchar,
+        #[max_length = 255]
+        cognito_user_id -> Varchar,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    user_affiliates (id) {
+        id -> Int4,
+        #[max_length = 255]
+        cognito_user_id -> Varchar,
+        #[max_length = 255]
+        affiliate_account_address -> Varchar,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     user_challenges (id) {
         id -> Int4,
         #[max_length = 255]
@@ -38,10 +59,14 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(user_affiliate_accounts -> users (cognito_user_id));
+diesel::joinable!(user_affiliates -> users (cognito_user_id));
 diesel::joinable!(user_challenges -> users (cognito_user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     tree_nft_metadatas,
+    user_affiliate_accounts,
+    user_affiliates,
     user_challenges,
     users,
 );

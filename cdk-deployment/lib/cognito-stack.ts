@@ -25,6 +25,13 @@ export class CognitoStack extends cdk.Stack {
 			standardAttributes: {
 				email: { required: true, mutable: false },
 			},
+			customAttributes: {
+				con_accnt: new StringAttribute({
+					mutable: true,
+					minLen: 50,
+					maxLen: 50,
+				}),
+			},
 			autoVerify: { email: true },
 			accountRecovery: AccountRecovery.EMAIL_ONLY,
 			selfSignUpEnabled: true,
@@ -62,10 +69,12 @@ export class CognitoStack extends cdk.Stack {
 					userPassword: true,
 					userSrp: true,
 				},
-				readAttributes: new ClientAttributes().withStandardAttributes({
-					email: true,
-					emailVerified: true,
-				}),
+				readAttributes: new ClientAttributes()
+					.withStandardAttributes({
+						email: true,
+						emailVerified: true,
+					})
+					.withCustomAttributes("con_accnt"),
 			},
 		);
 		cdk.Tags.of(client).add("organization", props.organization);

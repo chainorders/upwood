@@ -24,8 +24,15 @@ use shared::db::DbPool;
 
 use crate::db;
 use crate::utils::{self, *};
-pub type OpenApiServiceType =
-    poem_openapi::OpenApiService<(user::Api, tree_nft_metadata::Api, tree_nft_contract::Api), ()>;
+pub type OpenApiServiceType = poem_openapi::OpenApiService<
+    (
+        user::Api,
+        user::AdminApi,
+        tree_nft_metadata::Api,
+        tree_nft_contract::Api,
+    ),
+    (),
+>;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -101,6 +108,7 @@ pub async fn create_web_app(config: &Config) -> Route {
         .with(AddData::new(db_pool))
         .with(AddData::new(user_pool))
         .with(AddData::new(global_context))
+        // Enhancements : Make an Object Pool for Concordium Client. So that connections to the node can be tracked
         .with(AddData::new(concordium_client))
         .with(AddData::new(network))
         .with(AddData::new(identity_registry))
@@ -120,7 +128,12 @@ pub async fn create_web_app(config: &Config) -> Route {
 
 pub fn create_service() -> OpenApiServiceType {
     poem_openapi::OpenApiService::new(
-        (user::Api, tree_nft_metadata::Api, tree_nft_contract::Api),
+        (
+            user::Api,
+            user::AdminApi,
+            tree_nft_metadata::Api,
+            tree_nft_contract::Api,
+        ),
         "Upwood API",
         "1.0.0",
     )
@@ -163,11 +176,20 @@ async fn decode_token(req: &poem::Request, bearer: Bearer) -> poem::Result<aws::
 /// Ensure that the account is an admin
 pub fn ensure_is_admin(claims: &aws::cognito::Claims) -> Result<()> {
     if !claims.is_admin() {
-        return Err(Error::Forbidden(PlainText(
+        return Err(Error::UnAuthorized(PlainText(
             "Account is not an admin".to_string(),
         )));
     }
     Ok(())
+}
+
+pub fn ensure_account_registered(
+    claims: &aws::cognito::Claims,
+) -> Result<concordium_rust_sdk::id::types::AccountAddress> {
+    let account = claims.account().ok_or(Error::BadRequest(PlainText(
+        "Account not registered".to_string(),
+    )))?;
+    Ok(account)
 }
 
 #[derive(Debug, ApiResponse)]
@@ -178,8 +200,8 @@ pub enum Error {
     InternalServer(PlainText<String>),
     #[oai(status = 404)]
     NotFound(PlainText<String>),
-    #[oai(status = 403)]
-    Forbidden(PlainText<String>),
+    #[oai(status = 401)]
+    UnAuthorized(PlainText<String>),
 }
 
 impl From<r2d2::Error> for Error {
@@ -191,8 +213,8 @@ impl From<diesel::result::Error> for Error {
     }
 }
 impl From<aws::cognito::Error> for Error {
-    fn from(_: aws::cognito::Error) -> Self {
-        Self::InternalServer(PlainText("User pool error".to_string()))
+    fn from(e: aws::cognito::Error) -> Self {
+        Self::InternalServer(PlainText(format!("User pool error: {}", e)))
     }
 }
 impl From<v2::QueryError> for Error {
@@ -210,4 +232,12 @@ pub fn hasher(data: Vec<u8>) -> [u8; 32] {
     hasher.update(data);
     let hash = hasher.finalize();
     hash.into()
+}
+
+#[derive(poem_openapi::Tags)]
+enum ApiTags {
+    /// Operations about user
+    User,
+    /// Operations about tree nft metadata & contract
+    TreeNft
 }

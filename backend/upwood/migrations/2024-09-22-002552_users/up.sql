@@ -24,3 +24,18 @@ create table
 create index user_challenges_user_id_index on user_challenges (cognito_user_id);
 
 create index user_challenges_created_at_index on user_challenges (created_at);
+
+create table
+    user_affiliates (
+        id serial primary key,
+        cognito_user_id varchar(255) not null references users (cognito_user_id) on delete cascade,
+        affiliate_account_address varchar(255) not null,
+        created_at timestamptz not null default now ()
+    );
+
+create table
+    user_affiliate_accounts (
+        account_address varchar(255) primary key not null,
+        cognito_user_id varchar(255) not null references users (cognito_user_id) on delete cascade,
+        created_at timestamptz not null default now ()
+    );

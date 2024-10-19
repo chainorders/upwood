@@ -1,7 +1,8 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use shared::db::{DbConn, DbResult};
+use diesel::dsl::*;
 use diesel::prelude::*;
+use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{
@@ -69,6 +70,45 @@ pub fn find_identity(
         .select(Identity::as_select())
         .first(conn)
         .optional()
+}
+
+pub fn identity_exists(
+    conn: &mut DbConn,
+    identity_registry_address: &ContractAddress,
+    address: &Address,
+) -> DbResult<bool> {
+    let identity_registry_address = identity_registry_address.to_string();
+    let address = address.to_string();
+    let res: bool = select(exists(
+        identity_registry_identities::table.filter(
+            identity_registry_identities::identity_registry_address
+                .eq(identity_registry_address)
+                .and(identity_registry_identities::identity_address.eq(address.to_string())),
+        ),
+    ))
+    .get_result(conn)?;
+    Ok(res)
+}
+
+pub fn identity_exists_batch(
+    conn: &mut DbConn,
+    identity_registry_address: &ContractAddress,
+    addresses: &[Address],
+) -> DbResult<Vec<Address>> {
+    let select_filter = identity_registry_identities::identity_registry_address
+        .eq(identity_registry_address.to_string())
+        .and(
+            identity_registry_identities::identity_address
+                .eq_any(addresses.iter().map(|a| a.to_string())),
+        );
+    let res = identity_registry_identities::table
+        .filter(select_filter)
+        .select(identity_registry_identities::identity_address)
+        .load::<String>(conn)?
+        .into_iter()
+        .map(|a| a.parse().expect("invalid identity registry address"))
+        .collect::<Vec<Address>>();
+    Ok(res)
 }
 
 #[instrument(

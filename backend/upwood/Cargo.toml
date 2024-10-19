@@ -9,7 +9,7 @@ shared = { path = "../shared" }
 nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
 poem-openapi = { workspace = true, features = ["swagger-ui", "uuid"] }
 poem.workspace = true
-uuid = "1.10.0"
+uuid = {version = "1.10.0", features = ["v4"]}
 diesel = { workspace = true, features = [
     "numeric",
     "postgres",
@@ -39,9 +39,9 @@ sha2 = "0.10.8"
 thiserror = { workspace = true }
 config.workspace = true
 secure-string = { version = "0.3.0", features = ["serde"] }
+passwords = "3.1.16"
 
 [dev-dependencies]
-passwords = "3.1.16"
 shared_tests = { path = "../shared_tests" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
 integration-tests = { path = "../../contracts/integration-tests" }

@@ -1,11 +1,17 @@
 use aws_sdk_cognitoidentityprovider::types::{AuthFlowType, ChallengeNameType};
+use concordium_smart_contract_testing::AccountAddress;
 use passwords::PasswordGenerator;
 use poem::http::StatusCode;
 use poem::test::TestClient;
 use poem::Route;
+use shared::api::PagedResponse;
 use tracing_test::traced_test;
 use upwood::api;
-use upwood::api::user::{User, UserDeleteReq, UserRegisterReq, UserRegistrationInvitationSendReq};
+use upwood::api::user::{
+    AdminUser, User, UserRegisterReq, UserRegistrationInvitationSendReq,
+    UserUpdateAccountAddressRequest,
+};
+use uuid::Uuid;
 
 #[traced_test]
 #[tokio::test]
@@ -28,13 +34,15 @@ async fn cognito_auth_test() {
         .spaces(false)
         .strict(true);
     // User Attributes
-    let email = "admin.cognito_auth_test_5@yopmail.com";
+    let email = format!("cognito_auth_test_{}@yopmail.com", Uuid::new_v4());
     let password_temp = pass_generator.generate_one().unwrap();
 
     let api = api::create_web_app(&config).await;
     let cli = TestClient::new(api);
 
-    let user_id = api_user_send_invitation(&cli, email).await;
+    let user_id = api_user_send_invitation(&cli, &email).await;
+    // This is needed just to ensure that temp passwords match
+    // API call sets random passwords for Cognito users (It it set by Cognito)
     cognito_admin_set_user_password(
         &cognito_client,
         &config.aws_user_pool_id,
@@ -44,22 +52,24 @@ async fn cognito_auth_test() {
     .await;
 
     let password = pass_generator.generate_one().unwrap();
+    // When the user uses the temp password first his authentication response will have Force Password Change Challenge
     let id_token = cognito_user_change_password(
         &cognito_client,
         &config.aws_user_pool_client_id,
-        email,
+        &email,
         &password_temp,
         &password,
     )
     .await;
-    println!("id_token: {}", id_token);
-    let get_user_req = api_get_user_req(&cli, &id_token).await.0;
+    let get_user_req = api_user_self_req(&cli, &id_token).await.0;
+    // User is still not registered with the API hence it is not found
     assert_eq!(get_user_req.status(), StatusCode::NOT_FOUND);
+    // Upon setting the password user gets back a new id token
     let user_update = api_user_register(&cli, &id_token, &UserRegisterReq {
         desired_investment_amount: 100,
     })
     .await;
-    let user = api_get_user(&cli, &id_token).await;
+    let user = api_user_self(&cli, &id_token).await;
     assert_eq!(user_update, user);
     assert_eq!(user, User {
         email:                     email.to_owned(),
@@ -74,12 +84,11 @@ async fn cognito_auth_test() {
     let id_token = cognito_user_login(
         &cognito_client,
         &config.aws_user_pool_client_id,
-        email,
+        &email,
         &password,
     )
     .await;
-    println!("admin id_token: {}", id_token);
-    let user = api_get_user(&cli, &id_token).await;
+    let user = api_user_self(&cli, &id_token).await;
     assert_eq!(user, User {
         email:                     email.to_owned(),
         cognito_user_id:           user_id.to_owned(),
@@ -90,42 +99,80 @@ async fn cognito_auth_test() {
     });
 
     // Enhancement: mock the broswer wallet in order to create identity proofs
-    // let wallet_account = WalletAccount::from_json_str(WALLET_JSON_STR).unwrap();
-    // let _ = api_get_challenge(&cli, &id_token, &CreateChallengeRequest {
-    //     account_address: wallet_account.address.to_string(),
-    // })
-    // .await;
+    println!("updating account address: {}", user.cognito_user_id);
+    let account_address = AccountAddress([1; 32]).to_string();
+    api_admin_user_update_account_address(&cli, &id_token, &user.cognito_user_id, &account_address)
+        .await;
+    println!("updated account address: {}", user.cognito_user_id);
+    let id_token = cognito_user_login(
+        &cognito_client,
+        &config.aws_user_pool_client_id,
+        &email,
+        &password,
+    )
+    .await;
+    let user = api_user_self(&cli, &id_token).await;
+    assert_eq!(user, User {
+        email:                     email.to_owned(),
+        cognito_user_id:           user_id.to_owned(),
+        account_address:           Some(account_address.clone()),
+        desired_investment_amount: Some(100),
+        is_admin:                  true,
+        kyc_verified:              false,
+    });
 
-    // api_get_user_req(&cli, "Invalid Id Token")
-    //     .await
-    //     .assert_status(StatusCode::UNAUTHORIZED);
-
-    api_delete_user(&cli, &id_token, &user.email).await;
-    let get_user_req = api_get_user_req(&cli, &id_token).await.0;
+    println!("listing users");
+    let users = api_admin_list_users(&cli, &id_token, 0).await;
+    assert_eq!(users.page, 0);
+    assert!(users.data.contains(&AdminUser {
+        account_address:           Some(account_address),
+        cognito_user_id:           user_id.to_owned(),
+        email:                     email.to_owned(),
+        desired_investment_amount: Some(100),
+        kyc_verified:              false,
+    }));
+    println!("listed users");
+    println!("deleteting user: {}", user.cognito_user_id);
+    api_admin_user_delete(&cli, &id_token, &user.cognito_user_id).await;
+    println!("deleted user: {}", user.cognito_user_id);
+    let get_user_req = api_user_self_req(&cli, &id_token).await.0;
     assert_eq!(get_user_req.status(), StatusCode::NOT_FOUND);
 }
 
 async fn api_user_send_invitation(api: &TestClient<Route>, email: &str) -> String {
-    let invitation_res = api
-        .post("/users/register/invitation")
+    let mut invitation_res = api
+        .post("/users/invitation")
         .body_json(&UserRegistrationInvitationSendReq {
-            email: email.to_owned(),
+            email:                     email.to_owned(),
+            affiliate_account_address: None,
         })
         .send()
         .await
         .0;
-    assert_eq!(invitation_res.status(), StatusCode::OK);
-    let id: String = invitation_res
-        .into_body()
-        .into_json()
-        .await
-        .expect("Failed to parse invitation response");
-    id.to_owned()
+    match invitation_res.status() {
+        StatusCode::OK => {
+            let id: String = invitation_res
+                .into_body()
+                .into_json()
+                .await
+                .expect("Failed to parse invitation response");
+            id.to_owned()
+        }
+        StatusCode::INTERNAL_SERVER_ERROR => {
+            let res = invitation_res
+                .take_body()
+                .into_string()
+                .await
+                .expect("Failed to parse invitation response");
+            panic!("Failed to send invitation: {}", res);
+        }
+        res => panic!("Unexpected response: {}", res),
+    }
 }
 
 async fn api_user_register(api: &TestClient<Route>, id_token: &str, req: &UserRegisterReq) -> User {
     let res = api
-        .post("/users/register")
+        .post("/users")
         .header("Authorization", format!("Bearer {}", id_token))
         .body_json(req)
         .send()
@@ -138,35 +185,89 @@ async fn api_user_register(api: &TestClient<Route>, id_token: &str, req: &UserRe
         .expect("Failed to parse update user response")
 }
 
-async fn api_get_user(api: &TestClient<Route>, id_token: &str) -> User {
-    let res = api_get_user_req(api, id_token).await.0;
-    assert_eq!(res.status(), StatusCode::OK);
-    let res: User = res
-        .into_body()
-        .into_json()
-        .await
-        .expect("Failed to parse get user response");
-    res
+async fn api_user_self(api: &TestClient<Route>, id_token: &str) -> User {
+    let mut res = api_user_self_req(api, id_token).await.0;
+    match res.status() {
+        StatusCode::OK => {
+            let res: User = res
+                .into_body()
+                .into_json()
+                .await
+                .expect("Failed to parse get user response");
+            res
+        }
+        status_code => {
+            let res = res
+                .take_body()
+                .into_string()
+                .await
+                .expect("Failed to parse get user response");
+            panic!("Failed to get user: {} {}", status_code, res);
+        }
+    }
 }
 
-async fn api_get_user_req(api: &TestClient<Route>, id_token: &str) -> poem::test::TestResponse {
-    api.get("/users/self")
+async fn api_user_self_req(api: &TestClient<Route>, id_token: &str) -> poem::test::TestResponse {
+    api.get("/users")
         .header("Authorization", format!("Bearer {}", id_token))
         .send()
         .await
 }
 
-async fn api_delete_user(api: &TestClient<Route>, id_token: &str, email: &str) {
-    let res = api
-        .delete("/users")
+async fn api_admin_user_delete(api: &TestClient<Route>, id_token: &str, cognito_user_id: &str) {
+    let mut res = api
+        .delete(format!("/admin/users/{}", cognito_user_id))
         .header("Authorization", format!("Bearer {}", id_token))
-        .body_json(&UserDeleteReq {
-            email: email.to_owned(),
+        .send()
+        .await
+        .0;
+    match res.status() {
+        StatusCode::OK => {}
+        status_code => {
+            let res = res
+                .take_body()
+                .into_string()
+                .await
+                .expect("Failed to parse delete user response");
+            panic!("Failed to delete user: {} {}", status_code, res);
+        }
+    }
+}
+
+async fn api_admin_user_update_account_address(
+    api: &TestClient<Route>,
+    id_token: &str,
+    cognito_user_id: &str,
+    address: &str,
+) {
+    let res = api
+        .put(format!("/admin/users/{}/account_address", cognito_user_id))
+        .header("Authorization", format!("Bearer {}", id_token))
+        .body_json(&UserUpdateAccountAddressRequest {
+            account_address: address.to_owned(),
         })
         .send()
         .await
         .0;
     assert_eq!(res.status(), StatusCode::OK);
+}
+
+async fn api_admin_list_users(
+    api: &TestClient<Route>,
+    id_token: &str,
+    page: i64,
+) -> PagedResponse<AdminUser> {
+    let res = api
+        .get(format!("/admin/users/list/{}", page))
+        .header("Authorization", format!("Bearer {}", id_token))
+        .send()
+        .await
+        .0;
+    assert_eq!(res.status(), StatusCode::OK);
+    res.into_body()
+        .into_json()
+        .await
+        .expect("Failed to parse list users response")
 }
 
 async fn cognito_admin_add_to_admin_group(

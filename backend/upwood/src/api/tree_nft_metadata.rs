@@ -14,7 +14,18 @@ pub struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/tree_nft/metadata", method = "post")]
+    #[oai(path = "/admin/tree_nft/metadata", method = "post", tag = "ApiTags::TreeNft")]
+    /// Inserts a new TreeNftMetadata record in the database.
+    ///
+    /// This endpoint is only accessible to administrators.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated user's claims, used to ensure the user is an admin.
+    /// - `db_pool`: A reference to the database connection pool.
+    /// - `req`: The request body containing the metadata to be inserted.
+    ///
+    /// # Returns
+    /// The newly inserted `TreeNftMetadata` record.
     pub async fn metadata_insert(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -29,7 +40,22 @@ impl Api {
         Ok(Json(metadata))
     }
 
-    #[oai(path = "/tree_nft/metadata/list", method = "get")]
+    #[oai(
+        path = "/admin/tree_nft/metadata/list/:page",
+        method = "get",
+        tag = "ApiTags::TreeNft"
+    )]
+    /// Lists all TreeNftMetadata records in the database, paginated by the given page number.
+    ///
+    /// This endpoint is only accessible to administrators.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated user's claims, used to ensure the user is an admin.
+    /// - `db_pool`: A reference to the database connection pool.
+    /// - `page`: The page number to retrieve, starting from 0.
+    ///
+    /// # Returns
+    /// A vector of `TreeNftMetadata` records for the given page.
     pub async fn metadata_list(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -42,7 +68,22 @@ impl Api {
         Ok(Json(metadata.into_iter().collect()))
     }
 
-    #[oai(path = "/tree_nft/metadata/:id", method = "get")]
+    #[oai(
+        path = "/admin/tree_nft/metadata/:id",
+        method = "get",
+        tag = "ApiTags::TreeNft"
+    )]
+    /// Retrieves a TreeNftMetadata record from the database by its ID.
+    ///
+    /// This endpoint is only accessible to administrators.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated user's claims, used to ensure the user is an admin.
+    /// - `db_pool`: A reference to the database connection pool.
+    /// - `id`: The ID of the TreeNftMetadata record to retrieve.
+    ///
+    /// # Returns
+    /// The requested TreeNftMetadata record, or a NotFound error if the record is not found.
     pub async fn metadata_get(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -57,7 +98,22 @@ impl Api {
         Ok(Json(metadata))
     }
 
-    #[oai(path = "/tree_nft/metadata/:id", method = "delete")]
+    #[oai(
+        path = "/admin/tree_nft/metadata/:id",
+        method = "delete",
+        tag = "ApiTags::TreeNft"
+    )]
+    /// Deletes a TreeNftMetadata record from the database by its ID.
+    ///
+    /// This endpoint is only accessible to administrators.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated user's claims, used to ensure the user is an admin.
+    /// - `db_pool`: A reference to the database connection pool.
+    /// - `id`: The ID of the TreeNftMetadata record to delete.
+    ///
+    /// # Returns
+    /// A NoResResult indicating success or failure of the deletion.
     pub async fn metadata_delete(
         &self,
         BearerAuthorization(claims): BearerAuthorization,

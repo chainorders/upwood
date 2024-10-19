@@ -22,7 +22,20 @@ pub struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/tree_nft/contract/:contract_index/nonce", method = "get")]
+    /// Retrieves the nonce for the specified contract index and the authenticated account.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated account claims.
+    /// - `contract_index`: The index of the contract to retrieve the nonce for.
+    /// - `db_pool`: The database connection pool.
+    ///
+    /// # Returns
+    /// The nonce for the specified contract index and authenticated account.
+    #[oai(
+        path = "/tree_nft/contract/:contract_index/nonce",
+        method = "get",
+        tag = "ApiTags::TreeNft"
+    )]
     pub async fn nonce(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -30,12 +43,7 @@ impl Api {
         Data(db_pool): Data<&DbPool>,
     ) -> JsonResult<u64> {
         let mut conn = db_pool.get()?;
-        let account = db::users::find_user_by_cognito_user_id(&mut conn, &claims.sub)?
-            .ok_or(Error::NotFound(PlainText("User not found".to_string())))?
-            .account_address()
-            .ok_or(Error::NotFound(PlainText(
-                "User not registered".to_string(),
-            )))?;
+        let account = ensure_account_registered(&claims)?;
         let account_nonce = nft_multi_rewarded::db::find_address_nonce(
             &mut conn,
             &ContractAddress::new(contract_index, 0),
@@ -45,9 +53,20 @@ impl Api {
         Ok(Json(account_nonce as u64))
     }
 
+    /// Retrieves a random metadata entry and generates a signed metadata object for minting a new NFT.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated account claims.
+    /// - `db_pool`: The database connection pool.
+    /// - `config`: The TreeNftConfig instance.
+    /// - `contract_index`: The index of the contract to retrieve the metadata for.
+    ///
+    /// # Returns
+    /// A `MintData` object containing the signed metadata and the signer's address and signature.
     #[oai(
         path = "/tree_nft/contract/:contract_index/metadata/random",
-        method = "get"
+        method = "get",
+        tag = "ApiTags::TreeNft"
     )]
     pub async fn metadata_get_random(
         &self,
@@ -57,12 +76,7 @@ impl Api {
         Path(contract_index): Path<u64>,
     ) -> JsonResult<MintData> {
         let mut conn = db_pool.get()?;
-        let account = db::users::find_user_by_cognito_user_id(&mut conn, &claims.sub)?
-            .ok_or(Error::NotFound(PlainText("User not found".to_string())))?
-            .account_address()
-            .ok_or(Error::NotFound(PlainText(
-                "User not registered".to_string(),
-            )))?;
+        let account = ensure_account_registered(&claims)?;
         let account_nonce = nft_multi_rewarded::db::find_address_nonce(
             &mut conn,
             &ContractAddress::new(contract_index, 0),
@@ -93,9 +107,23 @@ impl Api {
         }))
     }
 
+    /// Lists the owners of the NFT with the given metadata ID for the specified contract.
+    ///
+    /// This endpoint is only accessible to admin users.
+    ///
+    /// # Parameters
+    /// - `claims`: The authenticated user's claims.
+    /// - `db_pool`: The database connection pool.
+    /// - `contract_index`: The index of the contract to list owners for.
+    /// - `metadata_id`: The ID of the metadata to list owners for.
+    /// - `page`: The page number to retrieve (optional).
+    ///
+    /// # Returns
+    /// A paged response containing the list of token holders for the specified metadata.
     #[oai(
-        path = "/tree_nft/contract/:contract_index/list_owners/:metadata_id",
-        method = "get"
+        path = "/admin/tree_nft/contract/:contract_index/list_owners/:metadata_id",
+        method = "get",
+        tag = "ApiTags::TreeNft"
     )]
     pub async fn metadata_list_owners(
         &self,

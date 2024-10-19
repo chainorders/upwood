@@ -46,11 +46,11 @@ async fn signature_tests() {
     metadata_api
         .metadata_insert(
             BearerAuthorization(Claims {
-                sub:              "USER_ID".to_string(),
-                cognito_username: "admin@example.com".to_string(),
-                email:            "admin@example.com".to_string(),
-                cognito_groups:   Some(vec!["admin".to_string()]),
-                email_verified:   Some(true),
+                sub:            "USER_ID".to_string(),
+                email:          "admin@example.com".to_string(),
+                cognito_groups: Some(vec!["admin".to_string()]),
+                email_verified: Some(true),
+                account:        None,
             }),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
@@ -178,11 +178,11 @@ async fn signature_tests() {
 
     // Api Interactions
     let api_user_claims = BearerAuthorization(Claims {
-        sub:              "NORMAL_USER_ID".to_string(),
-        cognito_groups:   None,
-        cognito_username: "normal_user@example.com".to_string(),
-        email_verified:   Some(true),
-        email:            "normal_user@example.com".to_string(),
+        sub:            "NORMAL_USER_ID".to_string(),
+        cognito_groups: None,
+        email_verified: Some(true),
+        email:          "normal_user@example.com".to_string(),
+        account:        None,
     });
 
     let contract_api = api::tree_nft_contract::Api;
