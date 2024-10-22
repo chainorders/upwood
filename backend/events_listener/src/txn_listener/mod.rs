@@ -6,6 +6,6 @@
 //! process them. The `EventsProcessor` trait is used to define the interface
 //! for processing events.
 
+pub mod api;
 mod db;
 pub mod listener;
-pub mod api;

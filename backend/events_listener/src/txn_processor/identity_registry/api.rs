@@ -1,10 +1,10 @@
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use shared::api::ApiResult;
-use shared::db::DbPool;
 use poem::web::Data;
 use poem_openapi::param::Path;
 use poem_openapi::payload::Json;
 use poem_openapi::OpenApi;
+use shared::api::ApiResult;
+use shared::db::DbPool;
 
 use super::db;
 

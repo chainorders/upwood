@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::types::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
-use shared::db::DbConn;
 use concordium_rwa_identity_registry::event::Event;
+use shared::db::DbConn;
 use tracing::{debug, instrument};
 
 use super::db::{self};

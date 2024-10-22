@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
-use shared::db::DbConn;
 use security_sft_rewards::types::{AgentRole, TokenAmount, TokenId};
+use shared::db::DbConn;
 use tracing::instrument;
 
 use crate::txn_listener::listener::ProcessorError;

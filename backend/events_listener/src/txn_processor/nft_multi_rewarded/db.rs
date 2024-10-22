@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use shared::db::{DbConn, DbResult};
 use diesel::prelude::*;
 use nft_multi_rewarded::types::RewardTokenId;
+use shared::db::{DbConn, DbResult};
 
 use crate::schema::{nft_multi_address_nonces, nft_multi_rewarded_contracts};
 

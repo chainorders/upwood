@@ -1,11 +1,11 @@
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use shared::api::{ApiAddress, ApiResult, PagedResponse, PAGE_SIZE};
-use shared::db::DbPool;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::Json;
 use poem_openapi::{Object, OpenApi};
+use shared::api::{ApiAddress, ApiResult, PagedResponse, PAGE_SIZE};
+use shared::db::DbPool;
 
 use super::db;
 

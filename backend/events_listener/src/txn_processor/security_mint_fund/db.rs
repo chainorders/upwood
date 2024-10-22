@@ -6,13 +6,13 @@ use concordium_cis2::TokenAmountU64;
 use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::expression::AsExpression;
 use diesel::prelude::*;
 use diesel::serialize::ToSql;
 use diesel::sql_types::Integer;
 use security_mint_fund::{AnyTokenUId, FundState};
+use shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{

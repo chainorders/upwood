@@ -12,7 +12,6 @@ use concordium_rust_sdk::types::{Address, ContractAddress, Energy, WalletAccount
 use concordium_rust_sdk::v2::{self, BlockIdentifier};
 use concordium_rust_sdk::web3id::did::Network;
 use concordium_rust_sdk::web3id::Web3IdAttribute;
-use shared::db::DbPool;
 use concordium_rwa_verifier_api::api;
 use concordium_rwa_verifier_api::identity_registry_client::IdentityRegistryClient;
 use concordium_rwa_verifier_api::web3_id_utils::{CredStatement, GlobalContext, IdStatement};
@@ -24,6 +23,7 @@ use log::{debug, info};
 use poem::listener::TcpListener;
 use poem::middleware::{AddData, Cors};
 use poem::{EndpointExt, Route, Server};
+use shared::db::DbPool;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {

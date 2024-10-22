@@ -4,9 +4,9 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::{Address, ContractAddress};
-use shared::db::{token_amount_to_sql, DbConn, DbResult};
 use diesel::prelude::*;
 use num_traits::Zero;
+use shared::db::{token_amount_to_sql, DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{

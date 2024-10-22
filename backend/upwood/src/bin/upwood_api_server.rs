@@ -1,6 +1,6 @@
 use poem::listener::TcpListener;
 use poem::Server;
-use tracing::{info};
+use tracing::info;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::TryInitError;
 use upwood::api;
