@@ -202,6 +202,8 @@ diesel::table! {
         currency_token_contract_address -> Varchar,
         currency_token_id -> Varchar,
         token_amount -> Numeric,
+        rate_numerator -> Int8,
+        rate_denominator -> Int8,
         create_time -> Timestamp,
         update_time -> Timestamp,
     }
@@ -211,8 +213,6 @@ diesel::table! {
     security_p2p_trading_deposits (contract_address, trader_address) {
         contract_address -> Varchar,
         trader_address -> Varchar,
-        rate_numerator -> Int8,
-        rate_denominator -> Int8,
         token_amount -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,

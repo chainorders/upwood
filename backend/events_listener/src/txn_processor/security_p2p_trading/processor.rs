@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
-use shared::db::DbConn;
 use security_p2p_trading::Event;
+use shared::db::DbConn;
 use tracing::{debug, instrument};
 
 use super::db;
@@ -31,24 +31,21 @@ pub fn process_events(
             Event::Initialized(event) => {
                 db::insert_contract(
                     conn,
-                    db::Contract::new(contract, &event.token, &event.currency, now),
+                    db::Contract::new(contract, &event.token, &event.currency, &event.rate, now),
                 )?;
+            }
+            Event::RateUpdated(rate) => {
+                db::update_contract_update_rate(conn, contract, &rate, now)?;
             }
             Event::Sell(event) => {
                 db::insert_deposit_or_update_add_amount(
                     conn,
-                    db::Deposit::new(contract, &event.from, &event.amount, &event.rate, now),
+                    db::Deposit::new(contract, &event.from, &event.amount, now),
                 )?;
                 db::update_contract_add_amount(conn, contract, &event.amount, now)?;
                 db::insert_trading_record(
                     conn,
-                    db::TradingRecordInsert::new_sell(
-                        contract,
-                        &event.from,
-                        &event.amount,
-                        &event.rate,
-                        now,
-                    ),
+                    db::TradingRecordInsert::new_sell(contract, &event.from, &event.amount, now),
                 )?;
             }
             Event::SellCancelled(event) => {

@@ -6,12 +6,12 @@ use concordium_cis2::TokenAmountU64;
 use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::ContractAddress;
-use shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
 use diesel::prelude::*;
 use num_traits::Zero;
 use security_mint_fund::AnyTokenUId;
 use serde::Serialize;
 use serde_json::to_value;
+use shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{
@@ -30,6 +30,8 @@ pub struct Contract {
     pub currency_token_contract_address: String,
     pub currency_token_id: String,
     pub token_amount: BigDecimal,
+    pub rate_numerator: i64,
+    pub rate_denominator: i64,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
 }
@@ -39,6 +41,7 @@ impl Contract {
         contract: &ContractAddress,
         token: &AnyTokenUId,
         currency: &AnyTokenUId,
+        rate: &Rate,
         now: DateTime<Utc>,
     ) -> Self {
         Self {
@@ -48,6 +51,8 @@ impl Contract {
             currency_token_contract_address: currency.contract.to_string(),
             currency_token_id: currency.id.to_string(),
             token_amount: BigDecimal::zero(),
+            rate_numerator: rate.numerator as i64,
+            rate_denominator: rate.denominator as i64,
             create_time: now.naive_utc(),
             update_time: now.naive_utc(),
         }
@@ -62,8 +67,6 @@ impl Contract {
 pub struct Deposit {
     pub contract_address: String,
     pub trader_address:   String,
-    pub rate_numerator:   i64,
-    pub rate_denominator: i64,
     pub token_amount:     BigDecimal,
     pub create_time:      NaiveDateTime,
     pub update_time:      NaiveDateTime,
@@ -73,14 +76,11 @@ impl Deposit {
         contract: &ContractAddress,
         from: &AccountAddress,
         amount: &TokenAmountU64,
-        rate: &Rate,
         now: DateTime<Utc>,
     ) -> Self {
         Self {
             contract_address: contract.to_string(),
             trader_address:   from.to_string(),
-            rate_numerator:   rate.numerator as i64,
-            rate_denominator: rate.denominator as i64,
             token_amount:     token_amount_u64_to_sql(amount),
             create_time:      now.naive_utc(),
             update_time:      now.naive_utc(),
@@ -130,7 +130,6 @@ impl TradingRecordInsert {
         contract: &ContractAddress,
         from: &AccountAddress,
         amount: &TokenAmountU64,
-        rate: &Rate,
         now: DateTime<Utc>,
     ) -> Self {
         TradingRecordInsert {
@@ -138,11 +137,8 @@ impl TradingRecordInsert {
             trader_address:   from.to_string(),
             record_type:      TradingRecordType::Sell,
             token_amount:     token_amount_u64_to_sql(amount),
-            metadata:         to_value(SellTradingRecordMetadata {
-                rate_numerator:   rate.numerator as i64,
-                rate_denominator: rate.denominator as i64,
-            })
-            .expect("Failed to serialize metadata"),
+            metadata:         to_value(SellTradingRecordMetadata)
+                .expect("Failed to serialize metadata"),
             create_time:      now.naive_utc(),
         }
     }
@@ -158,7 +154,7 @@ impl TradingRecordInsert {
             trader_address:   from.to_string(),
             record_type:      TradingRecordType::SellCancel,
             token_amount:     token_amount_u64_to_sql(amount),
-            metadata:         to_value(SellCancelTradingRecordMetadata {})
+            metadata:         to_value(SellCancelTradingRecordMetadata)
                 .expect("Failed to serialize metadata"),
             create_time:      now.naive_utc(),
         }
@@ -210,13 +206,10 @@ impl TradingRecordInsert {
 }
 
 #[derive(Serialize)]
-pub struct SellTradingRecordMetadata {
-    pub rate_numerator:   i64,
-    pub rate_denominator: i64,
-}
+pub struct SellTradingRecordMetadata;
 
 #[derive(Serialize)]
-pub struct SellCancelTradingRecordMetadata {}
+pub struct SellCancelTradingRecordMetadata;
 
 #[derive(Serialize)]
 pub struct ExchangeSellTradingRecordMetadata {
@@ -242,6 +235,34 @@ pub struct ExchangeBuyTradingRecordMetadata {
 pub fn insert_contract(conn: &mut DbConn, contract: Contract) -> DbResult<()> {
     diesel::insert_into(security_p2p_trading_contracts::table)
         .values(&contract)
+        .execute(conn)?;
+    Ok(())
+}
+
+#[instrument(skip_all)]
+/// Updates the contract's rate by setting the new rate and update time.
+///
+/// # Arguments
+/// * `conn` - A mutable reference to the database connection.
+/// * `contract` - The contract address to update.
+/// * `rate` - The new rate to set for the contract.
+/// * `now` - The current timestamp to update the contract's update time.
+///
+/// # Returns
+/// A `DbResult<()>` indicating whether the operation was successful.
+pub fn update_contract_update_rate(
+    conn: &mut DbConn,
+    contract: &ContractAddress,
+    rate: &Rate,
+    now: DateTime<Utc>,
+) -> DbResult<()> {
+    diesel::update(security_p2p_trading_contracts::table)
+        .filter(security_p2p_trading_contracts::contract_address.eq(contract.to_string()))
+        .set((
+            security_p2p_trading_contracts::rate_numerator.eq(rate.numerator as i64),
+            security_p2p_trading_contracts::rate_denominator.eq(rate.denominator as i64),
+            security_p2p_trading_contracts::update_time.eq(now.naive_utc()),
+        ))
         .execute(conn)?;
     Ok(())
 }

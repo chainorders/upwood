@@ -6,6 +6,8 @@ create table
         currency_token_contract_address varchar not null,
         currency_token_id varchar not null,
         token_amount numeric(78) not null default 0,
+        rate_numerator bigint not null,
+        rate_denominator bigint not null,
         create_time timestamp not null,
         update_time timestamp not null
     );
@@ -15,8 +17,6 @@ create table
     security_p2p_trading_deposits (
         contract_address varchar not null,
         trader_address varchar not null,
-        rate_numerator bigint not null,
-        rate_denominator bigint not null,
         token_amount numeric(78) not null,
         create_time timestamp not null,
         update_time timestamp not null,
