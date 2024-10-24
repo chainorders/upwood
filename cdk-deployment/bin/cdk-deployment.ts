@@ -4,12 +4,13 @@ import * as cdk from "aws-cdk-lib";
 import { CognitoStack } from "../lib/cognito-stack";
 import { OrganizationEnv } from "../lib/shared";
 import { PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
-import { InstanceClass, InstanceSize, Vpc } from "aws-cdk-lib/aws-ec2";
+import { InstanceClass, InstanceSize } from "aws-cdk-lib/aws-ec2";
 import { BackendListenerStack } from "../lib/backend-listener-stack";
 import { InfraStack } from "../lib/infra-stack";
 import { BackendApiStack } from "../lib/backend-api-stack";
 import * as path from "path";
 import * as fs from "fs";
+import { FilesS3Stack } from "../lib/files-s3-stack";
 
 const ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT!;
 const REGION = process.env.CDK_DEFAULT_REGION || "eu-west-2";
@@ -128,6 +129,18 @@ new BackendListenerStack(app, "BackendListenerStack", {
 	vpc: infraStack.vpc,
 });
 
+const filesStack = new FilesS3Stack(app, "FilesS3Stack", {
+	env: {
+		account: ACCOUNT,
+		region: REGION,
+	},
+	organization: ORGANIZATION,
+	organization_env: ORGANIZATION_ENV,
+	tags: {
+		organization: ORGANIZATION,
+		environment: ORGANIZATION_ENV,
+	},
+});
 new BackendApiStack(app, "BackendApiStack", {
 	env: {
 		account: ACCOUNT,
@@ -149,6 +162,7 @@ new BackendApiStack(app, "BackendApiStack", {
 	awsUserPoolId: cognitoStack.userPool.userPoolId,
 	awsUserPoolClientId: cognitoStack.userPoolClient.userPoolClientId,
 	awsUserPoolRegion: cognitoStack.userPool.env.region,
+	filesBucket: filesStack.filesBucket,
 	concordiumNodeUri: "http://node.testnet.concordium.com:20000",
 	concordiumNetwork: "testnet",
 	postgresPort: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : DB_PORT,

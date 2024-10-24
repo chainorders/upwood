@@ -20,9 +20,16 @@ import { HttpServiceDiscoveryIntegration } from "aws-cdk-lib/aws-apigatewayv2-in
 import { INamespace } from "aws-cdk-lib/aws-servicediscovery";
 import { ILogGroup } from "aws-cdk-lib/aws-logs";
 import { IParameter } from "aws-cdk-lib/aws-ssm";
-import { Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import {
+	PolicyDocument,
+	PolicyStatement,
+	Role,
+	ServicePrincipal,
+} from "aws-cdk-lib/aws-iam";
+import { IBucket } from "aws-cdk-lib/aws-s3";
 
 interface StackProps extends SP {
+	filesBucket: IBucket;
 	vpcLink: IVpcLink;
 	discoveryNamespace: INamespace;
 	awsUserPoolRegion: string;
@@ -78,26 +85,30 @@ export class BackendApiStack extends Stack {
 				assetName: "backend-api",
 			},
 		);
+		const fileBucketAccessPolicy: PolicyDocument = new PolicyDocument();
+		fileBucketAccessPolicy.addStatements(
+			new PolicyStatement({
+				actions: ["s3:*"],
+				resources: [props.filesBucket.bucketArn + "/*"],
+			}),
+		);
 		const taskDef = new ecs.Ec2TaskDefinition(
 			this,
 			constructName(props, "backend-api-task-definition"),
 			{
 				family: constructName(props, "backend-api-task-definition"),
-				taskRole: new Role(
-					this,
-					constructName(props, "backend-api-task-role"),
-					{
-						assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
-						roleName: constructName(props, "backend-api-task-role"),
-						description: "Task Role for backend-api",
-					},
-				),
 			},
 		);
 		taskDef.applyRemovalPolicy(
 			props.organization_env === OrganizationEnv.PROD
 				? RemovalPolicy.RETAIN
 				: RemovalPolicy.DESTROY,
+		);
+		taskDef.addToTaskRolePolicy(
+			new PolicyStatement({
+				actions: ["s3:*"],
+				resources: [props.filesBucket.bucketArn + "/*"],
+			}),
 		);
 		let apiContainer = taskDef.addContainer("backend-api", {
 			image: ecs.ContainerImage.fromDockerImageAsset(containerImage),
@@ -127,6 +138,7 @@ export class BackendApiStack extends Stack {
 				),
 				CONCORDIUM_NETWORK: props.concordiumNetwork,
 				CONCORDIUM_NODE_URI: props.concordiumNodeUri,
+				FILES_BUCKET_NAME: props.filesBucket.bucketName,
 			},
 			logging: new ecs.AwsLogDriver({
 				streamPrefix: "api",

@@ -1,9 +1,11 @@
+pub mod files;
 pub mod tree_nft_contract;
 pub mod tree_nft_metadata;
 pub mod user;
 
 use std::sync::Arc;
 
+use aws::s3::FilesBucket;
 use concordium::chain::concordium_global_context;
 use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
 use concordium_rust_sdk::v2;
@@ -30,6 +32,7 @@ pub type OpenApiServiceType = poem_openapi::OpenApiService<
         user::AdminApi,
         tree_nft_metadata::Api,
         tree_nft_contract::Api,
+        files::Api
     ),
     (),
 >;
@@ -52,6 +55,8 @@ pub struct Config {
     pub concordium_network: String,
     pub tree_nft_agent_wallet_json_str: String,
     pub identity_registry_contract_index: u64,
+    pub files_bucket_name: String,
+    pub files_presigned_url_expiry_secs: u64,
 }
 
 pub async fn create_web_app(config: &Config) -> Route {
@@ -73,7 +78,7 @@ pub async fn create_web_app(config: &Config) -> Route {
     // AWS Dependencies
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let user_pool = utils::aws::cognito::UserPool::new(
-        sdk_config,
+        &sdk_config,
         &config.aws_user_pool_id,
         &config.aws_user_pool_client_id,
         &config.aws_user_pool_region,
@@ -106,6 +111,10 @@ pub async fn create_web_app(config: &Config) -> Route {
     let ui = api.swagger_ui();
     let api = api
         .with(AddData::new(db_pool))
+        .with(AddData::new(FilesBucket::new(
+            &sdk_config,
+            config.files_bucket_name.to_owned(),
+            std::time::Duration::from_secs(config.files_presigned_url_expiry_secs))))
         .with(AddData::new(user_pool))
         .with(AddData::new(global_context))
         // Enhancements : Make an Object Pool for Concordium Client. So that connections to the node can be tracked
@@ -133,6 +142,7 @@ pub fn create_service() -> OpenApiServiceType {
             user::AdminApi,
             tree_nft_metadata::Api,
             tree_nft_contract::Api,
+            files::Api
         ),
         "Upwood API",
         "1.0.0",
@@ -180,6 +190,16 @@ pub fn ensure_is_admin(claims: &aws::cognito::Claims) -> Result<()> {
             "Account is not an admin".to_string(),
         )));
     }
+    Ok(())
+}
+
+pub fn ensure_registered(claims: &aws::cognito::Claims) -> Result<()> {
+    if !claims.email_verified() {
+        return Err(Error::BadRequest(PlainText(
+            "Account not registered".to_owned(),
+        )));
+    }
+
     Ok(())
 }
 
@@ -239,5 +259,7 @@ enum ApiTags {
     /// Operations about user
     User,
     /// Operations about tree nft metadata & contract
-    TreeNft
+    TreeNft,
+    //// Operations about forest project & contract
+    ForestProject,
 }
