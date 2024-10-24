@@ -14,7 +14,11 @@ pub struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/admin/tree_nft/metadata", method = "post", tag = "ApiTags::TreeNft")]
+    #[oai(
+        path = "/admin/tree_nft/metadata",
+        method = "post",
+        tag = "ApiTags::TreeNft"
+    )]
     /// Inserts a new TreeNftMetadata record in the database.
     ///
     /// This endpoint is only accessible to administrators.

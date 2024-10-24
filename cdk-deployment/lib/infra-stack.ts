@@ -26,7 +26,6 @@ import {
 	IPrivateDnsNamespace,
 	PrivateDnsNamespace,
 } from "aws-cdk-lib/aws-servicediscovery";
-import { Monitoring } from "aws-cdk-lib/aws-autoscaling";
 
 export interface StackProps extends SP {
 	dbStorageGiB: number;
