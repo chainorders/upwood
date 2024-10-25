@@ -4,8 +4,9 @@ pub mod tree_nft_metadata;
 pub mod user;
 
 use std::sync::Arc;
+use std::time::Duration;
 
-use aws::s3::FilesBucket;
+use aws::s3;
 use concordium::chain::concordium_global_context;
 use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
 use concordium_rust_sdk::v2;
@@ -32,7 +33,7 @@ pub type OpenApiServiceType = poem_openapi::OpenApiService<
         user::AdminApi,
         tree_nft_metadata::Api,
         tree_nft_contract::Api,
-        files::Api
+        files::Api,
     ),
     (),
 >;
@@ -57,6 +58,10 @@ pub struct Config {
     pub identity_registry_contract_index: u64,
     pub files_bucket_name: String,
     pub files_presigned_url_expiry_secs: u64,
+    pub filebase_s3_endpoint_url: String,
+    pub filebase_access_key_id: SecureString,
+    pub filebase_secret_access_key: SecureString,
+    pub filebase_bucket_name: String,
 }
 
 pub async fn create_web_app(config: &Config) -> Route {
@@ -111,10 +116,16 @@ pub async fn create_web_app(config: &Config) -> Route {
     let ui = api.swagger_ui();
     let api = api
         .with(AddData::new(db_pool))
-        .with(AddData::new(FilesBucket::new(
+        .with(AddData::new(s3::FilesBucket::new(
             &sdk_config,
             config.files_bucket_name.to_owned(),
-            std::time::Duration::from_secs(config.files_presigned_url_expiry_secs))))
+            Duration::from_secs(config.files_presigned_url_expiry_secs))))
+        .with(AddData::new(ipfs::filebase::FilesBucket::new(
+            &config.filebase_s3_endpoint_url,
+            config.filebase_access_key_id.unsecure(),
+            config.filebase_secret_access_key.unsecure(),
+            &config.filebase_bucket_name,
+            Duration::from_secs(config.files_presigned_url_expiry_secs))))
         .with(AddData::new(user_pool))
         .with(AddData::new(global_context))
         // Enhancements : Make an Object Pool for Concordium Client. So that connections to the node can be tracked
@@ -142,7 +153,7 @@ pub fn create_service() -> OpenApiServiceType {
             user::AdminApi,
             tree_nft_metadata::Api,
             tree_nft_contract::Api,
-            files::Api
+            files::Api,
         ),
         "Upwood API",
         "1.0.0",

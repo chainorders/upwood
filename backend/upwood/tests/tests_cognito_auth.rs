@@ -14,6 +14,9 @@ use uuid::Uuid;
 #[tokio::test]
 async fn cognito_auth_test() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+        .ok();
+
     let config: api::Config = config::Config::builder()
         .add_source(config::Environment::default())
         .build()

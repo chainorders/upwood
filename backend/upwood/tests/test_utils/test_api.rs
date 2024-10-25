@@ -157,7 +157,7 @@ impl TestApi {
 
 // Files Implementation
 impl TestApi {
-    pub async fn admin_s3_file_upload_url(
+    pub async fn admin_file_upload_url_s3(
         &self,
         id_token: &str,
     ) -> api::files::S3UploadUrlResponse {
@@ -189,10 +189,53 @@ impl TestApi {
         }
     }
 
-    pub async fn admin_delete_file(&mut self, id_token: &str, file_name: &Uuid) {
+    pub async fn admin_delete_file_s3(&mut self, id_token: &str, file_name: &Uuid) {
         let res = self
             .client
-            .delete(format!("/admin/files/{}", file_name))
+            .delete(format!("/admin/files/s3/{}", file_name))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    pub async fn admin_file_upload_url_ipfs(
+        &self,
+        id_token: &str,
+    ) -> api::files::S3UploadUrlResponse {
+        let mut res = self
+            .client
+            .post("/admin/files/ipfs/upload_url")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+
+        match res.status() {
+            StatusCode::OK => {
+                let res: api::files::S3UploadUrlResponse = res
+                    .into_body()
+                    .into_json()
+                    .await
+                    .expect("Failed to parse s3 upload url response");
+                res
+            }
+            status_code => {
+                let res = res
+                    .take_body()
+                    .into_string()
+                    .await
+                    .expect("Failed to parse s3 upload url response");
+                panic!("Failed to get s3 upload url: {} {}", status_code, res);
+            }
+        }
+    }
+
+    pub async fn admin_delete_file_ipfs(&mut self, id_token: &str, file_name: &Uuid) {
+        let res = self
+            .client
+            .delete(format!("/admin/files/ipfs/{}", file_name))
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await
