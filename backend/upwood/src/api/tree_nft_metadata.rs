@@ -1,12 +1,17 @@
+use concordium::account::Signer;
+use concordium_rust_sdk::base::contracts_common::AccountSignatures;
+use events_listener::txn_processor::cis2_security::db::TokenHolder;
+use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
+use events_listener::txn_processor::{cis2_security, nft_multi_rewarded};
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
+use shared::api::PagedResponse;
 use shared::db::DbPool;
 
 use super::PAGE_SIZE;
 use crate::api::*;
-use crate::db;
 use crate::db::tree_nft_metadata::TreeNftMetadata;
 
 #[derive(Clone, Copy)]
@@ -14,11 +19,66 @@ pub struct Api;
 
 #[OpenApi]
 impl Api {
+    /// Retrieves a random metadata entry and generates a signed metadata object for minting a new NFT.
+    ///
+    /// # Arguments
+    /// - `claims`: The authenticated account claims.
+    /// - `db_pool`: The database connection pool.
+    /// - `config`: The TreeNftConfig instance.
+    /// - `contract_index`: The index of the contract to retrieve the metadata for.
+    ///
+    /// # Returns
+    /// A `MintData` object containing the signed metadata and the signer's address and signature.
     #[oai(
-        path = "/admin/tree_nft/metadata",
-        method = "post",
-        tag = "ApiTags::TreeNft"
+        path = "/tree_nft/metadata/random",
+        method = "get",
+        tag = "ApiTags::TreeNftMetadata"
     )]
+    pub async fn metadata_get_random(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(config): Data<&TreeNftConfig>,
+        Data(contract): Data<&TreeNftContractAddress>,
+    ) -> JsonResult<MintData> {
+        let mut conn = db_pool.get()?;
+        let account = ensure_account_registered(&claims)?;
+        let account_nonce = nft_multi_rewarded::db::AddressNonce::find(
+            &mut conn,
+            contract.0.to_decimal(),
+            &account.into(),
+        )?
+        .map(|a| a.nonce)
+        .unwrap_or(0);
+
+        let metadata = TreeNftMetadata::find_random(&mut conn)?
+            .ok_or(Error::NotFound(PlainText("No metadata found".to_string())))?;
+        let metadata = SignedMetadata {
+            contract_address: contract.0.to_string(),
+            metadata_url:     MetadataUrl {
+                url:  metadata.metadata_url,
+                hash: metadata.metadata_hash,
+            },
+            account:          account.to_string(),
+            account_nonce:    account_nonce as u64,
+        };
+        let signature = hash_and_sign(&metadata, &config.agent)?;
+        let signature = serde_json::to_value(signature).map_err(|_| {
+            Error::InternalServer(PlainText("Failed to serialize signature".to_string()))
+        })?;
+        Ok(Json(MintData {
+            signed_metadata: metadata,
+            signer: config.agent.address().to_string(),
+            signature,
+        }))
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct AdminApi;
+
+#[OpenApi]
+impl AdminApi {
     /// Inserts a new TreeNftMetadata record in the database.
     ///
     /// This endpoint is only accessible to administrators.
@@ -30,6 +90,11 @@ impl Api {
     ///
     /// # Returns
     /// The newly inserted `TreeNftMetadata` record.
+    #[oai(
+        path = "/admin/tree_nft/metadata",
+        method = "post",
+        tag = "ApiTags::TreeNftMetadata"
+    )]
     pub async fn metadata_insert(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -38,17 +103,15 @@ impl Api {
     ) -> JsonResult<TreeNftMetadata> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let metadata = db::tree_nft_metadata::insert(&mut conn, req.try_into()?)?.ok_or(
-            Error::BadRequest(PlainText("Failed to insert metadata".to_string())),
-        )?;
+        let tree_nft_metdata: TreeNftMetadata = req.try_into()?;
+        let metadata = tree_nft_metdata
+            .insert(&mut conn)?
+            .ok_or(Error::BadRequest(PlainText(
+                "Failed to insert metadata".to_string(),
+            )))?;
         Ok(Json(metadata))
     }
 
-    #[oai(
-        path = "/admin/tree_nft/metadata/list/:page",
-        method = "get",
-        tag = "ApiTags::TreeNft"
-    )]
     /// Lists all TreeNftMetadata records in the database, paginated by the given page number.
     ///
     /// This endpoint is only accessible to administrators.
@@ -60,6 +123,12 @@ impl Api {
     ///
     /// # Returns
     /// A vector of `TreeNftMetadata` records for the given page.
+    #[oai(
+        path = "/admin/tree_nft/metadata/list/:page",
+        method = "get",
+        tag = "ApiTags::TreeNftMetadata"
+    )]
+
     pub async fn metadata_list(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -68,15 +137,10 @@ impl Api {
     ) -> JsonResult<Vec<TreeNftMetadata>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let metadata = db::tree_nft_metadata::list(&mut conn, PAGE_SIZE, page)?;
+        let metadata = TreeNftMetadata::list(&mut conn, PAGE_SIZE, page)?;
         Ok(Json(metadata.into_iter().collect()))
     }
 
-    #[oai(
-        path = "/admin/tree_nft/metadata/:id",
-        method = "get",
-        tag = "ApiTags::TreeNft"
-    )]
     /// Retrieves a TreeNftMetadata record from the database by its ID.
     ///
     /// This endpoint is only accessible to administrators.
@@ -88,6 +152,11 @@ impl Api {
     ///
     /// # Returns
     /// The requested TreeNftMetadata record, or a NotFound error if the record is not found.
+    #[oai(
+        path = "/admin/tree_nft/metadata/:id",
+        method = "get",
+        tag = "ApiTags::TreeNftMetadata"
+    )]
     pub async fn metadata_get(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -96,17 +165,12 @@ impl Api {
     ) -> JsonResult<TreeNftMetadata> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let metadata = db::tree_nft_metadata::find(&mut conn, &id)?
+        let metadata = TreeNftMetadata::find(&mut conn, &id)?
             .ok_or(Error::NotFound(PlainText("Metadata not found".to_string())))?;
 
         Ok(Json(metadata))
     }
 
-    #[oai(
-        path = "/admin/tree_nft/metadata/:id",
-        method = "delete",
-        tag = "ApiTags::TreeNft"
-    )]
     /// Deletes a TreeNftMetadata record from the database by its ID.
     ///
     /// This endpoint is only accessible to administrators.
@@ -118,6 +182,11 @@ impl Api {
     ///
     /// # Returns
     /// A NoResResult indicating success or failure of the deletion.
+    #[oai(
+        path = "/admin/tree_nft/metadata/:id",
+        method = "delete",
+        tag = "ApiTags::TreeNftMetadata"
+    )]
     pub async fn metadata_delete(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -126,11 +195,51 @@ impl Api {
     ) -> NoResResult {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let row_count = db::tree_nft_metadata::delete(&mut conn, &id)?;
+        let row_count = TreeNftMetadata::delete(&mut conn, &id)?;
         if row_count != 1 {
             return Err(Error::NotFound(PlainText("Metadata not found".to_string())));
         }
         Ok(())
+    }
+
+    /// Lists the owners of the NFT with the given metadata ID for the specified contract.
+    ///
+    /// This endpoint is only accessible to admin users.
+    ///
+    /// # Parameters
+    /// - `claims`: The authenticated user's claims.
+    /// - `db_pool`: The database connection pool.
+    /// - `contract_index`: The index of the contract to list owners for.
+    /// - `metadata_id`: The ID of the metadata to list owners for.
+    /// - `page`: The page number to retrieve (optional).
+    ///
+    /// # Returns
+    /// A paged response containing the list of token holders for the specified metadata.
+    #[oai(
+        path = "/admin/tree_nft/metadata/:metadata_id/owners/:page",
+        method = "get",
+        tag = "ApiTags::TreeNftMetadata"
+    )]
+    pub async fn owners_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contract): Data<&TreeNftContractAddress>,
+        Path(metadata_id): Path<String>,
+        Query(page): Query<i64>,
+    ) -> JsonResult<PagedResponse<TokenHolder>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let metadata = TreeNftMetadata::find(&mut conn, &metadata_id)?
+            .ok_or(Error::NotFound(PlainText("Metadata not found".to_string())))?;
+        let (holders, page_count) = cis2_security::db::list_holders_by_token_metadata_url(
+            &mut conn,
+            contract.0.to_decimal(),
+            &metadata.metadata_url,
+            PAGE_SIZE,
+            page,
+        )?;
+        Ok(Json(PagedResponse::into_new(holders, page, page_count)))
     }
 }
 
@@ -184,13 +293,89 @@ impl AddMetadataRequest {
     }
 }
 
-impl TryInto<db::tree_nft_metadata::TreeNftMetadataInsert> for AddMetadataRequest {
+impl TryInto<TreeNftMetadata> for AddMetadataRequest {
     type Error = Error;
 
-    fn try_into(self) -> Result<db::tree_nft_metadata::TreeNftMetadataInsert> {
-        Ok(db::tree_nft_metadata::TreeNftMetadataInsert::new(
+    fn try_into(self) -> Result<TreeNftMetadata> {
+        Ok(TreeNftMetadata::new(
             self.metadata_url()?,
             self.probablity_percentage()?,
+            chrono::Utc::now(),
         ))
     }
+}
+
+fn hash_and_sign(metadata: &SignedMetadata, agent: &TreeNftAgent) -> Result<AccountSignatures> {
+    let hash = metadata.hash(hasher)?;
+    let signature = agent.sign(&hash);
+    Ok(signature)
+}
+
+#[derive(Object, Debug)]
+pub struct MintData {
+    pub signed_metadata: SignedMetadata,
+    pub signer:          String,
+    /// Json serialized `AccountSignatures`
+    pub signature:       serde_json::Value,
+}
+
+#[derive(Object, Debug)]
+pub struct SignedMetadata {
+    pub contract_address: String,
+    pub metadata_url:     MetadataUrl,
+    pub account:          String,
+    pub account_nonce:    u64,
+}
+
+impl SignedMetadata {
+    pub fn hash<T>(&self, hasher: T) -> std::result::Result<[u8; 32], HashError>
+    where T: FnOnce(Vec<u8>) -> [u8; 32] {
+        let internal = ::nft_multi_rewarded::SignedMetadata {
+            contract_address: self
+                .contract_address
+                .parse()
+                .map_err(|_| HashError::ContractParse)?,
+            account:          self.account.parse().map_err(|_| HashError::AccountParse)?,
+            metadata_url:     ::nft_multi_rewarded::MetadataUrl {
+                url:  self.metadata_url.url.clone(),
+                hash: self
+                    .metadata_url
+                    .hash
+                    .as_ref()
+                    .map(hex::decode)
+                    .transpose()
+                    .map_err(|_| HashError::MetadataUrlHexDecode)?
+                    .map(|hash| hash.try_into())
+                    .transpose()
+                    .map_err(|_| HashError::MetadataUrlHexDecode)?,
+            },
+            account_nonce:    self.account_nonce,
+        };
+        let hash = internal.hash(hasher).map_err(|_| HashError::Hash)?;
+        Ok(hash)
+    }
+}
+
+pub struct TreeNftAgent(pub WalletAccount);
+impl Signer for TreeNftAgent {
+    fn wallet(&self) -> &WalletAccount { &self.0 }
+}
+
+#[derive(Debug)]
+pub enum HashError {
+    ContractParse,
+    AccountParse,
+    MetadataUrlHexDecode,
+    Hash,
+}
+
+impl From<HashError> for Error {
+    fn from(val: HashError) -> Self {
+        Error::InternalServer(PlainText(format!("Hash Error: {val:?}")))
+    }
+}
+
+#[derive(Clone)]
+pub struct TreeNftConfig {
+    pub agent: Arc<TreeNftAgent>,
 }

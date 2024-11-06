@@ -1,10 +1,10 @@
 create table
     security_p2p_trading_contracts (
-        contract_address varchar primary key not null,
-        token_contract_address varchar not null,
-        token_id varchar not null,
-        currency_token_contract_address varchar not null,
-        currency_token_id varchar not null,
+        contract_address numeric(20) primary key not null references listener_contracts (contract_address) on delete cascade,
+        token_contract_address numeric(20) not null,
+        token_id numeric(20) not null,
+        currency_token_contract_address numeric(20) not null,
+        currency_token_id numeric(20) not null,
         token_amount numeric(78) not null default 0,
         rate_numerator bigint not null,
         rate_denominator bigint not null,
@@ -15,7 +15,7 @@ create table
 -- these are trade sell positions
 create table
     security_p2p_trading_deposits (
-        contract_address varchar not null,
+        contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         trader_address varchar not null,
         token_amount numeric(78) not null,
         create_time timestamp not null,
@@ -35,7 +35,7 @@ create type security_p2p_trading_record_type as enum (
 create table
     security_p2p_trading_records (
         id bigserial primary key,
-        contract_address varchar not null,
+        contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         trader_address varchar not null,
         record_type security_p2p_trading_record_type not null,
         token_amount numeric(78) not null,

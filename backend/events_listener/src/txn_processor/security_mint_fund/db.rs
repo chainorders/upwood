@@ -1,27 +1,28 @@
 use std::ops::{Add, Sub};
 
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use concordium_cis2::TokenAmountU64;
 use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
-use concordium_rust_sdk::types::{Address, ContractAddress};
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::expression::AsExpression;
 use diesel::prelude::*;
 use diesel::serialize::ToSql;
 use diesel::sql_types::Integer;
+use poem_openapi::{Enum, Object};
+use rust_decimal::Decimal;
 use security_mint_fund::{AnyTokenUId, FundState};
-use shared::db::{token_amount_u64_to_sql, DbConn, DbResult};
+use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{
     security_mint_fund_contracts, security_mint_fund_investment_records,
     security_mint_fund_investors,
 };
+use crate::txn_processor::cis2_security;
+use crate::txn_processor::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 
 #[repr(i32)]
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq)]
+#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum)]
 #[diesel(sql_type = Integer)]
 pub enum SecurityMintFundState {
     Open    = 0,
@@ -61,30 +62,30 @@ impl ToSql<Integer, diesel::pg::Pg> for SecurityMintFundState {
     }
 }
 
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object)]
 #[diesel(table_name = security_mint_fund_contracts)]
 #[diesel(primary_key(contract_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Contract {
-    pub contract_address: String,
-    pub token_contract_address: String,
-    pub token_id: String,
-    pub investment_token_contract_address: String,
-    pub investment_token_id: String,
-    pub currency_token_contract_address: String,
-    pub currency_token_id: String,
+pub struct SecurityMintFundContract {
+    pub contract_address: Decimal,
+    pub token_contract_address: Decimal,
+    pub token_id: Decimal,
+    pub investment_token_contract_address: Decimal,
+    pub investment_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub currency_token_id: Decimal,
     pub rate_numerator: i64,
     pub rate_denominator: i64,
     pub fund_state: SecurityMintFundState,
-    pub currency_amount: BigDecimal,
-    pub token_amount: BigDecimal,
+    pub currency_amount: Decimal,
+    pub token_amount: Decimal,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
 }
 
-impl Contract {
+impl SecurityMintFundContract {
     pub fn new(
-        contract: &ContractAddress,
+        contract: Decimal,
         token: AnyTokenUId,
         investment_token: AnyTokenUId,
         currency_token: AnyTokenUId,
@@ -93,21 +94,154 @@ impl Contract {
         now: DateTime<Utc>,
     ) -> Self {
         Self {
-            contract_address: contract.to_string(),
-            token_contract_address: token.contract.to_string(),
-            token_id: token.id.to_string(),
-            investment_token_contract_address: investment_token.contract.to_string(),
-            investment_token_id: investment_token.id.to_string(),
-            currency_token_contract_address: currency_token.contract.to_string(),
-            currency_token_id: currency_token.id.to_string(),
+            contract_address: contract,
+            token_contract_address: token.contract.to_decimal(),
+            token_id: token.id.to_decimal(),
+            investment_token_contract_address: investment_token.contract.to_decimal(),
+            investment_token_id: investment_token.id.to_decimal(),
+            currency_token_contract_address: currency_token.contract.to_decimal(),
+            currency_token_id: currency_token.id.to_decimal(),
             rate_numerator: rate.numerator as i64,
             rate_denominator: rate.denominator as i64,
             fund_state: fund_state.into(),
-            currency_amount: BigDecimal::from(0),
-            token_amount: BigDecimal::from(0),
+            currency_amount: Decimal::from(0),
+            token_amount: Decimal::from(0),
             create_time: now.naive_utc(),
             update_time: now.naive_utc(),
         }
+    }
+
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_mint_fund_contracts::table)
+            .values(self)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn find(conn: &mut DbConn, contract: Decimal) -> DbResult<Option<Self>> {
+        let result = security_mint_fund_contracts::table
+            .filter(security_mint_fund_contracts::contract_address.eq(contract))
+            .first(conn)
+            .optional()?;
+        Ok(result)
+    }
+
+    #[instrument(skip_all)]
+    pub fn update_state(
+        conn: &mut DbConn,
+        contract: Decimal,
+        fund_state: FundState,
+        block_slot_time: DateTime<Utc>,
+    ) -> DbResult<()> {
+        diesel::update(security_mint_fund_contracts::table)
+            .filter(security_mint_fund_contracts::contract_address.eq(contract))
+            .set((
+                security_mint_fund_contracts::fund_state
+                    .eq::<SecurityMintFundState>(fund_state.into()),
+                security_mint_fund_contracts::update_time.eq(block_slot_time.naive_utc()),
+            ))
+            .execute(conn)?;
+        Ok(())
+    }
+
+    pub fn token(&self, conn: &mut DbConn) -> DbResult<Option<cis2_security::db::Token>> {
+        let token =
+            cis2_security::db::Token::find(conn, self.token_contract_address, self.token_id)?;
+        Ok(token)
+    }
+
+    pub fn rate(conn: &mut DbConn, contract_address: Decimal) -> DbResult<f32> {
+        let rate: (i64, i64) = security_mint_fund_contracts::table
+            .filter(security_mint_fund_contracts::contract_address.eq(contract_address))
+            .select((
+                security_mint_fund_contracts::rate_numerator,
+                security_mint_fund_contracts::rate_denominator,
+            ))
+            .first(conn)?;
+        let rate = rate.0 as f32 / rate.1 as f32;
+        Ok(rate)
+    }
+
+    #[instrument(skip_all)]
+    pub fn add_investment_amount(
+        conn: &mut DbConn,
+        contract: Decimal,
+        currency_amount: Decimal,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        {
+            diesel::update(security_mint_fund_contracts::table)
+                .filter(security_mint_fund_contracts::contract_address.eq(contract))
+                .set((
+                    security_mint_fund_contracts::currency_amount.eq(currency_amount),
+                    security_mint_fund_contracts::token_amount.eq(security_amount),
+                    security_mint_fund_contracts::update_time.eq(now.naive_utc()),
+                ))
+                .execute(conn)?;
+        }
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn sub_investment_amount(
+        conn: &mut DbConn,
+        contract: Decimal,
+        currency_amount: Decimal,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        {
+            diesel::update(security_mint_fund_contracts::table)
+                .filter(security_mint_fund_contracts::contract_address.eq(contract))
+                .set((
+                    security_mint_fund_contracts::currency_amount
+                        .eq(security_mint_fund_contracts::currency_amount.sub(currency_amount)),
+                    security_mint_fund_contracts::token_amount
+                        .eq(security_mint_fund_contracts::token_amount.sub(security_amount)),
+                    security_mint_fund_contracts::update_time.eq(now.naive_utc()),
+                ))
+                .execute(conn)?;
+        }
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn sub_currency_amount(
+        conn: &mut DbConn,
+        contract: Decimal,
+        currency_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        diesel::update(security_mint_fund_contracts::table)
+            .filter(security_mint_fund_contracts::contract_address.eq(contract))
+            .set((
+                security_mint_fund_contracts::currency_amount
+                    .eq(security_mint_fund_contracts::currency_amount.sub(currency_amount)),
+                security_mint_fund_contracts::update_time.eq(now.naive_utc()),
+            ))
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn sub_token_amount(
+        conn: &mut DbConn,
+        contract: Decimal,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        diesel::update(security_mint_fund_contracts::table)
+            .filter(security_mint_fund_contracts::contract_address.eq(contract))
+            .set((
+                security_mint_fund_contracts::token_amount
+                    .eq(security_mint_fund_contracts::token_amount.sub(security_amount)),
+                security_mint_fund_contracts::update_time.eq(now.naive_utc()),
+            ))
+            .execute(conn)?;
+        Ok(())
     }
 }
 
@@ -116,30 +250,153 @@ impl Contract {
 #[diesel(primary_key(contract_address, investor))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Investor {
-    pub contract_address: String,
+    pub contract_address: Decimal,
     pub investor:         String,
-    pub currency_amount:  BigDecimal,
-    pub token_amount:     BigDecimal,
+    pub currency_amount:  Decimal,
+    pub token_amount:     Decimal,
     pub create_time:      NaiveDateTime,
     pub update_time:      NaiveDateTime,
 }
 
 impl Investor {
     pub fn new(
-        contract: &ContractAddress,
+        contract: Decimal,
         investor: &AccountAddress,
-        currency_amount: TokenAmountU64,
-        token_amount: TokenAmountU64,
+        currency_amount: Decimal,
+        token_amount: Decimal,
         now: DateTime<Utc>,
     ) -> Self {
         Self {
-            contract_address: contract.to_string(),
-            investor:         investor.to_string(),
-            currency_amount:  token_amount_u64_to_sql(&currency_amount),
-            token_amount:     token_amount_u64_to_sql(&token_amount),
-            create_time:      now.naive_utc(),
-            update_time:      now.naive_utc(),
+            contract_address: contract,
+            investor: investor.to_string(),
+            currency_amount,
+            token_amount,
+            create_time: now.naive_utc(),
+            update_time: now.naive_utc(),
         }
+    }
+
+    #[instrument(skip_all, fields(investor = %self.investor))]
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_mint_fund_investors::table)
+            .values(self)
+            .on_conflict((
+                security_mint_fund_investors::contract_address,
+                security_mint_fund_investors::investor,
+            ))
+            .do_update()
+            .set((
+                security_mint_fund_investors::currency_amount
+                    .eq(security_mint_fund_investors::currency_amount.add(&self.currency_amount)),
+                security_mint_fund_investors::token_amount
+                    .eq(security_mint_fund_investors::token_amount.add(&self.token_amount)),
+                security_mint_fund_investors::update_time.eq(&self.update_time),
+            ))
+            .execute(conn)?;
+
+        InvestmentRecordInsert {
+            contract_address:       self.contract_address,
+            investor:               self.investor.clone(),
+            currency_amount:        Some(self.currency_amount),
+            token_amount:           Some(self.token_amount),
+            investment_record_type: InvestmentRecordType::Invested,
+            create_time:            self.create_time,
+        }
+        .insert(conn)?;
+        Ok(())
+    }
+
+    fn sub_token_amount(
+        conn: &mut DbConn,
+        contract: Decimal,
+        investor: &str,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        diesel::update(security_mint_fund_investors::table)
+            .filter(security_mint_fund_investors::contract_address.eq(contract))
+            .filter(security_mint_fund_investors::investor.eq(investor))
+            .set((
+                security_mint_fund_investors::token_amount
+                    .eq(security_mint_fund_investors::token_amount.sub(security_amount)),
+                security_mint_fund_investors::update_time.eq(now.naive_utc()),
+            ))
+            .execute(conn)?;
+        Ok(())
+    }
+
+    fn sub_investment_amount(
+        conn: &mut DbConn,
+        contract: Decimal,
+        investor: &str,
+        currency_amount: Decimal,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        diesel::update(security_mint_fund_investors::table)
+            .filter(security_mint_fund_investors::contract_address.eq(contract))
+            .filter(security_mint_fund_investors::investor.eq(investor))
+            .set((
+                security_mint_fund_investors::currency_amount
+                    .eq(security_mint_fund_investors::currency_amount.sub(currency_amount)),
+                security_mint_fund_investors::token_amount
+                    .eq(security_mint_fund_investors::token_amount.sub(security_amount)),
+                security_mint_fund_investors::update_time.eq(now.naive_utc()),
+            ))
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all, fields(investor = %investor))]
+    pub fn cancel_investment(
+        conn: &mut DbConn,
+        contract: Decimal,
+        investor: &AccountAddress,
+        currency_amount: Decimal,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        Self::sub_investment_amount(
+            conn,
+            contract,
+            &investor.to_string(),
+            currency_amount,
+            security_amount,
+            now,
+        )?;
+        InvestmentRecordInsert {
+            contract_address:       contract,
+            investor:               investor.to_string(),
+            currency_amount:        Some(currency_amount),
+            token_amount:           Some(security_amount),
+            investment_record_type: InvestmentRecordType::Cancelled,
+            create_time:            now.naive_utc(),
+        }
+        .insert(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all, fields(investor = %investor))]
+    pub fn claim_investment(
+        conn: &mut DbConn,
+        contract: Decimal,
+        investor: &AccountAddress,
+        security_amount: Decimal,
+        now: DateTime<Utc>,
+    ) -> DbResult<()> {
+        let investor = investor.to_string();
+
+        Self::sub_token_amount(conn, contract, &investor, security_amount, now)?;
+        InvestmentRecordInsert {
+            contract_address:       contract,
+            investor:               investor.to_string(),
+            currency_amount:        None,
+            token_amount:           Some(security_amount),
+            investment_record_type: InvestmentRecordType::Claimed,
+            create_time:            now.naive_utc(),
+        }
+        .insert(conn)?;
+        Ok(())
     }
 }
 
@@ -149,10 +406,10 @@ impl Investor {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct InvestmentRecord {
     pub id:                     i64,
-    pub contract_address:       String,
+    pub contract_address:       Decimal,
     pub investor:               String,
-    pub currency_amount:        Option<BigDecimal>,
-    pub token_amount:           Option<BigDecimal>,
+    pub currency_amount:        Option<Decimal>,
+    pub token_amount:           Option<Decimal>,
     pub investment_record_type: InvestmentRecordType,
     pub create_time:            NaiveDateTime,
 }
@@ -194,213 +451,37 @@ impl ToSql<Integer, diesel::pg::Pg> for InvestmentRecordType {
 #[diesel(table_name = security_mint_fund_investment_records)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct InvestmentRecordInsert {
-    pub contract_address:       String,
+    pub contract_address:       Decimal,
     pub investor:               String,
-    pub currency_amount:        Option<BigDecimal>,
-    pub token_amount:           Option<BigDecimal>,
+    pub currency_amount:        Option<Decimal>,
+    pub token_amount:           Option<Decimal>,
     pub investment_record_type: InvestmentRecordType,
     pub create_time:            NaiveDateTime,
 }
 impl InvestmentRecordInsert {
     pub fn new(
-        contract: &ContractAddress,
-        investor: &Address,
-        currency_amount: Option<&TokenAmountU64>,
-        security_amount: Option<&TokenAmountU64>,
+        contract: Decimal,
+        investor: &AccountAddress,
+        currency_amount: Option<Decimal>,
+        security_amount: Option<Decimal>,
         record_type: InvestmentRecordType,
         now: DateTime<Utc>,
     ) -> Self {
         Self {
-            contract_address:       contract.to_string(),
-            investor:               investor.to_string(),
-            currency_amount:        currency_amount.map(token_amount_u64_to_sql),
-            token_amount:           security_amount.map(token_amount_u64_to_sql),
+            contract_address: contract,
+            investor: investor.to_string(),
+            currency_amount,
+            token_amount: security_amount,
             investment_record_type: record_type,
-            create_time:            now.naive_utc(),
+            create_time: now.naive_utc(),
         }
     }
-}
 
-#[instrument(skip_all)]
-pub fn insert_fund(conn: &mut DbConn, fund: Contract) -> DbResult<()> {
-    diesel::insert_into(security_mint_fund_contracts::table)
-        .values(fund)
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub fn update_fund_add_investment_amount(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    currency_amount: &TokenAmountU64,
-    security_amount: &TokenAmountU64,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    let currency_amount = token_amount_u64_to_sql(currency_amount);
-    let security_amount = token_amount_u64_to_sql(security_amount);
-    diesel::update(security_mint_fund_contracts::table)
-        .filter(security_mint_fund_contracts::contract_address.eq(contract.to_string()))
-        .set((
-            security_mint_fund_contracts::currency_amount.eq(currency_amount),
-            security_mint_fund_contracts::token_amount.eq(security_amount),
-            security_mint_fund_contracts::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub fn update_fund_sub_investment_amount(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    currency_amount: &TokenAmountU64,
-    security_amount: &TokenAmountU64,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    let currency_amount = token_amount_u64_to_sql(currency_amount);
-    let security_amount = token_amount_u64_to_sql(security_amount);
-    diesel::update(security_mint_fund_contracts::table)
-        .filter(security_mint_fund_contracts::contract_address.eq(contract.to_string()))
-        .set((
-            security_mint_fund_contracts::currency_amount
-                .eq(security_mint_fund_contracts::currency_amount.sub(currency_amount)),
-            security_mint_fund_contracts::token_amount
-                .eq(security_mint_fund_contracts::token_amount.sub(security_amount)),
-            security_mint_fund_contracts::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub fn update_fund_sub_token_amount(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    security_amount: &TokenAmountU64,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    let security_amount = token_amount_u64_to_sql(security_amount);
-    diesel::update(security_mint_fund_contracts::table)
-        .filter(security_mint_fund_contracts::contract_address.eq(contract.to_string()))
-        .set((
-            security_mint_fund_contracts::token_amount
-                .eq(security_mint_fund_contracts::token_amount.sub(security_amount)),
-            security_mint_fund_contracts::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub fn update_fund_sub_currency_amount(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    currency_amount: &TokenAmountU64,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    let currency_amount = token_amount_u64_to_sql(currency_amount);
-    diesel::update(security_mint_fund_contracts::table)
-        .filter(security_mint_fund_contracts::contract_address.eq(contract.to_string()))
-        .set((
-            security_mint_fund_contracts::currency_amount
-                .eq(security_mint_fund_contracts::currency_amount.sub(currency_amount)),
-            security_mint_fund_contracts::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub fn update_fund_state(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    fund_state: FundState,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    diesel::update(security_mint_fund_contracts::table)
-        .filter(security_mint_fund_contracts::contract_address.eq(contract.to_string()))
-        .set((
-            security_mint_fund_contracts::fund_state.eq::<SecurityMintFundState>(fund_state.into()),
-            security_mint_fund_contracts::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all, fields(investor = %record.investor))]
-pub fn insert_investment_record(conn: &mut DbConn, record: InvestmentRecordInsert) -> DbResult<()> {
-    diesel::insert_into(security_mint_fund_investment_records::table)
-        .values(record)
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all, fields(investor = %investor.investor))]
-pub fn insert_investor_or_update_add_investment(
-    conn: &mut DbConn,
-    investor: Investor,
-) -> DbResult<()> {
-    diesel::insert_into(security_mint_fund_investors::table)
-        .values(investor.clone())
-        .on_conflict((
-            security_mint_fund_investors::contract_address,
-            security_mint_fund_investors::investor,
-        ))
-        .do_update()
-        .set((
-            security_mint_fund_investors::currency_amount
-                .eq(security_mint_fund_investors::currency_amount.add(investor.currency_amount)),
-            security_mint_fund_investors::token_amount
-                .eq(security_mint_fund_investors::token_amount.add(investor.token_amount)),
-            security_mint_fund_investors::update_time.eq(investor.update_time),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all, fields(investor = %investor))]
-pub fn update_investor_sub_investment(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    investor: &AccountAddress,
-    currency_amount: &TokenAmountU64,
-    security_amount: &TokenAmountU64,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    let currency_amount = token_amount_u64_to_sql(currency_amount);
-    let security_amount = token_amount_u64_to_sql(security_amount);
-    diesel::update(security_mint_fund_investors::table)
-        .filter(security_mint_fund_investors::contract_address.eq(contract.to_string()))
-        .filter(security_mint_fund_investors::investor.eq(investor.to_string()))
-        .set((
-            security_mint_fund_investors::currency_amount
-                .eq(security_mint_fund_investors::currency_amount.sub(currency_amount)),
-            security_mint_fund_investors::token_amount
-                .eq(security_mint_fund_investors::token_amount.sub(security_amount)),
-            security_mint_fund_investors::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
-}
-
-#[instrument(skip_all, fields(investor = %investor))]
-pub fn update_investor_sub_investment_token_amount(
-    conn: &mut DbConn,
-    contract: &ContractAddress,
-    investor: &AccountAddress,
-    security_amount: &TokenAmountU64,
-    now: DateTime<Utc>,
-) -> DbResult<()> {
-    let security_amount = token_amount_u64_to_sql(security_amount);
-    diesel::update(security_mint_fund_investors::table)
-        .filter(security_mint_fund_investors::contract_address.eq(contract.to_string()))
-        .filter(security_mint_fund_investors::investor.eq(investor.to_string()))
-        .set((
-            security_mint_fund_investors::token_amount
-                .eq(security_mint_fund_investors::token_amount.sub(security_amount)),
-            security_mint_fund_investors::update_time.eq(now.naive_utc()),
-        ))
-        .execute(conn)?;
-    Ok(())
+    #[instrument(skip_all, fields(investor = %self.investor))]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_mint_fund_investment_records::table)
+            .values(self)
+            .execute(conn)?;
+        Ok(())
+    }
 }

@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
@@ -8,9 +7,14 @@ use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use events_listener::txn_listener::listener::{ListenerConfig, ListenerError, ProcessorFnType};
-use events_listener::txn_processor::cis2_security::{security_sft_rewards, security_sft_single};
-use events_listener::txn_processor::{identity_registry, nft_multi_rewarded, security_mint_fund};
+use events_listener::txn_listener::db::ProcessorType;
+use events_listener::txn_listener::listener::{
+    ListenerConfig, ListenerError, ProcessorFnType, Processors,
+};
+use events_listener::txn_processor::cis2_security::security_sft_single;
+use events_listener::txn_processor::{
+    identity_registry, nft_multi_rewarded, security_mint_fund, security_sft_rewards,
+};
 use events_listener::{db_setup, txn_listener};
 use r2d2::Pool;
 use tracing::{debug, error, info, warn};
@@ -124,45 +128,37 @@ async fn main() -> Result<(), Error> {
         }
     };
     info!("default block height: {}", default_block_height);
-    let processors = {
-        let mut map = BTreeMap::new();
-        map.insert(
-            (
-                security_sft_rewards::module_ref(),
-                security_sft_rewards::contract_name(),
-            ),
-            security_sft_rewards::process_events as ProcessorFnType,
-        );
-        map.insert(
-            (
-                security_sft_single::module_ref(),
-                security_sft_single::contract_name(),
-            ),
-            security_sft_single::process_events as ProcessorFnType,
-        );
-        map.insert(
-            (
-                identity_registry::module_ref(),
-                identity_registry::contract_name(),
-            ),
-            identity_registry::processor::process_events as ProcessorFnType,
-        );
-        map.insert(
-            (
-                nft_multi_rewarded::module_ref(),
-                nft_multi_rewarded::contract_name(),
-            ),
-            nft_multi_rewarded::processor::process_events as ProcessorFnType,
-        );
-        map.insert(
-            (
-                security_mint_fund::module_ref(),
-                security_mint_fund::contract_name(),
-            ),
-            security_mint_fund::processor::process_events as ProcessorFnType,
-        );
-        map
-    };
+    let mut processors = Processors::default();
+    processors.insert(
+        security_sft_rewards::module_ref(),
+        security_sft_rewards::contract_name(),
+        ProcessorType::SecuritySftRewards,
+        security_sft_rewards::processor::process_events as ProcessorFnType,
+    );
+    processors.insert(
+        security_sft_single::module_ref(),
+        security_sft_single::contract_name(),
+        ProcessorType::SecuritySftSingle,
+        security_sft_single::process_events as ProcessorFnType,
+    );
+    processors.insert(
+        identity_registry::module_ref(),
+        identity_registry::contract_name(),
+        ProcessorType::IdentityRegistry,
+        identity_registry::processor::process_events as ProcessorFnType,
+    );
+    processors.insert(
+        nft_multi_rewarded::module_ref(),
+        nft_multi_rewarded::contract_name(),
+        ProcessorType::NftMultiRewarded,
+        nft_multi_rewarded::processor::process_events as ProcessorFnType,
+    );
+    processors.insert(
+        security_mint_fund::module_ref(),
+        security_mint_fund::contract_name(),
+        ProcessorType::SecurityMintFund,
+        security_mint_fund::processor::process_events as ProcessorFnType,
+    );
 
     let owner_account = config.account.parse().expect("Invalid account");
     let retry_policy = ExponentialBuilder::default()

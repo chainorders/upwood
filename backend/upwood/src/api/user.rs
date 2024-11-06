@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use chrono::Utc;
 use concordium::identity::Presentation;
 use concordium_rust_sdk::id::types::AccountAddress;
@@ -6,6 +8,8 @@ use concordium_rust_sdk::v2::BlockIdentifier;
 use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
 use diesel::Connection;
+use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
+use events_listener::txn_processor::identity_registry;
 use poem::web::Data;
 use poem_openapi::param::Path;
 use poem_openapi::payload::{Json, PlainText};
@@ -17,6 +21,7 @@ use tracing::info;
 
 use crate::api::*;
 use crate::db;
+use crate::db::user_challenges::UserChallenge;
 use crate::utils::*;
 
 #[derive(Clone, Copy)]
@@ -41,7 +46,7 @@ impl Api {
     pub async fn user_self(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistry>,
+        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
         BearerAuthorization(claims): BearerAuthorization,
     ) -> JsonResult<User> {
         let mut conn = db_pool.get()?;
@@ -49,7 +54,13 @@ impl Api {
             .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
         let is_kyc_verified = claims
             .account()
-            .map(|a| identity_registry.identity_exists(&mut conn, &Address::Account(a)))
+            .map(|a| {
+                identity_registry::db::Identity::exists(
+                    &mut conn,
+                    identity_registry.0.to_decimal(),
+                    &Address::Account(a),
+                )
+            })
             .unwrap_or(Ok(false))?;
 
         let user = User::new(&user, claims.is_admin(), is_kyc_verified);
@@ -131,7 +142,7 @@ impl Api {
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistry>,
+        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
         BearerAuthorization(claims): BearerAuthorization,
         Json(req): Json<UserRegisterReq>,
     ) -> JsonResult<User> {
@@ -150,7 +161,13 @@ impl Api {
             &user,
             claims.is_admin(),
             user.account_address()
-                .map(|a| identity_registry.identity_exists(&mut conn, &a.into()))
+                .map(|a| {
+                    identity_registry::db::Identity::exists(
+                        &mut conn,
+                        identity_registry.0.to_decimal(),
+                        &a.into(),
+                    )
+                })
                 .unwrap_or(Ok(false))?,
         );
         Ok(Json(user))
@@ -187,7 +204,7 @@ impl Api {
             Error::InternalServer(PlainText("Failed to serialize id statement".to_string()))
         })?;
         let challenge = db_pool.get()?.transaction(|conn| {
-            let challenge = match db::user_challenges::find_by_user_id(
+            let challenge = match UserChallenge::find_by_user_id(
                 conn,
                 &claims.sub,
                 Utc::now(),
@@ -196,12 +213,8 @@ impl Api {
                 Some(challenge) => challenge,
                 None => {
                     let challenge = concordium::identity::generate_challenge(&claims.sub);
-                    let challenge = db::user_challenges::UserChallengeInsert::new(
-                        claims.sub,
-                        challenge,
-                        account_address,
-                    );
-                    db::user_challenges::insert(conn, &challenge)?
+                    UserChallenge::new(claims.sub, challenge, account_address, Utc::now())
+                        .insert(conn)?
                 }
             };
 
@@ -245,7 +258,7 @@ impl Api {
         let proof = request.proof()?;
         let mut conn = db_pool.get()?;
         let account_address = {
-            let db_challenge = db::user_challenges::find_by_user_id(
+            let db_challenge = UserChallenge::find_by_user_id(
                 &mut conn,
                 &claims.sub,
                 Utc::now(),
@@ -272,7 +285,7 @@ impl Api {
             .await?;
         conn.transaction(|conn| {
             db::users::update_account_address(conn, &claims.sub, &account_address)?;
-            db::user_challenges::delete_by_user_id(conn, &claims.sub)?;
+            UserChallenge::delete_by_user_id(conn, &claims.sub)?;
             Ok::<_, Error>(())
         })
     }
@@ -282,11 +295,6 @@ pub struct AdminApi;
 
 #[OpenApi]
 impl AdminApi {
-    #[oai(
-        path = "/admin/users/:cognito_user_id",
-        method = "get",
-        tag = "ApiTags::User"
-    )]
     /// Get a user by their Cognito user ID.
     ///
     /// This endpoint is only accessible to admin users.
@@ -299,10 +307,15 @@ impl AdminApi {
     ///
     /// # Returns
     /// A JSON response containing the `AdminUser` for the specified Cognito user ID.
-    pub async fn get(
+    #[oai(
+        path = "/admin/users/:cognito_user_id",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
+    pub async fn get_by_cognito_user_id(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistry>,
+        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(cognito_user_id): Path<uuid::Uuid>,
     ) -> JsonResult<AdminUser> {
@@ -314,17 +327,60 @@ impl AdminApi {
         let user = AdminUser::new(
             &user,
             user.account_address()
-                .map(|a| identity_registry.identity_exists(&mut conn, &Address::Account(a)))
+                .map(|a| {
+                    identity_registry::db::Identity::exists(
+                        &mut conn,
+                        identity_registry.0.to_decimal(),
+                        &Address::Account(a),
+                    )
+                })
                 .unwrap_or(Ok(false))?,
         );
         Ok(Json(user))
     }
 
+    /// Get a user by their account address.
+    ///
+    /// This endpoint is only accessible to admin users.
+    ///
+    /// # Arguments
+    /// - `db_pool`: A reference to the database connection pool.
+    /// - `identity_registry`: A reference to the identity registry.
+    /// - `claims`: The authorization claims of the requesting user.
+    /// - `account_address`: The account address of the user to retrieve.
+    ///
+    /// # Returns
+    /// A JSON response containing the `AdminUser` for the specified account address.
     #[oai(
-        path = "/admin/users/list/:page",
+        path = "/admin/users/account_address/:account_address",
         method = "get",
         tag = "ApiTags::User"
     )]
+    pub async fn get_by_account_address(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(account_address): Path<String>,
+    ) -> JsonResult<AdminUser> {
+        ensure_is_admin(&claims)?;
+        let account_address = account_address
+            .parse()
+            .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))?;
+        let mut conn = db_pool.get()?;
+        let user = db::users::find_user_by_account_address(&mut conn, &account_address)?
+            .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
+        let user = AdminUser::new(
+            &user,
+            identity_registry::db::Identity::exists(
+                &mut conn,
+                identity_registry.0.to_decimal(),
+                &Address::Account(account_address),
+            )?,
+        );
+        Ok(Json(user))
+    }
+
     /// Get a list of all the users.
     ///
     /// This endpoint is only accessible to admin users.
@@ -337,10 +393,15 @@ impl AdminApi {
     ///
     /// # Returns
     /// A JSON response containing a paged list of `AdminUser` objects.
+    #[oai(
+        path = "/admin/users/list/:page",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
     pub async fn list(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistry>,
+        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<AdminUser>> {
@@ -352,14 +413,20 @@ impl AdminApi {
             .map(|user| user.account_address())
             .filter_map(|a| a.map(Address::Account))
             .collect::<Vec<_>>();
-        let registered = identity_registry.identity_exists_batch(&mut conn, &addresses)?;
+        let registered = identity_registry::db::Identity::exists_batch(
+            &mut conn,
+            identity_registry.0.to_decimal(),
+            &addresses,
+        )?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
         let data = users
             .iter()
             .map(|u| {
                 AdminUser::new(
                     u,
                     u.account_address()
-                        .map(|a| registered.get(&a.into()).copied().unwrap_or(false))
+                        .map(|a| registered.contains(&Address::Account(a)))
                         .unwrap_or(false),
                 )
             })
@@ -371,11 +438,6 @@ impl AdminApi {
         }))
     }
 
-    #[oai(
-        path = "/admin/users/:cognito_user_id",
-        method = "delete",
-        tag = "ApiTags::User"
-    )]
     /// Delete a user by their Cognito user ID.
     ///
     /// This endpoint is only accessible to admin users.
@@ -388,6 +450,11 @@ impl AdminApi {
     ///
     /// # Returns
     /// A JSON response indicating the success of the deletion.
+    #[oai(
+        path = "/admin/users/:cognito_user_id",
+        method = "delete",
+        tag = "ApiTags::User"
+    )]
     pub async fn delete(
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,
@@ -407,11 +474,6 @@ impl AdminApi {
         Ok(())
     }
 
-    #[oai(
-        path = "/admin/users/:cognito_user_id/account_address",
-        method = "put",
-        tag = "ApiTags::User"
-    )]
     /// Update the Concordium account address for a user.
     ///
     /// This endpoint is only accessible to admin users.
@@ -425,6 +487,11 @@ impl AdminApi {
     ///
     /// # Returns
     /// A successful response indicating the account address was updated.
+    #[oai(
+        path = "/admin/users/:cognito_user_id/account_address",
+        method = "put",
+        tag = "ApiTags::User"
+    )]
     pub async fn update_account_address(
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,

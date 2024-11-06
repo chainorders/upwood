@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use concordium_rust_sdk::base::hashes::TransactionHash;
+use concordium_rust_sdk::base::hashes::{BlockHash, TransactionHash};
 use concordium_rust_sdk::base::smart_contracts::OwnedReceiveName;
 use concordium_rust_sdk::common::types::Amount;
 use concordium_rust_sdk::id::types::AccountAddress;
@@ -19,11 +19,13 @@ use concordium_rust_sdk::v2;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use futures::TryStreamExt;
+use rust_decimal::Decimal;
 use shared::db::DbConn;
 use tracing::{debug, info, instrument, trace, warn};
 
-use super::db::{self, ListenerContractCallInsert, ListenerTransaction};
-use crate::txn_listener::db::CallType;
+use super::db::{self, ListenerContract, ListenerContractCallInsert, ListenerTransaction};
+use crate::txn_listener::db::{CallType, ListenerConfigInsert};
+use crate::txn_processor::cis2_utils::ContractAddressToDecimal;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProcessorError {
@@ -35,10 +37,68 @@ pub enum ProcessorError {
     DatabaseError(#[from] diesel::result::Error),
 }
 
+#[derive(Clone)]
+pub struct Processors {
+    pub processors_types: BTreeMap<(ModuleReference, OwnedContractName), db::ProcessorType>,
+    pub processors:       BTreeMap<db::ProcessorType, ProcessorFnType>,
+}
+
+impl Processors {
+    pub fn new() -> Self {
+        Self {
+            processors_types: BTreeMap::new(),
+            processors:       BTreeMap::new(),
+        }
+    }
+
+    pub fn insert(
+        &mut self,
+        module_ref: ModuleReference,
+        contract_name: OwnedContractName,
+        processor_type: db::ProcessorType,
+        processor: ProcessorFnType,
+    ) {
+        self.processors_types
+            .insert((module_ref, contract_name), processor_type);
+        self.processors.insert(processor_type, processor);
+    }
+
+    pub fn find_type(
+        &self,
+        module_ref: &ModuleReference,
+        contract_name: &OwnedContractName,
+    ) -> Option<db::ProcessorType> {
+        self.processors_types
+            .get(&(*module_ref, contract_name.clone()))
+            .copied()
+    }
+
+    pub fn find_by_type(&self, processor_type: &db::ProcessorType) -> Option<&ProcessorFnType> {
+        self.processors.get(processor_type)
+    }
+}
+
+impl Default for Processors {
+    fn default() -> Self { Self::new() }
+}
+
+pub struct ParsedBlock {
+    pub block_slot_time: DateTime<Utc>,
+    pub block_height:    AbsoluteBlockHeight,
+    pub block_hash:      BlockHash,
+    pub transactions:    Vec<ParsedTxn>,
+}
+
+pub struct ParsedTxn {
+    pub index:          TransactionIndex,
+    pub hash:           TransactionHash,
+    pub sender:         AccountAddress,
+    pub contract_calls: Vec<ContractCall>,
+}
+
 pub struct ContractCall {
-    call_type: ContractCallType,
-    contract:  ContractAddress,
-    txn:       ContractCallTxn,
+    pub call_type: ContractCallType,
+    pub contract:  ContractAddress,
 }
 
 pub struct ContractCallTxn {
@@ -163,10 +223,10 @@ pub type ProcessorFnType = fn(
 #[derive(Clone)]
 pub struct ListenerConfig {
     account:              AccountAddress, // Account address to listen to
-    processors:           BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+    processors:           Processors,     // Processors to process the transactions
     database:             Pool<ConnectionManager<PgConnection>>, // postgres pool
     default_block_height: AbsoluteBlockHeight, // Default block height to start from
-    client:               v2::Client,
+    concordium_client:    v2::Client,
 }
 
 impl ListenerConfig {
@@ -174,12 +234,12 @@ impl ListenerConfig {
         client: v2::Client,
         pool: Pool<ConnectionManager<PgConnection>>,
         account: AccountAddress,
-        processors: BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+        processors: Processors,
         default_block_height: AbsoluteBlockHeight,
     ) -> Self {
         Self {
             account,
-            client,
+            concordium_client: client,
             database: pool,
             processors,
             default_block_height,
@@ -199,7 +259,7 @@ pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
     info!("Starting from block {}", block_height.height);
 
     let mut finalized_block_stream = config
-        .client
+        .concordium_client
         .get_finalized_blocks_from(block_height)
         .await?;
 
@@ -209,20 +269,18 @@ pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
             .await
             .map_err(|_| ListenerError::FinalizedBlockTimeout)?;
         for block in &finalized_blocks {
-            let block = config.client.get_block_info(block.height).await?.response;
+            let block = config
+                .concordium_client
+                .get_block_info(block.height)
+                .await?
+                .response;
             if block.transaction_count.eq(&0u64) {
                 trace!("Block {block:?} has no transactions");
                 continue;
             }
 
-            process_block(
-                &mut config.client,
-                &mut conn,
-                &block,
-                &config.account,
-                &config.processors,
-            )
-            .await?;
+            let block: ParsedBlock = parse_block(&mut config.concordium_client, &block).await?;
+            process_block(&mut conn, &block, &config.account, &config.processors).await?;
         }
 
         debug!("Processed chunk of {} blocks", finalized_blocks.len());
@@ -230,6 +288,29 @@ pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
             return Err(ListenerError::FinalizedBlockStreamEnded);
         }
     }
+}
+
+#[instrument(skip_all)]
+async fn parse_block(
+    client: &mut v2::Client,
+    block: &BlockInfo,
+) -> Result<ParsedBlock, ListenerError> {
+    let txns: Vec<ParsedTxn> = client
+        .get_block_transaction_events(block.block_hash)
+        .await?
+        .response
+        .try_collect::<Vec<_>>()
+        .await?
+        .into_iter()
+        .filter_map(parse_block_item_summary)
+        .collect();
+
+    Ok(ParsedBlock {
+        block_slot_time: block.block_slot_time,
+        block_height:    block.block_height,
+        block_hash:      block.block_hash,
+        transactions:    txns,
+    })
 }
 
 /// Processes a block of transactions, extracting contract calls, processing them, and updating the last processed block in the database.
@@ -244,26 +325,37 @@ pub async fn listen(mut config: ListenerConfig) -> Result<(), ListenerError> {
 /// # Returns
 /// A `Result` indicating the success or failure of the operation.
 #[instrument(skip_all)]
-async fn process_block(
-    client: &mut v2::Client,
+pub async fn process_block(
     conn: &mut DbConn,
-    block: &BlockInfo,
+    block: &ParsedBlock,
     contract_owner: &AccountAddress,
-    processors: &BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+    processors: &Processors,
 ) -> Result<(), ListenerError> {
-    let contract_calls = client
-        .get_block_transaction_events(block.block_hash)
-        .await?
-        .response
-        .try_collect::<Vec<_>>()
-        .await?
-        .into_iter()
-        .filter_map(parse_block_item_summary)
-        .flatten()
-        .collect();
     let res = conn.transaction(|conn| {
-        process_contract_calls(contract_owner, processors, conn, block, contract_calls)?;
-        db::update_last_processed_block(conn, block.into()).map_err(ListenerError::DatabaseError)
+        for txn in block.transactions.iter() {
+            let is_txn_processed =
+                process_txn(conn, block.block_slot_time, txn, contract_owner, processors)?;
+
+            if is_txn_processed {
+                ListenerTransaction {
+                    block_hash:        block.block_hash.bytes.into(),
+                    block_height:      block.block_height.height.into(),
+                    transaction_index: txn.index.index.into(),
+                    block_slot_time:   block.block_slot_time.naive_utc(),
+                    transaction_hash:  txn.hash.to_string(),
+                }
+                .insert(conn)?;
+            }
+        }
+
+        // Update the last processed block in the database
+        let id = ListenerConfigInsert {
+            last_block_hash:      block.block_hash.bytes.into(),
+            last_block_height:    block.block_height.height.into(),
+            last_block_slot_time: block.block_slot_time.naive_utc(),
+        }
+        .insert(conn)?;
+        Result::<_, ListenerError>::Ok(id)
     })?;
 
     if res.is_none() {
@@ -281,137 +373,130 @@ async fn process_block(
     Ok(())
 }
 
-/// Processes a list of contract calls, handling initialization, updates, and upgrades.
-///
-/// This function is responsible for processing a list of contract calls, which can include contract
-/// initialization, updates, and upgrades. It checks if the contract is owned by the specified
-/// contract owner, and if so, it processes the contract call using the appropriate processor
-/// function. It also updates the database with the processed contract calls.
-///
-/// # Arguments
-///
-/// * `contract_owner` - A reference to the contract owner's account address.
-/// * `processors` - A reference to the map of contract processors.
-/// * `conn` - A mutable reference to the database connection.
-/// * `block` - A reference to the block information.
-/// * `contract_calls` - A vector of contract calls to process.
-///
-/// # Returns
-///
-/// A `Result` indicating the success or failure of the operation.
-#[instrument(skip_all, fields(block_height = block.block_height.height))]
-fn process_contract_calls(
-    contract_owner: &AccountAddress,
-    processors: &BTreeMap<(ModuleReference, OwnedContractName), ProcessorFnType>,
+fn process_txn(
     conn: &mut DbConn,
-    block: &BlockInfo,
-    contract_calls: Vec<ContractCall>,
-) -> Result<(), ListenerError> {
-    for contract_call in contract_calls {
+    block_slot_time: DateTime<Utc>,
+    txn: &ParsedTxn,
+    contract_owner: &AccountAddress,
+    processors: &Processors,
+) -> Result<bool, ListenerError> {
+    let mut is_any_processed = false;
+    for contract_call in &txn.contract_calls {
         let is_processed = match &contract_call.call_type {
             ContractCallType::Init(init) => {
                 // If the contract is owned by the owner, then we process the init call
-                if contract_owner.eq(&contract_call.txn.sender) {
-                    processors
-                        .get(&(init.module_ref, init.contract_name.clone()))
-                        .map(|process| {
-                            // Processor exists, so we process the init call
-                            // Add the contract to the database
-                            db::add_contract(
-                                conn,
-                                &contract_call.contract,
-                                &init.module_ref,
-                                &init.contract_name,
-                                &contract_call.txn.sender,
-                            )?;
-                            // Process the init call
-                            process(
-                                conn,
-                                block.block_slot_time,
-                                &contract_call.contract,
-                                &init.events,
-                            )
-                        })
-                        .transpose()?
-                        .is_some()
+                if contract_owner.eq(&txn.sender) {
+                    if let Some(processor_type) =
+                        processors.find_type(&init.module_ref, &init.contract_name)
+                    {
+                        let contract = ListenerContract::new(
+                            contract_call.contract.to_decimal(),
+                            &init.module_ref,
+                            &txn.sender,
+                            &init.contract_name,
+                            processor_type,
+                            block_slot_time,
+                        )
+                        .insert(conn)?;
+
+                        let contract_call = ListenerContractCallInsert {
+                            call_type:        CallType::Init,
+                            ccd_amount:       init.amount.micro_ccd.into(),
+                            contract_address: contract.contract_address,
+                            entrypoint_name:  &init.contract_name.to_string(),
+                            events_count:     init.events.len() as i32,
+                            instigator:       &txn.sender.to_string(),
+                            sender:           &txn.sender.to_string(),
+                            transaction_hash: txn.hash.bytes.into(),
+                            created_at:       block_slot_time.naive_utc(),
+                        }
+                        .insert(conn)?;
+                        Some((contract, contract_call, Some(&init.events)))
+                    } else {
+                        None
+                    }
                 } else {
-                    false
+                    None
                 }
             }
-            ContractCallType::Update(update) => db::find_contract(conn, &contract_call.contract)?
-                .and_then(|(module_ref, contract_name)| {
-                    processors.get(&(module_ref, contract_name))
-                })
-                .map(|process| {
-                    // Processor exists, so we process the update call
-                    process(
-                        conn,
-                        block.block_slot_time,
-                        &contract_call.contract,
-                        &update.events,
-                    )
-                })
-                .transpose()?
-                .is_some(),
+            ContractCallType::Update(update) => {
+                let contract = ListenerContract::find(conn, contract_call.contract.to_decimal())?;
+                match contract {
+                    Some(contract) => {
+                        let contract_call = ListenerContractCallInsert {
+                            call_type:        CallType::Update,
+                            ccd_amount:       update.amount.micro_ccd.into(),
+                            entrypoint_name:  &update.receive_name.to_string(),
+                            events_count:     update.events.len() as i32,
+                            contract_address: contract_call.contract.to_decimal(),
+                            instigator:       &txn.sender.to_string(),
+                            sender:           &update.sender.to_string(),
+                            transaction_hash: txn.hash.bytes.into(),
+                            created_at:       block_slot_time.naive_utc(),
+                        }
+                        .insert(conn)?;
+                        Some((contract, contract_call, Some(&update.events)))
+                    }
+                    None => None,
+                }
+            }
             ContractCallType::Upgraded { to, .. } => {
-                db::find_contract(conn, &contract_call.contract)?
-                    .map(|_| db::update_contract(conn, &contract_call.contract, to))
-                    .transpose()?
-                    .is_some()
+                let contract = ListenerContract::find(conn, contract_call.contract.to_decimal())?;
+                match contract {
+                    Some(contract) => {
+                        let contract_call = ListenerContractCallInsert {
+                            call_type:        CallType::Upgraded,
+                            ccd_amount:       Decimal::ZERO,
+                            entrypoint_name:  "",
+                            events_count:     0,
+                            contract_address: contract_call.contract.to_decimal(),
+                            instigator:       &txn.sender.to_string(),
+                            sender:           &txn.sender.to_string(),
+                            transaction_hash: txn.hash.bytes.into(),
+                            created_at:       block_slot_time.naive_utc(),
+                        }
+                        .insert(conn)?;
+                        Some((contract.update_module_ref(conn, to)?, contract_call, None))
+                    }
+                    None => None,
+                }
             }
         };
 
-        // If the contract is not processed, then we skip it
-        if is_processed {
-            let (call_type, entrypoint_name, amount, sender, events_count) =
-                match &contract_call.call_type {
-                    ContractCallType::Init(init) => (
-                        CallType::Init,
-                        &init.contract_name.to_string(),
-                        init.amount,
-                        Address::Account(contract_call.txn.sender),
-                        init.events.len() as i32,
+        match is_processed {
+            Some((contract, contract_call, events)) => {
+                match processors.find_by_type(&contract.processor_type) {
+                    Some(processor) => {
+                        let events_length = if let Some(events) = events {
+                            processor(conn, block_slot_time, &contract.contract_address(), events)?;
+                            events.len()
+                        } else {
+                            0
+                        };
+                        contract_call.update_processed(conn)?;
+                        is_any_processed = true;
+                        info!(
+                            "Processed contract call contract: {}, sender: {}, events count: {}",
+                            contract.contract_address(),
+                            contract_call.sender,
+                            events_length
+                        );
+                    }
+                    None => warn!(
+                        "No processor found for contract: {} & type: {}",
+                        contract.contract_address(),
+                        contract.processor_type
                     ),
-                    ContractCallType::Update(update) => (
-                        CallType::Update,
-                        &update.receive_name.to_string(),
-                        update.amount,
-                        update.sender,
-                        update.events.len() as i32,
-                    ),
-                    ContractCallType::Upgraded { .. } => (
-                        CallType::Upgraded,
-                        &"".to_string(),
-                        Amount::zero(),
-                        Address::Account(contract_call.txn.sender),
-                        0i32,
-                    ),
-                };
-            // Add the transaction to the database
-            db::upsert_transaction(
-                conn,
-                ListenerTransaction::new(block, contract_call.txn.hash, contract_call.txn.index),
-            )?;
-            // Add the contract call to the database
-            db::add_contract_call(conn, ListenerContractCallInsert {
-                call_type,
-                ccd_amount: amount.micro_ccd.into(),
-                entrypoint_name,
-                events_count,
-                index: contract_call.contract.index.into(),
-                sub_index: contract_call.contract.subindex.into(),
-                instigator: &contract_call.txn.sender.to_string(),
-                sender: &sender.to_string(),
-                transaction_hash: contract_call.txn.hash.bytes.into(),
-            })?;
-            info!(
-                "Processed contract call txn: {}, contract: {}, sender: {}, events count: {}",
-                contract_call.txn.hash, contract_call.contract, sender, events_count
-            );
+                }
+            }
+            None => debug!(
+                "Contract call not processed: contract: {}, sender: {}",
+                contract_call.contract, txn.sender
+            ),
         }
     }
 
-    Ok(())
+    Ok(is_any_processed)
 }
 
 /// Gets the last processed block height from the database, or the default block height if no
@@ -425,7 +510,7 @@ async fn get_block_height_or(
     conn: &mut DbConn,
     default_block_height: AbsoluteBlockHeight,
 ) -> Result<AbsoluteBlockHeight, ListenerError> {
-    let block_height = db::get_last_processed_block_height(conn)?
+    let block_height = db::ListenerConfig::find_last(conn)?
         .map(|b| b.next())
         .unwrap_or(default_block_height);
 
@@ -447,7 +532,7 @@ async fn get_block_height_or(
 /// An optional vector of `ContractCall` instances, or `None` if the `BlockItemSummary` does not
 /// represent a relevant transaction.
 #[instrument(skip_all, fields(txn_hash = %summary.hash))]
-fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCall>> {
+fn parse_block_item_summary(summary: BlockItemSummary) -> Option<ParsedTxn> {
     let BlockItemSummary {
         details,
         index,
@@ -456,11 +541,15 @@ fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCal
     } = summary;
     if let BlockItemSummaryDetails::AccountTransaction(at) = details {
         match at.effects {
-            AccountTransactionEffects::ContractInitialized { data } => Some(vec![ContractCall {
-                txn:       ContractCallTxn::new(index, hash, at.sender),
-                contract:  data.address,
-                call_type: ContractCallType::create_init(data),
-            }]),
+            AccountTransactionEffects::ContractInitialized { data } => Some(ParsedTxn {
+                index,
+                hash,
+                sender: at.sender,
+                contract_calls: vec![ContractCall {
+                    contract:  data.address,
+                    call_type: ContractCallType::create_init(data),
+                }],
+            }),
             AccountTransactionEffects::ContractUpdateIssued { effects } => {
                 let mut res = Vec::with_capacity(effects.len());
                 let mut collected_events: BTreeMap<ContractAddress, Vec<ContractEvent>> =
@@ -479,14 +568,12 @@ fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCal
                             // So we can add the interrupt events to the update events
                             let interrupt_events = collected_events.remove(&data.address);
                             res.push(ContractCall {
-                                txn:       ContractCallTxn::new(index, hash, at.sender),
                                 contract:  data.address,
                                 call_type: ContractCallType::create_update(data, interrupt_events),
                             });
                         }
                         ContractTraceElement::Upgraded { address, from, to } => {
                             res.push(ContractCall {
-                                txn:       ContractCallTxn::new(index, hash, at.sender),
                                 contract:  address,
                                 call_type: ContractCallType::Upgraded { from, to },
                             });
@@ -494,7 +581,12 @@ fn parse_block_item_summary(summary: BlockItemSummary) -> Option<Vec<ContractCal
                         _ => {}
                     }
                 }
-                Some(res)
+                Some(ParsedTxn {
+                    index,
+                    hash,
+                    sender: at.sender,
+                    contract_calls: res,
+                })
             }
             _ => None,
         }

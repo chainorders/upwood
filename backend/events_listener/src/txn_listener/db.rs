@@ -1,9 +1,11 @@
-use bigdecimal::BigDecimal;
-use chrono::NaiveDateTime;
+use std::fmt::{self, Display, Formatter};
+
+use chrono::{DateTime, NaiveDateTime, Utc};
 use concordium_rust_sdk::base::hashes::{ModuleReference, TransactionHash};
 use concordium_rust_sdk::base::smart_contracts::OwnedContractName;
+use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::queries::BlockInfo;
-use concordium_rust_sdk::types::{AbsoluteBlockHeight, TransactionIndex};
+use concordium_rust_sdk::types::{AbsoluteBlockHeight, ContractAddress, TransactionIndex};
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::dsl::*;
 use diesel::expression::AsExpression;
@@ -11,7 +13,10 @@ use diesel::prelude::*;
 use diesel::serialize::ToSql;
 use diesel::sql_types::Integer;
 use num_traits::ToPrimitive;
-use shared::db::DbConn;
+use poem_openapi::{Enum, Object};
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
+use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{
@@ -23,18 +28,55 @@ use crate::schema::{
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerConfig {
     pub id:                   i32,
-    pub last_block_height:    BigDecimal,
+    pub last_block_height:    Decimal,
     pub last_block_hash:      Vec<u8>,
     pub last_block_slot_time: NaiveDateTime,
+}
+
+impl ListenerConfig {
+    /// Retrieves the last processed block from the database.
+    #[instrument(skip_all)]
+    pub fn find_last(
+        conn: &mut DbConn,
+    ) -> Result<Option<AbsoluteBlockHeight>, diesel::result::Error> {
+        let config = listener_config::table
+            .order(listener_config::last_block_height.desc())
+            .limit(1)
+            .select(listener_config::last_block_height)
+            .first(conn)
+            .optional()?
+            .map(|block_height: Decimal| AbsoluteBlockHeight {
+                height: block_height
+                    .to_u64()
+                    .expect("Block height should convert to u64"),
+            });
+
+        Ok(config)
+    }
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = schema::listener_config)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerConfigInsert {
-    pub last_block_height:    BigDecimal,
+    pub last_block_height:    Decimal,
     pub last_block_hash:      Vec<u8>,
     pub last_block_slot_time: NaiveDateTime,
+}
+
+impl ListenerConfigInsert {
+    /// Updates the last processed block in the database.
+    #[instrument(skip_all, fields(block_height = %self.last_block_height))]
+    pub fn insert(&self, conn: &mut DbConn) -> Result<Option<i32>, diesel::result::Error> {
+        let created_id = insert_into(listener_config::table)
+            .values(self)
+            .on_conflict_do_nothing()
+            .returning(listener_config::id)
+            .get_result(conn)
+            .optional()?;
+
+        Ok(created_id)
+    }
 }
 
 impl From<&BlockInfo> for ListenerConfigInsert {
@@ -47,127 +89,156 @@ impl From<&BlockInfo> for ListenerConfigInsert {
     }
 }
 
-/// Retrieves the last processed block from the database.
-#[instrument(skip_all)]
-pub fn get_last_processed_block_height(
-    conn: &mut DbConn,
-) -> Result<Option<AbsoluteBlockHeight>, diesel::result::Error> {
-    let config = listener_config::table
-        .order(listener_config::last_block_height.desc())
-        .limit(1)
-        .select(listener_config::last_block_height)
-        .first(conn)
-        .optional()?
-        .map(|block_height: BigDecimal| AbsoluteBlockHeight {
-            height: block_height
-                .to_u64()
-                .expect("Block height should convert to u64"),
-        });
-
-    Ok(config)
-}
-
-#[instrument(skip_all)]
-pub fn get_last_processed_block(
-    conn: &mut DbConn,
-) -> Result<Option<ListenerConfig>, diesel::result::Error> {
-    let config = listener_config::table
-        .order(listener_config::last_block_height.desc())
-        .limit(1)
-        .first(conn)
-        .optional()?;
-    Ok(config)
-}
-
-/// Updates the last processed block in the database.
-#[instrument(skip_all, fields(block_height = %block.last_block_height))]
-pub fn update_last_processed_block(
-    conn: &mut DbConn,
-    block: ListenerConfigInsert,
-) -> Result<Option<i32>, diesel::result::Error> {
-    let created_id = insert_into(listener_config::table)
-        .values(block)
-        .on_conflict_do_nothing()
-        .returning(listener_config::id)
-        .get_result(conn)
-        .optional()?;
-
-    Ok(created_id)
-}
-
-#[derive(Selectable, Queryable, Identifiable, Insertable)]
-#[diesel(primary_key(index))]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Serialize, Object)]
+#[diesel(primary_key(contract_address))]
 #[diesel(table_name = schema::listener_contracts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerContract {
-    pub module_ref:    Vec<u8>,
-    pub contract_name: String,
-    pub index:         BigDecimal,
-    pub sub_index:     BigDecimal,
-    pub owner:         String,
+    pub module_ref:       String,
+    pub contract_name:    String,
+    pub contract_address: Decimal,
+    pub owner:            String,
+    pub processor_type:   ProcessorType,
+    pub created_at:       NaiveDateTime,
 }
 
-/// Adds a contract to the database.
-#[instrument(skip_all, fields(address = %address, origin_ref = %origin_ref, init_name = %init_name, owner = %owner))]
-pub fn add_contract(
-    conn: &mut DbConn,
-    address: &concordium_rust_sdk::types::ContractAddress,
-    origin_ref: &ModuleReference,
-    init_name: &OwnedContractName,
-    owner: &concordium_rust_sdk::id::types::AccountAddress,
-) -> Result<(), diesel::result::Error> {
-    insert_into(listener_contracts::table)
-        .values(ListenerContract {
-            index:         address.index.into(),
-            sub_index:     address.subindex.into(),
+impl ListenerContract {
+    pub fn new(
+        contract_address: Decimal,
+        origin_ref: &ModuleReference,
+        owner: &AccountAddress,
+        init_name: &OwnedContractName,
+        processor_type: ProcessorType,
+        block_slot_time: DateTime<Utc>,
+    ) -> Self {
+        ListenerContract {
+            contract_address,
             contract_name: init_name.to_string(),
-            module_ref:    origin_ref.bytes.to_vec(),
-            owner:         owner.to_string(),
+            module_ref: origin_ref.to_string(),
+            owner: owner.to_string(),
+            processor_type,
+            created_at: block_slot_time.naive_utc(),
+        }
+    }
+
+    pub fn module_ref(&self) -> ModuleReference {
+        self.module_ref.parse().expect("Invalid module ref")
+    }
+
+    pub fn contract_name(&self) -> OwnedContractName {
+        OwnedContractName::new_unchecked(self.contract_name.to_owned())
+    }
+
+    pub fn contract_address(&self) -> ContractAddress {
+        ContractAddress::new(
+            self.contract_address
+                .to_u64()
+                .expect("Error converting contract address to u64"),
+            0,
+        )
+    }
+
+    #[instrument(skip_all, fields(contract_address = %contract_address))]
+    pub fn find(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+    ) -> DbResult<Option<ListenerContract>> {
+        let contract = listener_contracts::table
+            .filter(listener_contracts::contract_address.eq(contract_address))
+            .select(ListenerContract::as_select())
+            .get_result(conn)
+            .optional()?;
+        Ok(contract)
+    }
+
+    #[instrument(skip_all, fields(contract_address = %self.contract_address, origin_ref = %origin_ref))]
+    pub fn update_module_ref(
+        &self,
+        conn: &mut DbConn,
+        origin_ref: &ModuleReference,
+    ) -> DbResult<Self> {
+        let contract = diesel::update(listener_contracts::table)
+            .filter(listener_contracts::contract_address.eq(self.contract_address))
+            .set(listener_contracts::module_ref.eq(origin_ref.to_string()))
+            .returning(Self::as_returning())
+            .get_result(conn)?;
+
+        Ok(contract)
+    }
+
+    /// Adds a contract to the database.
+    #[instrument(skip_all, fields(address = %self.contract_address, init_name = %self.contract_name, owner = %self.owner))]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let listener = insert_into(listener_contracts::table)
+            .values(self)
+            .returning(Self::as_returning())
+            .get_result::<Self>(conn)?;
+
+        Ok(listener)
+    }
+}
+
+/// The processor type of a contract.
+/// The processor type is used to determine which processor to use when processing events.
+/// ### Caution! This is persisted to the database. Hence changing the processor type requires a migration.
+#[repr(i32)]
+#[derive(
+    FromSqlRow,
+    Debug,
+    AsExpression,
+    Clone,
+    Copy,
+    Enum,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+)]
+#[diesel(sql_type = Integer)]
+pub enum ProcessorType {
+    IdentityRegistry   = 1,
+    SecuritySftSingle  = 2,
+    SecuritySftRewards = 3,
+    NftMultiRewarded   = 4,
+    SecurityMintFund   = 5,
+}
+
+impl Display for ProcessorType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ProcessorType::IdentityRegistry => write!(f, "IdentityRegistry"),
+            ProcessorType::SecuritySftSingle => write!(f, "SecuritySftSingle"),
+            ProcessorType::SecuritySftRewards => write!(f, "SecuritySftRewards"),
+            ProcessorType::NftMultiRewarded => write!(f, "NftMultiRewarded"),
+            ProcessorType::SecurityMintFund => write!(f, "SecurityMintFund"),
+        }
+    }
+}
+
+impl FromSql<Integer, diesel::pg::Pg> for ProcessorType {
+    fn from_sql(bytes: diesel::pg::PgValue) -> diesel::deserialize::Result<Self> {
+        let value = i32::from_sql(bytes)?;
+        Ok(match value {
+            1 => ProcessorType::IdentityRegistry,
+            2 => ProcessorType::SecuritySftSingle,
+            3 => ProcessorType::SecuritySftRewards,
+            4 => ProcessorType::NftMultiRewarded,
+            5 => ProcessorType::SecurityMintFund,
+            _ => return Err(format!("Invalid processor type: {}", value).into()),
         })
-        .execute(conn)?;
-
-    Ok(())
+    }
 }
 
-#[instrument(skip_all, fields(contract_address = %contract_address, origin_ref = %origin_ref))]
-pub fn update_contract(
-    conn: &mut DbConn,
-    contract_address: &concordium_rust_sdk::types::ContractAddress,
-    origin_ref: &ModuleReference,
-) -> Result<(), diesel::result::Error> {
-    diesel::update(listener_contracts::table)
-        .filter(listener_contracts::index.eq::<BigDecimal>(contract_address.index.into()))
-        .set(listener_contracts::module_ref.eq(origin_ref.bytes.to_vec()))
-        .execute(conn)?;
-
-    Ok(())
-}
-
-/// Finds a contract in the database based on its address.
-#[instrument(skip_all, fields(contract_address = %contract_address))]
-pub fn find_contract(
-    conn: &mut DbConn,
-    contract_address: &concordium_rust_sdk::types::ContractAddress,
-) -> Result<Option<(ModuleReference, OwnedContractName)>, diesel::result::Error> {
-    let contract = listener_contracts::table
-        .filter(listener_contracts::index.eq::<BigDecimal>(contract_address.index.into()))
-        .select((
-            listener_contracts::module_ref,
-            listener_contracts::contract_name,
-        ))
-        .get_result(conn)
-        .optional()?
-        .map(|c: (Vec<u8>, String)| (to_module_ref(c.0), OwnedContractName::new_unchecked(c.1)));
-
-    Ok(contract)
-}
-
-fn to_module_ref(vec: Vec<u8>) -> ModuleReference {
-    ModuleReference::new(
-        vec.as_slice()
-            .try_into()
-            .expect("Should convert vec to module ref"),
-    )
+impl ToSql<Integer, diesel::pg::Pg> for ProcessorType {
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut diesel::serialize::Output<'b, '_, diesel::pg::Pg>,
+    ) -> diesel::serialize::Result {
+        let v = *self as i32;
+        <i32 as ToSql<Integer, diesel::pg::Pg>>::to_sql(&v, &mut out.reborrow())
+    }
 }
 
 #[derive(Selectable, Queryable, Identifiable)]
@@ -177,14 +248,25 @@ fn to_module_ref(vec: Vec<u8>) -> ModuleReference {
 pub struct ListenerContractCall {
     pub id:               i64,
     pub transaction_hash: Vec<u8>,
-    pub index:            BigDecimal,
-    pub sub_index:        BigDecimal,
+    pub contract_address: Decimal,
     pub entrypoint_name:  String,
-    pub ccd_amount:       BigDecimal,
+    pub ccd_amount:       Decimal,
     pub instigator:       String,
     pub sender:           String,
     pub events_count:     i32,
     pub call_type:        i32,
+    pub is_processed:     bool,
+    pub created_at:       NaiveDateTime,
+}
+
+impl ListenerContractCall {
+    pub fn update_processed(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::update(listener_contract_calls::table)
+            .filter(listener_contract_calls::id.eq(self.id))
+            .set(listener_contract_calls::is_processed.eq(true))
+            .execute(conn)?;
+        Ok(())
+    }
 }
 
 #[repr(i32)]
@@ -223,26 +305,25 @@ impl ToSql<Integer, diesel::pg::Pg> for CallType {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerContractCallInsert<'a> {
     pub transaction_hash: Vec<u8>,
-    pub index:            BigDecimal,
-    pub sub_index:        BigDecimal,
+    pub contract_address: Decimal,
     pub entrypoint_name:  &'a str,
-    pub ccd_amount:       BigDecimal,
+    pub ccd_amount:       Decimal,
     pub instigator:       &'a str,
     pub sender:           &'a str,
     pub events_count:     i32,
     pub call_type:        CallType,
+    pub created_at:       NaiveDateTime,
 }
 
-#[instrument(skip_all, fields(contract_address = %contract_call.index, entrypoint_name = %contract_call.entrypoint_name))]
-pub fn add_contract_call(
-    conn: &mut DbConn,
-    contract_call: ListenerContractCallInsert,
-) -> Result<i64, diesel::result::Error> {
-    let created_id: i64 = insert_into(listener_contract_calls::table)
-        .values(contract_call)
-        .returning(listener_contract_calls::id)
-        .get_result(conn)?;
-    Ok(created_id)
+impl<'a> ListenerContractCallInsert<'a> {
+    #[instrument(skip_all, fields(contract_address = %self.contract_address, entrypoint_name = %self.entrypoint_name, instigator = %self.instigator, sender = %self.sender))]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<ListenerContractCall> {
+        let inserted = insert_into(listener_contract_calls::table)
+            .values(self)
+            .returning(ListenerContractCall::as_returning())
+            .get_result(conn)?;
+        Ok(inserted)
+    }
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug)]
@@ -251,10 +332,10 @@ pub fn add_contract_call(
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ListenerTransaction {
     pub block_hash:        Vec<u8>,
-    pub block_height:      BigDecimal,
+    pub block_height:      Decimal,
     pub block_slot_time:   NaiveDateTime,
-    pub transaction_hash:  Vec<u8>,
-    pub transaction_index: BigDecimal,
+    pub transaction_hash:  String,
+    pub transaction_index: Decimal,
 }
 
 impl ListenerTransaction {
@@ -263,21 +344,17 @@ impl ListenerTransaction {
             block_hash:        block.block_hash.to_vec(),
             block_height:      block.block_height.height.into(),
             block_slot_time:   block.block_slot_time.naive_utc(),
-            transaction_hash:  txn_hash.to_vec(),
+            transaction_hash:  txn_hash.to_string(),
             transaction_index: txn_index.index.into(),
         }
     }
-}
 
-#[instrument(skip_all, fields(txn_index = %transaction.transaction_index))]
-pub fn upsert_transaction(
-    conn: &mut DbConn,
-    transaction: ListenerTransaction,
-) -> Result<(), diesel::result::Error> {
-    diesel::insert_into(listener_transactions::table)
-        .values(transaction)
-        .on_conflict(listener_transactions::transaction_hash)
-        .do_nothing()
-        .execute(conn)?;
-    Ok(())
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(listener_transactions::table)
+            .values(self)
+            .on_conflict(listener_transactions::transaction_hash)
+            .do_nothing()
+            .execute(conn)?;
+        Ok(())
+    }
 }

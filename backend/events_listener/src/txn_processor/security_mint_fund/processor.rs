@@ -7,6 +7,7 @@ use tracing::{debug, instrument};
 
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
+use crate::txn_processor::cis2_utils::{ContractAddressToDecimal, TokenAmountToDecimal};
 
 #[instrument(
     name="security_mint_fund_process_events",
@@ -29,114 +30,90 @@ pub fn process_events(
 
         match event {
             Event::Initialized(event) => {
-                db::insert_fund(
-                    conn,
-                    db::Contract::new(
-                        contract,
-                        event.token,
-                        event.investment_token,
-                        event.currency_token,
-                        event.rate,
-                        event.fund_state,
-                        now,
-                    ),
-                )?;
+                db::SecurityMintFundContract::new(
+                    contract.to_decimal(),
+                    event.token,
+                    event.investment_token,
+                    event.currency_token,
+                    event.rate,
+                    event.fund_state,
+                    now,
+                )
+                .insert(conn)?;
             }
             Event::FundStateUpdated(fund_state) => {
-                db::update_fund_state(conn, contract, fund_state, now)?;
-            }
-            Event::Invested(event) => {
-                db::insert_investor_or_update_add_investment(
+                db::SecurityMintFundContract::update_state(
                     conn,
-                    db::Investor::new(
-                        contract,
-                        &event.investor,
-                        event.currency_amount,
-                        event.security_amount,
-                        now,
-                    ),
-                )?;
-                db::update_fund_add_investment_amount(
-                    conn,
-                    contract,
-                    &event.currency_amount,
-                    &event.security_amount,
+                    contract.to_decimal(),
+                    fund_state,
                     now,
                 )?;
-                db::insert_investment_record(
+            }
+            Event::Invested(event) => {
+                db::Investor::new(
+                    contract.to_decimal(),
+                    &event.investor,
+                    event.currency_amount.to_decimal(),
+                    event.security_amount.to_decimal(),
+                    now,
+                )
+                .upsert(conn)?;
+                db::SecurityMintFundContract::add_investment_amount(
                     conn,
-                    db::InvestmentRecordInsert::new(
-                        contract,
-                        &event.investor.into(),
-                        Some(&event.currency_amount),
-                        Some(&event.security_amount),
-                        db::InvestmentRecordType::Invested,
-                        now,
-                    ),
+                    contract.to_decimal(),
+                    event.currency_amount.to_decimal(),
+                    event.security_amount.to_decimal(),
+                    now,
                 )?;
             }
             Event::InvestmentCancelled(event) => {
-                db::update_investor_sub_investment(
+                db::Investor::cancel_investment(
                     conn,
-                    contract,
+                    contract.to_decimal(),
                     &event.investor,
-                    &event.currency_amount,
-                    &event.security_amount,
+                    event.currency_amount.to_decimal(),
+                    event.security_amount.to_decimal(),
                     now,
                 )?;
-                db::update_fund_sub_investment_amount(
+                db::SecurityMintFundContract::sub_investment_amount(
                     conn,
-                    contract,
-                    &event.currency_amount,
-                    &event.security_amount,
+                    contract.to_decimal(),
+                    event.currency_amount.to_decimal(),
+                    event.security_amount.to_decimal(),
                     now,
-                )?;
-                db::insert_investment_record(
-                    conn,
-                    db::InvestmentRecordInsert::new(
-                        contract,
-                        &event.investor.into(),
-                        Some(&event.currency_amount),
-                        Some(&event.security_amount),
-                        db::InvestmentRecordType::Cancelled,
-                        now,
-                    ),
                 )?;
             }
             Event::InvestmentClaimed(event) => {
-                db::update_investor_sub_investment_token_amount(
+                db::Investor::claim_investment(
                     conn,
-                    contract,
+                    contract.to_decimal(),
                     &event.investor,
-                    &event.security_amount,
+                    event.security_amount.to_decimal(),
                     now,
                 )?;
-                db::update_fund_sub_token_amount(conn, contract, &event.security_amount, now)?;
-                db::insert_investment_record(
+                db::SecurityMintFundContract::sub_token_amount(
                     conn,
-                    db::InvestmentRecordInsert::new(
-                        contract,
-                        &event.investor.into(),
-                        None,
-                        Some(&event.security_amount),
-                        db::InvestmentRecordType::Claimed,
-                        now,
-                    ),
+                    contract.to_decimal(),
+                    event.security_amount.to_decimal(),
+                    now,
                 )?;
             }
             Event::InvestmentDisbursed(event) => {
-                db::update_fund_sub_currency_amount(conn, contract, &event.currency_amount, now)?;
-                db::insert_investment_record(
+                db::SecurityMintFundContract::sub_currency_amount(
                     conn,
-                    db::InvestmentRecordInsert::new(
-                        contract,
-                        &event.receiver.address(),
-                        Some(&event.currency_amount),
-                        None,
-                        db::InvestmentRecordType::Claimed,
-                        now,
-                    ),
+                    contract.to_decimal(),
+                    event.currency_amount.to_decimal(),
+                    now,
                 )?;
+                db::InvestmentRecordInsert {
+                    contract_address:       contract.to_decimal(),
+                    investor:               event.receiver.address().to_string(),
+                    create_time:            now.naive_utc(),
+                    currency_amount:        Some(event.currency_amount.to_decimal()),
+                    token_amount:           None,
+                    investment_record_type: db::InvestmentRecordType::Disbursed,
+                }
+                .insert(conn)?;
             }
         }
     }

@@ -1,5 +1,9 @@
+pub mod carbon_credits;
 pub mod files;
-pub mod tree_nft_contract;
+pub mod forest_project;
+pub mod identity_registry;
+pub mod tree_fts;
+pub mod tree_nft;
 pub mod tree_nft_metadata;
 pub mod user;
 
@@ -9,10 +13,9 @@ use std::time::Duration;
 use aws::s3;
 use concordium::chain::concordium_global_context;
 use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
-use concordium_rust_sdk::v2;
 use concordium_rust_sdk::web3id::did::Network;
+use concordium_rust_sdk::{cis2, v2};
 use diesel::r2d2::ConnectionManager;
-use events_listener::txn_processor::identity_registry::model::IdentityRegistry;
 use poem::http::StatusCode;
 use poem::middleware::{AddData, Cors, Tracing};
 use poem::{EndpointExt, Route};
@@ -31,9 +34,16 @@ pub type OpenApiServiceType = poem_openapi::OpenApiService<
     (
         user::Api,
         user::AdminApi,
+        tree_nft_metadata::AdminApi,
         tree_nft_metadata::Api,
-        tree_nft_contract::Api,
+        tree_nft::Api,
+        tree_nft::AdminApi,
+        tree_fts::AdminApi,
         files::Api,
+        identity_registry::AdminApi,
+        carbon_credits::AdminApi,
+        forest_project::Api,
+        forest_project::AdminApi,
     ),
     (),
 >;
@@ -56,6 +66,11 @@ pub struct Config {
     pub concordium_network: String,
     pub tree_nft_agent_wallet_json_str: String,
     pub identity_registry_contract_index: u64,
+    pub compliance_contract_index: u64,
+    pub carbon_credit_contract_index: u64,
+    pub euro_e_contract_index: u64,
+    pub tree_ft_contract_index: u64,
+    pub tree_nft_contract_index: u64,
     pub files_bucket_name: String,
     pub files_presigned_url_expiry_secs: u64,
     pub filebase_s3_endpoint_url: String,
@@ -107,10 +122,22 @@ pub async fn create_web_app(config: &Config) -> Route {
     let tree_nft_agent_wallet =
         WalletAccount::from_json_str(&config.tree_nft_agent_wallet_json_str)
             .expect("Failed to parse Tree NFT Agent Wallet JSON");
-    let identity_registry = IdentityRegistry::new(ContractAddress::new(
+    let identity_registry = IdentityRegistryContractAddress(ContractAddress::new(
         config.identity_registry_contract_index,
         0,
     ));
+    let compliance_contract =
+        ComplianceContractAddress(ContractAddress::new(config.compliance_contract_index, 0));
+    let carbon_credit_contract =
+        CarbonCreditContractAddress(ContractAddress::new(config.carbon_credit_contract_index, 0));
+    let euroe_token = EuroEToken {
+        contract_address: ContractAddress::new(config.euro_e_contract_index, 0),
+        token_id:         cis2::TokenId::new(vec![]).expect("Failed to create EuroE Token ID"),
+    };
+    let tree_ft_contract =
+        TreeFTContractAddress(ContractAddress::new(config.tree_ft_contract_index, 0));
+    let tree_nft_contract =
+        TreeNftContractAddress(ContractAddress::new(config.tree_nft_contract_index, 0));
 
     let api = create_service();
     let ui = api.swagger_ui();
@@ -132,13 +159,18 @@ pub async fn create_web_app(config: &Config) -> Route {
         .with(AddData::new(concordium_client))
         .with(AddData::new(network))
         .with(AddData::new(identity_registry))
+        .with(AddData::new(compliance_contract))
+        .with(AddData::new(carbon_credit_contract))
+        .with(AddData::new(euroe_token))
+        .with(AddData::new(tree_ft_contract))
+        .with(AddData::new(tree_nft_contract))
         .with(AddData::new(user::UserChallengeConfig {
             challenge_expiry_duration: chrono::Duration::minutes(
                 config.user_challenge_expiry_duration_mins,
             ),
         }))
-        .with(AddData::new(tree_nft_contract::TreeNftConfig {
-            agent: Arc::new(tree_nft_contract::TreeNftAgent(tree_nft_agent_wallet)),
+        .with(AddData::new(tree_nft_metadata::TreeNftConfig {
+            agent: Arc::new(tree_nft_metadata::TreeNftAgent(tree_nft_agent_wallet)),
         }))
         .with(Cors::new())
         .with(Tracing);
@@ -151,9 +183,16 @@ pub fn create_service() -> OpenApiServiceType {
         (
             user::Api,
             user::AdminApi,
+            tree_nft_metadata::AdminApi,
             tree_nft_metadata::Api,
-            tree_nft_contract::Api,
+            tree_nft::Api,
+            tree_nft::AdminApi,
+            tree_fts::AdminApi,
             files::Api,
+            identity_registry::AdminApi,
+            carbon_credits::AdminApi,
+            forest_project::Api,
+            forest_project::AdminApi,
         ),
         "Upwood API",
         "1.0.0",
@@ -267,10 +306,42 @@ pub fn hasher(data: Vec<u8>) -> [u8; 32] {
 
 #[derive(poem_openapi::Tags)]
 enum ApiTags {
+    /// Operations about s3 & IPFS files
+    Files,
     /// Operations about user
     User,
-    /// Operations about tree nft metadata & contract
+    /// Operations about carbon credits
+    CarbonCredits,
+    /// Operations about identity registry contract
+    IdentityRegistry,
+    /// Operations about tree fungible token contract
+    TreeFT,
+    /// Operations about tree nft contract
     TreeNft,
+    /// Operations about tree nft metadata
+    TreeNftMetadata,
     //// Operations about forest project & contract
     ForestProject,
 }
+
+#[derive(Clone)]
+pub struct IdentityRegistryContractAddress(pub ContractAddress);
+
+#[derive(Clone)]
+pub struct ComplianceContractAddress(pub ContractAddress);
+
+#[derive(Clone)]
+pub struct CarbonCreditContractAddress(pub ContractAddress);
+
+#[derive(Clone)]
+pub struct EuroEToken {
+    pub contract_address: ContractAddress,
+    pub token_id:         cis2::TokenId,
+}
+
+/// The contract address of the Tree Fungible Token contract
+#[derive(Clone)]
+pub struct TreeFTContractAddress(pub ContractAddress);
+
+#[derive(Clone)]
+pub struct TreeNftContractAddress(pub ContractAddress);

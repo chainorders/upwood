@@ -119,11 +119,18 @@ pub fn receive_add_reward(
         let next_token_metadata_url = max_reward_token.metadata_url.clone();
         // Attach incoming reward to the current max reward token
         max_reward_token.attach_reward(reward_metadata_url.clone(), RewardDeposited {
-            token_id: params.token_id,
+            token_id: params.token_id.clone(),
             token_amount: params.amount,
             token_contract,
             rate: params.data.rate,
         });
+        logger.log(&Event::RewardAdded(RewardAddedEvent {
+            token_id:                max_reward_token_id,
+            rewarded_token_id:       params.token_id,
+            rewarded_token_contract: token_contract,
+            reward_amount:           params.amount,
+            reward_rate:             params.data.rate,
+        }))?;
 
         (next_token_id, next_token_metadata_url)
     };
@@ -159,7 +166,6 @@ pub struct ClaimRewardsParams {
 #[derive(Debug, Serialize, Clone, SchemaType)]
 pub struct ClaimRewardsParam {
     pub token_id: TokenId,
-    pub amount:   TokenAmount,
 }
 
 #[receive(
@@ -182,30 +188,37 @@ pub fn claim_rewards(
     for claim in params.claims {
         let curr_reward_token_id = claim.token_id;
         let next_reward_token_id = claim.token_id.plus_one();
+        let state = host.state();
 
         // Calculated the amount of reward token to be burned and amount ot rewarded token to be transferred
         let (claim_amount, rewarded) = {
-            let curr_reward_token = host
-                .state()
+            let curr_reward_token = state
                 .token(&curr_reward_token_id)
                 .ok_or(Error::InvalidTokenId)?;
             let curr_reward_token = curr_reward_token.reward().ok_or(Error::InvalidTokenId)?;
+            let holder = state.address(&owner_address).ok_or(Error::InvalidAddress)?;
+            let holder = holder.holder().ok_or(Error::InvalidAddress)?;
+            let holder = holder.active().ok_or(Error::RecoveredAddress)?;
+            let claim_amount = holder
+                .balance(&curr_reward_token_id)
+                .map(|h| h.un_frozen)
+                .unwrap_or(0.into());
             match &curr_reward_token.reward {
                 None => {
                     // Reward token has no attached rewards
                     // This can occur if the reward has been removed after attaching it to the token
-                    (claim.amount, None)
+                    (claim_amount, None)
                 }
                 Some(deposited_reward) => {
                     // Reward token has attached rewards
                     let (rewarded_amount, un_converted_amount) =
-                        deposited_reward.rate.convert(&claim.amount.0)?;
+                        deposited_reward.rate.convert(&claim_amount.0)?;
                     let rewarded_amount = TokenAmountU64(rewarded_amount);
                     ensure!(
                         deposited_reward.token_amount.ge(&rewarded_amount),
                         Error::InsufficientDeposits
                     );
-                    let claim_amount = claim.amount.sub(TokenAmountU64(un_converted_amount));
+                    let claim_amount = claim_amount.sub(TokenAmountU64(un_converted_amount));
                     (
                         claim_amount,
                         Some((deposited_reward.clone(), rewarded_amount)),
@@ -222,7 +235,7 @@ pub fn claim_rewards(
             let curr_reward_token = curr_reward_token
                 .reward_mut()
                 .ok_or(Error::InvalidTokenId)?;
-            curr_reward_token.sub_assign_supply(claim.amount)?;
+            curr_reward_token.sub_assign_supply(claim_amount)?;
 
             if let Some((_, rewarded_amount)) = rewarded {
                 curr_reward_token
@@ -240,7 +253,7 @@ pub fn claim_rewards(
                 .ok_or(Error::InvalidTokenId)?
                 .reward_mut()
                 .ok_or(Error::InvalidTokenId)?
-                .add_assign_supply(claim.amount);
+                .add_assign_supply(claim_amount);
         }
 
         {
@@ -249,8 +262,8 @@ pub fn claim_rewards(
                 .ok_or(Error::InvalidAddress)?;
             let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.sub_assign_balance(&curr_reward_token_id, claim.amount)?;
-            holder.add_assign_balance(&next_reward_token_id, claim.amount);
+            holder.sub_assign_unfrozen_balance(&curr_reward_token_id, claim_amount)?;
+            holder.add_assign_unfrozen_balance(&next_reward_token_id, claim_amount);
         }
 
         if let Some((deposits, rewarded_amount)) = rewarded {
@@ -258,10 +271,18 @@ pub fn claim_rewards(
             cis2_client::transfer_single(host, &deposits.token_contract, Transfer {
                 from:     Address::Contract(ctx.self_address()),
                 to:       params.owner.clone(),
-                token_id: deposits.token_id,
+                token_id: deposits.token_id.clone(),
                 data:     AdditionalData::empty(),
                 amount:   rewarded_amount,
             })?;
+            logger.log(&Event::RewardClaimed(RewardClaimedEvent {
+                token_id:                curr_reward_token_id,
+                amount:                  claim_amount,
+                rewarded_token_id:       deposits.token_id,
+                rewarded_token_contract: deposits.token_contract,
+                reward_amount:           rewarded_amount,
+                owner:                   owner_address,
+            }))?;
         }
 
         // burning the input token

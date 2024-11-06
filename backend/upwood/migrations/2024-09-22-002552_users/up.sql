@@ -14,7 +14,7 @@ create index users_created_at_index on users (created_at);
 
 create table
     user_challenges (
-        id serial primary key,
+        id uuid primary key,
         cognito_user_id varchar(255) not null references users (cognito_user_id) on delete cascade,
         challenge bytea not null,
         account_address varchar(255) not null,

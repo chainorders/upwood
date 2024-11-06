@@ -1,30 +1,25 @@
-use bigdecimal::BigDecimal;
-use concordium_cis2::TokenAmountU64;
 use concordium_rust_sdk::cis2;
 use diesel::PgConnection;
-use num_bigint::BigInt;
+use num_traits::ToPrimitive;
+use rust_decimal::Decimal;
 
 pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnection>>;
 pub type DbConn = r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>>;
 pub type DbResult<T> = Result<T, diesel::result::Error>;
 
-pub fn token_amount_to_sql(amount: &cis2::TokenAmount) -> BigDecimal {
-    BigDecimal::new(
-        BigInt::new(num_bigint::Sign::Plus, amount.0.to_u32_digits()),
-        0,
-    )
+pub fn token_amount_to_sql(amount: &cis2::TokenAmount) -> Decimal {
+    Decimal::from_str_radix(amount.0.to_str_radix(10).as_str(), 10)
+        .expect("Failed to convert to Decimal")
 }
 
-pub fn token_amount_u64_to_sql(amount: &TokenAmountU64) -> BigDecimal {
-    BigDecimal::new(BigInt::from(amount.0), 0)
-}
+pub fn to_u64(value: Decimal) -> u64 { value.to_u64().expect("Failed to convert to u64") }
 
 #[cfg(test)]
 mod tests {
-    use bigdecimal::BigDecimal;
     use concordium_rust_sdk::cis2;
     use num_bigint::BigUint;
     use num_traits::FromPrimitive;
+    use rust_decimal::Decimal;
 
     use super::token_amount_to_sql;
 
@@ -33,6 +28,6 @@ mod tests {
         let amount = 1000u64;
         let token_amount = cis2::TokenAmount(BigUint::from_u64(amount).unwrap());
         let token_amount = token_amount_to_sql(&token_amount);
-        assert_eq!(token_amount, BigDecimal::from_u64(amount).unwrap());
+        assert_eq!(token_amount, Decimal::from_u64(amount).unwrap());
     }
 }

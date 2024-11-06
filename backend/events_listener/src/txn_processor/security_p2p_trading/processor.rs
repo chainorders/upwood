@@ -7,6 +7,7 @@ use tracing::{debug, instrument};
 
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
+use crate::txn_processor::cis2_utils::{ContractAddressToDecimal, TokenAmountToDecimal};
 
 #[instrument(
     name="security_p2p_trading_process_events",
@@ -29,62 +30,91 @@ pub fn process_events(
 
         match event {
             Event::Initialized(event) => {
-                db::insert_contract(
-                    conn,
-                    db::Contract::new(contract, &event.token, &event.currency, &event.rate, now),
-                )?;
+                db::P2PTradeContract::new(
+                    contract.to_decimal(),
+                    &event.token,
+                    &event.currency,
+                    &event.rate,
+                    now,
+                )
+                .insert(conn)?;
             }
             Event::RateUpdated(rate) => {
-                db::update_contract_update_rate(conn, contract, &rate, now)?;
+                db::P2PTradeContract::update_rate(conn, contract.to_decimal(), &rate, now)?;
             }
             Event::Sell(event) => {
-                db::insert_deposit_or_update_add_amount(
+                db::Deposit::new(
+                    contract.to_decimal(),
+                    &event.from,
+                    event.amount.to_decimal(),
+                    now,
+                )
+                .upsert(conn)?;
+                db::P2PTradeContract::add_amount(
                     conn,
-                    db::Deposit::new(contract, &event.from, &event.amount, now),
-                )?;
-                db::update_contract_add_amount(conn, contract, &event.amount, now)?;
-                db::insert_trading_record(
-                    conn,
-                    db::TradingRecordInsert::new_sell(contract, &event.from, &event.amount, now),
-                )?;
-            }
-            Event::SellCancelled(event) => {
-                db::update_deposit_sub_amount(conn, contract, &event.from, &event.amount, now)?;
-                db::update_contract_sub_amount(conn, contract, &event.amount, now)?;
-                db::insert_trading_record(
-                    conn,
-                    db::TradingRecordInsert::new_sell_cancelled(
-                        contract,
-                        &event.from,
-                        &event.amount,
-                        now,
-                    ),
-                )?;
-            }
-            Event::Exchange(event) => {
-                db::update_deposit_sub_amount(
-                    conn,
-                    contract,
-                    &event.seller,
-                    &event.sell_amount,
+                    contract.to_decimal(),
+                    event.amount.to_decimal(),
                     now,
                 )?;
-                db::update_contract_sub_amount(conn, contract, &event.sell_amount, now)?;
-                db::insert_trading_records(conn, vec![
+                db::TradingRecordInsert::new_sell(
+                    contract.to_decimal(),
+                    &event.from,
+                    event.amount.to_decimal(),
+                    now,
+                )
+                .insert(conn)?;
+            }
+            Event::SellCancelled(event) => {
+                db::Deposit::sub_amount(
+                    conn,
+                    contract.to_decimal(),
+                    &event.from,
+                    event.amount.to_decimal(),
+                    now,
+                )?;
+                db::P2PTradeContract::sub_amount(
+                    conn,
+                    contract.to_decimal(),
+                    event.amount.to_decimal(),
+                    now,
+                )?;
+                db::TradingRecordInsert::new_sell_cancelled(
+                    contract.to_decimal(),
+                    &event.from,
+                    event.amount.to_decimal(),
+                    now,
+                )
+                .insert(conn)?;
+            }
+            Event::Exchange(event) => {
+                db::Deposit::sub_amount(
+                    conn,
+                    contract.to_decimal(),
+                    &event.seller,
+                    event.sell_amount.to_decimal(),
+                    now,
+                )?;
+                db::P2PTradeContract::sub_amount(
+                    conn,
+                    contract.to_decimal(),
+                    event.sell_amount.to_decimal(),
+                    now,
+                )?;
+                db::TradingRecordInsert::insert_batch(conn, vec![
                     db::TradingRecordInsert::new_exchange_sell(
-                        contract,
+                        contract.to_decimal(),
                         &event.seller,
-                        &event.sell_amount,
+                        event.sell_amount.to_decimal(),
                         &event.payer,
-                        &event.pay_amount,
+                        event.pay_amount.to_decimal(),
                         now,
                     ),
                     db::TradingRecordInsert::new_exchange_buy(
-                        contract,
+                        contract.to_decimal(),
                         &event.seller,
-                        &event.sell_amount,
+                        event.sell_amount.to_decimal(),
                         &event.payer,
-                        &event.pay_amount,
+                        event.pay_amount.to_decimal(),
                         now,
                     ),
                 ])?;

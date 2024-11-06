@@ -42,6 +42,7 @@ pub fn mint(
     {
         let owner = Address::Account(owner);
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(params.token_id.eq(&TRACKED_TOKEN_ID), Error::InvalidTokenId);
         ensure!(
             identity_registry_client::is_verified(host, &identity_registry_client, &owner)?,
             Error::UnVerifiedIdentity
@@ -61,8 +62,8 @@ pub fn mint(
             let mut address = state.address_or_insert_holder(&owner, state_builder);
             let holder = address.holder_mut().ok_or(Error::InvalidAddress)?;
             let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            active_holder.add_assign_balance(&params.token_id, amount);
-            active_holder.add_assign_balance(&max_reward_token_id, amount);
+            active_holder.add_assign_unfrozen_balance(&params.token_id, amount);
+            active_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount);
         }
         {
             // Update minted supply

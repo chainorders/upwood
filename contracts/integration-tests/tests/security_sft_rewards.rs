@@ -13,11 +13,11 @@ use integration_tests::*;
 use security_sft_rewards::rewards::{
     AddRewardContractParam, ClaimRewardsParam, ClaimRewardsParams, TransferAddRewardParams,
 };
-use security_sft_rewards::types::{ContractMetadataUrl, InitParam, MintParams};
+use security_sft_rewards::types::{
+    ContractMetadataUrl, InitParam, MintParams, MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID,
+};
 
-const SFT_TOKEN_ID: TokenIdU32 = TokenIdU32(0);
 const SFT_METADATA_URL: &str = "example.com";
-const MIN_REWARD_TOKEN_ID: TokenIdU32 = TokenIdU32(1);
 const MIN_REWARD_METADATA_URL: &str = "blank_reward.example.com";
 const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const AGENT_MINT: AccountAddress = AccountAddress([1; 32]);
@@ -51,7 +51,7 @@ fn normal_reward_distribution() {
             amount:  TokenAmountU64(10),
             address: holder.address,
         }],
-        token_id: SFT_TOKEN_ID,
+        token_id: TRACKED_TOKEN_ID,
     });
     assert_eq!(
         security_sft_rewards_client::balance_of(
@@ -62,7 +62,7 @@ fn normal_reward_distribution() {
                 queries: vec![
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
-                        token_id: SFT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
@@ -102,7 +102,7 @@ fn normal_reward_distribution() {
                 queries: vec![
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
-                        token_id: SFT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
@@ -136,7 +136,6 @@ fn normal_reward_distribution() {
             owner:  Receiver::Account(holder.address),
             claims: vec![ClaimRewardsParam {
                 token_id: MIN_REWARD_TOKEN_ID,
-                amount:   TokenAmountU64(10),
             }],
         },
     );
@@ -149,7 +148,7 @@ fn normal_reward_distribution() {
                 queries: vec![
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
-                        token_id: SFT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
@@ -268,7 +267,7 @@ fn mint() {
                 amount:  TokenAmountU64(10),
                 address: holder.address,
             }],
-            token_id: SFT_TOKEN_ID,
+            token_id: TRACKED_TOKEN_ID,
         },
     )
     .expect_err("non-agent-mint minted");
@@ -277,7 +276,7 @@ fn mint() {
             amount:  TokenAmountU64(10),
             address: holder.address,
         }],
-        token_id: SFT_TOKEN_ID,
+        token_id: TRACKED_TOKEN_ID,
     })
     .expect_err("non-agent minted");
     security_sft_rewards_client::mint_raw(&mut chain, &agent_mint, &token_contract, &MintParams {
@@ -301,7 +300,7 @@ fn mint() {
             amount:  TokenAmountU64(10),
             address: holder.address,
         }],
-        token_id: SFT_TOKEN_ID,
+        token_id: TRACKED_TOKEN_ID,
     });
     assert_eq!(
         security_sft_rewards_client::balance_of(
@@ -312,7 +311,7 @@ fn mint() {
                 queries: vec![
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
-                        token_id: SFT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                     BalanceOfQuery {
                         address:  Address::Account(holder.address),
@@ -344,8 +343,6 @@ fn create_token_contract(
             hash: None,
             url:  MIN_REWARD_METADATA_URL.to_string(),
         },
-        tracked_token_id:          SFT_TOKEN_ID,
-        min_reward_token_id:       MIN_REWARD_TOKEN_ID,
     })
     .contract_address
 }

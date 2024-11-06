@@ -3,7 +3,7 @@
 use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, TokenAmountU64,
-    TokenIdU32, TokenIdUnit, UpdateOperator,
+    TokenIdUnit, UpdateOperator,
 };
 use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_protocols::rate::Rate;
@@ -14,13 +14,12 @@ use integration_tests::*;
 use security_p2p_trading::{
     ExchangeParams, GetDepositParams, InitParam, TransferExchangeParams, TransferSellParams,
 };
+use security_sft_rewards::types::TRACKED_TOKEN_ID;
 use security_sft_single::types::ContractMetadataUrl;
 
 const TOKEN_ID: TokenIdUnit = TokenIdUnit();
 const METADATA_URL_SFT_SINGLE: &str = "example.com";
 const METADATA_URL_SFT_REWARDS: &str = "example2.com";
-const SFT_REWARDS_TOKEN_ID: TokenIdU32 = TokenIdU32(0);
-const MIN_REWARD_TOKEN_ID: TokenIdU32 = TokenIdU32(1);
 const MIN_REWARD_METADATA_URL: &str = "blank_reward.example.com";
 const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const HOLDER: AccountAddress = AccountAddress([2; 32]);
@@ -211,7 +210,7 @@ pub fn normal_flow_sft_rewards() {
             contract: euroe_contract,
         },
         token: TokenUId {
-            id:       to_token_id_vec(SFT_REWARDS_TOKEN_ID),
+            id:       to_token_id_vec(TRACKED_TOKEN_ID),
             contract: token_contract,
         },
         rate,
@@ -235,7 +234,7 @@ pub fn normal_flow_sft_rewards() {
                 amount:  TokenAmountU64(50),
                 address: seller.address,
             }],
-            token_id: SFT_REWARDS_TOKEN_ID,
+            token_id: TRACKED_TOKEN_ID,
         },
     )
     .expect("should mint");
@@ -264,7 +263,7 @@ pub fn normal_flow_sft_rewards() {
             &mut chain,
             &admin,
             token_contract,
-            SFT_REWARDS_TOKEN_ID,
+            TRACKED_TOKEN_ID,
             seller.address.into()
         )
         .expect("should get balance"),
@@ -328,11 +327,11 @@ pub fn normal_flow_sft_rewards() {
             &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
-                        token_id: SFT_REWARDS_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                         address:  seller.address.into(),
                     },
                     BalanceOfQuery {
-                        token_id: SFT_REWARDS_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                         address:  buyer.address.into(),
                     }
                 ],
@@ -379,8 +378,6 @@ fn create_token_contract_sft_rewards(
             hash: None,
             url:  MIN_REWARD_METADATA_URL.to_string(),
         },
-        tracked_token_id:          SFT_REWARDS_TOKEN_ID,
-        min_reward_token_id:       MIN_REWARD_TOKEN_ID,
     })
     .contract_address
 }

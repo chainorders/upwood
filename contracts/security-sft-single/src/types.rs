@@ -29,6 +29,24 @@ pub enum AgentRole {
     UnPause,
 }
 
+impl std::fmt::Display for AgentRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AgentRole::SetIdentityRegistry => write!(f, "SetIdentityRegistry"),
+            AgentRole::SetCompliance => write!(f, "SetCompliance"),
+            AgentRole::AddAgent => write!(f, "AddAgent"),
+            AgentRole::Mint => write!(f, "Mint"),
+            AgentRole::ForcedBurn => write!(f, "ForcedBurn"),
+            AgentRole::ForcedTransfer => write!(f, "ForcedTransfer"),
+            AgentRole::Freeze => write!(f, "Freeze"),
+            AgentRole::UnFreeze => write!(f, "UnFreeze"),
+            AgentRole::HolderRecovery => write!(f, "HolderRecovery"),
+            AgentRole::Pause => write!(f, "Pause"),
+            AgentRole::UnPause => write!(f, "UnPause"),
+        }
+    }
+}
+
 impl AgentRole {
     /// Returns a list of roles that can be assigned to the owner of the
     /// contract. This should ideally be all the roles.

@@ -11,10 +11,9 @@ use integration_tests::*;
 use nft_multi_rewarded::types::{Agent, ContractMetadataUrl};
 use nft_multi_rewarded::{MintData, SignedMetadata};
 use poem::web::Data;
-use poem_openapi::param::Path;
 use shared::db::DbPool;
 use upwood::api::tree_nft_metadata::AddMetadataRequest;
-use upwood::api::{self, BearerAuthorization};
+use upwood::api::{self, BearerAuthorization, TreeNftContractAddress};
 use upwood::utils::aws::cognito::Claims;
 
 const ADMIN: AccountAddress = AccountAddress([0; 32]);
@@ -42,8 +41,8 @@ async fn signature_tests() {
     let mut processor_db_conn = pool.get().expect("db connection");
 
     // api
-    let metadata_api = api::tree_nft_metadata::Api;
-    metadata_api
+    let metadata_admin_api = api::tree_nft_metadata::AdminApi;
+    metadata_admin_api
         .metadata_insert(
             BearerAuthorization(Claims {
                 sub:            "USER_ID".to_string(),
@@ -134,8 +133,8 @@ async fn signature_tests() {
             address: NFT_AGENT.into(),
         })
         .expect("add agent");
-    let tree_nft_config = api::tree_nft_contract::TreeNftConfig {
-        agent: Arc::new(api::tree_nft_contract::TreeNftAgent(WalletAccount {
+    let tree_nft_config = api::tree_nft_metadata::TreeNftConfig {
+        agent: Arc::new(api::tree_nft_metadata::TreeNftAgent(WalletAccount {
             address: agent.address,
             keys:    agent_account_keys,
         })),
@@ -185,13 +184,13 @@ async fn signature_tests() {
         account:        None,
     });
 
-    let contract_api = api::tree_nft_contract::Api;
-    let poem_openapi::payload::Json(random_metadata) = contract_api
+    let api = api::tree_nft_metadata::Api;
+    let poem_openapi::payload::Json(random_metadata) = api
         .metadata_get_random(
             api_user_claims.clone(),
             Data(&pool),
             Data(&tree_nft_config),
-            Path(nft_contract.index),
+            Data(&TreeNftContractAddress(nft_contract)),
         )
         .await
         .expect("metadata get random");
@@ -237,10 +236,14 @@ async fn signature_tests() {
         .expect("balance of");
     assert_eq!(balance, 1.into());
 
-    let poem_openapi::payload::Json(nonce) = contract_api
-        .nonce(api_user_claims, Path(nft_contract.index), Data(&pool))
+    let poem_openapi::payload::Json(nonce) = api::tree_nft::Api
+        .nonce(
+            api_user_claims,
+            Data(&pool),
+            Data(&TreeNftContractAddress(nft_contract)),
+        )
         .await
-        .expect("metadata get random");
+        .expect("nonce");
     assert_eq!(nonce, 1);
 }
 fn setup_chain(

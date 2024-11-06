@@ -8,6 +8,7 @@ use tracing::{debug, instrument};
 use super::db;
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_security;
+use crate::txn_processor::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 
 #[instrument(
     name="nft_multi_rewarded_process_events",
@@ -30,32 +31,31 @@ pub fn process_events(
 
         match parsed_event {
             Event::AgentAdded(e) => {
-                cis2_security::db::insert_agent(
-                    conn,
-                    cis2_security::db::Agent::new(e, now, contract),
-                )?;
+                cis2_security::db::Agent::new(e, now, contract.to_decimal(), vec![])
+                    .insert(conn)?;
             }
             Event::AgentRemoved(e) => {
-                cis2_security::db::remove_agent(conn, contract, &e)?;
+                cis2_security::db::Agent::delete(conn, contract.to_decimal(), &e)?;
             }
             Event::Cis2(event) => {
                 cis2_security::processor::process_events_cis2(conn, now, contract, event)?;
             }
             Event::RewardTokenUpdated(e) => {
-                db::upsert_reward_token(
-                    conn,
+                db::NftMultiRewardedContract::new(
+                    contract.to_decimal(),
+                    e.reward_token.contract.to_decimal(),
+                    e.reward_token.id.to_decimal(),
                     now,
-                    contract,
-                    &e.reward_token.contract,
-                    &e.reward_token.id,
-                )?;
+                )
+                .upsert(conn)?;
             }
             Event::NonceUpdated(address, nonce) => {
-                db::upsert_address_nonce(conn, &db::AddressNonce {
+                db::AddressNonce {
                     address:          address.to_string(),
-                    contract_address: contract.to_string(),
+                    contract_address: contract.to_decimal(),
                     nonce:            nonce as i64,
-                })?;
+                }
+                .upsert(conn)?;
             }
         }
     }

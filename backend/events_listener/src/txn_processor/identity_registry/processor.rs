@@ -7,6 +7,7 @@ use tracing::{debug, instrument};
 
 use super::db::{self};
 use crate::txn_listener::listener::ProcessorError;
+use crate::txn_processor::cis2_utils::ContractAddressToDecimal;
 
 /// Processes the events of the rwa-identity-registry contract.
 ///
@@ -42,22 +43,22 @@ pub fn process_events(
 
         match parsed_event {
             Event::AgentAdded(e) => {
-                db::insert_agent(conn, db::Agent::new(e.agent, now, contract))?;
+                db::Agent::new(e.agent, now, contract.to_decimal()).insert(conn)?;
             }
             Event::AgentRemoved(e) => {
-                db::remove_agent(conn, contract, &e.agent)?;
+                db::Agent::delete(conn, contract.to_decimal(), &e.agent)?;
             }
             Event::IdentityRegistered(e) => {
-                db::insert_identity(conn, db::Identity::new(&e.address, now, contract))?;
+                db::Identity::new(&e.address, now, contract.to_decimal()).insert(conn)?;
             }
             Event::IdentityRemoved(e) => {
-                db::remove_identity(conn, contract, &e.address)?;
+                db::Identity::delete(conn, contract.to_decimal(), &e.address)?;
             }
             Event::IssuerAdded(e) => {
-                db::insert_issuer(conn, db::Issuer::new(&e.issuer, now, contract))?;
+                db::Issuer::new(e.issuer.to_decimal(), now, contract.to_decimal()).insert(conn)?;
             }
             Event::IssuerRemoved(e) => {
-                db::remove_issuer(conn, contract, &e.issuer)?;
+                db::Issuer::delete(conn, contract.to_decimal(), e.issuer.to_decimal())?;
             }
         }
     }

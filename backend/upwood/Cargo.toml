@@ -7,7 +7,12 @@ default-run = "upwood_api_server"
 [dependencies]
 shared = { path = "../shared" }
 nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
-poem-openapi = { workspace = true, features = ["swagger-ui", "uuid"] }
+poem-openapi = { workspace = true, features = [
+    "swagger-ui",
+    "chrono",
+    "rust_decimal",
+    "uuid",
+] }
 poem.workspace = true
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
 diesel = { workspace = true, features = [
@@ -42,12 +47,16 @@ thiserror = { workspace = true }
 config.workspace = true
 secure-string = { version = "0.3.0", features = ["serde"] }
 passwords = "3.1.16"
+aws-credential-types = { version = "1.2.1", features = [
+    "hardcoded-credentials",
+] }
+rust_decimal = { workspace = true, features = ["db-diesel-postgres"] }
 
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
 integration-tests = { path = "../../contracts/integration-tests" }
-concordium-smart-contract-testing = "4.2.0"
+concordium-smart-contract-testing = { workspace = true }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 concordium-cis2 = { workspace = true, default-features = false }
 rand = { version = "*" }

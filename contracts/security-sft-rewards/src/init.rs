@@ -8,6 +8,7 @@ use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
 use crate::state::{AddressState, AgentState, MainTokenState, RewardTokenState, TokenState};
+use crate::types::{MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID};
 /// Initializes the contract with the given parameters.
 ///
 /// # Returns
@@ -30,10 +31,6 @@ pub fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
-    ensure!(
-        params.min_reward_token_id.gt(&params.tracked_token_id),
-        Error::InvalidTokenId.into()
-    );
     let owner = Address::Account(ctx.init_origin());
     let addresses = {
         let mut addresses = state_builder.new_map();
@@ -46,17 +43,17 @@ pub fn init(
     let tokens = {
         let mut tokens = state_builder.new_map();
         let _ = tokens.insert(
-            params.tracked_token_id,
+            TRACKED_TOKEN_ID,
             TokenState::Main(MainTokenState {
-                metadata_url: params.metadata_url.into(),
+                metadata_url: params.metadata_url.clone().into(),
                 supply:       0.into(),
                 paused:       false,
             }),
         );
         let _ = tokens.insert(
-            params.min_reward_token_id,
+            MIN_REWARD_TOKEN_ID,
             TokenState::Reward(RewardTokenState {
-                metadata_url: params.blank_reward_metadata_url.into(),
+                metadata_url: params.blank_reward_metadata_url.clone().into(),
                 supply:       0.into(),
                 reward:       None,
             }),
@@ -69,7 +66,7 @@ pub fn init(
         sponsor: params.sponsors,
         addresses,
         tokens,
-        rewards_ids_range: (params.min_reward_token_id, params.min_reward_token_id),
+        rewards_ids_range: (MIN_REWARD_TOKEN_ID, MIN_REWARD_TOKEN_ID),
     };
 
     logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
@@ -84,13 +81,14 @@ pub fn init(
             }))?;
         }
     }
-    for (token_id, token_state) in state.tokens.iter() {
-        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
-            metadata_url: token_state.metadata_url().clone(),
-            token_id:     *token_id,
-        })))?;
-    }
-
+    logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        metadata_url: params.metadata_url.into(),
+        token_id:     TRACKED_TOKEN_ID,
+    })))?;
+    logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        metadata_url: params.blank_reward_metadata_url.into(),
+        token_id:     MIN_REWARD_TOKEN_ID,
+    })))?;
     Ok(state)
 }
 

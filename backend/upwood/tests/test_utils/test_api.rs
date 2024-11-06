@@ -157,10 +157,7 @@ impl TestApi {
 
 // Files Implementation
 impl TestApi {
-    pub async fn admin_file_upload_url_s3(
-        &self,
-        id_token: &str,
-    ) -> api::files::S3UploadUrlResponse {
+    pub async fn admin_file_upload_url_s3(&self, id_token: &str) -> api::files::UploadUrlResponse {
         let mut res = self
             .client
             .post("/admin/files/s3/upload_url")
@@ -171,7 +168,7 @@ impl TestApi {
 
         match res.status() {
             StatusCode::OK => {
-                let res: api::files::S3UploadUrlResponse = res
+                let res: api::files::UploadUrlResponse = res
                     .into_body()
                     .into_json()
                     .await
@@ -203,7 +200,7 @@ impl TestApi {
     pub async fn admin_file_upload_url_ipfs(
         &self,
         id_token: &str,
-    ) -> api::files::S3UploadUrlResponse {
+    ) -> api::files::UploadUrlResponse {
         let mut res = self
             .client
             .post("/admin/files/ipfs/upload_url")
@@ -214,7 +211,7 @@ impl TestApi {
 
         match res.status() {
             StatusCode::OK => {
-                let res: api::files::S3UploadUrlResponse = res
+                let res: api::files::UploadUrlResponse = res
                     .into_body()
                     .into_json()
                     .await

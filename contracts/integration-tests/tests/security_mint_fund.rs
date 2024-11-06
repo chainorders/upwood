@@ -3,7 +3,7 @@
 use cis2_conversions::to_token_id_vec;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, Receiver,
-    TokenIdU32, TokenIdUnit, UpdateOperator,
+    TokenIdUnit, UpdateOperator,
 };
 use concordium_protocols::concordium_cis2_security::{AgentWithRoles, TokenUId};
 use concordium_protocols::rate::Rate;
@@ -13,14 +13,12 @@ use security_mint_fund::{
     CancelInvestParams, CancelInvestmentParam, ClaimInvestParams, ClaimInvestmentParam, FundState,
     State, TransferInvestParams,
 };
-use security_sft_rewards::types::InitParam;
+use security_sft_rewards::types::{InitParam, TRACKED_TOKEN_ID};
 use security_sft_single::types::ContractMetadataUrl;
 
-const INVESTMENT_TOKEN_ID: TokenIdU32 = TokenIdU32(0);
 const INVESTMENT_TOKEN_METADATA_URL: &str = "example.com";
 const WRAPPED_TOKEN_METADATA_URL: &str = "wrapped.example.com";
 const WRAPPED_TOKEN_ID: TokenIdUnit = TokenIdUnit();
-const MIN_REWARD_TOKEN_ID: TokenIdU32 = TokenIdU32(1);
 const MIN_REWARD_METADATA_URL: &str = "blank_reward.example.com";
 const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const INVESTOR_1: AccountAddress = AccountAddress([2; 32]);
@@ -58,7 +56,7 @@ fn normal_flow() {
         },
         investment_token: TokenUId {
             contract: investment_token_contract,
-            id:       to_token_id_vec(INVESTMENT_TOKEN_ID),
+            id:       to_token_id_vec(TRACKED_TOKEN_ID),
         },
         fund_state:       FundState::Open,
         rate:             Rate {
@@ -197,11 +195,11 @@ fn normal_flow() {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),
-                        token_id: INVESTMENT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                     BalanceOfQuery {
                         address:  investor_2.address.into(),
-                        token_id: INVESTMENT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                 ],
             }
@@ -310,11 +308,11 @@ fn normal_flow() {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),
-                        token_id: INVESTMENT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                     BalanceOfQuery {
                         address:  investor_2.address.into(),
-                        token_id: INVESTMENT_TOKEN_ID,
+                        token_id: TRACKED_TOKEN_ID,
                     },
                 ],
             }
@@ -342,8 +340,6 @@ fn create_rewards_token_contract(
             hash: None,
             url:  MIN_REWARD_METADATA_URL.to_string(),
         },
-        tracked_token_id:          INVESTMENT_TOKEN_ID,
-        min_reward_token_id:       MIN_REWARD_TOKEN_ID,
     })
     .contract_address
 }

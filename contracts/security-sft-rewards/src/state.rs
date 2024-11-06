@@ -319,13 +319,15 @@ impl HolderStateBalance {
 
     pub fn total(&self) -> TokenAmount { self.frozen.add(self.un_frozen) }
 
-    pub fn sub_assign(&mut self, amount: TokenAmount) -> Result<TokenAmount, Error> {
+    pub fn sub_assign_unfrozen(&mut self, amount: TokenAmount) -> Result<TokenAmount, Error> {
         ensure!(self.un_frozen.ge(&amount), Error::InsufficientFunds);
         self.un_frozen.sub_assign(amount);
         Ok(self.un_frozen)
     }
 
-    pub fn add_assign(&mut self, amount: TokenAmount) { self.un_frozen.add_assign(amount); }
+    pub fn add_assign_unfrozen(&mut self, amount: TokenAmount) {
+        self.un_frozen.add_assign(amount);
+    }
 
     pub fn min(&self, amount: TokenAmount) -> TokenAmount { self.un_frozen.min(amount) }
 
@@ -397,7 +399,7 @@ impl<S: HasStateApi> HolderState<S> {
         Ok(un_frozen_amount)
     }
 
-    pub fn sub_assign_balance(
+    pub fn sub_assign_unfrozen_balance(
         &mut self,
         token_id: &TokenId,
         amount: TokenAmount,
@@ -405,14 +407,14 @@ impl<S: HasStateApi> HolderState<S> {
         self.balances
             .entry(*token_id)
             .occupied_or(Error::InsufficientFunds)?
-            .sub_assign(amount)
+            .sub_assign_unfrozen(amount)
     }
 
-    pub fn add_assign_balance(&mut self, token_id: &TokenId, amount: TokenAmount) {
+    pub fn add_assign_unfrozen_balance(&mut self, token_id: &TokenId, amount: TokenAmount) {
         self.balances
             .entry(*token_id)
             .or_insert(HolderStateBalance::default())
-            .modify(|balance| balance.add_assign(amount));
+            .modify(|balance| balance.add_assign_unfrozen(amount));
     }
 
     pub fn sub_assign_balance_rewards(
@@ -431,7 +433,7 @@ impl<S: HasStateApi> HolderState<S> {
                 if rewarded_amount.eq(&TokenAmount::zero()) {
                     continue;
                 }
-                holder_balance.sub_assign(rewarded_amount)?;
+                holder_balance.sub_assign_unfrozen(rewarded_amount)?;
                 total_reward_amount.sub_assign(rewarded_amount);
                 res.push((token_id, rewarded_amount));
             }
@@ -454,7 +456,7 @@ impl<S: HasStateApi> HolderState<S> {
             self.balances
                 .entry(*token_id)
                 .or_insert(HolderStateBalance::default())
-                .modify(|balance| balance.add_assign(*amount));
+                .modify(|balance| balance.add_assign_unfrozen(*amount));
         }
         Ok(())
     }

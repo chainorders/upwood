@@ -8,15 +8,13 @@ use concordium_cis2::{
 use concordium_protocols::concordium_cis2_security::*;
 use concordium_rust_sdk::base::contracts_common::{Deserial, Serial};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
-use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::ContractAddress;
 use diesel::Connection;
-use num_bigint::BigUint;
-use num_traits::Zero;
+use rust_decimal::Decimal;
 use shared::db::*;
 use tracing::{debug, instrument};
 
-use super::db;
+use super::db::{self, Token, TokenHolder};
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_utils::*;
 
@@ -41,52 +39,44 @@ where
             owner,
             amount,
         }) => {
-            let token_id = to_cis2_token_id(&token_id);
-            let token_amount = to_cis2_token_amount(&amount);
+            let token_id = token_id.to_decimal();
+            let amount = amount.to_decimal();
             conn.transaction(|conn| {
-                db::insert_holder_or_add_balance(
-                    conn,
-                    &db::TokenHolder::new(
-                        contract,
-                        &token_id,
-                        &owner,
-                        &token_amount,
-                        &cis2::TokenAmount(BigUint::zero()),
-                        now,
-                    ),
-                )?;
-                db::update_supply(conn, contract, &token_id, &token_amount, true)?;
+                db::TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, now)
+                    .upsert(conn)?;
+                Token::update_supply(conn, contract.to_decimal(), token_id, amount, true)?;
                 DbResult::Ok(())
             })
         }
         Cis2Event::TokenMetadata(TokenMetadataEvent {
             token_id,
             metadata_url,
-        }) => {
-            let token_id = to_cis2_token_id(&token_id);
-            db::insert_token_or_update_metadata(
-                conn,
-                &db::Token::new(
-                    contract,
-                    &token_id,
-                    false,
-                    metadata_url.url,
-                    metadata_url.hash,
-                    &cis2::TokenAmount(BigUint::zero()),
-                    now,
-                ),
-            )
-        }
+        }) => db::Token::new(
+            contract.to_decimal(),
+            token_id.to_decimal(),
+            false,
+            metadata_url.url,
+            metadata_url.hash,
+            Decimal::ZERO,
+            now,
+        )
+        .upsert(conn),
         Cis2Event::Burn(BurnEvent {
             token_id,
             owner,
             amount,
         }) => {
-            let token_id = to_cis2_token_id(&token_id);
-            let token_amount = to_cis2_token_amount(&amount);
+            let token_id = token_id.to_decimal();
+            let amount = amount.to_decimal();
             conn.transaction(|conn| {
-                db::update_sub_balance(conn, contract, &token_id, &owner, &token_amount)?;
-                db::update_supply(conn, contract, &token_id, &token_amount, false)?;
+                TokenHolder::sub_balance_unfrozen(
+                    conn,
+                    contract.to_decimal(),
+                    token_id,
+                    &owner,
+                    amount,
+                )?;
+                Token::update_supply(conn, contract.to_decimal(), token_id, amount, false)?;
                 DbResult::Ok(())
             })
         }
@@ -95,33 +85,27 @@ where
             from,
             to,
             amount,
-        }) => {
-            let token_id = to_cis2_token_id(&token_id);
-            let token_amount = to_cis2_token_amount(&amount);
-            conn.transaction(|conn| {
-                db::update_sub_balance(conn, contract, &token_id, &from, &token_amount)?;
-                db::insert_holder_or_add_balance(
-                    conn,
-                    &db::TokenHolder::new(
-                        contract,
-                        &token_id,
-                        &to,
-                        &token_amount,
-                        &cis2::TokenAmount(BigUint::zero()),
-                        now,
-                    ),
-                )
-            })
-        }
+        }) => conn.transaction(|conn| {
+            let token_id = token_id.to_decimal();
+            let amount = amount.to_decimal();
+            TokenHolder::sub_balance_unfrozen(
+                conn,
+                contract.to_decimal(),
+                token_id,
+                &from,
+                amount,
+            )?;
+            db::TokenHolder::new(contract.to_decimal(), token_id, &to, amount, now).upsert(conn)
+        }),
         Cis2Event::UpdateOperator(UpdateOperatorEvent {
             owner,
             operator,
             update,
         }) => {
-            let record = db::Operator::new(contract, &owner, &operator);
+            let record = db::Operator::new(contract.to_decimal(), &owner, &operator);
             match update {
-                OperatorUpdate::Add => db::insert_operator(conn, &record),
-                OperatorUpdate::Remove => db::delete_operator(conn, &record),
+                OperatorUpdate::Add => record.insert(conn),
+                OperatorUpdate::Remove => record.delete(conn),
             }
         }
     }
@@ -136,7 +120,7 @@ pub fn process_events<T, A, R>(
 where
     T: IsTokenId+fmt::Debug,
     A: IsTokenAmount+fmt::Debug,
-    R: Deserial+fmt::Debug,
+    R: Deserial+fmt::Debug+std::string::ToString,
 {
     for event in events {
         let parsed_event = event
@@ -145,102 +129,113 @@ where
         debug!("Event: {}/{}", contract.index, contract.subindex);
         debug!("{:#?}", parsed_event);
 
-        match parsed_event {
-            Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent {
-                agent,
-                roles: _, // todo: add roles to the database
-            }) => db::insert_agent(conn, db::Agent::new(agent, now, contract))?,
-            Cis2SecurityEvent::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
-                db::remove_agent(conn, contract, &agent)?
-            }
-            Cis2SecurityEvent::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
-                db::upsert_compliance(conn, &db::Compliance::new(contract, &compliance_contract))?
-            }
-            Cis2SecurityEvent::IdentityRegistryAdded(IdentityRegistryAdded(
-                identity_registry_contract,
-            )) => db::upsert_identity_registry(
-                conn,
-                &db::IdentityRegistry::new(contract, &identity_registry_contract),
-            )?,
-            Cis2SecurityEvent::Paused(Paused { token_id }) => {
-                db::update_token_paused(conn, contract, &to_cis2_token_id(&token_id), true)?
-            }
-            Cis2SecurityEvent::UnPaused(Paused { token_id }) => {
-                db::update_token_paused(conn, contract, &to_cis2_token_id(&token_id), false)?
-            }
-            Cis2SecurityEvent::Recovered(RecoverEvent {
-                lost_account,
-                new_account,
-            }) => {
-                let updated_rows = conn.transaction(|conn| {
-                    db::insert_recovery_record(
-                        conn,
-                        &db::RecoveryRecord::new(contract, &lost_account, &new_account),
-                    )?;
-                    db::update_replace_holder(conn, contract, &lost_account, &new_account)
-                })?;
-                debug!("account recovery, {} token ids updated", updated_rows);
-            }
-            Cis2SecurityEvent::TokenFrozen(TokenFrozen {
-                address,
-                amount,
-                token_id,
-            }) => db::update_balance_frozen(
-                conn,
-                contract,
-                &to_cis2_token_id(&token_id),
-                &address,
-                &to_cis2_token_amount(&amount),
-                true,
-            )?,
-            Cis2SecurityEvent::TokenUnFrozen(TokenFrozen {
-                address,
-                amount,
-                token_id,
-            }) => db::update_balance_frozen(
-                conn,
-                contract,
-                &to_cis2_token_id(&token_id),
-                &address,
-                &to_cis2_token_amount(&amount),
-                false,
-            )?,
-            Cis2SecurityEvent::Cis2(e) => process_events_cis2(conn, now, contract, e)?,
-        }
+        process_parsed_event(conn, contract, parsed_event, now)?;
     }
 
+    Ok(())
+}
+
+pub fn process_parsed_event<T, A, R>(
+    conn: &mut r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    contract: &ContractAddress,
+    parsed_event: Cis2SecurityEvent<T, A, R>,
+    now: DateTime<Utc>,
+) -> Result<(), ProcessorError>
+where
+    T: IsTokenId+fmt::Debug,
+    A: IsTokenAmount+fmt::Debug,
+    R: Deserial+fmt::Debug+std::string::ToString,
+{
+    match parsed_event {
+        Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent { agent, roles }) => db::Agent::new(
+            agent,
+            now,
+            contract.to_decimal(),
+            roles.iter().map(|r| r.to_string()).collect(),
+        )
+        .insert(conn)?,
+        Cis2SecurityEvent::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
+            db::Agent::delete(conn, contract.to_decimal(), &agent)?
+        }
+        Cis2SecurityEvent::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
+            db::Compliance::new(contract.to_decimal(), compliance_contract.to_decimal())
+                .upsert(conn)?
+        }
+        Cis2SecurityEvent::IdentityRegistryAdded(IdentityRegistryAdded(
+            identity_registry_contract,
+        )) => db::IdentityRegistry::new(
+            contract.to_decimal(),
+            identity_registry_contract.to_decimal(),
+        )
+        .upsert(conn)?,
+        Cis2SecurityEvent::Paused(Paused { token_id }) => {
+            db::Token::update_paused(conn, contract.to_decimal(), token_id.to_decimal(), true)?
+        }
+        Cis2SecurityEvent::UnPaused(Paused { token_id }) => {
+            db::Token::update_paused(conn, contract.to_decimal(), token_id.to_decimal(), false)?
+        }
+        Cis2SecurityEvent::Recovered(RecoverEvent {
+            lost_account,
+            new_account,
+        }) => {
+            let updated_rows = conn.transaction(|conn| {
+                db::RecoveryRecord::new(contract.to_decimal(), &lost_account, &new_account)
+                    .insert(conn)?;
+                db::TokenHolder::replace(conn, contract.to_decimal(), &lost_account, &new_account)
+            })?;
+            debug!("account recovery, {} token ids updated", updated_rows);
+        }
+        Cis2SecurityEvent::TokenFrozen(TokenFrozen {
+            address,
+            amount,
+            token_id,
+        }) => db::TokenHolder::update_balance_frozen(
+            conn,
+            contract.to_decimal(),
+            token_id.to_decimal(),
+            &address,
+            amount.to_decimal(),
+            true,
+        )?,
+        Cis2SecurityEvent::TokenUnFrozen(TokenFrozen {
+            address,
+            amount,
+            token_id,
+        }) => db::TokenHolder::update_balance_frozen(
+            conn,
+            contract.to_decimal(),
+            token_id.to_decimal(),
+            &address,
+            amount.to_decimal(),
+            false,
+        )?,
+        Cis2SecurityEvent::Cis2(e) => process_events_cis2(conn, now, contract, e)?,
+    };
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use concordium_cis2::{TokenAmountU64, TokenAmountU8};
-    use concordium_rust_sdk::cis2;
-    use num_bigint::BigUint;
     use num_traits::FromPrimitive;
+    use rust_decimal::Decimal;
 
-    use super::to_cis2_token_amount;
+    use crate::txn_processor::cis2_utils::TokenAmountToDecimal;
 
     #[test]
     fn token_amount_conversions() {
-        let amount = to_cis2_token_amount(&TokenAmountU8(0));
-        assert_eq!(amount, cis2::TokenAmount(BigUint::from_u8(0).unwrap()));
+        let amount = TokenAmountU8(0).to_decimal();
+        assert_eq!(amount, Decimal::ZERO);
         assert_eq!(amount.to_string(), "0");
 
         let amount: u8 = 255;
-        let token_amount = to_cis2_token_amount(&TokenAmountU8(amount));
-        assert_eq!(
-            token_amount,
-            cis2::TokenAmount(BigUint::from_u8(amount).unwrap())
-        );
+        let token_amount = TokenAmountU8(amount).to_decimal();
+        assert_eq!(token_amount, Decimal::from_u8(amount).unwrap());
         assert_eq!(token_amount.to_string(), "255");
 
         let amount: u64 = 255;
-        let token_amount = to_cis2_token_amount(&TokenAmountU64(amount));
-        assert_eq!(
-            token_amount,
-            cis2::TokenAmount(BigUint::from_u64(amount).unwrap())
-        );
+        let token_amount = TokenAmountU64(amount).to_decimal();
+        assert_eq!(token_amount, Decimal::from_u64(amount).unwrap());
         assert_eq!(token_amount.to_string(), "255");
     }
 }

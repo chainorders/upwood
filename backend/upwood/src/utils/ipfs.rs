@@ -59,6 +59,7 @@ pub mod filebase {
             }
         }
 
+        /// Create a presigned URL to upload a file to IPFS
         pub async fn create_presigned_url(&self, file_name: &str) -> Result<String> {
             let expires_in: PresigningConfig = PresigningConfig::expires_in(self.expires_in)?;
             let req = self
