@@ -12,7 +12,8 @@ use concordium_std::{AccountAddress, Amount};
 use euroe::RoleTypes;
 use integration_tests::*;
 use security_p2p_trading::{
-    ExchangeParams, GetDepositParams, InitParam, TransferExchangeParams, TransferSellParams,
+    Deposit, ExchangeParams, GetDepositParams, InitParam, TransferExchangeParams,
+    TransferSellParams,
 };
 use security_sft_rewards::types::TRACKED_TOKEN_ID;
 use security_sft_single::types::ContractMetadataUrl;
@@ -42,17 +43,15 @@ pub fn normal_flow_sft_single() {
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract_sft_single(&mut chain, &admin, compliance_contract, ir_contract);
-    let rate = Rate::new(1, 1000).unwrap();
     let trading_contract = security_p2p_trading_client::init(&mut chain, &admin, &InitParam {
         currency: TokenUId {
             id:       to_token_id_vec(TokenIdUnit()),
             contract: euroe_contract,
         },
-        token: TokenUId {
+        token:    TokenUId {
             id:       to_token_id_vec(TOKEN_ID),
             contract: token_contract,
         },
-        rate,
     })
     .contract_address;
     identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
@@ -91,12 +90,14 @@ pub fn normal_flow_sft_single() {
     )
     .expect("should update operator");
 
+    let rate = Rate::new(1, 1000).unwrap();
     security_p2p_trading_client::transfer_sell(
         &mut chain,
         &holder,
         trading_contract,
         &TransferSellParams {
             amount: TokenAmountU64(10),
+            rate,
         },
     )
     .expect("should transfer sell");
@@ -121,7 +122,10 @@ pub fn normal_flow_sft_single() {
             }
         )
         .expect("should get deposit"),
-        TokenAmountU64(10)
+        Deposit {
+            amount: TokenAmountU64(10),
+            rate
+        }
     );
 
     euroe::update_operator_single(&mut chain, &holder_2, euroe_contract, UpdateOperator {
@@ -164,7 +168,10 @@ pub fn normal_flow_sft_single() {
             }
         )
         .expect("should get deposit"),
-        TokenAmountU64(9)
+        Deposit {
+            amount: TokenAmountU64(9),
+            rate
+        }
     );
     assert_eq!(
         security_sft_single_client::balance_of(
@@ -192,7 +199,6 @@ pub fn normal_flow_sft_single() {
 #[test]
 pub fn normal_flow_sft_rewards() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
-    let rate = Rate::new(1, 1000).unwrap();
 
     let mut chain = Chain::new();
     let seller = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
@@ -209,11 +215,10 @@ pub fn normal_flow_sft_rewards() {
             id:       to_token_id_vec(TokenIdUnit()),
             contract: euroe_contract,
         },
-        token: TokenUId {
+        token:    TokenUId {
             id:       to_token_id_vec(TRACKED_TOKEN_ID),
             contract: token_contract,
         },
-        rate,
     })
     .contract_address;
     identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
@@ -249,12 +254,14 @@ pub fn normal_flow_sft_rewards() {
     )
     .expect("should update operator");
 
+    let rate = Rate::new(1, 1000).unwrap();
     security_p2p_trading_client::transfer_sell(
         &mut chain,
         &seller,
         trading_contract,
         &TransferSellParams {
             amount: TokenAmountU64(10),
+            rate,
         },
     )
     .expect("should transfer sell");
@@ -279,7 +286,10 @@ pub fn normal_flow_sft_rewards() {
             }
         )
         .expect("should get deposit"),
-        TokenAmountU64(10)
+        Deposit {
+            amount: TokenAmountU64(10),
+            rate
+        }
     );
 
     euroe::update_operator_single(&mut chain, &buyer, euroe_contract, UpdateOperator {
@@ -317,7 +327,10 @@ pub fn normal_flow_sft_rewards() {
             }
         )
         .expect("should get deposit"),
-        TokenAmountU64(9)
+        Deposit {
+            amount: TokenAmountU64(9),
+            rate
+        }
     );
     assert_eq!(
         security_sft_rewards_client::balance_of(

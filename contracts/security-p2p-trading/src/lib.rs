@@ -1,6 +1,5 @@
 use concordium_cis2::{
-    AdditionalData, OnReceivingCis2DataParams, OnReceivingCis2Params, Receiver, TokenAmountU64,
-    TokenIdVec, Transfer,
+    AdditionalData, OnReceivingCis2DataParams, Receiver, TokenAmountU64, TokenIdVec, Transfer,
 };
 use concordium_protocols::concordium_cis2_ext::cis2_client::{self, Cis2ClientError};
 use concordium_protocols::concordium_cis2_security::TokenUId;
@@ -20,6 +19,8 @@ pub struct SellEvent {
     pub from:   AccountAddress,
     /// The amount of tokens that were deposited.
     pub amount: TokenAmount,
+    /// The rate at which a buyer can convert deposited tokens to currency token.
+    pub rate:   Rate,
 }
 
 /// Represents SellCancelled event.
@@ -73,14 +74,17 @@ impl From<LogError> for Error {
     fn from(_: LogError) -> Self { Error::LogError }
 }
 pub type ContractResult<T> = Result<T, Error>;
-pub type Deposit = TokenAmount;
+#[derive(Serialize, Clone, SchemaType, PartialEq, Debug)]
+pub struct Deposit {
+    pub amount: TokenAmount,
+    pub rate:   Rate,
+}
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 pub struct State<S=StateApi> {
     token:    AnyTokenUId,
     currency: AnyTokenUId,
-    rate:     Rate,
     deposits: StateMap<AccountAddress, Deposit, S>,
 }
 
@@ -91,8 +95,6 @@ pub struct InitParam {
     pub token:    AnyTokenUId,
     /// The token that is being used to pay for the tokens being sold.
     pub currency: AnyTokenUId,
-    /// The rate at which the tokens are being sold.
-    pub rate:     Rate,
 }
 
 #[init(
@@ -112,28 +114,8 @@ pub fn init(
     Ok(State {
         token:    params.token,
         currency: params.currency,
-        rate:     params.rate,
         deposits: state_builder.new_map(),
     })
-}
-
-#[receive(
-    contract = "security_p2p_trading",
-    name = "updateRate",
-    mutable,
-    parameter = "UpdateRateParam",
-    enable_logger,
-    error = "Error"
-)]
-pub fn update_rate(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let params: UpdateRateParam = ctx.parameter_cursor().get()?;
-    host.state_mut().rate = params.rate;
-    logger.log(&Event::RateUpdated(params.rate))?;
-    Ok(())
 }
 
 #[derive(Serialize, SchemaType)]
@@ -146,6 +128,7 @@ pub struct UpdateRateParam {
 pub struct TransferSellParams {
     /// The amount of tokens that are being sold.
     pub amount: TokenAmount,
+    pub rate:   Rate,
 }
 
 /// This function is called when a user wants to sell tokens.
@@ -170,12 +153,12 @@ pub fn transfer_sell(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractRe
             ctx.self_address(),
             OwnedEntrypointName::new_unchecked("sell".into()),
         ),
-        data:     AdditionalData::empty(),
+        data:     to_additional_data(params.rate).map_err(|_| Error::ParseError)?,
     })?;
     Ok(())
 }
 
-pub type SellReceiveParams = OnReceivingCis2Params<TokenIdVec, TokenAmount>;
+pub type SellReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, Rate>;
 
 /// This function is called when a user wants to sell tokens.
 /// This function can only be called by a smart contract.
@@ -213,10 +196,14 @@ pub fn sell(
         .deposits
         .entry(from)
         .vacant_or(Error::SellPositionExists)?
-        .insert(params.amount);
+        .insert(Deposit {
+            amount: params.amount,
+            rate:   params.data,
+        });
     logger.log(&Event::Sell(SellEvent {
         from,
         amount: params.amount,
+        rate: params.data,
     }))?;
     Ok(())
 }
@@ -247,14 +234,14 @@ pub fn cancel_sell(
         .ok_or(Error::SellPositionMissing)?;
     cis2_client::transfer_single(host, &deposit_token.contract, Transfer {
         token_id: deposit_token.id,
-        amount:   deposits,
+        amount:   deposits.amount,
         from:     ctx.self_address().into(),
         to:       Receiver::Account(sender),
         data:     AdditionalData::empty(),
     })?;
     logger.log(&Event::SellCancelled(SellCancelledEvent {
         from:   sender,
-        amount: deposits,
+        amount: deposits.amount,
     }))?;
     Ok(())
 }
@@ -295,14 +282,14 @@ pub fn force_cancel_sell(
         .ok_or(Error::SellPositionMissing)?;
     cis2_client::transfer_single(host, &deposit_token.contract, Transfer {
         token_id: deposit_token.id,
-        amount:   deposits,
+        amount:   deposits.amount,
         from:     ctx.self_address().into(),
         to:       Receiver::Account(to),
         data:     AdditionalData::empty(),
     })?;
     logger.log(&Event::SellCancelled(SellCancelledEvent {
         from,
-        amount: deposits,
+        amount: deposits.amount,
     }))?;
     Ok(())
 }
@@ -384,7 +371,6 @@ pub fn exchange(
 
     let (token, pay_amount, sell_amount) = {
         let state = host.state_mut();
-        let curr_rate = state.rate;
 
         ensure!(currency.eq(&state.currency), Error::InvalidToken);
 
@@ -392,17 +378,18 @@ pub fn exchange(
             .deposits
             .get_mut(&seller)
             .ok_or(Error::SellPositionMissing)?;
-        ensure!(curr_rate.eq(&rate), Error::SellPositionMissing);
+        ensure!(deposit.rate.eq(&rate), Error::SellPositionMissing);
 
-        let (sell_amount, un_converted_pay_amount) = curr_rate
+        let (sell_amount, un_converted_pay_amount) = deposit
+            .rate
             .convert(&pay_amount.0)
             .map_err(|_| Error::InvalidConversion)?;
 
         let sell_amount = TokenAmountU64(sell_amount);
         ensure_eq!(un_converted_pay_amount, 0, Error::InvalidAmount);
-        ensure!(sell_amount.le(&deposit), Error::InvalidAmount);
+        ensure!(sell_amount.le(&deposit.amount), Error::InvalidAmount);
         ensure!(sell_amount.gt(&TokenAmountU64(0)), Error::InvalidAmount);
-        deposit.sub_assign(sell_amount);
+        deposit.amount.sub_assign(sell_amount);
 
         (state.token.clone(), pay_amount, sell_amount)
     };
@@ -451,5 +438,5 @@ pub fn get_deposit(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<D
         .get(&params.from)
         .ok_or(Error::SellPositionMissing)?;
 
-    Ok(*deposit)
+    Ok(deposit.clone())
 }
