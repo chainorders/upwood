@@ -58,3 +58,9 @@ impl ContractAddressToDecimal for ContractAddress {
         Decimal::from_u64(self.index).expect("Failed to convert contract address to Decimal")
     }
 }
+
+#[inline]
+pub fn rate_to_decimal(numerator: u64, denominator: u64) -> Decimal {
+    Decimal::from_u64(numerator).expect("Failed to convert nunmerator to Decimal")
+        / Decimal::from_u64(denominator).expect("Failed to convert denominator to Decimal")
+}

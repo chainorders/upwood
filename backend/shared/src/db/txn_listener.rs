@@ -16,9 +16,9 @@ use num_traits::ToPrimitive;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     self, listener_config, listener_contract_calls, listener_contracts, listener_transactions,
 };

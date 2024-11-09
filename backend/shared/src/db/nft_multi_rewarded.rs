@@ -4,8 +4,8 @@ use diesel::dsl::*;
 use diesel::prelude::*;
 use poem_openapi::Object;
 use rust_decimal::Decimal;
-use shared::db::{DbConn, DbResult};
 
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{cis2_tokens, nft_multi_address_nonces, nft_multi_rewarded_contracts};
 
 #[derive(

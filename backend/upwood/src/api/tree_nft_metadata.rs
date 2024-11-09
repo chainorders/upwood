@@ -1,18 +1,17 @@
 use concordium::account::Signer;
 use concordium_rust_sdk::base::contracts_common::AccountSignatures;
-use events_listener::txn_processor::cis2_security::db::TokenHolder;
 use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
-use events_listener::txn_processor::{cis2_security, nft_multi_rewarded};
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use shared::api::PagedResponse;
-use shared::db::DbPool;
+use shared::db::cis2_security::{list_holders_by_token_metadata_url, TokenHolder};
+use shared::db::nft_multi_rewarded::AddressNonce;
+use shared::db_app::tree_nft_metadata::TreeNftMetadata;
 
 use super::PAGE_SIZE;
 use crate::api::*;
-use crate::db::tree_nft_metadata::TreeNftMetadata;
 
 #[derive(Clone, Copy)]
 pub struct Api;
@@ -43,13 +42,10 @@ impl Api {
     ) -> JsonResult<MintData> {
         let mut conn = db_pool.get()?;
         let account = ensure_account_registered(&claims)?;
-        let account_nonce = nft_multi_rewarded::db::AddressNonce::find(
-            &mut conn,
-            contract.0.to_decimal(),
-            &account.into(),
-        )?
-        .map(|a| a.nonce)
-        .unwrap_or(0);
+        let account_nonce =
+            AddressNonce::find(&mut conn, contract.0.to_decimal(), &account.into())?
+                .map(|a| a.nonce)
+                .unwrap_or(0);
 
         let metadata = TreeNftMetadata::find_random(&mut conn)?
             .ok_or(Error::NotFound(PlainText("No metadata found".to_string())))?;
@@ -232,7 +228,7 @@ impl AdminApi {
         let mut conn = db_pool.get()?;
         let metadata = TreeNftMetadata::find(&mut conn, &metadata_id)?
             .ok_or(Error::NotFound(PlainText("Metadata not found".to_string())))?;
-        let (holders, page_count) = cis2_security::db::list_holders_by_token_metadata_url(
+        let (holders, page_count) = list_holders_by_token_metadata_url(
             &mut conn,
             contract.0.to_decimal(),
             &metadata.metadata_url,
@@ -297,8 +293,11 @@ impl TryInto<TreeNftMetadata> for AddMetadataRequest {
     type Error = Error;
 
     fn try_into(self) -> Result<TreeNftMetadata> {
+        let metadata_url = self.metadata_url()?;
+
         Ok(TreeNftMetadata::new(
-            self.metadata_url()?,
+            metadata_url.url,
+            metadata_url.hash.map(hex::encode),
             self.probablity_percentage()?,
             chrono::Utc::now(),
         ))

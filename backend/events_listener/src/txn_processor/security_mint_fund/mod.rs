@@ -1,4 +1,3 @@
-pub mod db;
 pub mod processor;
 
 use concordium_rust_sdk::base::hashes::ModuleReference;

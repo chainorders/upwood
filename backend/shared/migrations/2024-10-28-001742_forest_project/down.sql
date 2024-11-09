@@ -1,3 +1,11 @@
+drop view if exists forest_project_user_view;
+
+drop view if exists forest_project_holder_rewards_total_view;
+
+drop view if exists forest_project_holder_rewards_view;
+
+drop view if exists forest_project_holder_rewards_agg_view;
+
 drop table if exists forest_project_property_media;
 
 drop table if exists forest_project_notifications;

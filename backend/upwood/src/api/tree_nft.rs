@@ -1,10 +1,8 @@
 use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
-use events_listener::txn_processor::nft_multi_rewarded;
-use events_listener::txn_processor::nft_multi_rewarded::db::NftMultiRewardedDetails;
 use poem::web::Data;
 use poem_openapi::payload::Json;
 use poem_openapi::OpenApi;
-use shared::db::DbPool;
+use shared::db::nft_multi_rewarded::{AddressNonce, NftMultiRewardedDetails};
 
 use crate::api::*;
 
@@ -35,13 +33,10 @@ impl Api {
     ) -> JsonResult<u64> {
         let mut conn = db_pool.get()?;
         let account = ensure_account_registered(&claims)?;
-        let account_nonce = nft_multi_rewarded::db::AddressNonce::find(
-            &mut conn,
-            contract.0.to_decimal(),
-            &account.into(),
-        )?
-        .map(|a| a.nonce)
-        .unwrap_or(0);
+        let account_nonce =
+            AddressNonce::find(&mut conn, contract.0.to_decimal(), &account.into())?
+                .map(|a| a.nonce)
+                .unwrap_or(0);
         Ok(Json(account_nonce as u64))
     }
 }

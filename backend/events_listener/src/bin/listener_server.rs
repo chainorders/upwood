@@ -7,7 +7,6 @@ use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use diesel::r2d2::ConnectionManager;
 use diesel::PgConnection;
-use events_listener::txn_listener::db::ProcessorType;
 use events_listener::txn_listener::listener::{
     ListenerConfig, ListenerError, ProcessorFnType, Processors,
 };
@@ -15,8 +14,10 @@ use events_listener::txn_processor::cis2_security::security_sft_single;
 use events_listener::txn_processor::{
     identity_registry, nft_multi_rewarded, security_mint_fund, security_sft_rewards,
 };
-use events_listener::{db_setup, txn_listener};
+use events_listener::{txn_listener};
 use r2d2::Pool;
+use shared::db::txn_listener::ProcessorType;
+use shared::db_setup;
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::TryInitError;

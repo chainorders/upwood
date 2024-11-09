@@ -1,7 +1,6 @@
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{OwnedContractName, WasmModule};
 
-pub mod db;
 pub mod processor;
 
 pub fn module_ref() -> ModuleReference {

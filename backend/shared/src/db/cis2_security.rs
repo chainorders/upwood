@@ -8,9 +8,9 @@ use num_traits::{ToPrimitive, Zero};
 use poem_openapi::Object;
 use rust_decimal::Decimal;
 use serde::Serialize;
-use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     cis2_agents, cis2_compliances, cis2_identity_registries, cis2_operators, cis2_recovery_records,
     cis2_token_holders, cis2_tokens,
@@ -167,7 +167,16 @@ impl IdentityRegistry {
 }
 
 #[derive(
-    Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq, Object, Clone,
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Debug,
+    PartialEq,
+    Object,
+    Clone,
+    Serialize,
 )]
 #[diesel(table_name = cis2_token_holders)]
 #[diesel(primary_key(cis2_address, token_id, holder_address))]
@@ -453,7 +462,15 @@ pub fn holders_count_by_token(
 }
 
 #[derive(
-    Object, Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq,
+    Object,
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Debug,
+    PartialEq,
+    Serialize,
 )]
 #[diesel(table_name = cis2_tokens)]
 #[diesel(primary_key(cis2_address, token_id))]

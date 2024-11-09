@@ -20,11 +20,13 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{Connection, PgConnection};
 use futures::TryStreamExt;
 use rust_decimal::Decimal;
-use shared::db::DbConn;
+use shared::db::txn_listener::{
+    CallType, ListenerConfigInsert, ListenerContract, ListenerContractCallInsert,
+    ListenerTransaction, ProcessorType,
+};
+use shared::db_shared::DbConn;
 use tracing::{debug, info, instrument, trace, warn};
 
-use super::db::{self, ListenerContract, ListenerContractCallInsert, ListenerTransaction};
-use crate::txn_listener::db::{CallType, ListenerConfigInsert};
 use crate::txn_processor::cis2_utils::ContractAddressToDecimal;
 
 #[derive(Debug, thiserror::Error)]
@@ -39,8 +41,8 @@ pub enum ProcessorError {
 
 #[derive(Clone)]
 pub struct Processors {
-    pub processors_types: BTreeMap<(ModuleReference, OwnedContractName), db::ProcessorType>,
-    pub processors:       BTreeMap<db::ProcessorType, ProcessorFnType>,
+    pub processors_types: BTreeMap<(ModuleReference, OwnedContractName), ProcessorType>,
+    pub processors:       BTreeMap<ProcessorType, ProcessorFnType>,
 }
 
 impl Processors {
@@ -55,7 +57,7 @@ impl Processors {
         &mut self,
         module_ref: ModuleReference,
         contract_name: OwnedContractName,
-        processor_type: db::ProcessorType,
+        processor_type: ProcessorType,
         processor: ProcessorFnType,
     ) {
         self.processors_types
@@ -67,13 +69,13 @@ impl Processors {
         &self,
         module_ref: &ModuleReference,
         contract_name: &OwnedContractName,
-    ) -> Option<db::ProcessorType> {
+    ) -> Option<ProcessorType> {
         self.processors_types
             .get(&(*module_ref, contract_name.clone()))
             .copied()
     }
 
-    pub fn find_by_type(&self, processor_type: &db::ProcessorType) -> Option<&ProcessorFnType> {
+    pub fn find_by_type(&self, processor_type: &ProcessorType) -> Option<&ProcessorFnType> {
         self.processors.get(processor_type)
     }
 }
@@ -510,7 +512,7 @@ async fn get_block_height_or(
     conn: &mut DbConn,
     default_block_height: AbsoluteBlockHeight,
 ) -> Result<AbsoluteBlockHeight, ListenerError> {
-    let block_height = db::ListenerConfig::find_last(conn)?
+    let block_height = shared::db::txn_listener::ListenerConfig::find_last(conn)?
         .map(|b| b.next())
         .unwrap_or(default_block_height);
 

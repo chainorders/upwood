@@ -46,6 +46,7 @@ tracing-subscriber = { workspace = true, features = ["env-filter", "json"] }
 backon = { workspace = true }
 diesel-derive-enum = { workspace = true, features = ["postgres"] }
 serde = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }

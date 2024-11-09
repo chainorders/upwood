@@ -49,7 +49,6 @@ pub enum Event {
     Sell(SellEvent),
     SellCancelled(SellCancelledEvent),
     Exchange(Exchange),
-    RateUpdated(Rate),
 }
 
 #[derive(Serial, Reject, SchemaType)]

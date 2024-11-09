@@ -1,11 +1,14 @@
+pub mod cis2_security;
+pub mod identity_registry;
+pub mod nft_multi_rewarded;
+pub mod security_mint_fund;
+pub mod security_p2p_trading;
+pub mod security_sft_rewards;
+pub mod txn_listener;
+
 use concordium_rust_sdk::cis2;
-use diesel::PgConnection;
 use num_traits::ToPrimitive;
 use rust_decimal::Decimal;
-
-pub type DbPool = r2d2::Pool<diesel::r2d2::ConnectionManager<PgConnection>>;
-pub type DbConn = r2d2::PooledConnection<diesel::r2d2::ConnectionManager<PgConnection>>;
-pub type DbResult<T> = Result<T, diesel::result::Error>;
 
 pub fn token_amount_to_sql(amount: &cis2::TokenAmount) -> Decimal {
     Decimal::from_str_radix(amount.0.to_str_radix(10).as_str(), 10)

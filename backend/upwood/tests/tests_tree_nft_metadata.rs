@@ -11,7 +11,8 @@ use integration_tests::*;
 use nft_multi_rewarded::types::{Agent, ContractMetadataUrl};
 use nft_multi_rewarded::{MintData, SignedMetadata};
 use poem::web::Data;
-use shared::db::DbPool;
+use shared::db_setup;
+use shared::db_shared::DbPool;
 use upwood::api::tree_nft_metadata::AddMetadataRequest;
 use upwood::api::{self, BearerAuthorization, TreeNftContractAddress};
 use upwood::utils::aws::cognito::Claims;
@@ -28,8 +29,7 @@ const NFT_METADATA: &str = "https://metadata.com/nft_token";
 async fn signature_tests() {
     // Setup Database
     let (db_url, _container) = shared_tests::create_new_database_container().await;
-    events_listener::db_setup::run_migrations(&db_url);
-    upwood::db::db_setup::run_migrations(&db_url);
+    db_setup::run_migrations(&db_url);
     let pool: DbPool = r2d2::Pool::builder()
         .max_size(10)
         .build(ConnectionManager::new(db_url))

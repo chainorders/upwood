@@ -2,10 +2,10 @@ use chrono::{DateTime, Utc};
 use concordium_rust_sdk::types::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_identity_registry::event::Event;
-use shared::db::DbConn;
+use shared::db::identity_registry::{Agent, Identity, Issuer};
+use shared::db_shared::DbConn;
 use tracing::{debug, instrument};
 
-use super::db::{self};
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_utils::ContractAddressToDecimal;
 
@@ -43,22 +43,22 @@ pub fn process_events(
 
         match parsed_event {
             Event::AgentAdded(e) => {
-                db::Agent::new(e.agent, now, contract.to_decimal()).insert(conn)?;
+                Agent::new(e.agent, now, contract.to_decimal()).insert(conn)?;
             }
             Event::AgentRemoved(e) => {
-                db::Agent::delete(conn, contract.to_decimal(), &e.agent)?;
+                Agent::delete(conn, contract.to_decimal(), &e.agent)?;
             }
             Event::IdentityRegistered(e) => {
-                db::Identity::new(&e.address, now, contract.to_decimal()).insert(conn)?;
+                Identity::new(&e.address, now, contract.to_decimal()).insert(conn)?;
             }
             Event::IdentityRemoved(e) => {
-                db::Identity::delete(conn, contract.to_decimal(), &e.address)?;
+                Identity::delete(conn, contract.to_decimal(), &e.address)?;
             }
             Event::IssuerAdded(e) => {
-                db::Issuer::new(e.issuer.to_decimal(), now, contract.to_decimal()).insert(conn)?;
+                Issuer::new(e.issuer.to_decimal(), now, contract.to_decimal()).insert(conn)?;
             }
             Event::IssuerRemoved(e) => {
-                db::Issuer::delete(conn, contract.to_decimal(), e.issuer.to_decimal())?;
+                Issuer::delete(conn, contract.to_decimal(), e.issuer.to_decimal())?;
             }
         }
     }

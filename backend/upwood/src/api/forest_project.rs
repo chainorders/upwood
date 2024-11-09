@@ -1,25 +1,15 @@
-use std::collections::HashMap;
-
-use concordium_rust_sdk::types::Address;
-use db::forest_project::{ForestProject, ForestProjectPrice, ForestProjectState};
-use db::DbResult;
-use diesel::prelude::*;
-use events_listener::txn_processor::cis2_security::db::TokenHolder;
-use events_listener::txn_processor::security_mint_fund::db::{
-    SecurityMintFundContract, SecurityMintFundState,
-};
-use events_listener::txn_processor::security_sft_rewards::db::{
-    RewardHolder, RewardHolderTotal, SecuritySftRewardsContract,
-};
+use diesel::Connection;
 use poem::web::Data;
-use poem_openapi::param::Path;
-use poem_openapi::{Object, OpenApi};
+use poem_openapi::param::{Path, Query};
+use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
-use shared::db::DbConn;
-use uuid::Uuid;
+use shared::db::security_mint_fund::SecurityMintFundState;
+use shared::db_app::forest_project::{
+    ForestProject, ForestProjectHolderRewardTotal, ForestProjectMedia, ForestProjectPrice,
+    ForestProjectState, ForestProjectUser, HolderReward,
+};
 
 use super::*;
-use crate::schema;
 pub const MEDIA_LIMIT: i64 = 4;
 pub struct Api;
 
@@ -41,15 +31,18 @@ impl Api {
     )]
     pub async fn list_active(
         &self,
-        BearerAuthorization(_claims): BearerAuthorization,
+        BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ForestProjectApi>> {
-        let (projects, page_count) = ForestProjectApi::list_by_status(
-            &mut db_pool.get()?,
-            ForestProjectState::Funding,
+    ) -> JsonResult<PagedResponse<ForestProjectUser>> {
+        let conn = &mut db_pool.get()?;
+        let (projects, page_count) = ForestProjectUser::list(
+            conn,
+            &claims.sub,
+            claims.account(),
+            SecurityMintFundState::Open,
             page,
-            PAGE_SIZE,
+            i64::MAX,
         )?;
         Ok(Json(PagedResponse {
             data: projects,
@@ -77,13 +70,15 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ForestProjectWithNotification>> {
-        let (projects, page_count) = ForestProjectWithNotification::list_by_status(
-            &mut db_pool.get()?,
-            ForestProjectState::Funded,
-            claims.sub.as_str(),
+    ) -> JsonResult<PagedResponse<ForestProjectUser>> {
+        let conn = &mut db_pool.get()?;
+        let (projects, page_count) = ForestProjectUser::list(
+            conn,
+            &claims.sub,
+            claims.account(),
+            SecurityMintFundState::Success,
             page,
-            PAGE_SIZE,
+            i64::MAX,
         )?;
         Ok(Json(PagedResponse {
             data: projects,
@@ -111,36 +106,13 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
     ) -> JsonResult<PagedResponse<ForestProjectUser>> {
-        let user_account: Address = ensure_account_registered(&claims)?.into();
-        let (projects, _) = ForestProject::list_by_status(
-            &mut db_pool.get()?,
-            ForestProjectState::Funded,
-            0,
-            i64::MAX,
-        )?;
-        let project_tokens = projects
-            .iter()
-            .map(|project| (project.contract_address, ForestProject::tracked_token_id()))
-            .collect::<Vec<_>>();
-        let mut ret: Vec<_> = vec![];
+        let user_account = ensure_account_registered(&claims)?;
         let conn = &mut db_pool.get()?;
-        let token_holders = TokenHolder::list_by_tokens(conn, project_tokens, &user_account)?;
-        let mut token_holders = token_holders
-            .iter()
-            .map(|h| (h.cis2_address, h))
-            .collect::<HashMap<_, _>>();
-        for project in projects {
-            let holder = token_holders.remove(&project.contract_address);
-            if let Some(holder) = holder {
-                ret.push(ForestProjectUser {
-                    project,
-                    token_holder: holder.clone(),
-                });
-            }
-        }
+        let (projects, _) =
+            ForestProjectUser::list_owned(conn, &claims.sub, user_account, 0, i64::MAX)?;
 
         Ok(Json(PagedResponse {
-            data:       ret,
+            data:       projects,
             page_count: 1,
             page:       0,
         }))
@@ -165,87 +137,155 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectDetails> {
-        let project = ForestProjectDetails::find(&mut db_pool.get()?, project_id, &claims.sub)?
-            .ok_or(Error::NotFound(PlainText(format!(
-                "Forest project not found: {}",
-                project_id
-            ))))?;
+    ) -> JsonResult<ForestProjectUser> {
+        let project = ForestProjectUser::find(
+            &mut db_pool.get()?,
+            project_id,
+            &claims.sub,
+            claims.account(),
+        )?
+        .ok_or(Error::NotFound(PlainText(format!(
+            "Forest project not found: {}",
+            project_id
+        ))))?;
         Ok(Json(project))
     }
+}
 
-    /// Lists the rewards of the authenticated user for the funded forest projects, paginated by the provided page number.
-    ///
-    /// # Arguments
-    /// - `claims`: The claims of the authenticated user.
-    /// - `db_pool`: The database connection pool.
-    /// - `page`: The page number to retrieve.
-    ///
-    /// # Returns
-    /// A `PagedResponse` containing the rewards of the authenticated user for the funded forest projects and the total number of pages.
+pub struct ForestProjectRewardsApi;
+
+#[OpenApi]
+impl ForestProjectRewardsApi {
     #[oai(
         path = "/forest_projects/rewards/total",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn rewards_total(
+    pub async fn total(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<Vec<RewardHolderTotal>> {
-        let user_account: Address = ensure_account_registered(&claims)?.into();
+    ) -> JsonResult<Vec<ForestProjectHolderRewardTotal>> {
+        let account = ensure_account_registered(&claims)?;
         let conn = &mut db_pool.get()?;
-        let (projects, _) =
-            ForestProject::list_by_status(conn, ForestProjectState::Funded, 0, i64::MAX)?;
-        let project_contracts = projects
-            .iter()
-            .map(|project| (project.contract_address))
-            .collect::<Vec<_>>();
-        let res = RewardHolderTotal::find(conn, project_contracts, &user_account.to_string())?;
-        Ok(Json(res))
+        let rewards = ForestProjectHolderRewardTotal::list(conn, &account.to_string())?;
+        Ok(Json(rewards))
     }
 
-    /// Lists the rewards of the authenticated user for the funded forest projects, paginated by the provided page number.
-    ///
-    /// # Arguments
-    /// - `claims`: The claims of the authenticated user.
-    /// - `db_pool`: The database connection pool.
-    /// - `page`: The page number to retrieve.
-    ///
-    /// # Returns
-    /// A `PagedResponse` containing the rewards of the authenticated user for the funded forest projects and the total number of pages.
     #[oai(
-        path = "/forest_projects/rewards/list/:page",
+        path = "/forest_projects/rewards/claimable",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn rewards_list(
+    pub async fn claimable(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<RewardHolder>> {
-        let user_account: Address = ensure_account_registered(&claims)?.into();
+    ) -> JsonResult<Vec<HolderReward>> {
+        let account = ensure_account_registered(&claims)?;
         let conn = &mut db_pool.get()?;
-        let (projects, _) =
-            ForestProject::list_by_status(conn, ForestProjectState::Funded, 0, i64::MAX)?;
-        let project_contracts = projects
-            .iter()
-            .map(|project| (project.contract_address))
-            .collect::<Vec<_>>();
-        let (res, page_count) = RewardHolder::list(
-            conn,
-            project_contracts,
-            &user_account.to_string(),
-            page,
-            PAGE_SIZE,
-        )?;
+        let rewards = HolderReward::list(conn, &account.to_string())?;
+        Ok(Json(rewards))
+    }
+}
 
+pub struct MediaApi;
+
+#[OpenApi]
+impl MediaApi {
+    #[oai(
+        path = "/admin/forest_projects/:project_id/media",
+        method = "post",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn create(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Json(media): Json<ForestProjectMedia>,
+    ) -> JsonResult<ForestProjectMedia> {
+        ensure_is_admin(&claims)?;
+        if project_id != media.project_id {
+            return Err(Error::BadRequest(PlainText(
+                "Project id in path and body must be the same".to_string(),
+            )));
+        }
+        let conn = &mut db_pool.get()?;
+        let media = media.insert(conn)?;
+        Ok(Json(media))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/:project_id/media/:media_id",
+        method = "delete",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn delete(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(media_id): Path<uuid::Uuid>,
+    ) -> JsonResult<ForestProjectMedia> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let media = ForestProjectMedia::find(conn, media_id)?.ok_or(Error::NotFound(PlainText(
+            format!(
+                "Media not found for project: {} at {}",
+                project_id, media_id
+            ),
+        )))?;
+        if media.project_id != project_id {
+            return Err(Error::BadRequest(PlainText(
+                "Project id in path and media must be the same".to_string(),
+            )));
+        }
+        let media = media.delete_self(conn)?;
+        Ok(Json(media))
+    }
+
+    #[oai(
+        path = "/forest_projects/:project_id/media/list/:page",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn list(
+        &self,
+        BearerAuthorization(_claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<ForestProjectMedia>> {
+        let conn = &mut db_pool.get()?;
+        let (media, page_count) = ForestProjectMedia::list(conn, project_id, page, PAGE_SIZE)?;
         Ok(Json(PagedResponse {
-            data: res,
+            data: media,
             page_count,
             page,
         }))
+    }
+
+    #[oai(
+        path = "/forest_projects/:project_id/media/:media_id",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn find(
+        &self,
+        BearerAuthorization(_claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(media_id): Path<uuid::Uuid>,
+    ) -> JsonResult<ForestProjectMedia> {
+        let conn = &mut db_pool.get()?;
+        let media = ForestProjectMedia::find(conn, media_id)?.ok_or(Error::NotFound(PlainText(
+            format!(
+                "Media not found for project: {} at {}",
+                project_id, media_id
+            ),
+        )))?;
+        Ok(Json(media))
     }
 }
 
@@ -282,39 +322,6 @@ impl AdminApi {
         Ok(Json(project))
     }
 
-    /// Lists the forest projects by status, paginated by the provided page number.
-    /// Only admins can access this endpoint.
-    ///
-    /// # Arguments
-    /// - `claims`: The claims of the authenticated user.
-    /// - `db_pool`: The database connection pool.
-    /// - `status`: The status of the forest projects to list.
-    /// - `page`: The page number to retrieve.
-    ///
-    /// # Returns
-    /// A `PagedResponse` containing the forest projects with the provided status and the total number of pages.
-    #[oai(
-        path = "/admin/forest_projects/list/:status/:page",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn list_by_status(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(status): Path<ForestProjectState>,
-        Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ForestProject>> {
-        ensure_is_admin(&claims)?;
-        let (projects, page_count) =
-            ForestProject::list_by_status(&mut db_pool.get()?, status, page, PAGE_SIZE)?;
-        Ok(Json(PagedResponse {
-            data: projects,
-            page_count,
-            page,
-        }))
-    }
-
     #[oai(
         path = "/admin/forest_projects/list/:page",
         method = "get",
@@ -325,9 +332,11 @@ impl AdminApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(page): Path<i64>,
+        Query(state): Query<Option<ForestProjectState>>,
     ) -> JsonResult<PagedResponse<ForestProject>> {
         ensure_is_admin(&claims)?;
-        let (projects, page_count) = ForestProject::list(&mut db_pool.get()?, page, PAGE_SIZE)?;
+        let (projects, page_count) =
+            ForestProject::list(&mut db_pool.get()?, state, page, PAGE_SIZE)?;
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
@@ -344,16 +353,26 @@ impl AdminApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Json(project): Json<ForestProject>,
+        Json(mut project): Json<ForestProject>,
     ) -> JsonResult<ForestProject> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
+        let now = chrono::Utc::now().naive_utc();
         if project.state != ForestProjectState::Draft {
             return Err(Error::BadRequest(PlainText(
                 "Only draft projects can be created".to_string(),
             )));
         }
+        project.created_at = now;
+        project.updated_at = now;
+
         let project = project.insert(conn)?;
+        ForestProjectPrice {
+            price:      project.latest_price,
+            project_id: project.id,
+            price_at:   chrono::Utc::now().naive_utc(),
+        }
+        .insert(conn)?;
         Ok(Json(project))
     }
 
@@ -366,68 +385,38 @@ impl AdminApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Json(project): Json<ForestProject>,
+        Json(mut project): Json<ForestProject>,
     ) -> JsonResult<ForestProject> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        match project.state {
-            ForestProjectState::Funding => {
-                let mint_fund_contract =
-                    project.mint_fund(conn)?.ok_or(Error::BadRequest(PlainText(
-                        "Mint fund contract address is required and Mint fund contract should be \
-                         synced with indexer"
-                            .to_string(),
-                    )))?;
-                if mint_fund_contract.fund_state != SecurityMintFundState::Open {
-                    return Err(Error::BadRequest(PlainText(
-                        "Mint fund contract must be optn".to_string(),
-                    )));
-                }
+        let now = chrono::Utc::now().naive_utc();
+        let existing_project = ForestProject::find(conn, project.id)?.ok_or(Error::NotFound(
+            PlainText(format!("Forest project not found: {}", project.id)),
+        ))?;
+        if existing_project.latest_price != project.latest_price {
+            ForestProjectPrice {
+                price:      project.latest_price,
+                project_id: project.id,
+                price_at:   now,
             }
-            ForestProjectState::Funded => {
-                let mint_fund_contract =
-                    project.mint_fund(conn)?.ok_or(Error::BadRequest(PlainText(
-                        "Mint fund contract address is required and Mint fund contract should be \
-                         synced with indexer"
-                            .to_string(),
-                    )))?;
-                if mint_fund_contract.fund_state != SecurityMintFundState::Success {
-                    return Err(Error::BadRequest(PlainText(
-                        "Mint fund contract must be closed".to_string(),
-                    )));
-                }
-            }
-            _ => {}
+            .insert(conn)?;
         }
+        project.updated_at = now;
         let project = project.update(conn)?;
         Ok(Json(project))
     }
+}
 
-    #[oai(
-        path = "/admin/forest_projects/:project_id/price/latest",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn price_latest(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectPrice> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let price = ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(
-            PlainText(format!("Price not found for project: {}", project_id)),
-        ))?;
-        Ok(Json(price))
-    }
+pub struct PricesAdminApi;
 
+#[OpenApi]
+impl PricesAdminApi {
     #[oai(
         path = "/admin/forest_projects/:project_id/price/:price_at",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn price_at(
+    pub async fn find(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -450,7 +439,7 @@ impl AdminApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn price_list(
+    pub async fn list(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -472,7 +461,7 @@ impl AdminApi {
         method = "post",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn price_create(
+    pub async fn create(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -480,13 +469,26 @@ impl AdminApi {
         Json(price): Json<ForestProjectPrice>,
     ) -> JsonResult<ForestProjectPrice> {
         ensure_is_admin(&claims)?;
+        let now = chrono::Utc::now().naive_utc();
         if project_id != price.project_id {
             return Err(Error::BadRequest(PlainText(
                 "Project id in path and body must be the same".to_string(),
             )));
         }
         let conn = &mut db_pool.get()?;
-        let price = price.insert(conn)?;
+        conn.transaction::<_, Error, _>(|conn| {
+            let price = price.insert(conn)?;
+            let mut forest_project =
+                ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
+                    format!("Forest project not found: {}", project_id),
+                )))?;
+            if forest_project.latest_price.ne(&price.price) {
+                forest_project.latest_price = price.price;
+                forest_project.updated_at = now;
+                forest_project.update(conn)?;
+            }
+            Ok(price)
+        })?;
         Ok(Json(price))
     }
 
@@ -495,7 +497,7 @@ impl AdminApi {
         method = "delete",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn price_delete(
+    pub async fn delete(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -506,137 +508,5 @@ impl AdminApi {
         let conn = &mut db_pool.get()?;
         ForestProjectPrice::delete(conn, project_id, price_at)?;
         Ok(())
-    }
-}
-
-#[derive(Object)]
-pub struct ForestProjectApi {
-    project: db::forest_project::ForestProject,
-}
-
-impl ForestProjectApi {
-    pub fn list_by_status(
-        conn: &mut DbConn,
-        status: ForestProjectState,
-        page: i64,
-        page_size: i64,
-    ) -> DbResult<(Vec<Self>, i64)> {
-        let (projects, page_count) =
-            db::forest_project::ForestProject::list_by_status(conn, status, page, page_size)?;
-        let projects = projects
-            .into_iter()
-            .map(|project| Self { project })
-            .collect();
-        Ok((projects, page_count))
-    }
-}
-
-#[derive(Object)]
-pub struct ForestProjectUser {
-    pub project:      ForestProject,
-    pub token_holder: TokenHolder,
-}
-
-#[derive(Object)]
-pub struct ForestProjectWithNotification {
-    pub project:         db::forest_project::ForestProject,
-    pub notification_id: Option<Uuid>,
-}
-
-impl ForestProjectWithNotification {
-    pub fn list_by_status(
-        conn: &mut DbConn,
-        status: ForestProjectState,
-        user_cognito_id: &str,
-        page: i64,
-        page_size: i64,
-    ) -> DbResult<(Vec<Self>, i64)> {
-        let res: Vec<(db::forest_project::ForestProject, Option<Uuid>)> =
-            schema::forest_projects::table
-                .left_join(schema::forest_project_notifications::table)
-                .filter(schema::forest_projects::state.eq(status))
-                .filter(schema::forest_project_notifications::cognito_user_id.eq(user_cognito_id))
-                .order(schema::forest_projects::created_at.desc())
-                .limit(page_size)
-                .offset(page * page_size)
-                .select((
-                    db::forest_project::ForestProject::as_select(),
-                    schema::forest_project_notifications::id.nullable(),
-                ))
-                .get_results(conn)?;
-        let total_count = schema::forest_projects::table
-            .filter(schema::forest_projects::state.eq(status))
-            .count()
-            .get_result::<i64>(conn)?;
-        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
-        let res = res
-            .into_iter()
-            .map(|(project, notification_id)| ForestProjectWithNotification {
-                project,
-                notification_id,
-            })
-            .collect();
-
-        Ok((res, page_count))
-    }
-}
-
-#[derive(Object)]
-pub struct ForestProjectDetails {
-    pub project:             db::forest_project::ForestProject,
-    pub contract:            SecuritySftRewardsContract,
-    pub project_token:       events_listener::txn_processor::cis2_security::db::Token,
-    pub media:               Vec<db::forest_project::PropertyMedia>,
-    pub mint_fund:           Option<SecurityMintFundContract>,
-    pub mint_fund_token:     Option<events_listener::txn_processor::cis2_security::db::Token>,
-    pub p2p_trade:
-        Option<events_listener::txn_processor::security_p2p_trading::db::P2PTradeContract>,
-    pub user_notification:   Option<db::forest_project::Notification>,
-    pub user_legal_contract: Option<db::forest_project::LegalContractUserSignature>,
-    pub legal_contract:      Option<db::forest_project::LegalContract>,
-}
-
-impl ForestProjectDetails {
-    pub fn find(
-        conn: &mut DbConn,
-        project_id: uuid::Uuid,
-        cognito_user_id: &str,
-    ) -> DbResult<Option<Self>> {
-        let project = match db::forest_project::ForestProject::find(conn, project_id)? {
-            Some(project) => project,
-            None => return Ok(None),
-        };
-        let contract = match project.contract(conn)? {
-            Some(contract) => contract,
-            None => return Ok(None),
-        };
-        let project_token = match contract.token_tracked(conn)? {
-            Some(token) => token,
-            None => return Ok(None),
-        };
-        let (media, _) = project.media(conn, 0, MEDIA_LIMIT)?;
-        let mint_fund = project.mint_fund(conn)?;
-        let mint_fund_token = mint_fund
-            .as_ref()
-            .map(|f| f.token(conn))
-            .transpose()?
-            .flatten();
-        let p2p_trade = project.p2p_trade(conn)?;
-        let user_notification = project.user_notification(conn, cognito_user_id)?;
-        let legal_contract = project.legal_contract(conn)?;
-        let user_legal_contract = project.user_legal_contract(conn, cognito_user_id)?;
-
-        Ok(Some(Self {
-            project,
-            project_token,
-            media,
-            mint_fund,
-            mint_fund_token,
-            p2p_trade,
-            user_notification,
-            user_legal_contract,
-            legal_contract,
-            contract,
-        }))
     }
 }

@@ -2,12 +2,20 @@ use chrono::{DateTime, Utc};
 use concordium_protocols::concordium_cis2_security::Cis2SecurityEvent;
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
+use rust_decimal::Decimal;
 use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
-use shared::db::DbConn;
+use shared::db::security_sft_rewards::{
+    ContractReward, RewardClaimed, RewardToken,
+};
+use shared::db_shared::DbConn;
 use tracing::{debug, instrument};
 
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_security;
+use crate::txn_processor::cis2_utils::{
+    rate_to_decimal, ContractAddressToDecimal, TokenAmountToDecimal, TokenIdToDecimal,
+};
+pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
 
 fn process_cis2_security_event(
     conn: &mut DbConn,
@@ -80,8 +88,63 @@ pub fn process_events(
                 contract,
                 Cis2SecurityEvent::TokenUnFrozen(a),
             )?,
-            Event::RewardAdded(event) => todo!(),
-            Event::RewardClaimed(event) => todo!(),
+            Event::RewardAdded(event) => {
+                ContractReward {
+                    contract_address:        contract.to_decimal(),
+                    rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
+                    rewarded_token_id:       event.rewarded_token_id.to_decimal(),
+                    reward_amount:           event.reward_amount.to_decimal(),
+                    create_time:             now.naive_utc(),
+                    update_time:             now.naive_utc(),
+                }
+                .upsert_add_amount(conn)?;
+                RewardToken {
+                    contract_address:        contract.to_decimal(),
+                    token_id:                event.token_id.to_decimal(),
+                    reward_amount:           event.reward_amount.to_decimal(),
+                    reward_rate:             rate_to_decimal(
+                        event.reward_rate.numerator,
+                        event.reward_rate.denominator,
+                    ),
+                    rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
+                    rewarded_token_id:       event.rewarded_token_id.to_decimal(),
+                    create_time:             now.naive_utc(),
+                    update_time:             now.naive_utc(),
+                }
+                .insert(conn)?;
+            }
+            Event::RewardClaimed(event) => {
+                ContractReward::sub_amount(
+                    conn,
+                    contract.to_decimal(),
+                    event.rewarded_token_contract.to_decimal(),
+                    event.rewarded_token_id.to_decimal(),
+                    event.reward_amount.to_decimal(),
+                    now.naive_utc(),
+                )?;
+                RewardToken::sub_amount(
+                    conn,
+                    contract.to_decimal(),
+                    event.token_id.to_decimal(),
+                    event.rewarded_token_contract.to_decimal(),
+                    event.rewarded_token_id.to_decimal(),
+                    event.reward_amount.to_decimal(),
+                    now.naive_utc(),
+                )?;
+                RewardClaimed {
+                    id: uuid::Uuid::new_v4(),
+                    contract_address: contract.to_decimal(),
+                    token_id: event.token_id.to_decimal(),
+                    holder_address: event.owner.to_string(),
+                    token_amount: event.amount.to_decimal(),
+                    rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
+                    rewarded_token_id: event.rewarded_token_id.to_decimal(),
+                    reward_amount: event.reward_amount.to_decimal(),
+                    create_time: now.naive_utc(),
+                    update_time: now.naive_utc(),
+                }
+                .insert(conn)?;
+            }
         }
     }
 

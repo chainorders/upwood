@@ -6,8 +6,6 @@ create table
         currency_token_contract_address numeric(20) not null,
         currency_token_id numeric(20) not null,
         token_amount numeric(78) not null default 0,
-        rate_numerator bigint not null,
-        rate_denominator bigint not null,
         create_time timestamp not null,
         update_time timestamp not null
     );
@@ -18,6 +16,7 @@ create table
         contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         trader_address varchar not null,
         token_amount numeric(78) not null,
+        rate numeric(20, 20) not null,
         create_time timestamp not null,
         update_time timestamp not null,
         primary key (contract_address, trader_address)

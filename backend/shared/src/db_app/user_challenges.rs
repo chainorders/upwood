@@ -2,10 +2,10 @@ use chrono::{DateTime, Duration, Utc};
 use concordium_rust_sdk::constants;
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::prelude::*;
-use shared::db::DbConn;
 use uuid::Uuid;
 
-use crate::db::DbResult;
+use crate::db_shared::{DbConn, DbResult};
+
 use crate::schema::user_challenges;
 
 #[derive(Selectable, Queryable, Identifiable, Debug, PartialEq, Insertable)]

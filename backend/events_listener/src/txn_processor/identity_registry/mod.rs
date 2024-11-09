@@ -4,7 +4,6 @@
 //! trait to fetch data from the database. The API endpoints are defined using
 //! the `poem_openapi` and `poem` crates, and the responses are serialized as
 //! JSON using the `Json` type.
-pub mod db;
 pub mod processor;
 
 use concordium_rust_sdk::base::hashes::ModuleReference;
@@ -40,16 +39,17 @@ mod integration_tests {
     };
     use diesel::r2d2::ConnectionManager;
     use r2d2::Pool;
-    use shared::db::DbPool;
+    use shared::db::identity_registry::{Agent, Identity, Issuer};
+    use shared::db::txn_listener::ProcessorType;
+    use shared::db_setup;
+    use shared::db_shared::DbPool;
     use shared_tests::{create_new_database_container, to_contract_event};
 
-    use crate::db_setup;
-    use crate::txn_listener::db::ProcessorType;
     use crate::txn_listener::listener::{
         process_block, ContractCall, ContractCallType, ParsedBlock, ParsedTxn, Processors,
     };
     use crate::txn_processor::cis2_utils::ContractAddressToDecimal;
-    use crate::txn_processor::identity_registry::{self, db};
+    use crate::txn_processor::identity_registry::{self};
 
     #[tokio::test]
     async fn add_identity() {
@@ -339,9 +339,9 @@ mod integration_tests {
 
         let mut conn = pool.get().expect("Error getting database connection");
         let contract_address = contract_address.to_decimal();
-        let (identities, page_count) = db::Identity::list(&mut conn, contract_address, 10, 0)
-            .expect("Error Listing Identitites");
-        assert_eq!(identities, vec![db::Identity::new(
+        let (identities, page_count) =
+            Identity::list(&mut conn, contract_address, 10, 0).expect("Error Listing Identitites");
+        assert_eq!(identities, vec![Identity::new(
             &Address::Account(AccountAddress([1; ACCOUNT_ADDRESS_SIZE])),
             block_2_time,
             contract_address
@@ -349,8 +349,8 @@ mod integration_tests {
         assert_eq!(page_count, 1);
 
         let (agents, page_count) =
-            db::Agent::list(&mut conn, contract_address, 10, 0).expect("Error Listing Agents");
-        assert_eq!(agents, vec![db::Agent::new(
+            Agent::list(&mut conn, contract_address, 10, 0).expect("Error Listing Agents");
+        assert_eq!(agents, vec![Agent::new(
             Address::Account(AccountAddress([10; ACCOUNT_ADDRESS_SIZE])),
             block_2_time,
             contract_address
@@ -358,8 +358,8 @@ mod integration_tests {
         assert_eq!(page_count, 1);
 
         let (issuers, page_count) =
-            db::Issuer::list(&mut conn, contract_address, 10, 0).expect("Error Listing Issuers");
-        assert_eq!(issuers, vec![db::Issuer::new(
+            Issuer::list(&mut conn, contract_address, 10, 0).expect("Error Listing Issuers");
+        assert_eq!(issuers, vec![Issuer::new(
             ContractAddress {
                 index:    1001,
                 subindex: 0,

@@ -1,26 +1,32 @@
 use std::ops::{Add, Sub};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use concordium_protocols::rate::Rate;
+// use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::prelude::*;
-use num_traits::Zero;
 use poem_openapi::Object;
 use rust_decimal::Decimal;
-use security_mint_fund::AnyTokenUId;
+// use security_mint_fund::AnyTokenUId;
 use serde::Serialize;
 use serde_json::to_value;
-use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     security_p2p_trading_contracts, security_p2p_trading_deposits, security_p2p_trading_records,
 };
-use crate::txn_processor::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 
 /// Represents a contract in the security P2P trading system.
 #[derive(
-    Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object, AsChangeset,
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    PartialEq,
+    Object,
+    AsChangeset,
+    Serialize,
 )]
 #[diesel(table_name = security_p2p_trading_contracts)]
 #[diesel(primary_key(contract_address))]
@@ -31,35 +37,13 @@ pub struct P2PTradeContract {
     pub token_id: Decimal,
     pub currency_token_contract_address: Decimal,
     pub currency_token_id: Decimal,
+    /// The total amount of tokens available for buying in this contract.
     pub token_amount: Decimal,
-    pub rate_numerator: i64,
-    pub rate_denominator: i64,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
 }
 
 impl P2PTradeContract {
-    pub fn new(
-        contract: Decimal,
-        token: &AnyTokenUId,
-        currency: &AnyTokenUId,
-        rate: &Rate,
-        now: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            contract_address: contract,
-            token_contract_address: token.contract.to_decimal(),
-            token_id: token.id.to_decimal(),
-            currency_token_contract_address: currency.contract.to_decimal(),
-            currency_token_id: currency.id.to_decimal(),
-            token_amount: Decimal::zero(),
-            rate_numerator: rate.numerator as i64,
-            rate_denominator: rate.denominator as i64,
-            create_time: now.naive_utc(),
-            update_time: now.naive_utc(),
-        }
-    }
-
     #[instrument(skip_all)]
     pub fn find(conn: &mut DbConn, contract: Decimal) -> DbResult<Option<Self>> {
         let contract = security_p2p_trading_contracts::table
@@ -80,34 +64,6 @@ impl P2PTradeContract {
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
         diesel::insert_into(security_p2p_trading_contracts::table)
             .values(self)
-            .execute(conn)?;
-        Ok(())
-    }
-
-    /// Updates the contract's rate by setting the new rate and update time.
-    ///
-    /// # Arguments
-    /// * `conn` - A mutable reference to the database connection.
-    /// * `contract` - The contract address to update.
-    /// * `rate` - The new rate to set for the contract.
-    /// * `now` - The current timestamp to update the contract's update time.
-    ///
-    /// # Returns
-    /// A `DbResult<()>` indicating whether the operation was successful.
-    #[instrument(skip_all)]
-    pub fn update_rate(
-        conn: &mut DbConn,
-        contract: Decimal,
-        rate: &Rate,
-        now: DateTime<Utc>,
-    ) -> DbResult<()> {
-        diesel::update(security_p2p_trading_contracts::table)
-            .filter(security_p2p_trading_contracts::contract_address.eq(contract))
-            .set((
-                security_p2p_trading_contracts::rate_numerator.eq(rate.numerator as i64),
-                security_p2p_trading_contracts::rate_denominator.eq(rate.denominator as i64),
-                security_p2p_trading_contracts::update_time.eq(now.naive_utc()),
-            ))
             .execute(conn)?;
         Ok(())
     }
@@ -167,23 +123,10 @@ impl P2PTradeContract {
             .execute(conn)?;
         Ok(())
     }
-
-    #[instrument(skip_all)]
-    pub fn rate(conn: &mut DbConn, contract: Decimal) -> DbResult<f32> {
-        let (numerator, denominator) = security_p2p_trading_contracts::table
-            .filter(security_p2p_trading_contracts::contract_address.eq(contract))
-            .select((
-                security_p2p_trading_contracts::rate_numerator,
-                security_p2p_trading_contracts::rate_denominator,
-            ))
-            .first::<(i64, i64)>(conn)?;
-        let rate = numerator as f32 / denominator as f32;
-        Ok(rate)
-    }
 }
 
 /// Represents a deposit Or alternatively a Sell Position in the security P2P trading system.
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object, Serialize)]
 #[diesel(table_name = security_p2p_trading_deposits)]
 #[diesel(primary_key(contract_address, trader_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -191,25 +134,12 @@ pub struct Deposit {
     pub contract_address: Decimal,
     pub trader_address:   String,
     pub token_amount:     Decimal,
+    pub rate:             Decimal,
     pub create_time:      NaiveDateTime,
     pub update_time:      NaiveDateTime,
 }
-impl Deposit {
-    pub(crate) fn new(
-        contract: Decimal,
-        from: &AccountAddress,
-        amount: Decimal,
-        now: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            contract_address: contract,
-            trader_address:   from.to_string(),
-            token_amount:     amount,
-            create_time:      now.naive_utc(),
-            update_time:      now.naive_utc(),
-        }
-    }
 
+impl Deposit {
     /// Inserts a new deposit record or updates an existing one by adding the specified amount.
     ///
     /// # Arguments
@@ -305,6 +235,7 @@ pub struct TradingRecordInsert {
     pub metadata:         serde_json::Value,
     pub create_time:      NaiveDateTime,
 }
+
 impl TradingRecordInsert {
     pub fn new_sell(
         contract: Decimal,

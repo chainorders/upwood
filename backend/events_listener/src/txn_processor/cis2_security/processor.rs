@@ -11,10 +11,12 @@ use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
 use diesel::Connection;
 use rust_decimal::Decimal;
-use shared::db::*;
+use shared::db::cis2_security::{
+    Agent, Compliance, IdentityRegistry, Operator, RecoveryRecord, Token, TokenHolder,
+};
+use shared::db_shared::{DbConn, DbResult};
 use tracing::{debug, instrument};
 
-use super::db::{self, Token, TokenHolder};
 use crate::txn_listener::listener::ProcessorError;
 use crate::txn_processor::cis2_utils::*;
 
@@ -42,7 +44,7 @@ where
             let token_id = token_id.to_decimal();
             let amount = amount.to_decimal();
             conn.transaction(|conn| {
-                db::TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, now)
+                TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, now)
                     .upsert(conn)?;
                 Token::update_supply(conn, contract.to_decimal(), token_id, amount, true)?;
                 DbResult::Ok(())
@@ -51,7 +53,7 @@ where
         Cis2Event::TokenMetadata(TokenMetadataEvent {
             token_id,
             metadata_url,
-        }) => db::Token::new(
+        }) => Token::new(
             contract.to_decimal(),
             token_id.to_decimal(),
             false,
@@ -95,14 +97,14 @@ where
                 &from,
                 amount,
             )?;
-            db::TokenHolder::new(contract.to_decimal(), token_id, &to, amount, now).upsert(conn)
+            TokenHolder::new(contract.to_decimal(), token_id, &to, amount, now).upsert(conn)
         }),
         Cis2Event::UpdateOperator(UpdateOperatorEvent {
             owner,
             operator,
             update,
         }) => {
-            let record = db::Operator::new(contract.to_decimal(), &owner, &operator);
+            let record = Operator::new(contract.to_decimal(), &owner, &operator);
             match update {
                 OperatorUpdate::Add => record.insert(conn),
                 OperatorUpdate::Remove => record.delete(conn),
@@ -147,7 +149,7 @@ where
     R: Deserial+fmt::Debug+std::string::ToString,
 {
     match parsed_event {
-        Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent { agent, roles }) => db::Agent::new(
+        Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent { agent, roles }) => Agent::new(
             agent,
             now,
             contract.to_decimal(),
@@ -155,33 +157,32 @@ where
         )
         .insert(conn)?,
         Cis2SecurityEvent::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
-            db::Agent::delete(conn, contract.to_decimal(), &agent)?
+            Agent::delete(conn, contract.to_decimal(), &agent)?
         }
         Cis2SecurityEvent::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
-            db::Compliance::new(contract.to_decimal(), compliance_contract.to_decimal())
-                .upsert(conn)?
+            Compliance::new(contract.to_decimal(), compliance_contract.to_decimal()).upsert(conn)?
         }
         Cis2SecurityEvent::IdentityRegistryAdded(IdentityRegistryAdded(
             identity_registry_contract,
-        )) => db::IdentityRegistry::new(
+        )) => IdentityRegistry::new(
             contract.to_decimal(),
             identity_registry_contract.to_decimal(),
         )
         .upsert(conn)?,
         Cis2SecurityEvent::Paused(Paused { token_id }) => {
-            db::Token::update_paused(conn, contract.to_decimal(), token_id.to_decimal(), true)?
+            Token::update_paused(conn, contract.to_decimal(), token_id.to_decimal(), true)?
         }
         Cis2SecurityEvent::UnPaused(Paused { token_id }) => {
-            db::Token::update_paused(conn, contract.to_decimal(), token_id.to_decimal(), false)?
+            Token::update_paused(conn, contract.to_decimal(), token_id.to_decimal(), false)?
         }
         Cis2SecurityEvent::Recovered(RecoverEvent {
             lost_account,
             new_account,
         }) => {
             let updated_rows = conn.transaction(|conn| {
-                db::RecoveryRecord::new(contract.to_decimal(), &lost_account, &new_account)
+                RecoveryRecord::new(contract.to_decimal(), &lost_account, &new_account)
                     .insert(conn)?;
-                db::TokenHolder::replace(conn, contract.to_decimal(), &lost_account, &new_account)
+                TokenHolder::replace(conn, contract.to_decimal(), &lost_account, &new_account)
             })?;
             debug!("account recovery, {} token ids updated", updated_rows);
         }
@@ -189,7 +190,7 @@ where
             address,
             amount,
             token_id,
-        }) => db::TokenHolder::update_balance_frozen(
+        }) => TokenHolder::update_balance_frozen(
             conn,
             contract.to_decimal(),
             token_id.to_decimal(),
@@ -201,7 +202,7 @@ where
             address,
             amount,
             token_id,
-        }) => db::TokenHolder::update_balance_frozen(
+        }) => TokenHolder::update_balance_frozen(
             conn,
             contract.to_decimal(),
             token_id.to_decimal(),

@@ -3,12 +3,13 @@ use concordium_rust_sdk::types::Address;
 use diesel::dsl::*;
 use diesel::prelude::*;
 use rust_decimal::Decimal;
-use shared::db::{DbConn, DbResult};
 use tracing::instrument;
 
 use crate::schema::{
     identity_registry_agents, identity_registry_identities, identity_registry_issuers,
 };
+
+use crate::db_shared::{DbConn, DbResult};
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = identity_registry_identities)]

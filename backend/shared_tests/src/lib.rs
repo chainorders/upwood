@@ -1,4 +1,3 @@
-use concordium_cis2::{TokenIdU64, TokenIdU8, TokenIdVec};
 use concordium_rust_sdk::base::contracts_common::Serial;
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use testcontainers::runners::AsyncRunner;
@@ -24,20 +23,4 @@ where Event: Serial {
     let mut out: Vec<u8> = Vec::new();
     e.serial(&mut out).expect("Error serializing event");
     out.into()
-}
-
-pub fn to_token_id_vec_u8(token_id: TokenIdU8) -> TokenIdVec {
-    let mut bytes: Vec<u8> = vec![];
-    token_id
-        .serial(&mut bytes)
-        .expect("Error converting tokenid u8 to token id vec");
-    TokenIdVec(bytes)
-}
-
-pub fn to_token_id_vec_u64(token_id: TokenIdU64) -> TokenIdVec {
-    let mut bytes: Vec<u8> = vec![];
-    token_id
-        .serial(&mut bytes)
-        .expect("Error converting tokenid u64 to token id vec");
-    TokenIdVec(bytes)
 }

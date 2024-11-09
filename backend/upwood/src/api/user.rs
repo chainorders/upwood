@@ -9,19 +9,18 @@ use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
 use diesel::Connection;
 use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
-use events_listener::txn_processor::identity_registry;
 use poem::web::Data;
 use poem_openapi::param::Path;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use serde::Serialize;
 use shared::api::PagedResponse;
-use shared::db::DbPool;
+use shared::db::identity_registry::Identity;
+use shared::db_app::user_challenges::UserChallenge;
+use shared::db_app::users::{User, UserAffiliate};
 use tracing::info;
 
 use crate::api::*;
-use crate::db;
-use crate::db::user_challenges::UserChallenge;
 use crate::utils::*;
 
 #[derive(Clone, Copy)]
@@ -48,14 +47,14 @@ impl Api {
         Data(db_pool): Data<&DbPool>,
         Data(identity_registry): Data<&IdentityRegistryContractAddress>,
         BearerAuthorization(claims): BearerAuthorization,
-    ) -> JsonResult<User> {
+    ) -> JsonResult<ApiUser> {
         let mut conn = db_pool.get()?;
-        let user = db::users::find_user_by_cognito_user_id(&mut conn, &claims.sub)?
+        let user = User::find(&mut conn, &claims.sub)?
             .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
         let is_kyc_verified = claims
             .account()
             .map(|a| {
-                identity_registry::db::Identity::exists(
+                Identity::exists(
                     &mut conn,
                     identity_registry.0.to_decimal(),
                     &Address::Account(a),
@@ -63,7 +62,7 @@ impl Api {
             })
             .unwrap_or(Ok(false))?;
 
-        let user = User::new(&user, claims.is_admin(), is_kyc_verified);
+        let user = ApiUser::new(&user, claims.is_admin(), is_kyc_verified);
         Ok(Json(user))
     }
 
@@ -114,7 +113,7 @@ impl Api {
 
         if let Some(account) = req.affiliate_account_address()? {
             let mut conn = db_pool.get()?;
-            db::users::affiliation::insert(&mut conn, &user, &account)?;
+            UserAffiliate::insert(&mut conn, &user, &account)?;
         }
 
         Ok(Json(user.to_owned()))
@@ -145,29 +144,24 @@ impl Api {
         Data(identity_registry): Data<&IdentityRegistryContractAddress>,
         BearerAuthorization(claims): BearerAuthorization,
         Json(req): Json<UserRegisterReq>,
-    ) -> JsonResult<User> {
+    ) -> JsonResult<ApiUser> {
         if !claims.email_verified() {
             user_pool.set_email_verified(&claims.sub).await?;
         }
 
         let mut conn = db_pool.get()?;
-        let user = db::users::upsert(&mut conn, &db::users::User {
+        let user = User {
             email:                     claims.email.to_owned(),
             cognito_user_id:           claims.sub.to_owned(),
             account_address:           None,
             desired_investment_amount: Some(req.desired_investment_amount),
-        })?;
-        let user = User::new(
+        }
+        .upsert(&mut conn)?;
+        let user = ApiUser::new(
             &user,
             claims.is_admin(),
             user.account_address()
-                .map(|a| {
-                    identity_registry::db::Identity::exists(
-                        &mut conn,
-                        identity_registry.0.to_decimal(),
-                        &a.into(),
-                    )
-                })
+                .map(|a| Identity::exists(&mut conn, identity_registry.0.to_decimal(), &a.into()))
                 .unwrap_or(Ok(false))?,
         );
         Ok(Json(user))
@@ -284,7 +278,7 @@ impl Api {
             .update_account_address(&claims.sub, &account_address)
             .await?;
         conn.transaction(|conn| {
-            db::users::update_account_address(conn, &claims.sub, &account_address)?;
+            User::update_account_address(conn, &claims.sub, &account_address)?;
             UserChallenge::delete_by_user_id(conn, &claims.sub)?;
             Ok::<_, Error>(())
         })
@@ -321,14 +315,13 @@ impl AdminApi {
     ) -> JsonResult<AdminUser> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let user =
-            db::users::find_user_by_cognito_user_id(&mut conn, &cognito_user_id.to_string())?
-                .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
+        let user = User::find(&mut conn, &cognito_user_id.to_string())?
+            .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
         let user = AdminUser::new(
             &user,
             user.account_address()
                 .map(|a| {
-                    identity_registry::db::Identity::exists(
+                    Identity::exists(
                         &mut conn,
                         identity_registry.0.to_decimal(),
                         &Address::Account(a),
@@ -368,11 +361,11 @@ impl AdminApi {
             .parse()
             .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))?;
         let mut conn = db_pool.get()?;
-        let user = db::users::find_user_by_account_address(&mut conn, &account_address)?
+        let user = User::find_by_account_address(&mut conn, &account_address)?
             .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
         let user = AdminUser::new(
             &user,
-            identity_registry::db::Identity::exists(
+            Identity::exists(
                 &mut conn,
                 identity_registry.0.to_decimal(),
                 &Address::Account(account_address),
@@ -407,19 +400,16 @@ impl AdminApi {
     ) -> JsonResult<PagedResponse<AdminUser>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let (users, page_count) = db::users::list_users(&mut conn, page, PAGE_SIZE)?;
+        let (users, page_count) = User::list(&mut conn, page, PAGE_SIZE)?;
         let addresses = users
             .iter()
             .map(|user| user.account_address())
             .filter_map(|a| a.map(Address::Account))
             .collect::<Vec<_>>();
-        let registered = identity_registry::db::Identity::exists_batch(
-            &mut conn,
-            identity_registry.0.to_decimal(),
-            &addresses,
-        )?
-        .into_iter()
-        .collect::<BTreeSet<_>>();
+        let registered =
+            Identity::exists_batch(&mut conn, identity_registry.0.to_decimal(), &addresses)?
+                .into_iter()
+                .collect::<BTreeSet<_>>();
         let data = users
             .iter()
             .map(|u| {
@@ -467,7 +457,7 @@ impl AdminApi {
         let mut conn = db_pool.get()?;
         user_pool.delete_user(&cognito_user_id).await?;
         info!("Deleted user from cognito: {}", cognito_user_id);
-        if db::users::delete_by_cognito_user_id(&mut conn, &cognito_user_id)?.ge(&1) {
+        if User::delete(&mut conn, &cognito_user_id)?.ge(&1) {
             info!("Deleted user from db: {}", cognito_user_id);
         }
 
@@ -503,19 +493,19 @@ impl AdminApi {
         ensure_is_admin(&claims)?;
         let cognito_user_id = cognito_user_id.to_string();
         let mut conn = db_pool.get()?;
-        db::users::find_user_by_cognito_user_id(&mut conn, &cognito_user_id)?
+        User::find(&mut conn, &cognito_user_id)?
             .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
         let account_address = request.account_address()?;
         user_pool
             .update_account_address(&cognito_user_id, &account_address)
             .await?;
-        db::users::update_account_address(&mut conn, &cognito_user_id, &account_address)?;
+        User::update_account_address(&mut conn, &cognito_user_id, &account_address)?;
         Ok(())
     }
 }
 
 #[derive(Object, Serialize, Deserialize, PartialEq, Debug)]
-pub struct User {
+pub struct ApiUser {
     /// The email address of the user
     /// This information is provided by the user during the signup process
     pub email:                     String,
@@ -537,8 +527,8 @@ pub struct User {
     pub kyc_verified:              bool,
 }
 
-impl User {
-    pub fn new(db_user: &db::users::User, is_admin: bool, kyc_verified: bool) -> Self {
+impl ApiUser {
+    pub fn new(db_user: &User, is_admin: bool, kyc_verified: bool) -> Self {
         Self {
             email: db_user.email.clone(),
             account_address: db_user.account_address.clone(),
@@ -573,7 +563,7 @@ pub struct AdminUser {
 }
 
 impl AdminUser {
-    pub fn new(db_user: &db::users::User, kyc_verified: bool) -> Self {
+    pub fn new(db_user: &User, kyc_verified: bool) -> Self {
         Self {
             email: db_user.email.clone(),
             account_address: db_user.account_address.clone(),

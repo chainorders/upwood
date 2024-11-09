@@ -2,9 +2,8 @@ use chrono::{DateTime, Utc};
 use diesel::dsl::sql;
 use diesel::prelude::*;
 use sha2::Digest;
-use shared::db::DbConn;
 
-use crate::db::DbResult;
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::tree_nft_metadatas;
 
 #[derive(
@@ -23,19 +22,20 @@ pub struct TreeNftMetadata {
 
 impl TreeNftMetadata {
     pub fn new(
-        metadata_url: nft_multi_rewarded::MetadataUrl,
+        metadata_url: String,
+        metadata_hash: Option<String>,
         probablity_percentage: i16,
         now: DateTime<Utc>,
     ) -> Self {
         let mut hasher = sha2::Sha256::new();
-        hasher.update(metadata_url.url.as_bytes());
+        hasher.update(&metadata_url);
         let hash = hasher.finalize();
         let hash = hex::encode(hash)[..16].to_string();
 
         Self {
             id: hash,
-            metadata_url: metadata_url.url,
-            metadata_hash: metadata_url.hash.map(hex::encode),
+            metadata_url,
+            metadata_hash,
             probablity_percentage,
             created_at: now.naive_utc(),
         }

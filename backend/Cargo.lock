@@ -1980,6 +1980,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -4590,13 +4591,19 @@ dependencies = [
  "concordium-cis2",
  "concordium-rust-sdk",
  "diesel",
+ "diesel-derive-enum",
  "diesel_migrations",
+ "hex",
  "num-bigint",
  "num-traits",
  "poem-openapi",
  "r2d2",
  "rust_decimal",
  "serde",
+ "serde_json",
+ "sha2",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

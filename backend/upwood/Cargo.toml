@@ -14,7 +14,7 @@ poem-openapi = { workspace = true, features = [
     "uuid",
 ] }
 poem.workspace = true
-uuid = { version = "1.10.0", features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
 diesel = { workspace = true, features = [
     "numeric",
     "postgres",

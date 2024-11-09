@@ -1,7 +1,7 @@
 use std::ops::{Add, Sub};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use concordium_protocols::rate::Rate;
+// use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::expression::AsExpression;
@@ -10,34 +10,23 @@ use diesel::serialize::ToSql;
 use diesel::sql_types::Integer;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use security_mint_fund::{AnyTokenUId, FundState};
-use shared::db::{DbConn, DbResult};
+use serde::Serialize;
 use tracing::instrument;
 
+use super::cis2_security::Token;
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     security_mint_fund_contracts, security_mint_fund_investment_records,
     security_mint_fund_investors,
 };
-use crate::txn_processor::cis2_security;
-use crate::txn_processor::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 
 #[repr(i32)]
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum)]
+#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize)]
 #[diesel(sql_type = Integer)]
 pub enum SecurityMintFundState {
     Open    = 0,
     Success = 1,
     Fail    = 2,
-}
-
-impl From<FundState> for SecurityMintFundState {
-    fn from(value: FundState) -> Self {
-        match value {
-            FundState::Open => SecurityMintFundState::Open,
-            FundState::Success(_) => SecurityMintFundState::Success,
-            FundState::Fail => SecurityMintFundState::Fail,
-        }
-    }
 }
 
 impl FromSql<Integer, diesel::pg::Pg> for SecurityMintFundState {
@@ -62,7 +51,7 @@ impl ToSql<Integer, diesel::pg::Pg> for SecurityMintFundState {
     }
 }
 
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object, Serialize)]
 #[diesel(table_name = security_mint_fund_contracts)]
 #[diesel(primary_key(contract_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -74,8 +63,7 @@ pub struct SecurityMintFundContract {
     pub investment_token_id: Decimal,
     pub currency_token_contract_address: Decimal,
     pub currency_token_id: Decimal,
-    pub rate_numerator: i64,
-    pub rate_denominator: i64,
+    pub rate: Decimal,
     pub fund_state: SecurityMintFundState,
     pub currency_amount: Decimal,
     pub token_amount: Decimal,
@@ -84,33 +72,6 @@ pub struct SecurityMintFundContract {
 }
 
 impl SecurityMintFundContract {
-    pub fn new(
-        contract: Decimal,
-        token: AnyTokenUId,
-        investment_token: AnyTokenUId,
-        currency_token: AnyTokenUId,
-        rate: Rate,
-        fund_state: FundState,
-        now: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            contract_address: contract,
-            token_contract_address: token.contract.to_decimal(),
-            token_id: token.id.to_decimal(),
-            investment_token_contract_address: investment_token.contract.to_decimal(),
-            investment_token_id: investment_token.id.to_decimal(),
-            currency_token_contract_address: currency_token.contract.to_decimal(),
-            currency_token_id: currency_token.id.to_decimal(),
-            rate_numerator: rate.numerator as i64,
-            rate_denominator: rate.denominator as i64,
-            fund_state: fund_state.into(),
-            currency_amount: Decimal::from(0),
-            token_amount: Decimal::from(0),
-            create_time: now.naive_utc(),
-            update_time: now.naive_utc(),
-        }
-    }
-
     #[instrument(skip_all)]
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
         diesel::insert_into(security_mint_fund_contracts::table)
@@ -132,35 +93,29 @@ impl SecurityMintFundContract {
     pub fn update_state(
         conn: &mut DbConn,
         contract: Decimal,
-        fund_state: FundState,
+        fund_state: SecurityMintFundState,
         block_slot_time: DateTime<Utc>,
     ) -> DbResult<()> {
         diesel::update(security_mint_fund_contracts::table)
             .filter(security_mint_fund_contracts::contract_address.eq(contract))
             .set((
-                security_mint_fund_contracts::fund_state
-                    .eq::<SecurityMintFundState>(fund_state.into()),
+                security_mint_fund_contracts::fund_state.eq(fund_state),
                 security_mint_fund_contracts::update_time.eq(block_slot_time.naive_utc()),
             ))
             .execute(conn)?;
         Ok(())
     }
 
-    pub fn token(&self, conn: &mut DbConn) -> DbResult<Option<cis2_security::db::Token>> {
-        let token =
-            cis2_security::db::Token::find(conn, self.token_contract_address, self.token_id)?;
+    pub fn token(&self, conn: &mut DbConn) -> DbResult<Option<Token>> {
+        let token = Token::find(conn, self.token_contract_address, self.token_id)?;
         Ok(token)
     }
 
-    pub fn rate(conn: &mut DbConn, contract_address: Decimal) -> DbResult<f32> {
-        let rate: (i64, i64) = security_mint_fund_contracts::table
+    pub fn rate(conn: &mut DbConn, contract_address: Decimal) -> DbResult<Decimal> {
+        let rate = security_mint_fund_contracts::table
             .filter(security_mint_fund_contracts::contract_address.eq(contract_address))
-            .select((
-                security_mint_fund_contracts::rate_numerator,
-                security_mint_fund_contracts::rate_denominator,
-            ))
+            .select(security_mint_fund_contracts::rate)
             .first(conn)?;
-        let rate = rate.0 as f32 / rate.1 as f32;
         Ok(rate)
     }
 

@@ -7,7 +7,7 @@ use test_utils::test_api::TestApi;
 use test_utils::test_cognito::TestCognito;
 use tracing_test::traced_test;
 use upwood::api;
-use upwood::api::user::{AdminUser, User, UserRegisterReq};
+use upwood::api::user::{AdminUser, ApiUser, UserRegisterReq};
 use uuid::Uuid;
 
 #[traced_test]
@@ -67,7 +67,7 @@ async fn cognito_auth_test() {
         .await;
     let user = api.user_self(&id_token).await;
     assert_eq!(user_update, user);
-    assert_eq!(user, User {
+    assert_eq!(user, ApiUser {
         email:                     email.to_owned(),
         cognito_user_id:           user_id.to_owned(),
         account_address:           None,
@@ -79,7 +79,7 @@ async fn cognito_auth_test() {
     cognito.admin_add_to_admin_group(&user_id).await;
     let id_token = cognito.user_login(&email, &password).await;
     let user = api.user_self(&id_token).await;
-    assert_eq!(user, User {
+    assert_eq!(user, ApiUser {
         email:                     email.to_owned(),
         cognito_user_id:           user_id.to_owned(),
         account_address:           None,
@@ -96,7 +96,7 @@ async fn cognito_auth_test() {
     println!("updated account address: {}", user.cognito_user_id);
     let id_token = cognito.user_login(&email, &password).await;
     let user = api.user_self(&id_token).await;
-    assert_eq!(user, User {
+    assert_eq!(user, ApiUser {
         email:                     email.to_owned(),
         cognito_user_id:           user_id.to_owned(),
         account_address:           Some(account_address.clone()),

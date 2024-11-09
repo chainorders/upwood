@@ -4,7 +4,7 @@ use poem::Route;
 use shared::api::PagedResponse;
 use upwood::api;
 use upwood::api::user::{
-    AdminUser, User, UserRegisterReq, UserRegistrationInvitationSendReq,
+    AdminUser, ApiUser, UserRegisterReq, UserRegistrationInvitationSendReq,
     UserUpdateAccountAddressRequest,
 };
 use uuid::Uuid;
@@ -53,7 +53,7 @@ impl TestApi {
         }
     }
 
-    pub async fn user_register(&mut self, id_token: &str, req: &UserRegisterReq) -> User {
+    pub async fn user_register(&mut self, id_token: &str, req: &UserRegisterReq) -> ApiUser {
         let res = self
             .client
             .post("/users")
@@ -77,11 +77,11 @@ impl TestApi {
             .await
     }
 
-    pub async fn user_self(&self, id_token: &str) -> User {
+    pub async fn user_self(&self, id_token: &str) -> ApiUser {
         let mut res = self.user_self_req(id_token).await.0;
         match res.status() {
             StatusCode::OK => {
-                let res: User = res
+                let res: ApiUser = res
                     .into_body()
                     .into_json()
                     .await

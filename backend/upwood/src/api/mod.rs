@@ -26,9 +26,9 @@ use r2d2::Pool;
 use secure_string::SecureString;
 use serde::Deserialize;
 use sha2::Digest;
-use shared::db::DbPool;
+use shared::db_setup;
+use shared::db_shared::DbPool;
 
-use crate::db;
 use crate::utils::{self, *};
 pub type OpenApiServiceType = poem_openapi::OpenApiService<
     (
@@ -44,6 +44,9 @@ pub type OpenApiServiceType = poem_openapi::OpenApiService<
         carbon_credits::AdminApi,
         forest_project::Api,
         forest_project::AdminApi,
+        forest_project::MediaApi,
+        forest_project::PricesAdminApi,
+        forest_project::ForestProjectRewardsApi,
     ),
     (),
 >;
@@ -89,7 +92,7 @@ pub async fn create_web_app(config: &Config) -> Route {
         config.postgres_db
     );
     // Database Dependencies
-    db::db_setup::run_migrations(&database_url);
+    db_setup::run_migrations(&database_url);
     let db_pool: DbPool = Pool::builder()
         .max_size(config.db_pool_max_size)
         .build(ConnectionManager::new(&database_url))
@@ -193,6 +196,9 @@ pub fn create_service() -> OpenApiServiceType {
             carbon_credits::AdminApi,
             forest_project::Api,
             forest_project::AdminApi,
+            forest_project::MediaApi,
+            forest_project::PricesAdminApi,
+            forest_project::ForestProjectRewardsApi,
         ),
         "Upwood API",
         "1.0.0",

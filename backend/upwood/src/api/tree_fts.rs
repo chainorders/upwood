@@ -3,7 +3,6 @@ use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
 use poem::web::Data;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::OpenApi;
-use shared::db::DbPool;
 
 use super::*;
 
