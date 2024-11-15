@@ -42,7 +42,9 @@ pub fn normal_flow_sft_single() {
     let (euroe_contract, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
-        create_token_contract_sft_single(&mut chain, &admin, compliance_contract, ir_contract);
+        create_token_contract_sft_single(&mut chain, &admin, compliance_contract, ir_contract)
+            .0
+            .contract_address;
     let trading_contract = security_p2p_trading_client::init(&mut chain, &admin, &InitParam {
         currency: TokenUId {
             id:       to_token_id_vec(TokenIdUnit()),
@@ -366,7 +368,7 @@ fn create_token_contract_sft_single(
     admin: &Account,
     compliance_contract: ContractAddress,
     ir_contract: ContractAddress,
-) -> ContractAddress {
+) -> (ContractInitSuccess, ModuleReference, OwnedContractName) {
     security_sft_single_client::init(chain, admin, &security_sft_single::types::InitParam {
         compliance:        compliance_contract,
         identity_registry: ir_contract,
@@ -377,7 +379,6 @@ fn create_token_contract_sft_single(
         sponsors:          None,
     })
     .expect("init sft single")
-    .contract_address
 }
 
 fn create_token_contract_sft_rewards(

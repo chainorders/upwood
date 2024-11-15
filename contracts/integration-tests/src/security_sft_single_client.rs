@@ -21,19 +21,26 @@ pub fn init(
     chain: &mut Chain,
     sender: &Account,
     param: &InitParam,
-) -> Result<ContractInitSuccess, ContractInitError> {
-    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
-    chain.contract_init(
-        Signer::with_one_key(),
-        sender.address,
-        MAX_ENERGY,
-        InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: CONTRACT_NAME.to_owned(),
-            mod_ref:   module.get_module_ref(),
-            param:     OwnedParameter::from_serial(param).unwrap(),
-        },
-    )
+) -> Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError> {
+    let module_ref = WasmModule::from_slice(MODULE_BYTES)
+        .unwrap()
+        .get_module_ref();
+    let contract_name = CONTRACT_NAME.to_owned();
+    let init = chain
+        .contract_init(
+            Signer::with_one_key(),
+            sender.address,
+            MAX_ENERGY,
+            InitContractPayload {
+                amount:    Amount::zero(),
+                init_name: contract_name.clone(),
+                mod_ref:   module_ref,
+                param:     OwnedParameter::from_serial(param).unwrap(),
+            },
+        )
+        .expect("Failed to init contract");
+
+    Ok((init, module_ref, contract_name))
 }
 
 pub fn identity_registry(

@@ -37,7 +37,9 @@ fn mint() {
     chain.create_account(non_agent.clone());
 
     let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
+        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
+            .0
+            .contract_address;
     security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(agent_mint.address),
         roles:   vec![AgentRole::Mint],
@@ -115,7 +117,9 @@ fn burn() {
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
+        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
+            .0
+            .contract_address;
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
@@ -280,7 +284,9 @@ fn forced_burn() {
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
+        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
+            .0
+            .contract_address;
 
     let agent_forced_burn = Account::new(AGENT_FORCED_BURN, DEFAULT_ACC_BALANCE);
     chain.create_account(agent_forced_burn.clone());
@@ -506,7 +512,9 @@ fn transfer() {
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
+        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
+            .0
+            .contract_address;
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
@@ -628,7 +636,9 @@ fn forced_transfer() {
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
+        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
+            .0
+            .contract_address;
     let agent_forced_transfer = Account::new(AGENT_FORCED_TRANSFER, DEFAULT_ACC_BALANCE);
     chain.create_account(agent_forced_transfer.clone());
 
@@ -880,7 +890,7 @@ fn create_token_contract(
     admin: &Account,
     compliance_contract: ContractAddress,
     ir_contract: ContractAddress,
-) -> ContractAddress {
+) -> (ContractInitSuccess, ModuleReference, OwnedContractName) {
     security_sft_single_client::init(chain, admin, &InitParam {
         compliance:        compliance_contract,
         identity_registry: ir_contract,
@@ -891,7 +901,6 @@ fn create_token_contract(
         sponsors:          None,
     })
     .expect("init token contract")
-    .contract_address
 }
 
 fn setup_chain(

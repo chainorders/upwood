@@ -46,6 +46,7 @@ fn normal_flow() {
     let wrapped_token_contract =
         create_wrapped_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
             .expect("wrapped token contract")
+            .0
             .contract_address;
 
     let fund_contract = security_mint_fund_client::init(&mut chain, &admin, &State {
@@ -358,7 +359,8 @@ fn create_wrapped_token_contract(
     admin: &Account,
     compliance_contract: ContractAddress,
     ir_contract: ContractAddress,
-) -> Result<ContractInitSuccess, ContractInitError> {
+) -> std::result::Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError>
+{
     security_sft_single_client::init(chain, admin, &security_sft_single::types::InitParam {
         compliance:        compliance_contract,
         identity_registry: ir_contract,
