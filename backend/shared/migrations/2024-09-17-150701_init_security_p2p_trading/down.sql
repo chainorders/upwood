@@ -1,3 +1,5 @@
+drop table if exists security_p2p_trading_trades;
+
 drop table if exists security_p2p_trading_records;
 
 drop type if exists security_p2p_trading_record_type;

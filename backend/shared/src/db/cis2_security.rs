@@ -1,11 +1,15 @@
 use std::ops::{Add, Sub};
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::Address;
+use diesel::deserialize::FromSql;
 use diesel::prelude::*;
+use diesel::serialize::ToSql;
+use diesel::sql_types::Integer;
+use diesel::{AsExpression, FromSqlRow};
 use num_traits::{ToPrimitive, Zero};
-use poem_openapi::Object;
+use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
 use serde::Serialize;
 use tracing::instrument;
@@ -13,7 +17,7 @@ use tracing::instrument;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     cis2_agents, cis2_compliances, cis2_identity_registries, cis2_operators, cis2_recovery_records,
-    cis2_token_holders, cis2_tokens,
+    cis2_token_holder_balance_updates, cis2_token_holders, cis2_tokens,
 };
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object, Serialize)]
@@ -29,7 +33,7 @@ pub struct Agent {
 impl Agent {
     pub fn new(
         agent_address: Address,
-        _time: DateTime<Utc>,
+        _time: NaiveDateTime,
         cis2_address: Decimal,
         roles: Vec<String>,
     ) -> Self {
@@ -95,9 +99,9 @@ impl Agent {
     }
 }
 
-#[derive(Selectable, Queryable, Identifiable, Insertable, AsChangeset, Debug, PartialEq)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = cis2_compliances)]
-#[diesel(primary_key(cis2_address))]
+#[diesel(primary_key(cis2_address, compliance_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Compliance {
     pub cis2_address:       Decimal,
@@ -117,15 +121,9 @@ impl Compliance {
         fields(compliance_address = self.compliance_address.to_string())
     )]
     pub fn upsert(&self, conn: &mut DbConn) -> DbResult<()> {
-        let row_count = diesel::insert_into(cis2_compliances::table)
+        diesel::insert_into(cis2_compliances::table)
             .values(self)
-            .on_conflict((cis2_compliances::cis2_address,))
-            .do_update()
-            .set(self)
             .execute(conn)?;
-
-        assert_eq!(row_count, 1, "More than one row updated");
-
         Ok(())
     }
 }
@@ -153,15 +151,9 @@ impl IdentityRegistry {
         fields(identity_registry_address = self.identity_registry_address.to_string())
     )]
     pub fn upsert(&self, conn: &mut DbConn) -> DbResult<()> {
-        let row_count = diesel::insert_into(cis2_identity_registries::table)
+        diesel::insert_into(cis2_identity_registries::table)
             .values(self)
-            .on_conflict((cis2_identity_registries::cis2_address,))
-            .do_update()
-            .set(self)
             .execute(conn)?;
-
-        assert_eq!(row_count, 1, "More than one row updated");
-
         Ok(())
     }
 }
@@ -196,7 +188,7 @@ impl TokenHolder {
         token_id: Decimal,
         holder_address: &Address,
         balance: Decimal,
-        create_time: DateTime<Utc>,
+        create_time: NaiveDateTime,
     ) -> Self {
         Self {
             token_id,
@@ -204,13 +196,13 @@ impl TokenHolder {
             holder_address: holder_address.to_string(),
             un_frozen_balance: balance,
             frozen_balance: Decimal::ZERO,
-            create_time: create_time.naive_utc(),
+            create_time,
         }
     }
 
     #[instrument(skip_all, fields(holder = self.holder_address.to_string()))]
-    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<()> {
-        let updated_rows = diesel::insert_into(cis2_token_holders::table)
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let holder = diesel::insert_into(cis2_token_holders::table)
             .values(self)
             .on_conflict((
                 cis2_token_holders::cis2_address,
@@ -222,10 +214,10 @@ impl TokenHolder {
                 cis2_token_holders::un_frozen_balance
                     .eq(cis2_token_holders::un_frozen_balance.add(&self.un_frozen_balance)),
             )
-            .execute(conn)?;
-        assert_eq!(updated_rows, 1, "error: {} rows(s) updated", updated_rows);
+            .returning(TokenHolder::as_returning())
+            .get_result(conn)?;
 
-        Ok(())
+        Ok(holder)
     }
 
     #[instrument(skip_all, fields(holder = holder_address.to_string()))]
@@ -235,29 +227,22 @@ impl TokenHolder {
         token_id: Decimal,
         holder_address: &Address,
         balance_delta: Decimal,
-    ) -> DbResult<()> {
-        conn.transaction(|conn| {
-            let update_filter = cis2_token_holders::cis2_address
-                .eq(cis2_address)
-                .and(cis2_token_holders::token_id.eq(token_id))
-                .and(cis2_token_holders::holder_address.eq(holder_address.to_string()));
-            let update = cis2_token_holders::un_frozen_balance
-                .eq(cis2_token_holders::un_frozen_balance.sub(balance_delta));
-            let updated_rows = diesel::update(cis2_token_holders::table)
-                .filter(&update_filter)
-                .set(update)
-                .execute(conn)?;
-            assert_eq!(updated_rows, 1, "error: {} rows(s) updated", updated_rows);
+    ) -> DbResult<TokenHolder> {
+        let holder = diesel::update(cis2_token_holders::table)
+            .filter(
+                cis2_token_holders::cis2_address
+                    .eq(cis2_address)
+                    .and(cis2_token_holders::token_id.eq(token_id))
+                    .and(cis2_token_holders::holder_address.eq(holder_address.to_string())),
+            )
+            .set(
+                cis2_token_holders::un_frozen_balance
+                    .eq(cis2_token_holders::un_frozen_balance.sub(balance_delta)),
+            )
+            .returning(TokenHolder::as_returning())
+            .get_result(conn)?;
 
-            let delete_filter = update_filter
-                .and(cis2_token_holders::un_frozen_balance.eq(Decimal::zero()))
-                .and(cis2_token_holders::frozen_balance.eq(Decimal::zero()));
-            diesel::delete(cis2_token_holders::table)
-                .filter(&delete_filter)
-                .execute(conn)?;
-
-            Ok(())
-        })
+        Ok(holder)
     }
 
     #[instrument(skip_all, fields(holder = holder_address.to_string()))]
@@ -290,13 +275,13 @@ impl TokenHolder {
         holder_address: &Address,
         balance_delta: Decimal,
         increase: bool,
-    ) -> DbResult<()> {
+    ) -> DbResult<TokenHolder> {
         let update_filter = cis2_token_holders::cis2_address
             .eq(cis2_address)
             .and(cis2_token_holders::token_id.eq(token_id))
             .and(cis2_token_holders::holder_address.eq(holder_address.to_string()));
 
-        let updated_rows = match increase {
+        let holder = match increase {
             true => diesel::update(cis2_token_holders::table)
                 .filter(update_filter)
                 .set((
@@ -305,7 +290,8 @@ impl TokenHolder {
                     cis2_token_holders::frozen_balance
                         .eq(cis2_token_holders::un_frozen_balance.sub(balance_delta)),
                 ))
-                .execute(conn)?,
+                .returning(TokenHolder::as_returning())
+                .get_result(conn)?,
             false => diesel::update(cis2_token_holders::table)
                 .filter(update_filter)
                 .set((
@@ -314,11 +300,11 @@ impl TokenHolder {
                     cis2_token_holders::un_frozen_balance
                         .eq(cis2_token_holders::un_frozen_balance.add(balance_delta)),
                 ))
-                .execute(conn)?,
+                .returning(TokenHolder::as_returning())
+                .get_result(conn)?,
         };
-        assert_eq!(updated_rows, 1, "error: {} rows(s) updated", updated_rows);
 
-        Ok(())
+        Ok(holder)
     }
 
     #[instrument(skip_all, fields(holder = holder_address.to_string()))]
@@ -359,6 +345,157 @@ impl TokenHolder {
             .select(TokenHolder::as_select())
             .get_results(conn)?;
         Ok(holders)
+    }
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    AsChangeset,
+    Debug,
+    PartialEq,
+    Object,
+    Clone,
+    Serialize,
+)]
+#[diesel(table_name = cis2_token_holder_balance_updates)]
+#[diesel(primary_key(id))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct TokenHolderBalanceUpdate {
+    pub id:                uuid::Uuid,
+    pub cis2_address:      Decimal,
+    pub token_id:          Decimal,
+    pub holder_address:    String,
+    pub amount:            Decimal,
+    pub frozen_balance:    Decimal,
+    pub un_frozen_balance: Decimal,
+    pub update_type:       TokenHolderBalanceUpdateType,
+    pub create_time:       NaiveDateTime,
+}
+
+impl TokenHolderBalanceUpdate {
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(cis2_token_holder_balance_updates::table)
+            .values(self)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip(conn))]
+    pub fn find(conn: &mut DbConn, id: uuid::Uuid) -> DbResult<Option<TokenHolderBalanceUpdate>> {
+        let update = cis2_token_holder_balance_updates::table
+            .filter(cis2_token_holder_balance_updates::id.eq(id))
+            .first::<TokenHolderBalanceUpdate>(conn)
+            .optional()?;
+        Ok(update)
+    }
+
+    #[instrument(skip(conn))]
+    pub fn sum_amount_by_type(
+        conn: &mut DbConn,
+        cis2_address: Decimal,
+        token_id: Decimal,
+        holder_address: &Address,
+        update_type: TokenHolderBalanceUpdateType,
+    ) -> DbResult<Decimal> {
+        let amount = cis2_token_holder_balance_updates::table
+            .filter(
+                cis2_token_holder_balance_updates::cis2_address
+                    .eq(cis2_address)
+                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
+                    .and(
+                        cis2_token_holder_balance_updates::holder_address
+                            .eq(holder_address.to_string()),
+                    )
+                    .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
+            )
+            .select(diesel::dsl::sum(cis2_token_holder_balance_updates::amount))
+            .first::<Option<Decimal>>(conn)?
+            .unwrap_or(Decimal::ZERO);
+        Ok(amount)
+    }
+
+    #[instrument(skip(conn))]
+    pub fn list_by_type(
+        conn: &mut DbConn,
+        cis2_address: Decimal,
+        token_id: Decimal,
+        holder_address: &Address,
+        update_type: TokenHolderBalanceUpdateType,
+        page_size: i64,
+        page: i64,
+    ) -> DbResult<(Vec<TokenHolderBalanceUpdate>, i64)> {
+        let updates = cis2_token_holder_balance_updates::table
+            .filter(
+                cis2_token_holder_balance_updates::cis2_address
+                    .eq(cis2_address)
+                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
+                    .and(
+                        cis2_token_holder_balance_updates::holder_address
+                            .eq(holder_address.to_string()),
+                    )
+                    .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
+            )
+            .select(TokenHolderBalanceUpdate::as_select())
+            .order(cis2_token_holder_balance_updates::create_time)
+            .offset(page * page_size)
+            .limit(page_size)
+            .get_results(conn)?;
+        let count_total = cis2_token_holder_balance_updates::table
+            .filter(
+                cis2_token_holder_balance_updates::cis2_address
+                    .eq(cis2_address)
+                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
+                    .and(
+                        cis2_token_holder_balance_updates::holder_address
+                            .eq(holder_address.to_string()),
+                    )
+                    .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
+            )
+            .count()
+            .get_result::<i64>(conn)?;
+
+        let page_count = (count_total + page_size - 1) / page_size;
+        Ok((updates, page_count))
+    }
+}
+#[repr(i32)]
+#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize)]
+#[diesel(sql_type = Integer)]
+pub enum TokenHolderBalanceUpdateType {
+    Mint,
+    Burn,
+    Transfer,
+    Recieved,
+    Freeze,
+    UnFreeze,
+}
+
+impl FromSql<Integer, diesel::pg::Pg> for TokenHolderBalanceUpdateType {
+    fn from_sql(bytes: diesel::pg::PgValue<'_>) -> diesel::deserialize::Result<Self> {
+        let value = i32::from_sql(bytes)?;
+        match value {
+            0 => Ok(TokenHolderBalanceUpdateType::Mint),
+            1 => Ok(TokenHolderBalanceUpdateType::Burn),
+            2 => Ok(TokenHolderBalanceUpdateType::Transfer),
+            3 => Ok(TokenHolderBalanceUpdateType::Recieved),
+            4 => Ok(TokenHolderBalanceUpdateType::Freeze),
+            5 => Ok(TokenHolderBalanceUpdateType::UnFreeze),
+            _ => Err(format!("Unknown call type: {}", value).into()),
+        }
+    }
+}
+
+impl ToSql<Integer, diesel::pg::Pg> for TokenHolderBalanceUpdateType {
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut diesel::serialize::Output<'b, '_, diesel::pg::Pg>,
+    ) -> diesel::serialize::Result {
+        let v = *self as i32;
+        <i32 as ToSql<Integer, diesel::pg::Pg>>::to_sql(&v, &mut out.reborrow())
     }
 }
 
@@ -494,7 +631,7 @@ impl Token {
         metadata_url: String,
         metadata_hash: Option<[u8; 32]>,
         supply: Decimal,
-        block_slot_time: DateTime<Utc>,
+        block_slot_time: NaiveDateTime,
     ) -> Self {
         Self {
             cis2_address,
@@ -503,8 +640,8 @@ impl Token {
             metadata_url,
             metadata_hash: metadata_hash.map(hex::encode),
             supply,
-            create_time: block_slot_time.naive_utc(),
-            update_time: block_slot_time.naive_utc(),
+            create_time: block_slot_time,
+            update_time: block_slot_time,
         }
     }
 
@@ -580,6 +717,32 @@ impl Token {
         assert_eq!(row_count, 1, "More than one row updated");
 
         Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn total_burned(
+        conn: &mut DbConn,
+        holder_address: &str,
+        cis2_address: Decimal,
+        token_id: Decimal,
+        now: NaiveDateTime,
+    ) -> DbResult<Decimal> {
+        let burned: Decimal = cis2_token_holder_balance_updates::table
+            .filter(
+                cis2_token_holder_balance_updates::holder_address
+                    .eq(holder_address)
+                    .and(cis2_token_holder_balance_updates::cis2_address.eq(cis2_address))
+                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
+                    .and(
+                        cis2_token_holder_balance_updates::update_type
+                            .eq(TokenHolderBalanceUpdateType::Burn),
+                    )
+                    .and(cis2_token_holder_balance_updates::create_time.le(now)),
+            )
+            .select(diesel::dsl::sum(cis2_token_holder_balance_updates::amount))
+            .first::<Option<Decimal>>(conn)?
+            .unwrap_or(Decimal::ZERO);
+        Ok(burned)
     }
 }
 

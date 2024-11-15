@@ -5,18 +5,19 @@ rust-version = "1.74"
 authors = ["parv@stactrace.com"]
 
 [dependencies]
-concordium-cis2 = { workspace = true, default-features = false}
-concordium-rust-sdk = { workspace = true, default-features = false }
+concordium-cis2 = { workspace = true, features = ["serde"] }
+concordium-rust-sdk = { workspace = true }
 poem-openapi = { workspace = true }
 rust_decimal = { workspace = true, features = ["db-diesel-postgres"] }
-clap = { version = "4.4.18", features = ["derive", "env"] }
-chrono = "0.4.33"
-diesel = { version = "2.1.6", features = [
+chrono = { workspace = true }
+diesel = { workspace = true, features = [
     "numeric",
     "postgres",
     "r2d2",
     "chrono",
-    "64-column-tables"
+    "64-column-tables",
+    "uuid",
+    "serde_json",
 ] }
 diesel_migrations = { version = "2.1.0", features = ["postgres"] }
 diesel-derive-enum = { workspace = true, features = ["postgres"] }

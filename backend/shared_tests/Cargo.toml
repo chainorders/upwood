@@ -7,7 +7,7 @@ edition = "2021"
 tracing-test = "0.2.5"
 testcontainers = { version = "0.23.1" }
 testcontainers-modules = { version = "0.11.2", features = ["postgres"] }
-concordium-cis2 = { workspace = true, default-features = false }
+concordium-cis2 = { workspace = true }
 concordium-rust-sdk = { workspace = true }
 poem-openapi = { workspace = true }
 chrono = { workspace = true }

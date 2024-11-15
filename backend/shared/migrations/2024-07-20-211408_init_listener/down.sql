@@ -4,4 +4,4 @@ drop table if exists listener_transactions;
 
 drop table if exists listener_contracts;
 
-drop table if exists listener_config;
+drop table if exists listener_blocks;

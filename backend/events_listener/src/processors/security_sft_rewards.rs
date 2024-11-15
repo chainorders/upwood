@@ -1,29 +1,39 @@
-use chrono::{DateTime, Utc};
+use chrono::NaiveDateTime;
 use concordium_protocols::concordium_cis2_security::Cis2SecurityEvent;
-use concordium_rust_sdk::base::smart_contracts::ContractEvent;
+use concordium_rust_sdk::base::hashes::ModuleReference;
+use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
 use rust_decimal::Decimal;
 use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
-use shared::db::security_sft_rewards::{
-    ContractReward, RewardClaimed, RewardToken,
-};
+use shared::db::security_sft_rewards::{ContractReward, RewardClaimed, RewardToken};
 use shared::db_shared::DbConn;
 use tracing::{debug, instrument};
 
-use crate::txn_listener::listener::ProcessorError;
-use crate::txn_processor::cis2_security;
-use crate::txn_processor::cis2_utils::{
+use crate::processors::cis2_utils::{
     rate_to_decimal, ContractAddressToDecimal, TokenAmountToDecimal, TokenIdToDecimal,
 };
+use crate::processors::{cis2_security, ProcessorError};
 pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
+
+pub fn module_ref() -> ModuleReference {
+    WasmModule::from_slice(include_bytes!(
+        "../../../../contracts/security-sft-rewards/contract.wasm.v1"
+    ))
+    .expect("Failed to parse security-sft-rewards module")
+    .get_module_ref()
+}
+
+pub fn contract_name() -> OwnedContractName {
+    OwnedContractName::new_unchecked("init_security_sft_rewards".to_string())
+}
 
 fn process_cis2_security_event(
     conn: &mut DbConn,
-    now: DateTime<Utc>,
+    now: NaiveDateTime,
     contract: &ContractAddress,
     event: Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>,
 ) -> Result<(), ProcessorError> {
-    cis2_security::processor::process_parsed_event(conn, contract, event, now)
+    cis2_security::process_parsed_event(conn, contract, event, now)
 }
 
 #[instrument(
@@ -33,7 +43,7 @@ fn process_cis2_security_event(
 )]
 pub fn process_events(
     conn: &mut DbConn,
-    now: DateTime<Utc>,
+    now: NaiveDateTime,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -94,8 +104,8 @@ pub fn process_events(
                     rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
                     rewarded_token_id:       event.rewarded_token_id.to_decimal(),
                     reward_amount:           event.reward_amount.to_decimal(),
-                    create_time:             now.naive_utc(),
-                    update_time:             now.naive_utc(),
+                    create_time:             now,
+                    update_time:             now,
                 }
                 .upsert_add_amount(conn)?;
                 RewardToken {
@@ -108,8 +118,8 @@ pub fn process_events(
                     ),
                     rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
                     rewarded_token_id:       event.rewarded_token_id.to_decimal(),
-                    create_time:             now.naive_utc(),
-                    update_time:             now.naive_utc(),
+                    create_time:             now,
+                    update_time:             now,
                 }
                 .insert(conn)?;
             }
@@ -120,7 +130,7 @@ pub fn process_events(
                     event.rewarded_token_contract.to_decimal(),
                     event.rewarded_token_id.to_decimal(),
                     event.reward_amount.to_decimal(),
-                    now.naive_utc(),
+                    now,
                 )?;
                 RewardToken::sub_amount(
                     conn,
@@ -129,7 +139,7 @@ pub fn process_events(
                     event.rewarded_token_contract.to_decimal(),
                     event.rewarded_token_id.to_decimal(),
                     event.reward_amount.to_decimal(),
-                    now.naive_utc(),
+                    now,
                 )?;
                 RewardClaimed {
                     id: uuid::Uuid::new_v4(),
@@ -140,8 +150,8 @@ pub fn process_events(
                     rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
                     rewarded_token_id: event.rewarded_token_id.to_decimal(),
                     reward_amount: event.reward_amount.to_decimal(),
-                    create_time: now.naive_utc(),
-                    update_time: now.naive_utc(),
+                    create_time: now,
+                    update_time: now,
                 }
                 .insert(conn)?;
             }

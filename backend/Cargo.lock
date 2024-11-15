@@ -1169,8 +1169,10 @@ version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd32b9d8ba4500ea821e25294c543a3cd20872365cdfc40ffec7f6ccd790ee42"
 dependencies = [
+ "concordium-contracts-common",
  "concordium-std",
  "primitive-types",
+ "serde",
 ]
 
 [[package]]
@@ -2694,6 +2696,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "impl-serde"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4551f042f3438e64dbd6226b20527fc84a6e1fe65688b58746a2f53623f25f5c"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3644,6 +3655,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e28720988bff275df1f51b171e1b2a18c30d194c4d2b61defdacecd625a5d94a"
 dependencies = [
  "fixed-hash",
+ "impl-serde",
  "uint",
 ]
 
@@ -4587,7 +4599,6 @@ name = "shared"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "clap",
  "concordium-cis2",
  "concordium-rust-sdk",
  "diesel",
@@ -5437,6 +5448,7 @@ dependencies = [
  "concordium-cis2",
  "concordium-protocols",
  "concordium-rust-sdk",
+ "concordium-rwa-compliance",
  "concordium-smart-contract-testing",
  "config",
  "diesel",

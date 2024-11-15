@@ -5,7 +5,6 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::db_shared::{DbConn, DbResult};
-
 use crate::schema::user_challenges;
 
 #[derive(Selectable, Queryable, Identifiable, Debug, PartialEq, Insertable)]

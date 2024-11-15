@@ -8,7 +8,6 @@ use concordium_rust_sdk::v2::BlockIdentifier;
 use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
 use diesel::Connection;
-use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
 use poem::web::Data;
 use poem_openapi::param::Path;
 use poem_openapi::payload::{Json, PlainText};
@@ -45,7 +44,7 @@ impl Api {
     pub async fn user_self(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
     ) -> JsonResult<ApiUser> {
         let mut conn = db_pool.get()?;
@@ -56,7 +55,7 @@ impl Api {
             .map(|a| {
                 Identity::exists(
                     &mut conn,
-                    identity_registry.0.to_decimal(),
+                    contracts.identity_registry_contract_index,
                     &Address::Account(a),
                 )
             })
@@ -141,7 +140,7 @@ impl Api {
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Json(req): Json<UserRegisterReq>,
     ) -> JsonResult<ApiUser> {
@@ -161,7 +160,13 @@ impl Api {
             &user,
             claims.is_admin(),
             user.account_address()
-                .map(|a| Identity::exists(&mut conn, identity_registry.0.to_decimal(), &a.into()))
+                .map(|a| {
+                    Identity::exists(
+                        &mut conn,
+                        contracts.identity_registry_contract_index,
+                        &a.into(),
+                    )
+                })
                 .unwrap_or(Ok(false))?,
         );
         Ok(Json(user))
@@ -283,12 +288,7 @@ impl Api {
             Ok::<_, Error>(())
         })
     }
-}
 
-pub struct AdminApi;
-
-#[OpenApi]
-impl AdminApi {
     /// Get a user by their Cognito user ID.
     ///
     /// This endpoint is only accessible to admin users.
@@ -309,7 +309,7 @@ impl AdminApi {
     pub async fn get_by_cognito_user_id(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(cognito_user_id): Path<uuid::Uuid>,
     ) -> JsonResult<AdminUser> {
@@ -323,7 +323,7 @@ impl AdminApi {
                 .map(|a| {
                     Identity::exists(
                         &mut conn,
-                        identity_registry.0.to_decimal(),
+                        contracts.identity_registry_contract_index,
                         &Address::Account(a),
                     )
                 })
@@ -352,7 +352,7 @@ impl AdminApi {
     pub async fn get_by_account_address(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(account_address): Path<String>,
     ) -> JsonResult<AdminUser> {
@@ -367,7 +367,7 @@ impl AdminApi {
             &user,
             Identity::exists(
                 &mut conn,
-                identity_registry.0.to_decimal(),
+                contracts.identity_registry_contract_index,
                 &Address::Account(account_address),
             )?,
         );
@@ -394,7 +394,7 @@ impl AdminApi {
     pub async fn list(
         &self,
         Data(db_pool): Data<&DbPool>,
-        Data(identity_registry): Data<&IdentityRegistryContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<AdminUser>> {
@@ -406,10 +406,13 @@ impl AdminApi {
             .map(|user| user.account_address())
             .filter_map(|a| a.map(Address::Account))
             .collect::<Vec<_>>();
-        let registered =
-            Identity::exists_batch(&mut conn, identity_registry.0.to_decimal(), &addresses)?
-                .into_iter()
-                .collect::<BTreeSet<_>>();
+        let registered = Identity::exists_batch(
+            &mut conn,
+            contracts.identity_registry_contract_index,
+            &addresses,
+        )?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
         let data = users
             .iter()
             .map(|u| {
@@ -482,7 +485,7 @@ impl AdminApi {
         method = "put",
         tag = "ApiTags::User"
     )]
-    pub async fn update_account_address(
+    pub async fn admin_update_account_address(
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
@@ -501,6 +504,14 @@ impl AdminApi {
             .await?;
         User::update_account_address(&mut conn, &cognito_user_id, &account_address)?;
         Ok(())
+    }
+
+    #[oai(path = "/system_config", method = "get", tag = "ApiTags::User")]
+    pub async fn system_config(
+        &self,
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<SystemContractsConfig> {
+        Ok(Json(contracts.clone()))
     }
 }
 

@@ -55,10 +55,11 @@ rust_decimal = { workspace = true, features = ["db-diesel-postgres"] }
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
+concordium-rwa-compliance = { path = "../../contracts/compliance" }
 integration-tests = { path = "../../contracts/integration-tests" }
 concordium-smart-contract-testing = { workspace = true }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
-concordium-cis2 = { workspace = true, default-features = false }
+concordium-cis2 = { workspace = true }
 rand = { version = "*" }
 poem = { workspace = true, features = ["test"] }
 tracing-test = { version = "*" }

@@ -12,7 +12,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::db::security_mint_fund::{SecurityMintFundContract, SecurityMintFundState};
-use crate::db::security_p2p_trading::{P2PTradeContract};
+use crate::db::security_p2p_trading::P2PTradeContract;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema;
 
@@ -354,7 +354,9 @@ impl ForestProjectUser {
                     .eq(user_cognito_id)
                     .or(forest_project_user_view::legal_contract_signer.eq(user_cognito_id)),
             )
-            .filter(forest_project_user_view::project_token_holder_address.eq(user_account.to_owned()))
+            .filter(
+                forest_project_user_view::project_token_holder_address.eq(user_account.to_owned()),
+            )
             .filter(
                 forest_project_user_view::project_token_un_frozen_balance
                     .is_not_null()

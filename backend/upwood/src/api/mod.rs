@@ -2,10 +2,12 @@ pub mod carbon_credits;
 pub mod files;
 pub mod forest_project;
 pub mod identity_registry;
+pub mod investment_portfolio;
 pub mod tree_fts;
 pub mod tree_nft;
 pub mod tree_nft_metadata;
 pub mod user;
+pub mod user_communication;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,13 +18,16 @@ use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
 use concordium_rust_sdk::web3id::did::Network;
 use concordium_rust_sdk::{cis2, v2};
 use diesel::r2d2::ConnectionManager;
+use events_listener::processors::cis2_utils::Cis2TokenIdToDecimal;
 use poem::http::StatusCode;
 use poem::middleware::{AddData, Cors, Tracing};
 use poem::{EndpointExt, Route};
 use poem_openapi::auth::Bearer;
 use poem_openapi::payload::{Json, PlainText};
-use poem_openapi::{ApiResponse, SecurityScheme};
+use poem_openapi::{ApiResponse, Object, SecurityScheme};
 use r2d2::Pool;
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::Decimal;
 use secure_string::SecureString;
 use serde::Deserialize;
 use sha2::Digest;
@@ -33,20 +38,16 @@ use crate::utils::{self, *};
 pub type OpenApiServiceType = poem_openapi::OpenApiService<
     (
         user::Api,
-        user::AdminApi,
-        tree_nft_metadata::AdminApi,
         tree_nft_metadata::Api,
         tree_nft::Api,
-        tree_nft::AdminApi,
-        tree_fts::AdminApi,
+        tree_fts::Api,
         files::Api,
-        identity_registry::AdminApi,
-        carbon_credits::AdminApi,
+        identity_registry::Api,
+        carbon_credits::Api,
         forest_project::Api,
         forest_project::AdminApi,
-        forest_project::MediaApi,
-        forest_project::PricesAdminApi,
-        forest_project::ForestProjectRewardsApi,
+        investment_portfolio::Api,
+        user_communication::Api,
     ),
     (),
 >;
@@ -125,22 +126,25 @@ pub async fn create_web_app(config: &Config) -> Route {
     let tree_nft_agent_wallet =
         WalletAccount::from_json_str(&config.tree_nft_agent_wallet_json_str)
             .expect("Failed to parse Tree NFT Agent Wallet JSON");
-    let identity_registry = IdentityRegistryContractAddress(ContractAddress::new(
-        config.identity_registry_contract_index,
-        0,
-    ));
-    let compliance_contract =
-        ComplianceContractAddress(ContractAddress::new(config.compliance_contract_index, 0));
-    let carbon_credit_contract =
-        CarbonCreditContractAddress(ContractAddress::new(config.carbon_credit_contract_index, 0));
-    let euroe_token = EuroEToken {
-        contract_address: ContractAddress::new(config.euro_e_contract_index, 0),
-        token_id:         cis2::TokenId::new(vec![]).expect("Failed to create EuroE Token ID"),
+
+    let system_contracts_config = SystemContractsConfig {
+        identity_registry_contract_index: Decimal::from_u64(
+            config.identity_registry_contract_index,
+        )
+        .expect("Failed to convert identity registry contract index to Decimal"),
+        compliance_contract_index:        Decimal::from_u64(config.compliance_contract_index)
+            .expect("Failed to convert compliance contract index to Decimal"),
+        euro_e_contract_index:            Decimal::from_u64(config.euro_e_contract_index)
+            .expect("Failed to convert euro_e contract index to Decimal"),
+        euro_e_token_id:                  cis2::TokenId::new_unchecked(vec![]).to_decimal(),
+        carbon_credit_contract_index:     Decimal::from_u64(config.carbon_credit_contract_index)
+            .expect("Failed to convert carbon credit contract index to Decimal"),
+        carbon_credit_token_id:           cis2::TokenId::new_unchecked(vec![]).to_decimal(),
+        tree_ft_contract_index:           Decimal::from_u64(config.tree_ft_contract_index)
+            .expect("Failed to convert tree ft contract index to Decimal"),
+        tree_nft_contract_index:          Decimal::from_u64(config.tree_nft_contract_index)
+            .expect("Failed to convert tree nft contract index to Decimal"),
     };
-    let tree_ft_contract =
-        TreeFTContractAddress(ContractAddress::new(config.tree_ft_contract_index, 0));
-    let tree_nft_contract =
-        TreeNftContractAddress(ContractAddress::new(config.tree_nft_contract_index, 0));
 
     let api = create_service();
     let ui = api.swagger_ui();
@@ -161,12 +165,7 @@ pub async fn create_web_app(config: &Config) -> Route {
         // Enhancements : Make an Object Pool for Concordium Client. So that connections to the node can be tracked
         .with(AddData::new(concordium_client))
         .with(AddData::new(network))
-        .with(AddData::new(identity_registry))
-        .with(AddData::new(compliance_contract))
-        .with(AddData::new(carbon_credit_contract))
-        .with(AddData::new(euroe_token))
-        .with(AddData::new(tree_ft_contract))
-        .with(AddData::new(tree_nft_contract))
+        .with(AddData::new(system_contracts_config))
         .with(AddData::new(user::UserChallengeConfig {
             challenge_expiry_duration: chrono::Duration::minutes(
                 config.user_challenge_expiry_duration_mins,
@@ -185,20 +184,16 @@ pub fn create_service() -> OpenApiServiceType {
     poem_openapi::OpenApiService::new(
         (
             user::Api,
-            user::AdminApi,
-            tree_nft_metadata::AdminApi,
             tree_nft_metadata::Api,
             tree_nft::Api,
-            tree_nft::AdminApi,
-            tree_fts::AdminApi,
+            tree_fts::Api,
             files::Api,
-            identity_registry::AdminApi,
-            carbon_credits::AdminApi,
+            identity_registry::Api,
+            carbon_credits::Api,
             forest_project::Api,
             forest_project::AdminApi,
-            forest_project::MediaApi,
-            forest_project::PricesAdminApi,
-            forest_project::ForestProjectRewardsApi,
+            investment_portfolio::Api,
+            user_communication::Api,
         ),
         "Upwood API",
         "1.0.0",
@@ -328,26 +323,44 @@ enum ApiTags {
     TreeNftMetadata,
     //// Operations about forest project & contract
     ForestProject,
+    InvestmentPortfolio,
+    UserCommunication,
 }
 
-#[derive(Clone)]
-pub struct IdentityRegistryContractAddress(pub ContractAddress);
-
-#[derive(Clone)]
-pub struct ComplianceContractAddress(pub ContractAddress);
-
-#[derive(Clone)]
-pub struct CarbonCreditContractAddress(pub ContractAddress);
-
-#[derive(Clone)]
-pub struct EuroEToken {
-    pub contract_address: ContractAddress,
-    pub token_id:         cis2::TokenId,
+#[derive(Clone, Object)]
+pub struct SystemContractsConfig {
+    pub identity_registry_contract_index: Decimal,
+    pub compliance_contract_index:        Decimal,
+    pub carbon_credit_contract_index:     Decimal,
+    pub carbon_credit_token_id:           Decimal,
+    pub euro_e_contract_index:            Decimal,
+    pub euro_e_token_id:                  Decimal,
+    pub tree_ft_contract_index:           Decimal,
+    pub tree_nft_contract_index:          Decimal,
 }
 
-/// The contract address of the Tree Fungible Token contract
-#[derive(Clone)]
-pub struct TreeFTContractAddress(pub ContractAddress);
+impl SystemContractsConfig {
+    pub fn identity_registry(&self) -> ContractAddress {
+        ContractAddress::new(self.identity_registry_contract_index.to_u64().unwrap(), 0)
+    }
 
-#[derive(Clone)]
-pub struct TreeNftContractAddress(pub ContractAddress);
+    pub fn compliance(&self) -> ContractAddress {
+        ContractAddress::new(self.compliance_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn carbon_credit(&self) -> ContractAddress {
+        ContractAddress::new(self.carbon_credit_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn euro_e(&self) -> ContractAddress {
+        ContractAddress::new(self.euro_e_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn tree_ft(&self) -> ContractAddress {
+        ContractAddress::new(self.tree_ft_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn tree_nft(&self) -> ContractAddress {
+        ContractAddress::new(self.tree_nft_contract_index.to_u64().unwrap(), 0)
+    }
+}

@@ -13,7 +13,7 @@ security-mint-fund = { path = "../../contracts/security-mint-fund" }
 security-p2p-trading = { path = "../../contracts/security-p2p-trading" }
 concordium-rwa-utils = { path = "../../contracts/utils" }
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
-concordium-cis2 = { workspace = true, default-features = false }
+concordium-cis2 = { workspace = true }
 concordium-rust-sdk = { workspace = true }
 poem-openapi = { workspace = true, features = [
     "swagger-ui",

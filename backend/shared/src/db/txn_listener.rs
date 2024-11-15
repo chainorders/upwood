@@ -1,11 +1,10 @@
 use std::fmt::{self, Display, Formatter};
 
-use chrono::{DateTime, NaiveDateTime, Utc};
-use concordium_rust_sdk::base::hashes::{ModuleReference, TransactionHash};
+use chrono::NaiveDateTime;
+use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::OwnedContractName;
-use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::queries::BlockInfo;
-use concordium_rust_sdk::types::{AbsoluteBlockHeight, ContractAddress, TransactionIndex};
+use concordium_rust_sdk::types::{AbsoluteBlockHeight, ContractAddress};
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::dsl::*;
 use diesel::expression::AsExpression;
@@ -20,29 +19,40 @@ use tracing::instrument;
 
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
-    self, listener_config, listener_contract_calls, listener_contracts, listener_transactions,
+    self, listener_blocks, listener_contract_calls, listener_contracts, listener_transactions,
 };
 
-#[derive(Selectable, Queryable, Identifiable)]
-#[diesel(table_name = schema::listener_config)]
+#[derive(Selectable, Queryable, Identifiable, Insertable, Debug)]
+#[diesel(table_name = schema::listener_blocks)]
+#[diesel(primary_key(block_height))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ListenerConfig {
-    pub id:                   i32,
-    pub last_block_height:    Decimal,
-    pub last_block_hash:      Vec<u8>,
-    pub last_block_slot_time: NaiveDateTime,
+pub struct ListenerBlock {
+    pub block_height:    Decimal,
+    pub block_hash:      Vec<u8>,
+    pub block_slot_time: NaiveDateTime,
 }
 
-impl ListenerConfig {
+impl ListenerBlock {
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> QueryResult<Option<Decimal>> {
+        let created_id = insert_into(listener_blocks::table)
+            .values(self)
+            .returning(listener_blocks::block_height)
+            .get_result(conn)
+            .optional()?;
+
+        Ok(created_id)
+    }
+
     /// Retrieves the last processed block from the database.
     #[instrument(skip_all)]
     pub fn find_last(
         conn: &mut DbConn,
     ) -> Result<Option<AbsoluteBlockHeight>, diesel::result::Error> {
-        let config = listener_config::table
-            .order(listener_config::last_block_height.desc())
+        let config = listener_blocks::table
+            .order(listener_blocks::block_height.desc())
             .limit(1)
-            .select(listener_config::last_block_height)
+            .select(listener_blocks::block_height)
             .first(conn)
             .optional()?
             .map(|block_height: Decimal| AbsoluteBlockHeight {
@@ -55,36 +65,12 @@ impl ListenerConfig {
     }
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = schema::listener_config)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ListenerConfigInsert {
-    pub last_block_height:    Decimal,
-    pub last_block_hash:      Vec<u8>,
-    pub last_block_slot_time: NaiveDateTime,
-}
-
-impl ListenerConfigInsert {
-    /// Updates the last processed block in the database.
-    #[instrument(skip_all, fields(block_height = %self.last_block_height))]
-    pub fn insert(&self, conn: &mut DbConn) -> Result<Option<i32>, diesel::result::Error> {
-        let created_id = insert_into(listener_config::table)
-            .values(self)
-            .on_conflict_do_nothing()
-            .returning(listener_config::id)
-            .get_result(conn)
-            .optional()?;
-
-        Ok(created_id)
-    }
-}
-
-impl From<&BlockInfo> for ListenerConfigInsert {
+impl From<&BlockInfo> for ListenerBlock {
     fn from(block: &BlockInfo) -> Self {
         Self {
-            last_block_height:    block.block_height.height.into(),
-            last_block_hash:      block.block_hash.to_vec(),
-            last_block_slot_time: block.block_slot_time.naive_utc(),
+            block_height:    block.block_height.height.into(),
+            block_hash:      block.block_hash.to_vec(),
+            block_slot_time: block.block_slot_time.naive_utc(),
         }
     }
 }
@@ -106,10 +92,10 @@ impl ListenerContract {
     pub fn new(
         contract_address: Decimal,
         origin_ref: &ModuleReference,
-        owner: &AccountAddress,
+        owner: &str,
         init_name: &OwnedContractName,
         processor_type: ProcessorType,
-        block_slot_time: DateTime<Utc>,
+        block_slot_time: NaiveDateTime,
     ) -> Self {
         ListenerContract {
             contract_address,
@@ -117,7 +103,7 @@ impl ListenerContract {
             module_ref: origin_ref.to_string(),
             owner: owner.to_string(),
             processor_type,
-            created_at: block_slot_time.naive_utc(),
+            created_at: block_slot_time,
         }
     }
 
@@ -339,21 +325,9 @@ pub struct ListenerTransaction {
 }
 
 impl ListenerTransaction {
-    pub fn new(block: &BlockInfo, txn_hash: TransactionHash, txn_index: TransactionIndex) -> Self {
-        Self {
-            block_hash:        block.block_hash.to_vec(),
-            block_height:      block.block_height.height.into(),
-            block_slot_time:   block.block_slot_time.naive_utc(),
-            transaction_hash:  txn_hash.to_string(),
-            transaction_index: txn_index.index.into(),
-        }
-    }
-
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
         diesel::insert_into(listener_transactions::table)
             .values(self)
-            .on_conflict(listener_transactions::transaction_hash)
-            .do_nothing()
             .execute(conn)?;
         Ok(())
     }

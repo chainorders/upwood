@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::NaiveDateTime;
 use concordium_rust_sdk::types::Address;
 use diesel::dsl::*;
 use diesel::prelude::*;
@@ -35,14 +35,14 @@ impl NftMultiRewardedContract {
         contract: Decimal,
         reward_token_address: Decimal,
         reward_token_id: Decimal,
-        block_slot_time: DateTime<Utc>,
+        block_slot_time: NaiveDateTime,
     ) -> Self {
         Self {
             contract_address: contract,
             reward_token_address,
             reward_token_id,
-            create_time: block_slot_time.naive_utc(),
-            update_time: block_slot_time.naive_utc(),
+            create_time: block_slot_time,
+            update_time: block_slot_time,
         }
     }
 

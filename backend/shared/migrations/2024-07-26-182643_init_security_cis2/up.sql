@@ -2,7 +2,7 @@ create table
     cis2_compliances (
         cis2_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
         compliance_address varchar not null,
-        primary key (cis2_address)
+        primary key (cis2_address, compliance_address)
     );
 
 create table
@@ -40,6 +40,19 @@ create table
     );
 
 create index cis2_token_holder on cis2_token_holders (cis2_address, holder_address);
+
+create table cis2_token_holder_balance_updates (
+    id uuid primary key,
+    cis2_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
+    token_id numeric(20) not null,
+    holder_address varchar not null,
+    amount numeric(78) not null,
+    frozen_balance numeric(78) not null,
+    un_frozen_balance numeric(78) not null,
+    update_type integer not null,
+    create_time timestamp not null,
+    foreign key (cis2_address, token_id, holder_address) references cis2_token_holders (cis2_address, token_id, holder_address) on delete cascade
+);
 
 create table
     cis2_agents (

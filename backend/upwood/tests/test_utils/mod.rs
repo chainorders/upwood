@@ -4,6 +4,7 @@ use test_api::TestApi;
 use test_cognito::TestCognito;
 use upwood::api::user::UserRegisterReq;
 
+pub mod conversions;
 pub mod test_api;
 pub mod test_cognito;
 

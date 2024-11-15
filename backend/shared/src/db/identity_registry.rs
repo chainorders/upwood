@@ -1,15 +1,14 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use concordium_rust_sdk::types::Address;
 use diesel::dsl::*;
 use diesel::prelude::*;
 use rust_decimal::Decimal;
 use tracing::instrument;
 
+use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     identity_registry_agents, identity_registry_identities, identity_registry_issuers,
 };
-
-use crate::db_shared::{DbConn, DbResult};
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
 #[diesel(table_name = identity_registry_identities)]
@@ -24,12 +23,12 @@ pub struct Identity {
 impl Identity {
     pub fn new(
         identity_address: &Address,
-        time: DateTime<Utc>,
+        time: NaiveDateTime,
         identity_registry_address: Decimal,
     ) -> Self {
         Self {
             identity_address: identity_address.to_string(),
-            create_time: time.naive_utc(),
+            create_time: time,
             identity_registry_address,
         }
     }
@@ -157,12 +156,12 @@ pub struct Issuer {
 impl Issuer {
     pub fn new(
         issuer_address: Decimal,
-        time: DateTime<Utc>,
+        time: NaiveDateTime,
         identity_registry_address: Decimal,
     ) -> Self {
         Issuer {
             issuer_address,
-            create_time: time.naive_utc(),
+            create_time: time,
             identity_registry_address,
         }
     }
@@ -234,10 +233,10 @@ pub struct Agent {
 }
 
 impl Agent {
-    pub fn new(address: Address, time: DateTime<Utc>, identity_registry_address: Decimal) -> Self {
+    pub fn new(address: Address, time: NaiveDateTime, identity_registry_address: Decimal) -> Self {
         Self {
             agent_address: address.to_string(),
-            create_time: time.naive_utc(),
+            create_time: time,
             identity_registry_address,
         }
     }

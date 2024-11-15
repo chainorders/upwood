@@ -8,12 +8,13 @@ use poem_openapi::Object;
 use rust_decimal::Decimal;
 // use security_mint_fund::AnyTokenUId;
 use serde::Serialize;
-use serde_json::to_value;
 use tracing::instrument;
+use uuid::Uuid;
 
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     security_p2p_trading_contracts, security_p2p_trading_deposits, security_p2p_trading_records,
+    security_p2p_trading_trades,
 };
 
 /// Represents a contract in the security P2P trading system.
@@ -130,7 +131,7 @@ impl P2PTradeContract {
 #[diesel(table_name = security_p2p_trading_deposits)]
 #[diesel(primary_key(contract_address, trader_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Deposit {
+pub struct Trader {
     pub contract_address: Decimal,
     pub trader_address:   String,
     pub token_amount:     Decimal,
@@ -139,7 +140,7 @@ pub struct Deposit {
     pub update_time:      NaiveDateTime,
 }
 
-impl Deposit {
+impl Trader {
     /// Inserts a new deposit record or updates an existing one by adding the specified amount.
     ///
     /// # Arguments
@@ -149,8 +150,8 @@ impl Deposit {
     /// # Returns
     /// A `DbResult<()>` indicating whether the operation was successful.
     #[instrument(skip_all, fields(trader_address = %self.trader_address))]
-    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<()> {
-        diesel::insert_into(security_p2p_trading_deposits::table)
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let trader = diesel::insert_into(security_p2p_trading_deposits::table)
             .values(self)
             .on_conflict((
                 security_p2p_trading_deposits::contract_address,
@@ -162,8 +163,9 @@ impl Deposit {
                     .eq(security_p2p_trading_deposits::token_amount.add(self.token_amount)),
                 security_p2p_trading_deposits::update_time.eq(self.update_time),
             ))
-            .execute(conn)?;
-        Ok(())
+            .returning(Self::as_returning())
+            .get_result(conn)?;
+        Ok(trader)
     }
 
     /// Updates a deposit record by subtracting the specified amount.
@@ -184,8 +186,8 @@ impl Deposit {
         from: &AccountAddress,
         amount: Decimal,
         now: DateTime<Utc>,
-    ) -> DbResult<()> {
-        diesel::update(security_p2p_trading_deposits::table)
+    ) -> DbResult<Self> {
+        let trader = diesel::update(security_p2p_trading_deposits::table)
             .filter(security_p2p_trading_deposits::contract_address.eq(contract))
             .filter(security_p2p_trading_deposits::trader_address.eq(from.to_string()))
             .set((
@@ -193,8 +195,9 @@ impl Deposit {
                     .eq(security_p2p_trading_deposits::token_amount.sub(amount)),
                 security_p2p_trading_deposits::update_time.eq(now.naive_utc()),
             ))
-            .execute(conn)?;
-        Ok(())
+            .returning(Self::as_returning())
+            .get_result(conn)?;
+        Ok(trader)
     }
 }
 
@@ -203,119 +206,31 @@ impl Deposit {
 pub enum TradingRecordType {
     Sell,
     SellCancel,
-    ExchangeSell,
-    ExchangeBuy,
+    Exchange,
 }
 
 /// Represents a trading record in the security P2P trading system.
 /// This struct contains information about a specific trade, including the contract address,
 /// trader address, type of trade (sell, sell cancel, etc.), the amount of tokens traded,
 /// and any additional metadata associated with the trade.
-#[derive(Selectable, Queryable, Identifiable, Debug, PartialEq)]
+#[derive(Selectable, Queryable, Identifiable, Debug, PartialEq, Insertable)]
 #[diesel(table_name = security_p2p_trading_records)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct TradingRecord {
-    pub id:               i64,
+    pub id: Uuid,
     pub contract_address: Decimal,
-    pub trader_address:   String,
-    pub record_type:      TradingRecordType,
-    pub token_amount:     Decimal,
-    pub metadata:         serde_json::Value,
+    pub trader_address: String,
+    pub record_type: TradingRecordType,
+    pub token_amount: Decimal,
+    pub currency_amount: Decimal,
+    pub token_amount_balance: Decimal,
+    pub currency_amount_balance: Decimal,
+    pub create_time: NaiveDateTime,
 }
 
-#[derive(Insertable, Debug, PartialEq)]
-#[diesel(table_name = security_p2p_trading_records)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct TradingRecordInsert {
-    pub contract_address: Decimal,
-    pub trader_address:   String,
-    pub record_type:      TradingRecordType,
-    pub token_amount:     Decimal,
-    pub metadata:         serde_json::Value,
-    pub create_time:      NaiveDateTime,
-}
-
-impl TradingRecordInsert {
-    pub fn new_sell(
-        contract: Decimal,
-        from: &AccountAddress,
-        amount: Decimal,
-        now: DateTime<Utc>,
-    ) -> Self {
-        TradingRecordInsert {
-            contract_address: contract,
-            trader_address:   from.to_string(),
-            record_type:      TradingRecordType::Sell,
-            token_amount:     amount,
-            metadata:         to_value(SellTradingRecordMetadata)
-                .expect("Failed to serialize metadata"),
-            create_time:      now.naive_utc(),
-        }
-    }
-
-    pub fn new_sell_cancelled(
-        contract: Decimal,
-        from: &AccountAddress,
-        amount: Decimal,
-        now: DateTime<Utc>,
-    ) -> Self {
-        TradingRecordInsert {
-            contract_address: contract,
-            trader_address:   from.to_string(),
-            record_type:      TradingRecordType::SellCancel,
-            token_amount:     amount,
-            metadata:         to_value(SellCancelTradingRecordMetadata)
-                .expect("Failed to serialize metadata"),
-            create_time:      now.naive_utc(),
-        }
-    }
-
-    pub fn new_exchange_sell(
-        contract: Decimal,
-        seller: &AccountAddress,
-        sell_amount: Decimal,
-        payer: &AccountAddress,
-        pay_amount: Decimal,
-        now: DateTime<Utc>,
-    ) -> Self {
-        TradingRecordInsert {
-            contract_address: contract,
-            trader_address:   seller.to_string(),
-            record_type:      TradingRecordType::ExchangeSell,
-            token_amount:     sell_amount,
-            metadata:         to_value(ExchangeSellTradingRecordMetadata {
-                currency_amount: pay_amount,
-                payer_address:   payer.to_string(),
-            })
-            .expect("Failed to serialize metadata"),
-            create_time:      now.naive_utc(),
-        }
-    }
-
-    pub fn new_exchange_buy(
-        contract: Decimal,
-        seller: &AccountAddress,
-        sell_amount: Decimal,
-        payer: &AccountAddress,
-        pay_amount: Decimal,
-        now: DateTime<Utc>,
-    ) -> Self {
-        TradingRecordInsert {
-            contract_address: contract,
-            trader_address:   payer.to_string(),
-            record_type:      TradingRecordType::ExchangeBuy,
-            token_amount:     sell_amount,
-            metadata:         to_value(ExchangeBuyTradingRecordMetadata {
-                currency_amount: pay_amount,
-                sell_address:    seller.to_string(),
-            })
-            .expect("Failed to serialize metadata"),
-            create_time:      now.naive_utc(),
-        }
-    }
-
-    /// Inserts a single trading record into the database.
+impl TradingRecord {
+    /// Inserts a new trading record into the `security_p2p_trading_records` table.
     ///
     /// # Arguments
     /// * `conn` - A mutable reference to the database connection.
@@ -323,42 +238,60 @@ impl TradingRecordInsert {
     ///
     /// # Returns
     /// A `DbResult<()>` indicating whether the operation was successful.
-    #[instrument(skip_all, fields(trader_address = %self.trader_address))]
-    pub fn insert(self, conn: &mut DbConn) -> DbResult<()> {
-        return Self::insert_batch(conn, vec![self]);
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_p2p_trading_records::table)
+            .values(self)
+            .execute(conn)?;
+        Ok(())
     }
 
-    /// Inserts multiple trading records into the database.
+    pub fn last_before(
+        conn: &mut DbConn,
+        contract: Decimal,
+        trader: &AccountAddress,
+        time: NaiveDateTime,
+    ) -> DbResult<Option<Self>> {
+        let record = security_p2p_trading_records::table
+            .filter(security_p2p_trading_records::contract_address.eq(contract))
+            .filter(security_p2p_trading_records::trader_address.eq(trader.to_string()))
+            .filter(security_p2p_trading_records::create_time.lt(time))
+            .order_by(security_p2p_trading_records::create_time.desc())
+            .first::<Self>(conn)
+            .optional()?;
+        Ok(record)
+    }
+}
+
+#[derive(Selectable, Queryable, Identifiable, Debug, PartialEq, Insertable)]
+#[diesel(table_name = security_p2p_trading_trades)]
+#[diesel(primary_key(id))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Trade {
+    pub id:               Uuid,
+    pub contract_address: Decimal,
+    pub seller_address:   String,
+    pub buyer_address:    String,
+    pub token_amount:     Decimal,
+    pub currency_amount:  Decimal,
+    pub rate:             Decimal,
+    pub create_time:      NaiveDateTime,
+}
+
+impl Trade {
+    /// Inserts a new trade into the `security_p2p_trading_trades` table.
     ///
     /// # Arguments
     /// * `conn` - A mutable reference to the database connection.
-    /// * `records` - A vector of trading records to insert.
+    /// * `trade` - The trade to insert.
     ///
     /// # Returns
     /// A `DbResult<()>` indicating whether the operation was successful.
     #[instrument(skip_all)]
-    pub fn insert_batch(conn: &mut DbConn, records: Vec<Self>) -> DbResult<()> {
-        diesel::insert_into(security_p2p_trading_records::table)
-            .values(&records)
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_p2p_trading_trades::table)
+            .values(self)
             .execute(conn)?;
         Ok(())
     }
-}
-
-#[derive(Serialize)]
-pub struct SellTradingRecordMetadata;
-
-#[derive(Serialize)]
-pub struct SellCancelTradingRecordMetadata;
-
-#[derive(Serialize)]
-pub struct ExchangeSellTradingRecordMetadata {
-    currency_amount: Decimal,
-    payer_address:   String,
-}
-
-#[derive(Serialize)]
-pub struct ExchangeBuyTradingRecordMetadata {
-    currency_amount: Decimal,
-    sell_address:    String,
 }

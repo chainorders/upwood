@@ -1,13 +1,11 @@
 create table
-    -- This SQL script is part of the migration for initializing the listener configuration.
-    listener_config (
-        id serial primary key,
-        last_block_height numeric(20) not null,
-        last_block_hash bytea not null,
-        last_block_slot_time timestamp not null
+    listener_blocks (
+        block_height numeric(20) primary key not null,
+        block_hash bytea not null,
+        block_slot_time timestamp not null
     );
 
-create unique index listener_config_block_height on listener_config (last_block_height desc);
+create unique index listener_blocks_block_height on listener_blocks (block_height desc);
 
 create table
     listener_contracts (

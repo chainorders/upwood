@@ -1,10 +1,10 @@
 use concordium::account::Signer;
 use concordium_rust_sdk::base::contracts_common::AccountSignatures;
-use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
+use rust_decimal::prelude::ToPrimitive;
 use shared::api::PagedResponse;
 use shared::db::cis2_security::{list_holders_by_token_metadata_url, TokenHolder};
 use shared::db::nft_multi_rewarded::AddressNonce;
@@ -38,19 +38,22 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(config): Data<&TreeNftConfig>,
-        Data(contract): Data<&TreeNftContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
     ) -> JsonResult<MintData> {
         let mut conn = db_pool.get()?;
         let account = ensure_account_registered(&claims)?;
-        let account_nonce =
-            AddressNonce::find(&mut conn, contract.0.to_decimal(), &account.into())?
-                .map(|a| a.nonce)
-                .unwrap_or(0);
+        let account_nonce = AddressNonce::find(
+            &mut conn,
+            contracts.tree_nft_contract_index,
+            &account.into(),
+        )?
+        .map(|a| a.nonce)
+        .unwrap_or(0);
 
         let metadata = TreeNftMetadata::find_random(&mut conn)?
             .ok_or(Error::NotFound(PlainText("No metadata found".to_string())))?;
         let metadata = SignedMetadata {
-            contract_address: contract.0.to_string(),
+            contract_address: contracts.tree_nft_contract_index,
             metadata_url:     MetadataUrl {
                 url:  metadata.metadata_url,
                 hash: metadata.metadata_hash,
@@ -68,13 +71,7 @@ impl Api {
             signature,
         }))
     }
-}
 
-#[derive(Clone, Copy)]
-pub struct AdminApi;
-
-#[OpenApi]
-impl AdminApi {
     /// Inserts a new TreeNftMetadata record in the database.
     ///
     /// This endpoint is only accessible to administrators.
@@ -220,7 +217,7 @@ impl AdminApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Data(contract): Data<&TreeNftContractAddress>,
+        Data(contracts): Data<&SystemContractsConfig>,
         Path(metadata_id): Path<String>,
         Query(page): Query<i64>,
     ) -> JsonResult<PagedResponse<TokenHolder>> {
@@ -230,7 +227,7 @@ impl AdminApi {
             .ok_or(Error::NotFound(PlainText("Metadata not found".to_string())))?;
         let (holders, page_count) = list_holders_by_token_metadata_url(
             &mut conn,
-            contract.0.to_decimal(),
+            contracts.tree_nft_contract_index,
             &metadata.metadata_url,
             PAGE_SIZE,
             page,
@@ -238,7 +235,6 @@ impl AdminApi {
         Ok(Json(PagedResponse::into_new(holders, page, page_count)))
     }
 }
-
 #[derive(Object, Debug)]
 pub struct MetadataUrl {
     pub url:  String,
@@ -320,7 +316,7 @@ pub struct MintData {
 
 #[derive(Object, Debug)]
 pub struct SignedMetadata {
-    pub contract_address: String,
+    pub contract_address: Decimal,
     pub metadata_url:     MetadataUrl,
     pub account:          String,
     pub account_nonce:    u64,
@@ -330,10 +326,12 @@ impl SignedMetadata {
     pub fn hash<T>(&self, hasher: T) -> std::result::Result<[u8; 32], HashError>
     where T: FnOnce(Vec<u8>) -> [u8; 32] {
         let internal = ::nft_multi_rewarded::SignedMetadata {
-            contract_address: self
-                .contract_address
-                .parse()
-                .map_err(|_| HashError::ContractParse)?,
+            contract_address: ContractAddress::new(
+                self.contract_address
+                    .to_u64()
+                    .expect("unable to convert contract address to u64"),
+                0,
+            ),
             account:          self.account.parse().map_err(|_| HashError::AccountParse)?,
             metadata_url:     ::nft_multi_rewarded::MetadataUrl {
                 url:  self.metadata_url.url.clone(),

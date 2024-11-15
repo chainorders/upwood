@@ -1,9 +1,32 @@
 use concordium_cis2::{IsTokenAmount, IsTokenId};
-use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Read};
+use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Read, Serial};
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::ContractAddress;
 use num_traits::FromPrimitive;
 use rust_decimal::Decimal;
+
+pub trait Cis2TokenIdToDecimal {
+    fn to_decimal(&self) -> Decimal;
+}
+
+impl Cis2TokenIdToDecimal for cis2::TokenId {
+    fn to_decimal(&self) -> Decimal {
+        let mut bytes = vec![];
+        self.serial(&mut bytes)
+            .expect("Failed to serialize token id");
+        let mut cursor: Cursor<_> = Cursor::new(bytes);
+        let size = cursor.read_u8().expect("Failed to read token id size");
+        let token_id = match size {
+            0 => 0,
+            1 => cursor.read_u8().expect("Failed to read cis2 token id u8") as u64,
+            2 => cursor.read_u16().expect("Failed to read cis2 token id u16") as u64,
+            4 => cursor.read_u32().expect("Failed to read cis2 token id") as u64,
+            8 => cursor.read_u64().expect("Failed to read cis2 token id"),
+            _ => panic!("Invalid cis2 token id size: {}", size),
+        };
+        Decimal::from_u64(token_id).expect("Failed to convert to Decimal cis2")
+    }
+}
 
 pub trait TokenIdToDecimal {
     fn to_decimal(&self) -> Decimal;
@@ -17,6 +40,7 @@ impl<T: IsTokenId> TokenIdToDecimal for T {
         let mut cursor: Cursor<_> = Cursor::new(bytes);
         let size = cursor.read_u8().expect("Failed to read token id size");
         let token_id = match size {
+            0 => 0,
             1 => cursor.read_u8().expect("Failed to read token id u8") as u64,
             2 => cursor.read_u16().expect("Failed to read token id u16") as u64,
             4 => cursor.read_u32().expect("Failed to read token id") as u64,

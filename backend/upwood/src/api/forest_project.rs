@@ -150,107 +150,13 @@ impl Api {
         ))))?;
         Ok(Json(project))
     }
-}
-
-pub struct ForestProjectRewardsApi;
-
-#[OpenApi]
-impl ForestProjectRewardsApi {
-    #[oai(
-        path = "/forest_projects/rewards/total",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn total(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<Vec<ForestProjectHolderRewardTotal>> {
-        let account = ensure_account_registered(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let rewards = ForestProjectHolderRewardTotal::list(conn, &account.to_string())?;
-        Ok(Json(rewards))
-    }
-
-    #[oai(
-        path = "/forest_projects/rewards/claimable",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn claimable(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<Vec<HolderReward>> {
-        let account = ensure_account_registered(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let rewards = HolderReward::list(conn, &account.to_string())?;
-        Ok(Json(rewards))
-    }
-}
-
-pub struct MediaApi;
-
-#[OpenApi]
-impl MediaApi {
-    #[oai(
-        path = "/admin/forest_projects/:project_id/media",
-        method = "post",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn create(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(project_id): Path<uuid::Uuid>,
-        Json(media): Json<ForestProjectMedia>,
-    ) -> JsonResult<ForestProjectMedia> {
-        ensure_is_admin(&claims)?;
-        if project_id != media.project_id {
-            return Err(Error::BadRequest(PlainText(
-                "Project id in path and body must be the same".to_string(),
-            )));
-        }
-        let conn = &mut db_pool.get()?;
-        let media = media.insert(conn)?;
-        Ok(Json(media))
-    }
-
-    #[oai(
-        path = "/admin/forest_projects/:project_id/media/:media_id",
-        method = "delete",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn delete(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(project_id): Path<uuid::Uuid>,
-        Path(media_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectMedia> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let media = ForestProjectMedia::find(conn, media_id)?.ok_or(Error::NotFound(PlainText(
-            format!(
-                "Media not found for project: {} at {}",
-                project_id, media_id
-            ),
-        )))?;
-        if media.project_id != project_id {
-            return Err(Error::BadRequest(PlainText(
-                "Project id in path and media must be the same".to_string(),
-            )));
-        }
-        let media = media.delete_self(conn)?;
-        Ok(Json(media))
-    }
 
     #[oai(
         path = "/forest_projects/:project_id/media/list/:page",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list(
+    pub async fn list_media(
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -271,7 +177,7 @@ impl MediaApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn find(
+    pub async fn find_media(
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -286,6 +192,38 @@ impl MediaApi {
             ),
         )))?;
         Ok(Json(media))
+    }
+
+    #[oai(
+        path = "/forest_projects/rewards/total",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn total_rewards(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> JsonResult<Vec<ForestProjectHolderRewardTotal>> {
+        let account = ensure_account_registered(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let rewards = ForestProjectHolderRewardTotal::list(conn, &account.to_string())?;
+        Ok(Json(rewards))
+    }
+
+    #[oai(
+        path = "/forest_projects/rewards/claimable",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn claimable_rewards(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> JsonResult<Vec<HolderReward>> {
+        let account = ensure_account_registered(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let rewards = HolderReward::list(conn, &account.to_string())?;
+        Ok(Json(rewards))
     }
 }
 
@@ -405,18 +343,65 @@ impl AdminApi {
         let project = project.update(conn)?;
         Ok(Json(project))
     }
-}
 
-pub struct PricesAdminApi;
+    #[oai(
+        path = "/admin/forest_projects/:project_id/media",
+        method = "post",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn create_media(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Json(media): Json<ForestProjectMedia>,
+    ) -> JsonResult<ForestProjectMedia> {
+        ensure_is_admin(&claims)?;
+        if project_id != media.project_id {
+            return Err(Error::BadRequest(PlainText(
+                "Project id in path and body must be the same".to_string(),
+            )));
+        }
+        let conn = &mut db_pool.get()?;
+        let media = media.insert(conn)?;
+        Ok(Json(media))
+    }
 
-#[OpenApi]
-impl PricesAdminApi {
+    #[oai(
+        path = "/admin/forest_projects/:project_id/media/:media_id",
+        method = "delete",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn delete_media(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(media_id): Path<uuid::Uuid>,
+    ) -> JsonResult<ForestProjectMedia> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let media = ForestProjectMedia::find(conn, media_id)?.ok_or(Error::NotFound(PlainText(
+            format!(
+                "Media not found for project: {} at {}",
+                project_id, media_id
+            ),
+        )))?;
+        if media.project_id != project_id {
+            return Err(Error::BadRequest(PlainText(
+                "Project id in path and media must be the same".to_string(),
+            )));
+        }
+        let media = media.delete_self(conn)?;
+        Ok(Json(media))
+    }
+
     #[oai(
         path = "/admin/forest_projects/:project_id/price/:price_at",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn find(
+    pub async fn find_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -439,7 +424,7 @@ impl PricesAdminApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list(
+    pub async fn list_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -461,7 +446,7 @@ impl PricesAdminApi {
         method = "post",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn create(
+    pub async fn create_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -497,7 +482,7 @@ impl PricesAdminApi {
         method = "delete",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn delete(
+    pub async fn delete_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,

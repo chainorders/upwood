@@ -1,15 +1,14 @@
-use events_listener::txn_processor::cis2_security::security_sft_single;
-use events_listener::txn_processor::cis2_utils::ContractAddressToDecimal;
 use poem::web::Data;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::OpenApi;
+use shared::db::security_sft_single::TokenDetails;
 
 use super::*;
 
-pub struct AdminApi;
+pub struct Api;
 
 #[OpenApi]
-impl AdminApi {
+impl Api {
     /// Retrieves the details of the token associated with the TreeFT contract.
     ///
     /// This function is an administrative endpoint that requires the caller to be an admin.
@@ -31,14 +30,11 @@ impl AdminApi {
         &self,
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
-        Data(tree_ft_contract): Data<&TreeFTContractAddress>,
-    ) -> JsonResult<security_sft_single::TokenDetails> {
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<TokenDetails> {
         ensure_is_admin(&claims)?;
-        let token = security_sft_single::TokenDetails::find(
-            tree_ft_contract.0.to_decimal(),
-            &mut db_pool.get()?,
-        )?
-        .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
+        let token = TokenDetails::find(contracts.tree_ft_contract_index, &mut db_pool.get()?)?
+            .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
         Ok(Json(token))
     }
 }
