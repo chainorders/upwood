@@ -32,11 +32,9 @@ pub struct TransferAddRewardParams {
 pub fn transfer_add_reward(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
     let sender = ctx.sender();
     let state = host.state();
-    let is_authorized = state.address(&sender).is_some_and(
-        |a: StateRef<crate::state::AddressState<ExternStateApi>>| {
-            a.is_agent(&[AgentRole::Rewarder])
-        },
-    );
+    let is_authorized = state
+        .address(&sender)
+        .is_some_and(|a| a.is_agent(&[AgentRole::Rewarder]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let params: TransferAddRewardParams = ctx.parameter_cursor().get()?;

@@ -37,22 +37,28 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
         .expect("deploying module")
 }
 
-pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
-    chain
-        .contract_init(
-            Signer::with_one_key(),
-            sender.address,
-            MAX_ENERGY,
-            InitContractPayload {
-                amount:    Amount::zero(),
-                init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   WasmModule::from_slice(MODULE_BYTES)
-                    .unwrap()
-                    .get_module_ref(),
-                param:     OwnedParameter::empty(),
-            },
-        )
-        .expect("init")
+pub fn init(
+    chain: &mut Chain,
+    sender: &Account,
+) -> std::result::Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError>
+{
+    let module_ref = WasmModule::from_slice(MODULE_BYTES)
+        .unwrap()
+        .get_module_ref();
+    let contract_name = CONTRACT_NAME.to_owned();
+    let res = chain.contract_init(
+        Signer::with_one_key(),
+        sender.address,
+        MAX_ENERGY,
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: contract_name.clone(),
+            mod_ref:   module_ref,
+            param:     OwnedParameter::empty(),
+        },
+    )?;
+
+    Ok((res, module_ref, contract_name))
 }
 
 pub fn grant_role(
@@ -60,24 +66,22 @@ pub fn grant_role(
     sender: &Account,
     contract: ContractAddress,
     params: &RoleTypes,
-) -> ContractInvokeSuccess {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    CONTRACT_NAME,
-                    EntrypointName::new_unchecked("grantRole"),
-                ),
-                message:      OwnedParameter::from_serial(params).unwrap(),
-            },
-        )
-        .expect("grant role")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("grantRole"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        },
+    )
 }
 
 pub fn mint(
@@ -85,24 +89,22 @@ pub fn mint(
     sender: &Account,
     contract: ContractAddress,
     params: &MintParams,
-) -> ContractInvokeSuccess {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    CONTRACT_NAME,
-                    EntrypointName::new_unchecked("mint"),
-                ),
-                message:      OwnedParameter::from_serial(params).unwrap(),
-            },
-        )
-        .expect("mint")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("mint"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        },
+    )
 }
 
 pub fn transfer_single(
@@ -110,9 +112,8 @@ pub fn transfer_single(
     sender: &Account,
     contract: ContractAddress,
     payload: concordium_cis2::Transfer<TokenIdUnit, TokenAmountU64>,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2::transfer_single(chain, sender, contract, CONTRACT_NAME, payload)
-        .expect("euro transfer single")
 }
 
 pub fn balance_of(

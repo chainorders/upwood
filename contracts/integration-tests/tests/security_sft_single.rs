@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use compliance::init_nationalities;
 use concordium_cis2::{AdditionalData, BalanceOfQuery, TokenAmountU64, TokenIdUnit, Transfer};
 use concordium_protocols::concordium_cis2_security::{
     AgentWithRoles, BurnParams, FreezeParam, FreezeParams, PauseParams,
@@ -26,7 +27,7 @@ const DEFAULT_ACC_BALANCE: Amount = Amount {
 fn mint() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
-    let (ir_contract, compliance_contract) =
+    let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let agent_mint = Account::new(AGENT_MINT, DEFAULT_ACC_BALANCE);
     chain.create_account(agent_mint.clone());
@@ -40,11 +41,13 @@ fn mint() {
     security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(agent_mint.address),
         roles:   vec![AgentRole::Mint],
-    });
+    })
+    .expect("should add agent");
     security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(non_agent_mint.address),
         roles:   vec![AgentRole::Pause],
-    });
+    })
+    .expect("should add agent");
 
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
@@ -109,7 +112,7 @@ fn mint() {
 fn burn() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
-    let (ir_contract, compliance_contract) =
+    let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
@@ -173,7 +176,9 @@ fn burn() {
             owner:    Address::Account(holder.address),
             token_id: TOKEN_ID,
         }]),
-    );
+    )
+    .expect("should burn");
+
     assert_eq!(
         security_sft_single_client::balance_of(
             &mut chain,
@@ -228,7 +233,8 @@ fn burn() {
             owner:    Address::Account(holder.address),
             token_id: TOKEN_ID,
         }]),
-    );
+    )
+    .expect("should burn");
     assert_eq!(
         security_sft_single_client::balance_of(
             &mut chain,
@@ -271,7 +277,7 @@ fn burn() {
 fn forced_burn() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
-    let (ir_contract, compliance_contract) =
+    let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
@@ -282,7 +288,8 @@ fn forced_burn() {
     security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(agent_forced_burn.address),
         roles:   vec![AgentRole::ForcedBurn],
-    });
+    })
+    .expect("should add agent");
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
@@ -496,7 +503,7 @@ fn forced_burn() {
 fn transfer() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
-    let (ir_contract, compliance_contract) =
+    let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
@@ -618,7 +625,7 @@ fn transfer() {
 fn forced_transfer() {
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
-    let (ir_contract, compliance_contract) =
+    let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
     let token_contract =
         create_token_contract(&mut chain, &admin, compliance_contract, ir_contract);
@@ -628,7 +635,8 @@ fn forced_transfer() {
     security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(agent_forced_transfer.address),
         roles:   vec![AgentRole::ForcedTransfer],
-    });
+    })
+    .expect("should add agent");
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
@@ -882,6 +890,7 @@ fn create_token_contract(
         },
         sponsors:          None,
     })
+    .expect("init token contract")
     .contract_address
 }
 
@@ -889,16 +898,48 @@ fn setup_chain(
     chain: &mut Chain,
     admin: &Account,
     compliant_nationalities: &[&str],
-) -> (ContractAddress, ContractAddress) {
+) -> (ContractAddress, ContractAddress, ContractAddress) {
     chain.create_account(admin.clone());
 
     euroe::deploy_module(chain, admin);
     identity_registry::deploy_module(chain, admin);
     compliance::deploy_module(chain, admin);
     security_sft_single_client::deploy_module(chain, admin);
-    let ir_contract = identity_registry::init(chain, admin).contract_address;
-    let compliance_contract =
-        compliance::init_all(chain, admin, ir_contract, compliant_nationalities).contract_address;
+    security_sft_rewards_client::deploy_module(chain, admin);
+    security_p2p_trading_client::deploy_module(chain, admin);
+    security_mint_fund_client::deploy_module(chain, admin);
 
-    (ir_contract, compliance_contract)
+    let euroe_contract = euroe::init(chain, admin)
+        .expect("euroe init")
+        .0
+        .contract_address;
+    euroe::grant_role(chain, admin, euroe_contract, &euroe::RoleTypes {
+        adminrole: admin.address.into(),
+        blockrole: admin.address.into(),
+        burnrole:  admin.address.into(),
+        mintrole:  admin.address.into(),
+        pauserole: admin.address.into(),
+    })
+    .expect("grant role euroe");
+    let ir_contract = identity_registry::init(chain, admin)
+        .expect("identity registry init")
+        .0
+        .contract_address;
+
+    let (compliance_module, ..) = init_nationalities(
+        chain,
+        admin,
+        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::init::InitParams {
+            nationalities:     compliant_nationalities
+                .iter()
+                .map(|n| n.to_string())
+                .collect(),
+            identity_registry: ir_contract,
+        },
+    )
+    .expect("init nationalities module");
+    let (compliance, ..) = compliance::init(chain, admin, vec![compliance_module.contract_address])
+        .expect("init compliance module");
+
+    (euroe_contract, ir_contract, compliance.contract_address)
 }

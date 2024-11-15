@@ -17,27 +17,25 @@ pub fn add_agent<R>(
     contract: ContractAddress,
     contract_name: ContractName,
     payload: &AgentWithRoles<R>,
-) -> ContractInvokeSuccess
+) -> Result<ContractInvokeSuccess, ContractInvokeError>
 where
     R: Serial,
 {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("addAgent"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("Add Agent")
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("addAgent"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn is_agent<R>(
@@ -105,25 +103,22 @@ pub fn remove_agent(
     contract: ContractAddress,
     contract_name: ContractName,
     payload: &Address,
-) -> ContractInvokeSuccess
-where {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("removeAgent"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("Remove Agent")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("removeAgent"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn set_identity_registry(
@@ -132,25 +127,22 @@ pub fn set_identity_registry(
     contract: ContractAddress,
     contract_name: ContractName,
     payload: &ContractAddress,
-) -> ContractInvokeSuccess
-where {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("setIdentityRegistry"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("Set Identity Registry")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("setIdentityRegistry"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn set_compliance(
@@ -159,25 +151,22 @@ pub fn set_compliance(
     contract: ContractAddress,
     contract_name: ContractName,
     payload: &ContractAddress,
-) -> ContractInvokeSuccess
-where {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("setCompliance"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("Set Compliance")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("setCompliance"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn identity_registry(
@@ -233,20 +222,6 @@ pub fn compliance(
 }
 
 pub fn burn<T, A>(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    contract_name: ContractName,
-    payload: &BurnParams<T, A>,
-) -> ContractInvokeSuccess
-where
-    T: IsTokenId,
-    A: IsTokenAmount,
-{
-    burn_raw(chain, sender, contract, contract_name, payload).expect("burn")
-}
-
-pub fn burn_raw<T, A>(
     chain: &mut Chain,
     sender: &Account,
     contract: ContractAddress,

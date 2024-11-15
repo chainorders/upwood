@@ -17,21 +17,23 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
         .expect("deploying module")
 }
 
-pub fn init(chain: &mut Chain, sender: &Account, param: &InitParam) -> ContractInitSuccess {
+pub fn init(
+    chain: &mut Chain,
+    sender: &Account,
+    param: &InitParam,
+) -> Result<ContractInitSuccess, ContractInitError> {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
-    chain
-        .contract_init(
-            Signer::with_one_key(),
-            sender.address,
-            MAX_ENERGY,
-            InitContractPayload {
-                amount:    Amount::zero(),
-                init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   module.get_module_ref(),
-                param:     OwnedParameter::from_serial(param).unwrap(),
-            },
-        )
-        .expect("init")
+    chain.contract_init(
+        Signer::with_one_key(),
+        sender.address,
+        MAX_ENERGY,
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   module.get_module_ref(),
+            param:     OwnedParameter::from_serial(param).unwrap(),
+        },
+    )
 }
 
 pub fn identity_registry(
@@ -47,7 +49,7 @@ pub fn set_identity_registry(
     sender: &Account,
     contract: ContractAddress,
     payload: &ContractAddress,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::set_identity_registry(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -64,7 +66,7 @@ pub fn set_compliance(
     sender: &Account,
     contract: ContractAddress,
     payload: &ContractAddress,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::set_compliance(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -73,7 +75,7 @@ pub fn add_agent(
     sender: &Account,
     contract: ContractAddress,
     payload: &Agent,
-) -> ContractInvokeSuccess {
+) -> std::result::Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::add_agent(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -95,7 +97,7 @@ pub fn remove_agent(
     sender: &Account,
     contract: ContractAddress,
     payload: &Address,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::remove_agent(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -170,7 +172,7 @@ pub fn burn(
     sender: &Account,
     contract: ContractAddress,
     payload: &BurnParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::burn(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -180,7 +182,7 @@ pub fn burn_raw(
     contract: ContractAddress,
     payload: &BurnParams,
 ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    cis2_security::burn_raw(chain, sender, contract, CONTRACT_NAME, payload)
+    cis2_security::burn(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
 pub fn forced_burn(

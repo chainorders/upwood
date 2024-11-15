@@ -48,7 +48,7 @@ pub fn set_identity_registry(
     sender: &Account,
     contract: ContractAddress,
     payload: &ContractAddress,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::set_identity_registry(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -65,7 +65,7 @@ pub fn set_compliance(
     sender: &Account,
     contract: ContractAddress,
     payload: &ContractAddress,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::set_compliance(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -74,7 +74,7 @@ pub fn add_agent(
     sender: &Account,
     contract: ContractAddress,
     payload: &Agent,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::add_agent(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -96,7 +96,7 @@ pub fn remove_agent(
     sender: &Account,
     contract: ContractAddress,
     payload: &Address,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::remove_agent(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -180,7 +180,7 @@ pub fn burn(
     sender: &Account,
     contract: ContractAddress,
     payload: &BurnParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security::burn(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -234,7 +234,7 @@ pub fn transfer_add_reward(
     sender: &Account,
     contract: ContractAddress,
     payload: &TransferAddRewardParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security_rewards::transfer_add_reward(chain, sender, contract, CONTRACT_NAME, payload)
 }
 
@@ -243,7 +243,7 @@ pub fn claim_rewards(
     sender: &Account,
     contract: ContractAddress,
     payload: &ClaimRewardsParams,
-) -> ContractInvokeSuccess {
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
     cis2_security_rewards::claim_rewards(chain, sender, contract, CONTRACT_NAME, payload)
 }
 

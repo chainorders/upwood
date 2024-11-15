@@ -4,12 +4,13 @@ use concordium_base::smart_contracts::WasmModule;
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
 use concordium_rwa_identity_registry::types::{Identity, IdentityAttribute};
 use concordium_smart_contract_testing::{
-    module_load_v1, Account, Chain, ContractInitSuccess, ContractInvokeSuccess,
-    InitContractPayload, ModuleDeploySuccess, Signer, UpdateContractPayload,
+    module_load_v1, Account, Chain, ContractEvent, ContractInitError, ContractInitSuccess,
+    ContractInvokeError, ContractInvokeSuccess, InitContractPayload, ModuleDeploySuccess, Signer,
+    UpdateContractPayload,
 };
 use concordium_std::{
-    Address, Amount, ContractAddress, ContractName, EntrypointName, OwnedParameter,
-    OwnedReceiveName,
+    Address, Amount, ContractAddress, ContractName, EntrypointName, ModuleReference,
+    OwnedContractName, OwnedParameter, OwnedReceiveName,
 };
 
 use super::MAX_ENERGY;
@@ -26,21 +27,26 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
         .expect("deploying module")
 }
 
-pub fn init(chain: &mut Chain, sender: &Account) -> ContractInitSuccess {
-    let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
-    chain
-        .contract_init(
-            Signer::with_one_key(),
-            sender.address,
-            MAX_ENERGY,
-            InitContractPayload {
-                amount:    Amount::zero(),
-                init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   module.get_module_ref(),
-                param:     OwnedParameter::empty(),
-            },
-        )
-        .expect("init")
+pub fn init(
+    chain: &mut Chain,
+    sender: &Account,
+) -> Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError> {
+    let module_ref = WasmModule::from_slice(MODULE_BYTES)
+        .unwrap()
+        .get_module_ref();
+    let contract_name = CONTRACT_NAME.to_owned();
+    let init = chain.contract_init(
+        Signer::with_one_key(),
+        sender.address,
+        MAX_ENERGY,
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   module_ref,
+            param:     OwnedParameter::empty(),
+        },
+    )?;
+    Ok((init, module_ref, contract_name))
 }
 
 pub fn registry_identity(
@@ -48,24 +54,23 @@ pub fn registry_identity(
     sender: &Account,
     contract: &ContractAddress,
     params: &RegisterIdentityParams,
-) -> ContractInvokeSuccess {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      *contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    CONTRACT_NAME,
-                    EntrypointName::new_unchecked("registerIdentity"),
-                ),
-                message:      OwnedParameter::from_serial(params).unwrap(),
-            },
-        )
-        .expect("registry identity")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    let call: ContractInvokeSuccess = chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      *contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("registerIdentity"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        },
+    )?;
+    Ok(call)
 }
 
 pub fn register_nationalities(
@@ -73,7 +78,7 @@ pub fn register_nationalities(
     sender: &Account,
     contract: &ContractAddress,
     nationalities: Vec<(Address, &str)>,
-) -> Vec<ContractInvokeSuccess> {
+) -> Vec<Result<ContractInvokeSuccess, ContractInvokeError>> {
     nationalities
         .iter()
         .map(|(address, nationality)| {
@@ -96,22 +101,20 @@ pub fn add_agent(
     sender: &Account,
     contract: &ContractAddress,
     agent_address: &Address,
-) -> ContractInvokeSuccess {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      *contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    CONTRACT_NAME,
-                    EntrypointName::new_unchecked("addAgent"),
-                ),
-                message:      OwnedParameter::from_serial(agent_address).unwrap(),
-            },
-        )
-        .expect("add agent")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      *contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("addAgent"),
+            ),
+            message:      OwnedParameter::from_serial(agent_address).unwrap(),
+        },
+    )
 }

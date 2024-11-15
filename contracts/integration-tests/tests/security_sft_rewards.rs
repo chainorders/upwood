@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use cis2_conversions::to_token_id_vec;
+use compliance::init_nationalities;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryResponse, OperatorUpdate, Receiver, TokenAmountU64, TokenIdU32,
     TokenIdUnit, UpdateOperator,
@@ -91,7 +92,8 @@ fn normal_reward_distribution() {
                 rate:         Rate::new(10, 1).unwrap(),
             },
         },
-    );
+    )
+    .expect("transfer add reward");
 
     assert_eq!(
         security_sft_rewards_client::balance_of(
@@ -138,7 +140,9 @@ fn normal_reward_distribution() {
                 token_id: MIN_REWARD_TOKEN_ID,
             }],
         },
-    );
+    )
+    .expect("claim rewards");
+
     assert_eq!(
         security_sft_rewards_client::balance_of(
             &mut chain,
@@ -209,13 +213,15 @@ fn init() {
         &admin,
         token_contract,
         &ir_contract,
-    );
+    )
+    .expect("set identity registry");
     security_sft_rewards_client::set_compliance(
         &mut chain,
         &admin,
         token_contract,
         &compliance_contract,
-    );
+    )
+    .expect("set compliance");
 
     assert_eq!(
         security_sft_rewards_client::identity_registry(&mut chain, &admin, token_contract),
@@ -245,11 +251,13 @@ fn mint() {
     security_sft_rewards_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(agent_mint.address),
         roles:   vec![security_sft_rewards::types::AgentRole::Mint],
-    });
+    })
+    .expect("add agent");
     security_sft_rewards_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
         address: Address::Account(non_agent_mint.address),
         roles:   vec![security_sft_rewards::types::AgentRole::Pause],
-    });
+    })
+    .expect("add agent");
 
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
@@ -357,22 +365,47 @@ fn setup_chain(
     euroe::deploy_module(chain, admin);
     identity_registry::deploy_module(chain, admin);
     compliance::deploy_module(chain, admin);
+    security_sft_single_client::deploy_module(chain, admin);
     security_sft_rewards_client::deploy_module(chain, admin);
+    security_p2p_trading_client::deploy_module(chain, admin);
+    security_mint_fund_client::deploy_module(chain, admin);
 
-    let euroe = euroe::init(chain, admin).contract_address;
-    euroe::grant_role(chain, admin, euroe, &euroe::RoleTypes {
-        mintrole:  Address::Account(admin.address),
-        burnrole:  Address::Account(admin.address),
-        blockrole: Address::Account(admin.address),
-        pauserole: Address::Account(admin.address),
-        adminrole: Address::Account(admin.address),
-    });
-    euroe::mint(chain, admin, euroe, &euroe::MintParams {
+    let euroe_contract = euroe::init(chain, admin)
+        .expect("euroe init")
+        .0
+        .contract_address;
+    euroe::grant_role(chain, admin, euroe_contract, &euroe::RoleTypes {
+        adminrole: admin.address.into(),
+        blockrole: admin.address.into(),
+        burnrole:  admin.address.into(),
+        mintrole:  admin.address.into(),
+        pauserole: admin.address.into(),
+    })
+    .expect("grant role euroe");
+    euroe::mint(chain, admin, euroe_contract, &euroe::MintParams {
         owner:  Address::Account(admin.address),
         amount: TokenAmountU64(400_000_000),
-    });
-    let ir_contract = identity_registry::init(chain, admin).contract_address;
-    let compliance_contract =
-        compliance::init_all(chain, admin, ir_contract, compliant_nationalities).contract_address;
-    (euroe, ir_contract, compliance_contract)
+    })
+    .expect("mint euroe");
+    let ir_contract = identity_registry::init(chain, admin)
+        .expect("identity registry init")
+        .0
+        .contract_address;
+
+    let (compliance_module, ..) = init_nationalities(
+        chain,
+        admin,
+        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::init::InitParams {
+            nationalities:     compliant_nationalities
+                .iter()
+                .map(|n| n.to_string())
+                .collect(),
+            identity_registry: ir_contract,
+        },
+    )
+    .expect("init nationalities module");
+    let (compliance, ..) = compliance::init(chain, admin, vec![compliance_module.contract_address])
+        .expect("init compliance module");
+
+    (euroe_contract, ir_contract, compliance.contract_address)
 }

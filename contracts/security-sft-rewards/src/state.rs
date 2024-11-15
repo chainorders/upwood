@@ -109,6 +109,7 @@ pub struct State<S=StateApi> {
 }
 
 impl<S: HasStateApi> State<S> {
+    /// All the Addresses in the state. Type of address can be seen from `AddressState`
     pub fn address(&self, address: &Address) -> Option<StateRef<AddressState<S>>> {
         self.addresses.get(address)
     }

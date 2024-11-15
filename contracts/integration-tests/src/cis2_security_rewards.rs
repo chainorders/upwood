@@ -9,24 +9,22 @@ pub fn transfer_add_reward(
     contract: ContractAddress,
     contract_name: ContractName,
     payload: &TransferAddRewardParams,
-) -> ContractInvokeSuccess {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("transferAddReward"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("Transfer Add Reward")
+) -> std::result::Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("transferAddReward"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn claim_rewards(
@@ -35,22 +33,20 @@ pub fn claim_rewards(
     contract: ContractAddress,
     contract_name: ContractName,
     payload: &ClaimRewardsParams,
-) -> ContractInvokeSuccess {
-    chain
-        .contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            UpdateContractPayload {
-                address:      contract,
-                amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::construct_unchecked(
-                    contract_name,
-                    EntrypointName::new_unchecked("claimRewards"),
-                ),
-                message:      OwnedParameter::from_serial(payload).unwrap(),
-            },
-        )
-        .expect("Transfer Add Reward")
+) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                contract_name,
+                EntrypointName::new_unchecked("claimRewards"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }

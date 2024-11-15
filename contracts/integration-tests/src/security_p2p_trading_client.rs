@@ -20,21 +20,23 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
         .expect("deploying module")
 }
 
-pub fn init(chain: &mut Chain, sender: &Account, params: &InitParam) -> ContractInitSuccess {
+pub fn init(
+    chain: &mut Chain,
+    sender: &Account,
+    params: &InitParam,
+) -> Result<ContractInitSuccess, ContractInitError> {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
-    chain
-        .contract_init(
-            Signer::with_one_key(),
-            sender.address,
-            MAX_ENERGY,
-            InitContractPayload {
-                amount:    Amount::zero(),
-                init_name: CONTRACT_NAME.to_owned(),
-                mod_ref:   module.get_module_ref(),
-                param:     OwnedParameter::from_serial(params).unwrap(),
-            },
-        )
-        .expect("init")
+    chain.contract_init(
+        Signer::with_one_key(),
+        sender.address,
+        MAX_ENERGY,
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   module.get_module_ref(),
+            param:     OwnedParameter::from_serial(params).unwrap(),
+        },
+    )
 }
 
 pub fn transfer_sell(
