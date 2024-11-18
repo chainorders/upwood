@@ -39,14 +39,17 @@ const NFT_METADATA: &str = "https://metadata.com/nft_token";
 #[tokio::test]
 async fn signature_tests() {
     // Setup Database
-    let (db_url, _container) = shared_tests::create_new_database_container().await;
-    db_setup::run_migrations(&db_url);
+    let (db_config, _container) = shared_tests::create_new_database_container().await;
+    db_setup::run_migrations(&db_config.db_url());
     let pool: DbPool = r2d2::Pool::builder()
         .max_size(10)
-        .build(ConnectionManager::new(db_url))
+        .build(ConnectionManager::new(db_config.db_url()))
         .expect("Error creating database pool");
     let block_duration = Duration::from_seconds(2);
-    let processors = Processors::default();
+    let mut chain = Chain::new_with_time(Timestamp { millis: 0 });
+    let admin = Account::new(ADMIN, DEFAULT_BALANCE_AMOUNT);
+    chain.create_account(admin.clone());
+    let mut processors = Processors::new(vec![admin.address.to_string()]);
     let mut processor_db_conn = pool.get().expect("db connection");
 
     // api
@@ -73,9 +76,7 @@ async fn signature_tests() {
         .expect("metadata insert");
 
     // Setup Chain
-    let mut chain = Chain::new_with_time(Timestamp { millis: 0 });
-    let admin = Account::new(ADMIN, DEFAULT_BALANCE_AMOUNT);
-    chain.create_account(admin.clone());
+
     let holder = Account::new(HOLDER, DEFAULT_BALANCE_AMOUNT);
     chain.create_account(holder.clone());
 
@@ -103,7 +104,7 @@ async fn signature_tests() {
             }],
         };
         processors
-            .process_block(&mut processor_db_conn, &block, &admin.address.to_string())
+            .process_block(&mut processor_db_conn, &block)
             .await
             .expect("process block");
         contracts
@@ -138,7 +139,7 @@ async fn signature_tests() {
             }],
         };
         processors
-            .process_block(&mut processor_db_conn, &block, &admin.address.to_string())
+            .process_block(&mut processor_db_conn, &block)
             .await
             .expect("process block");
     }
@@ -208,7 +209,7 @@ async fn signature_tests() {
             ],
         };
         processors
-            .process_block(&mut processor_db_conn, &block, &admin.address.to_string())
+            .process_block(&mut processor_db_conn, &block)
             .await
             .expect("process block");
     }
@@ -273,7 +274,7 @@ async fn signature_tests() {
             }],
         };
         processors
-            .process_block(&mut processor_db_conn, &block, &holder.address.to_string())
+            .process_block(&mut processor_db_conn, &block)
             .await
             .expect("process block");
     }

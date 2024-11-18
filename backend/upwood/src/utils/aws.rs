@@ -4,12 +4,12 @@ pub mod cognito {
     use aws_sdk_cognitoidentityprovider::operation::admin_set_user_password::AdminSetUserPasswordError;
     use aws_sdk_cognitoidentityprovider::operation::admin_update_user_attributes::AdminUpdateUserAttributesError;
     use aws_sdk_cognitoidentityprovider::operation::list_users::ListUsersError;
-    use aws_sdk_cognitoidentityprovider::types::UserType;
+    use aws_sdk_cognitoidentityprovider::types::{MessageActionType, UserType};
     use concordium_rust_sdk::id::types::AccountAddress;
     use jsonwebtokens_cognito::KeySet;
     use poem_openapi::Object;
     use serde::{Deserialize, Serialize};
-    use tracing::{debug, instrument};
+    use tracing::{debug, instrument, trace};
 
     use crate::utils::CognitoClient;
 
@@ -60,16 +60,16 @@ pub mod cognito {
     impl UserPool {
         pub async fn new(
             sdk_config: &aws_config::SdkConfig,
-            user_pool_id: &str,
-            user_pool_client_id: &str,
-            user_pool_region: &str,
+            user_pool_id: String,
+            user_pool_client_id: String,
+            user_pool_region: String,
         ) -> Result<Self> {
             let cognito_client = CognitoClient::new(sdk_config);
-            let key_set =
-                KeySet::new(user_pool_region, user_pool_id).map_err(Error::CognitoKeySet)?;
+            let key_set = KeySet::new(user_pool_region, user_pool_id.clone())
+                .map_err(Error::CognitoKeySet)?;
             key_set.prefetch_jwks().await.map_err(Error::CognitoJWKS)?;
             let verifier = key_set
-                .new_id_token_verifier(&[user_pool_client_id])
+                .new_id_token_verifier(&[&user_pool_client_id])
                 .build()
                 .map_err(Error::JsonToken)?;
             Ok(Self {
@@ -105,6 +105,7 @@ pub mod cognito {
                 .username(email)
                 .user_attributes(email_attribute(email))
                 .force_alias_creation(true)
+                .message_action(MessageActionType::Suppress) // TODO: Change to "RESEND" for production
                 .send()
                 .await?
                 .user
@@ -170,7 +171,7 @@ pub mod cognito {
                 .key_set
                 .try_verify(token, &self.verifier)
                 .map_err(Error::CognitoVerification)?;
-            debug!("Claims: {:?}", claims.to_string());
+            trace!("Claims: {:?}", claims.to_string());
 
             let claims: Claims = serde_json::from_value(claims)?;
             Ok(claims)

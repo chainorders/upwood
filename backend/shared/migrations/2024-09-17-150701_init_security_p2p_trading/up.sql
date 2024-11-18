@@ -16,7 +16,7 @@ create table
         contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         trader_address varchar not null,
         token_amount numeric(78) not null,
-        rate numeric(20, 20) not null,
+        rate numeric(40, 20) not null,
         create_time timestamp not null,
         update_time timestamp not null,
         primary key (contract_address, trader_address)
@@ -47,7 +47,7 @@ create table
         buyer_address varchar not null,
         token_amount numeric(78) not null,
         currency_amount numeric(78) not null,
-        rate numeric(20, 20) not null,
+        rate numeric(40, 20) not null,
         create_time timestamp not null,
         foreign key (contract_address, seller_address) references security_p2p_trading_deposits (contract_address, trader_address) on delete cascade
     );

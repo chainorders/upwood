@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use backon::{ExponentialBuilder, Retryable};
 use clap::Parser;
+use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::AbsoluteBlockHeight;
 use concordium_rust_sdk::v2;
 use diesel::r2d2::ConnectionManager;
@@ -119,9 +120,9 @@ async fn main() -> Result<(), Error> {
         }
     };
     info!("default block height: {}", default_block_height);
-    let processors = Processors::default();
 
-    let owner_account = config.account.parse().expect("Invalid account");
+    let owner_account: AccountAddress = config.account.parse().expect("Invalid account");
+    let processors = Processors::new(vec![owner_account.to_string()]);
     let retry_policy = ExponentialBuilder::default()
         .with_max_times(config.listener_retry_times)
         .with_min_delay(Duration::from_millis(
@@ -138,7 +139,6 @@ async fn main() -> Result<(), Error> {
         let mut listener_blocks = Listener::new(
             concordium_client.clone(),
             db_pool.clone(),
-            owner_account,
             processors.clone(),
             default_block_height,
         );

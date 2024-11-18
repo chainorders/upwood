@@ -112,13 +112,14 @@ mod tests {
     async fn add_identity() {
         let contract_address = ContractAddress::new(0, 0);
         let block_2_time = DateTime::<Utc>::from_timestamp(1, 0).unwrap();
-        let processors = Processors::new();
+        let chain_admin = AccountAddress([0; ACCOUNT_ADDRESS_SIZE]);
+        let mut processors = Processors::new(vec![chain_admin.to_string()]);
 
-        let (database_url, _container) = create_new_database_container().await;
-        db_setup::run_migrations(&database_url);
+        let (db_config, _container) = create_new_database_container().await;
+        db_setup::run_migrations(&db_config.db_url());
         let pool: DbPool = Pool::builder()
             .max_size(1)
-            .build(ConnectionManager::new(database_url))
+            .build(ConnectionManager::new(db_config.db_url()))
             .expect("Error creating database pool");
 
         {
@@ -147,11 +148,7 @@ mod tests {
                 }],
             };
             processors
-                .process_block(
-                    &mut conn,
-                    &block1,
-                    &AccountAddress([0; ACCOUNT_ADDRESS_SIZE]).to_string(),
-                )
+                .process_block(&mut conn, &block1)
                 .await
                 .expect("Error processing block 1");
 
@@ -383,11 +380,7 @@ mod tests {
                 }],
             };
             processors
-                .process_block(
-                    &mut conn,
-                    &block2,
-                    &AccountAddress([0; ACCOUNT_ADDRESS_SIZE]).to_string(),
-                )
+                .process_block(&mut conn, &block2)
                 .await
                 .expect("Error processing block 2");
         }

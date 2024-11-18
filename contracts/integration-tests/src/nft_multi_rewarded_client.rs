@@ -9,6 +9,20 @@ use crate::MAX_ENERGY;
 const MODULE_BYTES: &[u8] = include_bytes!("../../nft-multi-rewarded/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_nft_multi_rewarded");
 
+pub struct NftMultiRewardedTestClient(pub ContractAddress);
+impl NftMultiRewardedTestClient {
+    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    pub fn init_payload(init_params: &InitParam) -> InitContractPayload {
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   Self::module().get_module_ref(),
+            param:     OwnedParameter::from_serial(init_params).unwrap(),
+        }
+    }
+}
+
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain

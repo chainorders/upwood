@@ -19,20 +19,22 @@ use concordium_rust_sdk::web3id::did::Network;
 use concordium_rust_sdk::{cis2, v2};
 use diesel::r2d2::ConnectionManager;
 use events_listener::processors::cis2_utils::Cis2TokenIdToDecimal;
+use poem::error::ResponseError;
 use poem::http::StatusCode;
 use poem::middleware::{AddData, Cors, Tracing};
-use poem::{EndpointExt, Route};
+use poem::{EndpointExt, IntoResponse, Route};
 use poem_openapi::auth::Bearer;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{ApiResponse, Object, SecurityScheme};
 use r2d2::Pool;
-use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
+use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use secure_string::SecureString;
 use serde::Deserialize;
 use sha2::Digest;
 use shared::db_setup;
 use shared::db_shared::DbPool;
+use tracing::error;
 
 use crate::utils::{self, *};
 pub type OpenApiServiceType = poem_openapi::OpenApiService<
@@ -69,12 +71,12 @@ pub struct Config {
     pub concordium_node_uri: String,
     pub concordium_network: String,
     pub tree_nft_agent_wallet_json_str: String,
-    pub identity_registry_contract_index: u64,
-    pub compliance_contract_index: u64,
-    pub carbon_credit_contract_index: u64,
-    pub euro_e_contract_index: u64,
-    pub tree_ft_contract_index: u64,
-    pub tree_nft_contract_index: u64,
+    pub identity_registry_contract_index: Decimal,
+    pub compliance_contract_index: Decimal,
+    pub carbon_credit_contract_index: Decimal,
+    pub euro_e_contract_index: Decimal,
+    pub tree_ft_contract_index: Decimal,
+    pub tree_nft_contract_index: Decimal,
     pub files_bucket_name: String,
     pub files_presigned_url_expiry_secs: u64,
     pub filebase_s3_endpoint_url: String,
@@ -83,98 +85,162 @@ pub struct Config {
     pub filebase_bucket_name: String,
 }
 
-pub async fn create_web_app(config: &Config) -> Route {
-    let database_url = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        config.postgres_user,
-        config.postgres_password,
-        config.postgres_host,
-        config.postgres_port,
-        config.postgres_db
-    );
+impl Config {
+    pub fn from_env() -> Self {
+        dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
+        dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+            .ok();
+
+        config::Config::builder()
+            .add_source(config::Environment::default())
+            .build()
+            .expect("Failed to build config")
+            .try_deserialize()
+            .expect("Failed to deserialize config")
+    }
+
+    pub fn db_url(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.postgres_user,
+            self.postgres_password.unsecure(),
+            self.postgres_host,
+            self.postgres_port,
+            self.postgres_db
+        )
+    }
+
+    pub fn concordium_node_endpoint(&self) -> v2::Endpoint {
+        self.concordium_node_uri
+            .parse()
+            .expect("Failed to parse Concordium Node URI")
+    }
+
+    pub fn concordium_network(&self) -> Network {
+        self.concordium_network
+            .parse()
+            .expect("Failed to parse Concordium Network")
+    }
+
+    pub async fn concordium_client(&self) -> v2::Client {
+        v2::Client::new(self.concordium_node_endpoint())
+            .await
+            .expect("Failed to create Concordium Client")
+    }
+
+    pub fn db_pool(&self) -> DbPool {
+        let database_url = self.db_url();
+        Pool::builder()
+            .max_size(self.db_pool_max_size)
+            .build(ConnectionManager::new(database_url))
+            .expect("Failed to create database connection pool")
+    }
+
+    pub async fn aws_cognito_user_pool(
+        &self,
+        aws_sdk_config: &aws_config::SdkConfig,
+    ) -> aws::cognito::UserPool {
+        utils::aws::cognito::UserPool::new(
+            aws_sdk_config,
+            self.aws_user_pool_id.clone(),
+            self.aws_user_pool_client_id.clone(),
+            self.aws_user_pool_region.clone(),
+        )
+        .await
+        .expect("Failed to create user pool")
+    }
+
+    pub fn tree_nft_agent_wallet(&self) -> WalletAccount {
+        WalletAccount::from_json_str(&self.tree_nft_agent_wallet_json_str)
+            .expect("Failed to parse Tree NFT Agent Wallet JSON")
+    }
+
+    pub fn tree_nft_agent(&self) -> tree_nft_metadata::TreeNftAgent {
+        tree_nft_metadata::TreeNftAgent(self.tree_nft_agent_wallet())
+    }
+
+    pub fn tree_nft_config(&self) -> tree_nft_metadata::TreeNftConfig {
+        tree_nft_metadata::TreeNftConfig {
+            agent: Arc::new(self.tree_nft_agent()),
+        }
+    }
+
+    pub fn ipfs_files_bucket(&self) -> ipfs::filebase::FilesBucket {
+        ipfs::filebase::FilesBucket::new(
+            self.filebase_s3_endpoint_url.clone(),
+            self.filebase_access_key_id.unsecure().to_string(),
+            self.filebase_secret_access_key.unsecure().to_string(),
+            self.filebase_bucket_name.clone(),
+            Duration::from_secs(self.files_presigned_url_expiry_secs),
+        )
+    }
+
+    pub fn files_bucket(&self, aws_sdk_config: &aws_config::SdkConfig) -> s3::FilesBucket {
+        s3::FilesBucket::new(
+            aws_sdk_config,
+            self.files_bucket_name.clone(),
+            Duration::from_secs(self.files_presigned_url_expiry_secs),
+        )
+    }
+
+    pub fn contracts_config(&self) -> SystemContractsConfig {
+        SystemContractsConfig {
+            identity_registry_contract_index: self.identity_registry_contract_index,
+            compliance_contract_index:        self.compliance_contract_index,
+            carbon_credit_contract_index:     self.carbon_credit_contract_index,
+            carbon_credit_token_id:           cis2::TokenId::new_unchecked(vec![]).to_decimal(),
+            euro_e_contract_index:            self.euro_e_contract_index,
+            euro_e_token_id:                  cis2::TokenId::new_unchecked(vec![]).to_decimal(),
+            tree_ft_contract_index:           self.tree_ft_contract_index,
+            tree_nft_contract_index:          self.tree_nft_contract_index,
+        }
+    }
+
+    pub fn user_challenge_config(&self) -> user::UserChallengeConfig {
+        user::UserChallengeConfig {
+            challenge_expiry_duration: chrono::Duration::minutes(
+                self.user_challenge_expiry_duration_mins,
+            ),
+        }
+    }
+}
+
+pub async fn create_web_app(config: Config) -> Route {
+    let database_url = config.db_url();
     // Database Dependencies
     db_setup::run_migrations(&database_url);
-    let db_pool: DbPool = Pool::builder()
-        .max_size(config.db_pool_max_size)
-        .build(ConnectionManager::new(&database_url))
-        .expect("Failed to create database connection pool");
+    let db_pool = config.db_pool();
 
     // AWS Dependencies
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let user_pool = utils::aws::cognito::UserPool::new(
-        &sdk_config,
-        &config.aws_user_pool_id,
-        &config.aws_user_pool_client_id,
-        &config.aws_user_pool_region,
-    )
-    .await
-    .expect("Failed to create user pool");
 
     // Concordium Dependencies
-    let endpoint: v2::Endpoint = config
-        .concordium_node_uri
-        .parse()
-        .expect("Failed to parse Concordium Node URI");
-    let mut concordium_client = v2::Client::new(endpoint)
-        .await
-        .expect("Failed to create Concordium Client");
+    let mut concordium_client = config.concordium_client().await;
     let global_context = concordium_global_context(&mut concordium_client).await;
-    let network: Network = config
-        .concordium_network
-        .parse()
-        .expect("Failed to parse Concordium Network");
-    let tree_nft_agent_wallet =
-        WalletAccount::from_json_str(&config.tree_nft_agent_wallet_json_str)
-            .expect("Failed to parse Tree NFT Agent Wallet JSON");
-
-    let system_contracts_config = SystemContractsConfig {
-        identity_registry_contract_index: Decimal::from_u64(
-            config.identity_registry_contract_index,
-        )
-        .expect("Failed to convert identity registry contract index to Decimal"),
-        compliance_contract_index:        Decimal::from_u64(config.compliance_contract_index)
-            .expect("Failed to convert compliance contract index to Decimal"),
-        euro_e_contract_index:            Decimal::from_u64(config.euro_e_contract_index)
-            .expect("Failed to convert euro_e contract index to Decimal"),
-        euro_e_token_id:                  cis2::TokenId::new_unchecked(vec![]).to_decimal(),
-        carbon_credit_contract_index:     Decimal::from_u64(config.carbon_credit_contract_index)
-            .expect("Failed to convert carbon credit contract index to Decimal"),
-        carbon_credit_token_id:           cis2::TokenId::new_unchecked(vec![]).to_decimal(),
-        tree_ft_contract_index:           Decimal::from_u64(config.tree_ft_contract_index)
-            .expect("Failed to convert tree ft contract index to Decimal"),
-        tree_nft_contract_index:          Decimal::from_u64(config.tree_nft_contract_index)
-            .expect("Failed to convert tree nft contract index to Decimal"),
-    };
-
     let api = create_service();
     let ui = api.swagger_ui();
     let api = api
         .with(AddData::new(db_pool))
-        .with(AddData::new(s3::FilesBucket::new(
-            &sdk_config,
-            config.files_bucket_name.to_owned(),
-            Duration::from_secs(config.files_presigned_url_expiry_secs))))
-        .with(AddData::new(ipfs::filebase::FilesBucket::new(
-            &config.filebase_s3_endpoint_url,
-            config.filebase_access_key_id.unsecure(),
-            config.filebase_secret_access_key.unsecure(),
-            &config.filebase_bucket_name,
-            Duration::from_secs(config.files_presigned_url_expiry_secs))))
-        .with(AddData::new(user_pool))
+        .with(AddData::new(config.files_bucket(&sdk_config)))
+        .with(AddData::new(config.ipfs_files_bucket()))
+        .with(AddData::new(config.aws_cognito_user_pool(&sdk_config).await))
         .with(AddData::new(global_context))
         // Enhancements : Make an Object Pool for Concordium Client. So that connections to the node can be tracked
         .with(AddData::new(concordium_client))
-        .with(AddData::new(network))
-        .with(AddData::new(system_contracts_config))
-        .with(AddData::new(user::UserChallengeConfig {
-            challenge_expiry_duration: chrono::Duration::minutes(
-                config.user_challenge_expiry_duration_mins,
-            ),
-        }))
-        .with(AddData::new(tree_nft_metadata::TreeNftConfig {
-            agent: Arc::new(tree_nft_metadata::TreeNftAgent(tree_nft_agent_wallet)),
-        }))
+        .with(AddData::new(config.concordium_network()))
+        .with(AddData::new(config.contracts_config()))
+        .with(AddData::new(config.user_challenge_config()))
+        .with(AddData::new(config.tree_nft_config()))
         .with(Cors::new())
+        .after(|f| async move {
+            match f {
+                Ok(res) => Ok(res),
+                Err(error) => {
+                    error!("Api error: {:?}", error.to_string());
+                    Err(error)
+                }
+            }
+        })
         .with(Tracing);
 
     Route::new().nest("/", api).nest("/ui", ui)

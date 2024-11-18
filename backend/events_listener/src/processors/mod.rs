@@ -19,7 +19,7 @@ mod security_mint_fund;
 mod security_p2p_trading;
 mod security_sft_rewards;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use chrono::{NaiveDateTime, Utc};
 use concordium_rust_sdk::base::hashes::ModuleReference;
@@ -53,13 +53,15 @@ pub type ProcessorFnType = fn(
 pub struct Processors {
     pub processors_types: BTreeMap<(ModuleReference, OwnedContractName), ProcessorType>,
     pub processors:       BTreeMap<ProcessorType, ProcessorFnType>,
+    pub admins:           HashSet<String>,
 }
 
 impl Processors {
-    pub fn new() -> Self {
+    pub fn new(admins: Vec<String>) -> Self {
         let mut processors = Self {
             processors_types: BTreeMap::new(),
             processors:       BTreeMap::new(),
+            admins:           admins.into_iter().collect(),
         };
 
         processors.insert(
@@ -91,6 +93,12 @@ impl Processors {
             security_mint_fund::contract_name(),
             ProcessorType::SecurityMintFund,
             security_mint_fund::process_events as ProcessorFnType,
+        );
+        processors.insert(
+            security_p2p_trading::module_ref(),
+            security_p2p_trading::contract_name(),
+            ProcessorType::SecurityP2PTrading,
+            security_p2p_trading::process_events as ProcessorFnType,
         );
 
         processors
@@ -124,18 +132,16 @@ impl Processors {
 
     #[instrument(skip_all)]
     pub async fn process_block(
-        &self,
+        &mut self,
         conn: &mut DbConn,
         ParsedBlock {
             block,
             transactions,
         }: &ParsedBlock,
-        admin_account: &str,
     ) -> Result<(), ProcessorError> {
         let res = conn.transaction(|conn| {
             for txn in transactions.iter() {
-                let is_txn_processed =
-                    self.process_txn(conn, block.block_slot_time, txn, admin_account)?;
+                let is_txn_processed = self.process_txn(conn, block.block_slot_time, txn)?;
 
                 if is_txn_processed {
                     ListenerTransaction {
@@ -174,14 +180,13 @@ impl Processors {
         conn: &mut DbConn,
         block_slot_time: NaiveDateTime,
         txn: &ParsedTxn,
-        admin_account: &str,
     ) -> Result<bool, ProcessorError> {
         let mut is_any_processed = false;
         for contract_call in &txn.contract_calls {
             let is_processed = match &contract_call.call_type {
                 ContractCallType::Init(init) => {
                     // If the contract is owned by the owner, then we process the init call
-                    if admin_account.eq(&txn.sender) {
+                    if self.admins.contains(&txn.sender) {
                         if let Some(processor_type) =
                             self.find_type(&init.module_ref, &init.contract_name)
                         {
@@ -197,7 +202,7 @@ impl Processors {
 
                             let contract_call = ListenerContractCallInsert {
                                 call_type:        CallType::Init,
-                                ccd_amount:       init.amount.micro_ccd.into(),
+                                ccd_amount:       Decimal::ZERO,
                                 contract_address: contract.contract_address,
                                 entrypoint_name:  &init.contract_name.to_string(),
                                 events_count:     init.events.len() as i32,
@@ -207,11 +212,26 @@ impl Processors {
                                 created_at:       block_slot_time,
                             }
                             .insert(conn)?;
+                            debug!(
+                                "Init contract call processed. contract: {}, sender: {}, \
+                                 contract_name: {}",
+                                contract.contract_address, txn.sender, init.contract_name
+                            );
                             Some((contract, contract_call, Some(&init.events)))
                         } else {
+                            debug!(
+                                "Contract call not processed. Processor type not found. \
+                                 module_ref: {}, contract_name: {}",
+                                init.module_ref, init.contract_name
+                            );
                             None
                         }
                     } else {
+                        debug!(
+                            "Init contract call not processed. Sender not an admin: contract: {}, \
+                             sender: {}",
+                            contract_call.contract, txn.sender
+                        );
                         None
                     }
                 }
@@ -221,7 +241,7 @@ impl Processors {
                         Some(contract) => {
                             let contract_call = ListenerContractCallInsert {
                                 call_type:        CallType::Update,
-                                ccd_amount:       update.amount.micro_ccd.into(),
+                                ccd_amount:       update.amount.micro_ccd().into(),
                                 entrypoint_name:  &update.receive_name.to_string(),
                                 events_count:     update.events.len() as i32,
                                 contract_address: contract_call.contract,
@@ -231,9 +251,21 @@ impl Processors {
                                 created_at:       block_slot_time,
                             }
                             .insert(conn)?;
+                            debug!(
+                                "Update contract call processed. contract: {}, sender: {}, \
+                                 entrypoint: {}",
+                                contract.contract_address, txn.sender, update.receive_name
+                            );
                             Some((contract, contract_call, Some(&update.events)))
                         }
-                        None => None,
+                        None => {
+                            debug!(
+                                "Update contract call not processed. Contract not present in database: \
+                                 contract: {}",
+                                contract_call.contract
+                            );
+                            None
+                        }
                     }
                 }
                 ContractCallType::Upgraded { to, .. } => {
@@ -300,8 +332,4 @@ impl Processors {
 
         Ok(is_any_processed)
     }
-}
-
-impl Default for Processors {
-    fn default() -> Self { Self::new() }
 }

@@ -3,8 +3,8 @@ mod test_utils;
 use concordium_smart_contract_testing::AccountAddress;
 use passwords::PasswordGenerator;
 use poem::http::StatusCode;
-use test_utils::test_api::TestApi;
-use test_utils::test_cognito::TestCognito;
+use test_utils::test_api::ApiTestClient;
+use test_utils::test_cognito::CognitoTestClient;
 use tracing_test::traced_test;
 use upwood::api;
 use upwood::api::user::{AdminUser, ApiUser, UserRegisterReq};
@@ -33,11 +33,11 @@ async fn cognito_auth_test() {
         .spaces(false)
         .strict(true);
 
-    let mut api = TestApi::new(config.clone()).await;
-    let mut cognito = TestCognito::new(
+    let mut api = ApiTestClient::new(config.clone()).await;
+    let mut cognito = CognitoTestClient::new(
         &sdk_config,
-        &config.aws_user_pool_id,
-        &config.aws_user_pool_client_id,
+        config.aws_user_pool_id,
+        config.aws_user_pool_client_id,
     );
 
     // User Attributes
@@ -56,16 +56,16 @@ async fn cognito_auth_test() {
     let id_token = cognito
         .user_change_password(&email, &password_temp, &password)
         .await;
-    let get_user_req = api.user_self_req(&id_token).await.0;
+    let get_user_req = api.user_self_req(id_token.clone()).await.0;
     // User is still not registered with the API hence it is not found
     assert_eq!(get_user_req.status(), StatusCode::NOT_FOUND);
     // Upon setting the password user gets back a new id token
     let user_update = api
-        .user_register(&id_token, &UserRegisterReq {
+        .user_register(id_token.clone(), &UserRegisterReq {
             desired_investment_amount: 100,
         })
         .await;
-    let user = api.user_self(&id_token).await;
+    let user = api.user_self(id_token).await;
     assert_eq!(user_update, user);
     assert_eq!(user, ApiUser {
         email:                     email.to_owned(),
@@ -78,7 +78,7 @@ async fn cognito_auth_test() {
 
     cognito.admin_add_to_admin_group(&user_id).await;
     let id_token = cognito.user_login(&email, &password).await;
-    let user = api.user_self(&id_token).await;
+    let user = api.user_self(id_token.clone()).await;
     assert_eq!(user, ApiUser {
         email:                     email.to_owned(),
         cognito_user_id:           user_id.to_owned(),
@@ -91,11 +91,15 @@ async fn cognito_auth_test() {
     // Enhancement: mock the broswer wallet in order to create identity proofs
     println!("updating account address: {}", user.cognito_user_id);
     let account_address = AccountAddress([1; 32]).to_string();
-    api.admin_user_update_account_address(&id_token, &user.cognito_user_id, &account_address)
-        .await;
+    api.admin_user_update_account_address(
+        id_token,
+        user.cognito_user_id.clone(),
+        account_address.clone(),
+    )
+    .await;
     println!("updated account address: {}", user.cognito_user_id);
     let id_token = cognito.user_login(&email, &password).await;
-    let user = api.user_self(&id_token).await;
+    let user = api.user_self(id_token.clone()).await;
     assert_eq!(user, ApiUser {
         email:                     email.to_owned(),
         cognito_user_id:           user_id.to_owned(),
@@ -106,7 +110,7 @@ async fn cognito_auth_test() {
     });
 
     println!("listing users");
-    let users = api.admin_list_users(&id_token, 0).await;
+    let users = api.admin_list_users(id_token.clone(), 0).await;
     assert_eq!(users.page, 0);
     assert!(users.data.contains(&AdminUser {
         account_address:           Some(account_address),
@@ -117,9 +121,9 @@ async fn cognito_auth_test() {
     }));
     println!("listed users");
     println!("deleteting user: {}", user.cognito_user_id);
-    api.admin_user_delete(&id_token, &user.cognito_user_id)
+    api.admin_user_delete(id_token.clone(), user.cognito_user_id.clone())
         .await;
     println!("deleted user: {}", user.cognito_user_id);
-    let get_user_req = api.user_self_req(&id_token).await.0;
+    let get_user_req = api.user_self_req(id_token).await.0;
     assert_eq!(get_user_req.status(), StatusCode::NOT_FOUND);
 }

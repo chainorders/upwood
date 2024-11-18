@@ -13,6 +13,21 @@ use super::MAX_ENERGY;
 const MODULE_BYTES: &[u8] = include_bytes!("../../security-p2p-trading/contract.wasm.v1");
 const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_p2p_trading");
 
+pub struct P2PTradeTestClient(pub ContractAddress);
+impl P2PTradeTestClient {
+    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    pub fn init_payload(param: &InitParam) -> InitContractPayload {
+        let module = Self::module();
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   module.get_module_ref(),
+            param:     OwnedParameter::from_serial(param).unwrap(),
+        }
+    }
+}
+
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain

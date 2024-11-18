@@ -1,16 +1,18 @@
 #![allow(dead_code)]
 
-use test_api::TestApi;
-use test_cognito::TestCognito;
+use test_api::ApiTestClient;
+use test_cognito::CognitoTestClient;
 use upwood::api::user::UserRegisterReq;
 
 pub mod conversions;
 pub mod test_api;
+pub mod test_chain;
 pub mod test_cognito;
+pub mod test_user;
 
 pub async fn create_login_admin_user(
-    cognito: &mut TestCognito,
-    api: &mut TestApi,
+    cognito: &mut CognitoTestClient,
+    api: &mut ApiTestClient,
     email: &str,
     password: &str,
 ) -> (String, String) {
@@ -19,7 +21,7 @@ pub async fn create_login_admin_user(
     let id_token = cognito
         .user_change_password(email, password, password)
         .await;
-    api.user_register(&id_token, &UserRegisterReq {
+    api.user_register(id_token, &UserRegisterReq {
         desired_investment_amount: 100,
     })
     .await;

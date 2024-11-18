@@ -2,8 +2,8 @@ mod test_utils;
 
 use passwords::PasswordGenerator;
 use test_utils::create_login_admin_user;
-use test_utils::test_api::TestApi;
-use test_utils::test_cognito::TestCognito;
+use test_utils::test_api::ApiTestClient;
+use test_utils::test_cognito::CognitoTestClient;
 use upwood::api;
 use uuid::Uuid;
 
@@ -29,11 +29,11 @@ async fn test_s3_public_files() {
         .spaces(false)
         .strict(true);
 
-    let mut api = TestApi::new(config.clone()).await;
-    let mut cognito = TestCognito::new(
+    let mut api = ApiTestClient::new(config.clone()).await;
+    let mut cognito = CognitoTestClient::new(
         &sdk_config,
-        &config.aws_user_pool_id,
-        &config.aws_user_pool_client_id,
+        config.aws_user_pool_id,
+        config.aws_user_pool_client_id,
     );
 
     let email = format!("s3_files_{}@yopmail.com", Uuid::new_v4());
@@ -59,7 +59,7 @@ async fn test_s3_public_files() {
     api.admin_delete_file_s3(&id_token, &create_url_res.file_name)
         .await;
     println!("file deleted");
-    api.admin_user_delete(&id_token, &cognito_user_id).await;
+    api.admin_user_delete(id_token, cognito_user_id).await;
     println!("user deleted");
 }
 
@@ -85,11 +85,11 @@ async fn test_ipfs_public_files() {
         .spaces(false)
         .strict(true);
 
-    let mut api = TestApi::new(config.clone()).await;
-    let mut cognito = TestCognito::new(
+    let mut api = ApiTestClient::new(config.clone()).await;
+    let mut cognito = CognitoTestClient::new(
         &sdk_config,
-        &config.aws_user_pool_id,
-        &config.aws_user_pool_client_id,
+        config.aws_user_pool_id,
+        config.aws_user_pool_client_id,
     );
 
     let email = format!("s3_files_{}@yopmail.com", Uuid::new_v4());
@@ -115,6 +115,6 @@ async fn test_ipfs_public_files() {
     api.admin_delete_file_ipfs(&id_token, &create_url_res.file_name)
         .await;
     println!("file deleted");
-    api.admin_user_delete(&id_token, &cognito_user_id).await;
+    api.admin_user_delete(id_token, cognito_user_id).await;
     println!("user deleted");
 }

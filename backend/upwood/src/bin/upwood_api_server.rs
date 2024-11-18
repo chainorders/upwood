@@ -31,20 +31,13 @@ async fn main() -> Result<(), Error> {
         )
         .try_init()?;
 
-    // Load environment variables from .env file & parse them
-    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
-        .ok();
-    let config: api::Config = config::Config::builder()
-        .add_source(config::Environment::default())
-        .build()?
-        .try_deserialize()?;
+    let config = api::Config::from_env();
     info!("configuration: {:#?}", config);
 
     let web_server_addr = format!("{}:{}", config.api_socket_address, config.api_socket_port);
     info!("Starting Server at {}", web_server_addr);
     Server::new(TcpListener::bind(web_server_addr))
-        .run(api::create_web_app(&config).await)
+        .run(api::create_web_app(config).await)
         .await?;
 
     Ok(())

@@ -21,7 +21,7 @@ create table
         offering_doc_link varchar,
         property_media_header text not null,
         property_media_footer text not null,
-        latest_price numeric(10,10) not null,
+        latest_price numeric(20,10) not null,
         created_at timestamp not null default now (),
         updated_at timestamp not null default now ()
     );
@@ -29,7 +29,7 @@ create table
 create table
     forest_project_prices (
         project_id uuid not null references forest_projects (id),
-        price numeric(10,10) not null,
+        price numeric(20,10) not null,
         price_at timestamp not null default now (),
         created_at timestamp not null default now (),
         updated_at timestamp not null default now (),

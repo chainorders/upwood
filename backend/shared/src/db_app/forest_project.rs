@@ -8,7 +8,7 @@ use diesel::prelude::*;
 use diesel::serialize::ToSql;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::db::security_mint_fund::{SecurityMintFundContract, SecurityMintFundState};
@@ -26,6 +26,7 @@ use crate::schema;
     Insertable,
     Serialize,
     AsChangeset,
+    Deserialize,
 )]
 #[diesel(table_name = crate::schema::forest_projects)]
 #[diesel(primary_key(id))]
@@ -41,6 +42,7 @@ pub struct ForestProject {
     pub roi_percent: f32,
     pub state: ForestProjectState,
     pub image_large_url: String,
+    pub image_small_url: String,
     pub geo_spatial_url: Option<String>,
     pub contract_address: Decimal,
     pub mint_fund_contract_address: Option<Decimal>,
@@ -464,7 +466,7 @@ impl ForestProjectMedia {
     }
 }
 
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Serialize)]
+#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[diesel(sql_type = schema::sql_types::ForestProjectState)]
 #[derive(Enum)]
 pub enum ForestProjectState {

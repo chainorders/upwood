@@ -27,7 +27,6 @@ pub fn to_contract_call_init(
 ) -> ContractCall {
     ContractCall {
         call_type: ContractCallType::Init(ContractCallTypeInit {
-            amount: res.transaction_fee,
             contract_name,
             module_ref,
             events: res.events.clone(),

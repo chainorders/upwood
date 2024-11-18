@@ -10,6 +10,22 @@ use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
 pub const MODULE_BYTES: &[u8] = include_bytes!("../../security-sft-single/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_single");
 
+pub struct SftSingleTestClient(pub ContractAddress);
+impl SftSingleTestClient {
+    pub fn module() -> WasmModule {
+        WasmModule::from_slice(MODULE_BYTES).unwrap()
+    }
+
+    pub fn init_payload(init_params: &InitParam) -> InitContractPayload {
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   Self::module().get_module_ref(),
+            param:     OwnedParameter::from_serial(init_params).unwrap(),
+        }
+    }
+}
+
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain

@@ -189,6 +189,7 @@ pub enum ProcessorType {
     SecuritySftRewards = 3,
     NftMultiRewarded   = 4,
     SecurityMintFund   = 5,
+    SecurityP2PTrading = 6,
 }
 
 impl Display for ProcessorType {
@@ -199,6 +200,7 @@ impl Display for ProcessorType {
             ProcessorType::SecuritySftRewards => write!(f, "SecuritySftRewards"),
             ProcessorType::NftMultiRewarded => write!(f, "NftMultiRewarded"),
             ProcessorType::SecurityMintFund => write!(f, "SecurityMintFund"),
+            ProcessorType::SecurityP2PTrading => write!(f, "SecurityP2PTrading"),
         }
     }
 }
@@ -212,6 +214,7 @@ impl FromSql<Integer, diesel::pg::Pg> for ProcessorType {
             3 => ProcessorType::SecuritySftRewards,
             4 => ProcessorType::NftMultiRewarded,
             5 => ProcessorType::SecurityMintFund,
+            6 => ProcessorType::SecurityP2PTrading,
             _ => return Err(format!("Invalid processor type: {}", value).into()),
         })
     }

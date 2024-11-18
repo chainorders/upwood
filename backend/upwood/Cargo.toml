@@ -51,10 +51,16 @@ aws-credential-types = { version = "1.2.1", features = [
     "hardcoded-credentials",
 ] }
 rust_decimal = { workspace = true, features = ["db-diesel-postgres"] }
+test-log = { version = "0.2.16", features = ["trace"] }
 
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }
+concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
+security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
+nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
+security-mint-fund = { path = "../../contracts/security-mint-fund" }
+security-p2p-trading = { path = "../../contracts/security-p2p-trading" }
 concordium-rwa-compliance = { path = "../../contracts/compliance" }
 integration-tests = { path = "../../contracts/integration-tests" }
 concordium-smart-contract-testing = { workspace = true }
@@ -62,5 +68,5 @@ concordium-protocols = { path = "../../contracts/concordium-protocols" }
 concordium-cis2 = { workspace = true }
 rand = { version = "*" }
 poem = { workspace = true, features = ["test"] }
-tracing-test = { version = "*" }
+tracing-test = { version = "*", features = ["no-env-filter"] }
 reqwest = { version = "*", features = ["json", "blocking"] }

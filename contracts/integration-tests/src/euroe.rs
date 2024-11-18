@@ -26,6 +26,32 @@ pub struct RoleTypes {
     pub adminrole: Address,
 }
 
+pub struct EuroETestClient(pub ContractAddress);
+impl EuroETestClient {
+    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    pub fn init_payload() -> InitContractPayload {
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   Self::module().get_module_ref(),
+            param:     OwnedParameter::empty(),
+        }
+    }
+
+    pub fn grant_role_payload(&self, params: &RoleTypes) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("grantRole"),
+            ),
+            message:      OwnedParameter::from_serial(&params).unwrap(),
+        }
+    }
+}
+
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
@@ -72,15 +98,7 @@ pub fn grant_role(
         sender.address,
         sender.address.into(),
         MAX_ENERGY,
-        UpdateContractPayload {
-            address:      contract,
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
-                EntrypointName::new_unchecked("grantRole"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        },
+        EuroETestClient(contract).grant_role_payload(params),
     )
 }
 

@@ -1,14 +1,18 @@
 use aws_config::SdkConfig;
-use aws_sdk_cognitoidentityprovider::types::{AuthFlowType, ChallengeNameType};
+use aws_sdk_cognitoidentityprovider::types::{AuthFlowType, ChallengeNameType, UserType};
 
-pub struct TestCognito {
-    client:              aws_sdk_cognitoidentityprovider::Client,
-    user_pool_id:        String,
-    user_pool_client_id: String,
+pub struct CognitoTestClient {
+    pub client:              aws_sdk_cognitoidentityprovider::Client,
+    pub user_pool_id:        String,
+    pub user_pool_client_id: String,
 }
 
-impl TestCognito {
-    pub fn new(config: &SdkConfig, aws_user_pool_id: &str, aws_user_pool_client_id: &str) -> Self {
+impl CognitoTestClient {
+    pub fn new(
+        config: &SdkConfig,
+        aws_user_pool_id: String,
+        aws_user_pool_client_id: String,
+    ) -> Self {
         let client = aws_sdk_cognitoidentityprovider::Client::new(config);
         Self {
             client,
@@ -92,5 +96,30 @@ impl TestCognito {
             .send()
             .await
             .expect("Failed to add user to admin group");
+    }
+
+    pub async fn admin_remove_from_admin_group(&mut self, username: &str) {
+        self.client
+            .admin_remove_user_from_group()
+            .user_pool_id(self.user_pool_id.to_owned())
+            .username(username.to_owned())
+            .group_name("admin".to_owned())
+            .send()
+            .await
+            .expect("Failed to remove user from admin group");
+    }
+
+    pub async fn find_by_email(&self, email: &str) -> Option<String> {
+        let res = self
+            .client
+            .list_users()
+            .user_pool_id(self.user_pool_id.to_owned())
+            .filter(format!("email = \"{}\"", email))
+            .send()
+            .await
+            .expect("Failed to list users");
+        res.users
+            .and_then(|users| users.into_iter().next())
+            .and_then(|user: UserType| user.username)
     }
 }

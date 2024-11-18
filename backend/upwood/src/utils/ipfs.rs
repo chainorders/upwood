@@ -33,10 +33,10 @@ pub mod filebase {
 
     impl FilesBucket {
         pub fn new(
-            filebase_s3_endpoint_url: &str,
-            filebase_access_key_id: &str,
-            filebase_secret_access_key: &str,
-            files_bucket_name: &str,
+            filebase_s3_endpoint_url: String,
+            filebase_access_key_id: String,
+            filebase_secret_access_key: String,
+            files_bucket_name: String,
             expires_in: std::time::Duration,
         ) -> Self {
             Self {

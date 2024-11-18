@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub};
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 // use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::prelude::*;
@@ -84,14 +84,14 @@ impl P2PTradeContract {
         conn: &mut DbConn,
         contract: Decimal,
         amount: Decimal,
-        now: DateTime<Utc>,
+        now: NaiveDateTime,
     ) -> DbResult<()> {
         diesel::update(security_p2p_trading_contracts::table)
             .filter(security_p2p_trading_contracts::contract_address.eq(contract))
             .set((
                 security_p2p_trading_contracts::token_amount
                     .eq(security_p2p_trading_contracts::token_amount.add(amount)),
-                security_p2p_trading_contracts::update_time.eq(now.naive_utc()),
+                security_p2p_trading_contracts::update_time.eq(now),
             ))
             .execute(conn)?;
         Ok(())
@@ -112,14 +112,14 @@ impl P2PTradeContract {
         conn: &mut DbConn,
         contract: Decimal,
         amount: Decimal,
-        now: DateTime<Utc>,
+        now: NaiveDateTime,
     ) -> DbResult<()> {
         diesel::update(security_p2p_trading_contracts::table)
             .filter(security_p2p_trading_contracts::contract_address.eq(contract))
             .set((
                 security_p2p_trading_contracts::token_amount
                     .eq(security_p2p_trading_contracts::token_amount.sub(amount)),
-                security_p2p_trading_contracts::update_time.eq(now.naive_utc()),
+                security_p2p_trading_contracts::update_time.eq(now),
             ))
             .execute(conn)?;
         Ok(())
@@ -185,7 +185,7 @@ impl Trader {
         contract: Decimal,
         from: &AccountAddress,
         amount: Decimal,
-        now: DateTime<Utc>,
+        now: NaiveDateTime,
     ) -> DbResult<Self> {
         let trader = diesel::update(security_p2p_trading_deposits::table)
             .filter(security_p2p_trading_deposits::contract_address.eq(contract))
@@ -193,7 +193,7 @@ impl Trader {
             .set((
                 security_p2p_trading_deposits::token_amount
                     .eq(security_p2p_trading_deposits::token_amount.sub(amount)),
-                security_p2p_trading_deposits::update_time.eq(now.naive_utc()),
+                security_p2p_trading_deposits::update_time.eq(now),
             ))
             .returning(Self::as_returning())
             .get_result(conn)?;

@@ -11,7 +11,7 @@ use diesel::sql_types::Integer;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
 use serde::Serialize;
-use tracing::instrument;
+use tracing::{debug, instrument};
 use uuid::Uuid;
 
 use super::cis2_security::Token;
@@ -76,6 +76,7 @@ pub struct SecurityMintFundContract {
 impl SecurityMintFundContract {
     #[instrument(skip_all)]
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        debug!("Inserting security mint fund contract: {:#?}", self);
         diesel::insert_into(security_mint_fund_contracts::table)
             .values(self)
             .execute(conn)?;

@@ -7,7 +7,7 @@ create table
         investment_token_id numeric(20) not null,
         currency_token_contract_address numeric(20) not null,
         currency_token_id numeric(20) not null,
-        rate numeric(20, 20) not null,
+        rate numeric(40, 20) not null,
         fund_state int not null,
         receiver_address varchar,
         currency_amount numeric(78) not null default 0,

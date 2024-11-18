@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use concordium_rust_sdk::base::smart_contracts::OwnedReceiveName;
 use concordium_rust_sdk::common::types::Amount;
-use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::smart_contracts::{
     ContractEvent, ModuleReference, OwnedContractName,
 };
@@ -25,11 +24,13 @@ use tracing::{debug, info, instrument, trace, warn};
 use crate::processors::cis2_utils::ContractAddressToDecimal;
 use crate::processors::{ProcessorError, Processors};
 
+#[derive(Debug)]
 pub struct ParsedBlock {
     pub block:        ListenerBlock,
     pub transactions: Vec<ParsedTxn>,
 }
 
+#[derive(Clone, Debug)]
 pub struct ParsedTxn {
     pub index:          u64,
     pub hash:           Vec<u8>,
@@ -37,6 +38,7 @@ pub struct ParsedTxn {
     pub contract_calls: Vec<ContractCall>,
 }
 
+#[derive(Clone, Debug)]
 pub struct ContractCall {
     pub call_type: ContractCallType,
     pub contract:  Decimal,
@@ -53,6 +55,7 @@ impl ContractCall {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum ContractCallType {
     Init(ContractCallTypeInit),
     Update(ContractCallTypeUpdate),
@@ -71,7 +74,6 @@ impl ContractCallType {
         Self::Init(ContractCallTypeInit {
             module_ref:    init.origin_ref,
             contract_name: init.init_name,
-            amount:        init.amount,
             events:        init.events,
         })
     }
@@ -97,6 +99,7 @@ impl ContractCallType {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ContractCallTypeUpdate {
     pub sender:       Address,
     pub amount:       Amount,
@@ -104,10 +107,10 @@ pub struct ContractCallTypeUpdate {
     pub receive_name: OwnedReceiveName,
 }
 
+#[derive(Clone, Debug)]
 pub struct ContractCallTypeInit {
     pub module_ref:    ModuleReference,
     pub contract_name: OwnedContractName,
-    pub amount:        Amount,
     pub events:        Vec<ContractEvent>,
 }
 
@@ -151,8 +154,7 @@ impl ListenerError {
 /// transactions.
 #[derive(Clone)]
 pub struct Listener {
-    account:              AccountAddress, // Account address to listen to
-    processors:           Processors,     // Processors to process the transactions
+    processors:           Processors, // Processors to process the transactions
     database:             Pool<ConnectionManager<PgConnection>>, // postgres pool
     default_block_height: AbsoluteBlockHeight, // Default block height to start from
     concordium_client:    v2::Client,
@@ -162,12 +164,10 @@ impl Listener {
     pub fn new(
         client: v2::Client,
         pool: Pool<ConnectionManager<PgConnection>>,
-        account: AccountAddress,
         processors: Processors,
         default_block_height: AbsoluteBlockHeight,
     ) -> Self {
         Self {
-            account,
             concordium_client: client,
             database: pool,
             processors,
@@ -227,9 +227,7 @@ impl Listener {
                     transactions: txns,
                 };
 
-                self.processors
-                    .process_block(&mut conn, &block, &self.account.to_string())
-                    .await?;
+                self.processors.process_block(&mut conn, &block).await?;
             }
 
             debug!("Processed chunk of {} blocks", finalized_blocks.len());

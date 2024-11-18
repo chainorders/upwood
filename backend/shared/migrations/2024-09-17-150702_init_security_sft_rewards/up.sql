@@ -20,7 +20,7 @@ create table
         rewarded_token_contract numeric(20) not null,
         rewarded_token_id numeric(20) not null,
         reward_amount numeric(78) not null,
-        reward_rate numeric(20, 20) not null,
+        reward_rate numeric(40, 20) not null,
         create_time timestamp not null,
         update_time timestamp not null,
         primary key (contract_address, token_id),

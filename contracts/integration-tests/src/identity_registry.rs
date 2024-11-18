@@ -20,6 +20,35 @@ const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_rwa_identi
 
 const NATIONALITY_ATTRIBUTE_TAG: u8 = 5;
 
+pub struct IdentityRegistryTestClient(pub ContractAddress);
+impl IdentityRegistryTestClient {
+    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    pub fn init_payload() -> InitContractPayload {
+        InitContractPayload {
+            amount:    Amount::zero(),
+            init_name: CONTRACT_NAME.to_owned(),
+            mod_ref:   Self::module().get_module_ref(),
+            param:     OwnedParameter::empty(),
+        }
+    }
+
+    pub fn register_identity_payload(
+        &self,
+        params: RegisterIdentityParams,
+    ) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("registerIdentity"),
+            ),
+            message:      OwnedParameter::from_serial(&params).unwrap(),
+        }
+    }
+}
+
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain

@@ -56,7 +56,7 @@ impl Api {
                 Identity::exists(
                     &mut conn,
                     contracts.identity_registry_contract_index,
-                    &Address::Account(a),
+                    &a.into(),
                 )
             })
             .unwrap_or(Ok(false))?;

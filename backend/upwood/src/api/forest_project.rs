@@ -8,6 +8,7 @@ use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectMedia, ForestProjectPrice,
     ForestProjectState, ForestProjectUser, HolderReward,
 };
+use tracing::{debug, info};
 
 use super::*;
 pub const MEDIA_LIMIT: i64 = 4;
@@ -303,8 +304,19 @@ impl AdminApi {
         }
         project.created_at = now;
         project.updated_at = now;
-
-        let project = project.insert(conn)?;
+        debug!("Creating project: {:?}", project);
+        let project = project.insert(conn);
+        let project = match project {
+            Ok(project) => project,
+            Err(e) => {
+                error!("Failed to create project: {}", e);
+                return Err(Error::InternalServer(PlainText(format!(
+                    "Failed to create project: {}",
+                    e
+                ))));
+            }
+        };
+        info!("Created project: {:?}", project);
         ForestProjectPrice {
             price:      project.latest_price,
             project_id: project.id,
