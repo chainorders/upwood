@@ -1,14 +1,17 @@
 use std::io::Write;
 
 use concordium_rust_sdk::id::types::AccountAddress;
+use concordium_rust_sdk::types::ContractAddress;
 use diesel::deserialize::{FromSql, FromSqlRow};
 use diesel::dsl::*;
 use diesel::expression::AsExpression;
 use diesel::prelude::*;
 use diesel::serialize::ToSql;
 use poem_openapi::{Enum, Object};
+use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::db::security_mint_fund::{SecurityMintFundContract, SecurityMintFundState};
@@ -57,6 +60,11 @@ pub struct ForestProject {
 }
 
 impl ForestProject {
+    pub fn mint_fund_contract_address(&self) -> Option<ContractAddress> {
+        self.mint_fund_contract_address
+            .map(|a| ContractAddress::new(a.to_u64().unwrap(), 0))
+    }
+
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<ForestProject> {
         let project = diesel::insert_into(schema::forest_projects::table)
             .values(self)
@@ -221,11 +229,12 @@ diesel::table! {
         p2p_trading_contract_address -> Numeric,
         p2p_trading_rate -> Nullable<Numeric>,
         p2p_trading_token_amount -> Nullable<Numeric>,
-        holder_rewards -> Nullable<Jsonb>,
+        p2p_trading_trader_address -> Nullable<Varchar>,
+        holder_rewards -> Jsonb,
     }
 }
 
-#[derive(Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize)]
+#[derive(Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize)]
 #[diesel(table_name = forest_project_user_view)]
 #[diesel(primary_key(
     id,
@@ -278,7 +287,8 @@ pub struct ForestProjectUser {
     pub p2p_trading_contract_address: Decimal,
     pub p2p_trading_rate: Option<Decimal>,
     pub p2p_trading_token_amount: Option<Decimal>,
-    pub holder_rewards: Option<serde_json::Value>,
+    pub p2p_trading_trader_address: Option<String>,
+    pub holder_rewards: Value,
 }
 
 impl ForestProjectUser {
@@ -289,17 +299,30 @@ impl ForestProjectUser {
         user_account: Option<AccountAddress>,
     ) -> QueryResult<Option<Self>> {
         let user_account = user_account.map(|a| a.to_string()).unwrap_or_default();
-        let project = forest_project_user_view::table
-            .filter(forest_project_user_view::id.eq(id))
-            .filter(
-                forest_project_user_view::notification_cognito_user_id
-                    .eq(user_cognito_id)
-                    .or(forest_project_user_view::project_token_holder_address.eq(user_account))
-                    .or(forest_project_user_view::legal_contract_signer.eq(user_cognito_id)),
-            )
-            .select(ForestProjectUser::as_select())
-            .get_result(conn)
-            .optional()?;
+        let project =
+            forest_project_user_view::table
+                .filter(forest_project_user_view::id.eq(id))
+                .filter(
+                    forest_project_user_view::notification_cognito_user_id
+                        .is_null()
+                        .or(forest_project_user_view::notification_cognito_user_id
+                            .eq(user_cognito_id))
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::legal_contract_signer
+                                .is_null()
+                                .or(forest_project_user_view::legal_contract_signer
+                                    .eq(user_cognito_id)),
+                        ),
+                )
+                .select(ForestProjectUser::as_select())
+                .get_result(conn)
+                .optional()?;
 
         Ok(project)
     }
@@ -313,20 +336,51 @@ impl ForestProjectUser {
         page_size: i64,
     ) -> DbResult<(Vec<Self>, i64)> {
         let user_account = user_account.map(|a| a.to_string()).unwrap_or_default();
-        let projects = forest_project_user_view::table
-            .filter(
-                forest_project_user_view::notification_cognito_user_id
-                    .eq(user_cognito_id)
-                    .or(forest_project_user_view::project_token_holder_address
-                        .eq(user_account.to_owned()))
-                    .or(forest_project_user_view::legal_contract_signer.eq(user_cognito_id)),
-            )
-            .filter(forest_project_user_view::mint_fund_state.eq(mint_fund_state))
-            .select(ForestProjectUser::as_select())
-            .order(forest_project_user_view::created_at.desc())
-            .limit(page_size)
-            .offset(page * page_size)
-            .get_results(conn)?;
+        let projects =
+            forest_project_user_view::table
+                .filter(
+                    forest_project_user_view::notification_cognito_user_id
+                        .is_null()
+                        .or(forest_project_user_view::notification_cognito_user_id
+                            .eq(user_cognito_id))
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::legal_contract_signer
+                                .is_null()
+                                .or(forest_project_user_view::legal_contract_signer
+                                    .eq(user_cognito_id)),
+                        )
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::mint_fund_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::mint_fund_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::p2p_trading_trader_address
+                                .is_null()
+                                .or(forest_project_user_view::p2p_trading_trader_address
+                                    .eq(user_account.to_owned())),
+                        ),
+                )
+                .filter(forest_project_user_view::mint_fund_state.eq(mint_fund_state))
+                .filter(forest_project_user_view::state.eq(ForestProjectState::Listed))
+                .select(ForestProjectUser::as_select())
+                .order(forest_project_user_view::created_at.desc())
+                .limit(page_size)
+                .offset(page * page_size)
+                .get_results(conn)?;
         let total_count = forest_project_user_view::table
             .filter(
                 forest_project_user_view::notification_cognito_user_id

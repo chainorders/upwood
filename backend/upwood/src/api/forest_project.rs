@@ -37,14 +37,24 @@ impl Api {
         Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<ForestProjectUser>> {
         let conn = &mut db_pool.get()?;
-        let (projects, page_count) = ForestProjectUser::list(
+        let res = ForestProjectUser::list(
             conn,
             &claims.sub,
             claims.account(),
             SecurityMintFundState::Open,
             page,
             i64::MAX,
-        )?;
+        );
+        let (projects, page_count) = match res {
+            Ok((projects, page_count)) => (projects, page_count),
+            Err(e) => {
+                error!("Failed to list active projects: {}", e);
+                return Err(Error::InternalServer(PlainText(format!(
+                    "Failed to list active projects: {}",
+                    e
+                ))));
+            }
+        };
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
@@ -316,7 +326,7 @@ impl AdminApi {
                 ))));
             }
         };
-        info!("Created project: {:?}", project);
+        info!("Created project: {:?} by: {}", project.id, claims.email);
         ForestProjectPrice {
             price:      project.latest_price,
             project_id: project.id,
@@ -352,7 +362,18 @@ impl AdminApi {
             .insert(conn)?;
         }
         project.updated_at = now;
-        let project = project.update(conn)?;
+        debug!("Updating project: {:?}", project);
+        let project = project.update(conn);
+        let project = match project {
+            Ok(project) => project,
+            Err(e) => {
+                error!("Failed to update project: {}", e);
+                return Err(Error::InternalServer(PlainText(format!(
+                    "Failed to update project: {}",
+                    e
+                ))));
+            }
+        };
         Ok(Json(project))
     }
 

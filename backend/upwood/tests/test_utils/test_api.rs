@@ -2,7 +2,7 @@ use poem::http::{Method, StatusCode};
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
 use shared::api::PagedResponse;
-use shared::db_app::forest_project::{ForestProject, ForestProjectState};
+use shared::db_app::forest_project::{ForestProject, ForestProjectState, ForestProjectUser};
 use upwood::api;
 use upwood::api::user::{
     AdminUser, ApiUser, UserRegisterReq, UserRegistrationInvitationSendReq,
@@ -253,7 +253,7 @@ impl ApiTestClient {
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await;
-        res.assert_status_is_ok();
+        assert_eq!(res.0.status(), StatusCode::OK);
         res.0
             .into_body()
             .into_json()
@@ -274,11 +274,52 @@ impl ApiTestClient {
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await;
-        res.assert_status_is_ok();
+        assert_eq!(res.0.status(), StatusCode::OK);
         res.0
             .into_body()
             .into_json()
             .await
             .expect("Failed to parse list forest projects response")
+    }
+
+    pub async fn admin_forest_project_update(
+        &mut self,
+        id_token: String,
+        req: ForestProject,
+    ) -> ForestProject {
+        let res = self
+            .client
+            .put("/admin/forest_projects")
+            .body_json(&req)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse update forest project response")
+    }
+}
+
+impl ApiTestClient {
+    pub async fn user_forest_projects_list_active(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<ForestProjectUser> {
+        let res = self
+            .client
+            .get(format!("/forest_projects/list/active/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list active forest projects response")
     }
 }

@@ -10,7 +10,7 @@ use diesel::serialize::ToSql;
 use diesel::sql_types::Integer;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
@@ -22,7 +22,7 @@ use crate::schema::{
 };
 
 #[repr(i32)]
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize)]
+#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize, Deserialize)]
 #[diesel(sql_type = Integer)]
 pub enum SecurityMintFundState {
     Open    = 0,

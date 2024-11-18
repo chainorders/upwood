@@ -287,7 +287,7 @@ impl TokenHolder {
                 .set((
                     cis2_token_holders::frozen_balance
                         .eq(cis2_token_holders::frozen_balance.add(balance_delta)),
-                    cis2_token_holders::frozen_balance
+                    cis2_token_holders::un_frozen_balance
                         .eq(cis2_token_holders::un_frozen_balance.sub(balance_delta)),
                 ))
                 .returning(TokenHolder::as_returning())

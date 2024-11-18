@@ -12,9 +12,7 @@ pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_securi
 
 pub struct SftSingleTestClient(pub ContractAddress);
 impl SftSingleTestClient {
-    pub fn module() -> WasmModule {
-        WasmModule::from_slice(MODULE_BYTES).unwrap()
-    }
+    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
 
     pub fn init_payload(init_params: &InitParam) -> InitContractPayload {
         InitContractPayload {
@@ -22,6 +20,18 @@ impl SftSingleTestClient {
             init_name: CONTRACT_NAME.to_owned(),
             mod_ref:   Self::module().get_module_ref(),
             param:     OwnedParameter::from_serial(init_params).unwrap(),
+        }
+    }
+
+    pub fn add_agent_payload(&self, agent: &Agent) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("addAgent"),
+            ),
+            message:      OwnedParameter::from_serial(agent).unwrap(),
         }
     }
 }

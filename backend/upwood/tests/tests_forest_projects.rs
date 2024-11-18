@@ -4,7 +4,9 @@
 mod test_utils;
 
 use chrono::Months;
-use concordium_cis2::TokenIdVec;
+use concordium_cis2::{
+    OperatorUpdate, TokenAmountU64, TokenIdVec, UpdateOperator, UpdateOperatorParams,
+};
 use concordium_protocols::concordium_cis2_security::{Identity, TokenUId};
 use concordium_protocols::rate::Rate;
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
@@ -24,9 +26,9 @@ use integration_tests::security_sft_rewards_client::SftRewardsTestClient;
 use integration_tests::security_sft_single_client::SftSingleTestClient;
 use passwords::PasswordGenerator;
 use rust_decimal::prelude::ToPrimitive;
-use security_mint_fund::FundState;
+use security_mint_fund::{FundState, TransferInvestParams};
 use security_sft_rewards::types::TRACKED_TOKEN_ID;
-use shared::api::PagedResponse;
+use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{ForestProject, ForestProjectState};
 use shared::db_setup;
 use shared::db_shared::{DbConn, DbPool};
@@ -64,15 +66,15 @@ pub async fn test_forest_projects_single_user() {
     let now = chrono::Utc::now()
         .checked_sub_months(Months::new(12 * 10))
         .unwrap();
-    let (db_config, _container) = shared_tests::create_new_database_container().await;
-    db_setup::run_migrations(&db_config.db_url());
-    // let db_config = PostgresTestConfig {
-    //     postgres_db:       "concordium_rwa_dev".to_string(),
-    //     postgres_host:     "localhost".to_string(),
-    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
-    //     postgres_port:     5432,
-    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
-    // };
+    // let (db_config, _container) = shared_tests::create_new_database_container().await;
+    // db_setup::run_migrations(&db_config.db_url());
+    let db_config = shared_tests::PostgresTestConfig {
+        postgres_db:       "concordium_rwa_dev".to_string(),
+        postgres_host:     "localhost".to_string(),
+        postgres_password: "concordium_rwa_dev_pswd".to_string(),
+        postgres_port:     5432,
+        postgres_user:     "concordium_rwa_dev_user".to_string(),
+    };
 
     let db_url = db_config.db_url();
     let mut chain = Chain::new(now);
@@ -234,13 +236,22 @@ pub async fn test_forest_projects_single_user() {
         app_admin,
     )
     .await;
-    let user = chain.create_account(AccountAddress([2u8; 32]), DEFAULT_ACCOUNT_BALANCE);
-    let user = create_login_user(
+    let user_1 = chain.create_account(AccountAddress([101u8; 32]), DEFAULT_ACCOUNT_BALANCE);
+    let user_1 = create_login_user(
         &mut api,
         &mut cognito,
         &admin,
         format!("user_1_{}@yopmail.com", test_id),
-        user,
+        user_1,
+    )
+    .await;
+    let user_2 = chain.create_account(AccountAddress([102u8; 32]), DEFAULT_ACCOUNT_BALANCE);
+    let user_2 = create_login_user(
+        &mut api,
+        &mut cognito,
+        &admin,
+        format!("user_1_{}@yopmail.com", test_id),
+        user_2,
     )
     .await;
 
@@ -250,7 +261,7 @@ pub async fn test_forest_projects_single_user() {
                 chain.update(
                     account,
                     identity_registry.register_identity_payload(RegisterIdentityParams {
-                        address:  user.account_address().into(),
+                        address:  user_1.account_address().into(),
                         identity: Identity {
                             attributes:  vec![IdentityAttribute {
                                 tag:   5,
@@ -262,13 +273,30 @@ pub async fn test_forest_projects_single_user() {
                 )
             })
             .expect("Failed to add user_1 identity to identity registry");
+        admin
+            .transact(|account| {
+                chain.update(
+                    account,
+                    identity_registry.register_identity_payload(RegisterIdentityParams {
+                        address:  user_2.account_address().into(),
+                        identity: Identity {
+                            attributes:  vec![IdentityAttribute {
+                                tag:   5,
+                                value: COMPLIANT_NATIONALITIES[0].to_string(),
+                            }],
+                            credentials: vec![],
+                        },
+                    }),
+                )
+            })
+            .expect("Failed to add user_2 identity to identity registry");
         processor
             .process_block(&mut listener_conn, &chain.produce_block())
             .await
             .expect("Error processing block");
     }
 
-    let fp_1 = create_forest_project(
+    let (fp_1_contract, mint_fund_1, p2p_trade_1, fp_1) = create_forest_project(
         &mut chain,
         &mut api,
         &mut listener_conn,
@@ -280,13 +308,153 @@ pub async fn test_forest_projects_single_user() {
         1,
     )
     .await;
+    let (fp_2_contract, mint_fund_2, p2p_trade_2, fp_2) = create_forest_project(
+        &mut chain,
+        &mut api,
+        &mut listener_conn,
+        &mut processor,
+        &admin,
+        &euroe,
+        &identity_registry,
+        &compliance_contract,
+        2,
+    )
+    .await;
 
     {
-        let fps: PagedResponse<ForestProject> = admin
-            .call_api(|token| api.admin_forest_projects_list(token, 0, None))
+        {
+            let projects = user_1
+                .call_api(|token| api.user_forest_projects_list_active(token, 0))
+                .await;
+            assert_eq!(projects.data.len(), 0);
+        }
+
+        let fp_1 = admin
+            .call_api(|token| {
+                api.admin_forest_project_update(token, ForestProject {
+                    state: ForestProjectState::Listed,
+                    ..fp_1
+                })
+            })
             .await;
-        assert_eq!(fps.data.len(), 1);
-        assert_eq!(fps.data[0], fp_1);
+        assert_eq!(fp_1.state, ForestProjectState::Listed);
+
+        {
+            let projects = user_1
+                .call_api(|token| api.user_forest_projects_list_active(token, 0))
+                .await;
+            assert_eq!(projects.data.len(), 1);
+            assert_eq!(projects.data[0].id, fp_1.id);
+            assert_eq!(projects.data[0].mint_fund_rate, 1.into());
+            assert_eq!(
+                projects.data[0].mint_fund_state,
+                SecurityMintFundState::Open
+            );
+            assert_eq!(projects.data[0].mint_fund_token_un_frozen_balance, None);
+            assert_eq!(projects.data[0].p2p_trading_token_amount, None);
+        }
+    }
+
+    {
+        {
+            admin
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        euroe.mint_payload(&integration_tests::euroe::MintParams {
+                            owner:  user_1.account_address().into(),
+                            amount: TokenAmountU64(1000 * 1_000_000),
+                        }),
+                    )
+                })
+                .expect("Failed to mint euroe for user_1");
+            admin
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        euroe.mint_payload(&integration_tests::euroe::MintParams {
+                            owner:  user_2.account_address().into(),
+                            amount: TokenAmountU64(1000 * 1_000_000),
+                        }),
+                    )
+                })
+                .expect("Failed to mint euroe for user_2");
+        }
+
+        {
+            user_1
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        euroe.update_operator_payload(&UpdateOperatorParams(vec![
+                            UpdateOperator {
+                                operator: mint_fund_1.0.into(),
+                                update:   OperatorUpdate::Add,
+                            },
+                        ])),
+                    )
+                })
+                .expect("Failed to update euroe operator for mint fund 1 for user_1");
+            user_1
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        mint_fund_1.transfer_invest_payload(&TransferInvestParams {
+                            amount: TokenAmountU64(100),
+                        }),
+                    )
+                })
+                .expect("Failed to transfer invest for user_1");
+        }
+
+        {
+            user_2
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        euroe.update_operator_payload(&UpdateOperatorParams(vec![
+                            UpdateOperator {
+                                operator: mint_fund_1.0.into(),
+                                update:   OperatorUpdate::Add,
+                            },
+                        ])),
+                    )
+                })
+                .expect("Failed to update euroe operator for mint fund 1 for user_2");
+            user_2
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        mint_fund_1.transfer_invest_payload(&TransferInvestParams {
+                            amount: TokenAmountU64(200),
+                        }),
+                    )
+                })
+                .expect("Failed to transfer invest for user_2");
+        }
+
+        processor
+            .process_block(&mut listener_conn, &chain.produce_block())
+            .await
+            .expect("Error processing block");
+
+        {
+            let projects = user_1
+                .call_api(|token| api.user_forest_projects_list_active(token, 0))
+                .await;
+            assert_eq!(projects.data.len(), 1);
+            assert_eq!(projects.data[0].id, fp_1.id);
+            assert_eq!(projects.data[0].mint_fund_rate, 1.into());
+            assert_eq!(
+                projects.data[0].mint_fund_state,
+                SecurityMintFundState::Open
+            );
+            assert_eq!(
+                projects.data[0].mint_fund_token_frozen_balance,
+                Some(100.into())
+            );
+            assert_eq!(projects.data[0].p2p_trading_token_amount, None);
+        }
     }
 }
 
@@ -301,8 +469,13 @@ async fn create_forest_project(
     identity_registry: &IdentityRegistryTestClient,
     compliance_contract: &ComplianceTestClient,
     index: u16,
-) -> ForestProject {
-    let fp_1 = admin
+) -> (
+    SftRewardsTestClient,
+    MintFundTestClient,
+    P2PTradeTestClient,
+    ForestProject,
+) {
+    let project_contract: SftRewardsTestClient = admin
         .transact(|account| {
             chain.init(
                 account,
@@ -343,7 +516,7 @@ async fn create_forest_project(
         })
         .map(SftSingleTestClient)
         .expect("Failed to init tree sft contract");
-    let mint_fund_1 = admin
+    let mint_fund = admin
         .transact(|account| {
             chain.init(
                 account,
@@ -353,7 +526,7 @@ async fn create_forest_project(
                         id:       TokenIdVec(vec![]),
                     },
                     investment_token: TokenUId {
-                        contract: fp_1.0,
+                        contract: project_contract.0,
                         id:       to_token_id_vec(TRACKED_TOKEN_ID),
                     },
                     token:            TokenUId {
@@ -367,6 +540,23 @@ async fn create_forest_project(
         })
         .map(MintFundTestClient)
         .expect("Failed to init mint fund contract");
+    admin
+        .transact(|account| {
+            chain.update(
+                account,
+                fund_tracked_token.add_agent_payload(&security_sft_single::types::Agent {
+                    address: mint_fund.0.into(),
+                    roles:   vec![
+                        security_sft_single::types::AgentRole::Mint,
+                        security_sft_single::types::AgentRole::Freeze,
+                        security_sft_single::types::AgentRole::UnFreeze,
+                        security_sft_single::types::AgentRole::ForcedBurn,
+                        security_sft_single::types::AgentRole::ForcedTransfer,
+                    ],
+                }),
+            )
+        })
+        .expect("Failed to add mint fund as agent to fund tracked token");
     let p2p_trade = admin
         .transact(|account| {
             chain.init(
@@ -377,7 +567,7 @@ async fn create_forest_project(
                         id:       TokenIdVec(vec![]),
                     },
                     token:    TokenUId {
-                        contract: fp_1.0,
+                        contract: project_contract.0,
                         id:       to_token_id_vec(TRACKED_TOKEN_ID),
                     },
                 }),
@@ -389,7 +579,7 @@ async fn create_forest_project(
         .process_block(listener_conn, &chain.produce_block())
         .await
         .expect("Error processing block");
-    admin
+    let project = admin
         .call_api(|token| {
             api.admin_forest_projects_create(token, ForestProject {
                 area: "100 HA".to_string(),
@@ -403,20 +593,21 @@ async fn create_forest_project(
                 label: "GROW".to_string(),
                 carbon_credits: 200,
                 shares_available: 100,
-                contract_address: fp_1.0.to_decimal(),
+                contract_address: project_contract.0.to_decimal(),
                 latest_price: 1.into(),
                 created_at: chain.block_time_naive_utc(),
                 updated_at: chain.block_time_naive_utc(),
                 geo_spatial_url: Some("https://geo.com/spatial".to_string()),
                 offering_doc_link: Some("https://offering.com/doc".to_string()),
                 id: Uuid::new_v4(),
-                mint_fund_contract_address: Some(mint_fund_1.0.to_decimal()),
+                mint_fund_contract_address: Some(mint_fund.0.to_decimal()),
                 p2p_trade_contract_address: Some(p2p_trade.0.to_decimal()),
                 roi_percent: 12.5,
                 state: ForestProjectState::Draft,
             })
         })
-        .await
+        .await;
+    (project_contract, mint_fund, p2p_trade, project)
 }
 
 pub fn deploy_modules(chain: &mut Chain, chain_admin: &Account) {

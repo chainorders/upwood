@@ -50,6 +50,30 @@ impl EuroETestClient {
             message:      OwnedParameter::from_serial(&params).unwrap(),
         }
     }
+
+    pub fn mint_payload(&self, params: &MintParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("mint"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    pub fn update_operator_payload(&self, params: &UpdateOperatorParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("updateOperator"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {

@@ -21,7 +21,7 @@ create table
         offering_doc_link varchar,
         property_media_header text not null,
         property_media_footer text not null,
-        latest_price numeric(20,10) not null,
+        latest_price numeric(20, 10) not null,
         created_at timestamp not null default now (),
         updated_at timestamp not null default now ()
     );
@@ -29,7 +29,7 @@ create table
 create table
     forest_project_prices (
         project_id uuid not null references forest_projects (id),
-        price numeric(20,10) not null,
+        price numeric(20, 10) not null,
         price_at timestamp not null default now (),
         created_at timestamp not null default now (),
         updated_at timestamp not null default now (),
@@ -169,9 +169,10 @@ select
     -- security_p2p_trading_deposits.*,
     security_p2p_trading_deposits.rate as p2p_trading_rate,
     security_p2p_trading_deposits.token_amount as p2p_trading_token_amount,
+    security_p2p_trading_deposits.trader_address as p2p_trading_trader_address,
     -- forest_project_holder_rewards_agg_view.*,
-    json_agg (
-        json_build_object (
+    jsonb_agg (
+        jsonb_build_object (
             'rewarded_token_contract',
             forest_project_holder_rewards_agg_view.rewarded_token_contract,
             'rewarded_token_id',
@@ -195,9 +196,9 @@ from
         project_token_holders.cis2_address,
         project_token_holders.token_id
     )
-    join security_mint_fund_contracts on forest_projects.contract_address = security_mint_fund_contracts.contract_address
+    join security_mint_fund_contracts on forest_projects.mint_fund_contract_address = security_mint_fund_contracts.contract_address
     join cis2_tokens as mint_fund_tokens on (
-        security_mint_fund_contracts.contract_address,
+        security_mint_fund_contracts.token_contract_address,
         security_mint_fund_contracts.token_id
     ) = (
         mint_fund_tokens.cis2_address,
@@ -210,10 +211,8 @@ from
         mint_fund_token_holders.cis2_address,
         mint_fund_token_holders.token_id
     )
-    and mint_fund_token_holders.holder_address = project_token_holders.holder_address
-    join security_p2p_trading_contracts on forest_projects.contract_address = security_p2p_trading_contracts.contract_address
+    join security_p2p_trading_contracts on forest_projects.p2p_trade_contract_address = security_p2p_trading_contracts.contract_address
     left join security_p2p_trading_deposits on security_p2p_trading_contracts.contract_address = security_p2p_trading_deposits.contract_address
-    and security_p2p_trading_deposits.trader_address = project_token_holders.holder_address
     left join forest_project_holder_rewards_agg_view on forest_project_holder_rewards_agg_view.contract_address = forest_projects.contract_address
     and forest_project_holder_rewards_agg_view.holder_address = project_token_holders.holder_address
 group by
@@ -238,4 +237,4 @@ group by
     security_p2p_trading_deposits.trader_address,
     forest_project_holder_rewards_agg_view.id,
     forest_project_holder_rewards_agg_view.contract_address,
-    forest_project_holder_rewards_agg_view.holder_address
+    forest_project_holder_rewards_agg_view.holder_address;
