@@ -67,15 +67,15 @@ pub async fn test_forest_projects_single_user() {
     let now = chrono::Utc::now()
         .checked_sub_months(Months::new(12 * 10))
         .unwrap();
-    // let (db_config, _container) = shared_tests::create_new_database_container().await;
-    // shared::db_setup::run_migrations(&db_config.db_url());
-    let db_config = shared_tests::PostgresTestConfig {
-        postgres_db:       "concordium_rwa_dev".to_string(),
-        postgres_host:     "localhost".to_string(),
-        postgres_password: "concordium_rwa_dev_pswd".to_string(),
-        postgres_port:     5432,
-        postgres_user:     "concordium_rwa_dev_user".to_string(),
-    };
+    let (db_config, _container) = shared_tests::create_new_database_container().await;
+    shared::db_setup::run_migrations(&db_config.db_url());
+    // let db_config = shared_tests::PostgresTestConfig {
+    //     postgres_db:       "concordium_rwa_dev".to_string(),
+    //     postgres_host:     "localhost".to_string(),
+    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
+    //     postgres_port:     5432,
+    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
+    // };
 
     let db_url = db_config.db_url();
     let mut chain = Chain::new(now);
@@ -334,6 +334,7 @@ pub async fn test_forest_projects_single_user() {
         &identity_registry,
         &compliance_contract,
         1,
+        2.into(),
     )
     .await;
     let (fp_2_contract, mint_fund_2, p2p_trade_2, fp_2) = create_forest_project(
@@ -346,6 +347,7 @@ pub async fn test_forest_projects_single_user() {
         &identity_registry,
         &compliance_contract,
         2,
+        3.into(),
     )
     .await;
 
@@ -464,7 +466,11 @@ pub async fn test_forest_projects_single_user() {
             );
             assert_eq!(projects.data[0].p2p_trading_token_amount, None);
 
-            let portfolio = user_1.call_api(|token| api.user_portfolio_agg(token)).await;
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
                 locked_euro_e_amount:    100.into(),
                 current_portfolio_value: Decimal::ZERO,
@@ -474,7 +480,11 @@ pub async fn test_forest_projects_single_user() {
                 yearly_return:           Decimal::ZERO,
             });
 
-            let portfolio = user_2.call_api(|token| api.user_portfolio_agg(token)).await;
+            let portfolio = user_2
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
                 locked_euro_e_amount:    200.into(),
                 current_portfolio_value: Decimal::ZERO,
@@ -537,14 +547,18 @@ pub async fn test_forest_projects_single_user() {
 
         // assertion of portfolio after mint fund completion
         {
-            let portfolio = user_1.call_api(|token| api.user_portfolio_agg(token)).await;
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
                 locked_euro_e_amount:    0.into(),
-                current_portfolio_value: 100.into(),
+                current_portfolio_value: 200.into(),
                 carbon_tons_offset:      Decimal::ZERO,
-                monthly_return:          Decimal::ZERO,
-                return_on_investment:    Decimal::ZERO,
-                yearly_return:           Decimal::ZERO,
+                monthly_return:          200.into(),
+                return_on_investment:    100.into(),
+                yearly_return:           200.into(),
             });
         }
     }
@@ -561,6 +575,7 @@ async fn create_forest_project(
     identity_registry: &IdentityRegistryTestClient,
     compliance_contract: &ComplianceTestClient,
     index: u16,
+    latest_price: Decimal,
 ) -> (
     SftRewardsTestClient,
     MintFundTestClient,
@@ -698,7 +713,7 @@ async fn create_forest_project(
                 carbon_credits: 200,
                 shares_available: 100,
                 contract_address: project_contract.0.to_decimal(),
-                latest_price: 1.into(),
+                latest_price,
                 geo_spatial_url: Some("https://geo.com/spatial".to_string()),
                 offering_doc_link: Some("https://offering.com/doc".to_string()),
                 mint_fund_contract_address: Some(mint_fund.0.to_decimal()),

@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use poem::http::{Method, StatusCode};
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
@@ -353,11 +354,12 @@ impl ApiTestClient {
 
 // User Portfolio Implementation
 impl ApiTestClient {
-    pub async fn user_portfolio_agg(&self, id_token: String) -> InvestmentPortfolioUserAggregate {
+    pub async fn portfolio_aggreagte(&self, id_token: String, now: Option<NaiveDateTime>) -> InvestmentPortfolioUserAggregate {
         let res = self
             .client
             .get("/portfolio/aggregate")
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("now", &now)
             .send()
             .await;
         assert_eq!(res.0.status(), StatusCode::OK);

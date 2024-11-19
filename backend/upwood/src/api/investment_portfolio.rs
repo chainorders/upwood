@@ -1,9 +1,9 @@
-use chrono::{DateTime, Months, Utc};
+use chrono::{Months, NaiveDateTime, Utc};
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::sql_types::{Integer, Nullable, Numeric, Timestamp, VarChar};
 use diesel::{sql_query, QueryResult};
 use poem::web::Data;
-use poem_openapi::param::Path;
+use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use rust_decimal::Decimal;
@@ -27,15 +27,16 @@ impl Api {
         method = "get",
         tag = "ApiTags::InvestmentPortfolio"
     )]
-    async fn get_aggregate(
+    async fn portfolio_aggreagte(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
+        Query(now): Query<Option<NaiveDateTime>>,
     ) -> JsonResult<InvestmentPortfolioUserAggregate> {
         let account = ensure_account_registered(&claims)?;
         let conn = &mut db_pool.get()?;
-        let now = Utc::now();
+        let now = now.unwrap_or(Utc::now().naive_utc());
         let ret = InvestmentPortfolioUserAggregate::generate(
             conn,
             &account,
@@ -70,10 +71,11 @@ impl Api {
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(months): Path<u32>,
+        Query(now): Query<Option<NaiveDateTime>>,
     ) -> JsonResult<Vec<PortfolioValue>> {
         let account = ensure_account_registered(&claims)?;
         let conn = &mut db_pool.get()?;
-        let now = Utc::now();
+        let now = now.unwrap_or(Utc::now().naive_utc());
         let mut ret = Vec::new();
         for i in 0..months {
             let time = now.checked_sub_months(Months::new(i)).unwrap();
@@ -113,7 +115,7 @@ impl InvestmentPortfolioUserAggregate {
         euro_e_token_id: Decimal,
         carbon_credit_contract_index: Decimal,
         carbon_credit_token_id: Decimal,
-        now: chrono::DateTime<chrono::Utc>,
+        now: NaiveDateTime,
     ) -> QueryResult<Self> {
         let locked_euro_e_amount = Self::calculate_locked_euro_e_amounts(
             conn,
@@ -165,7 +167,7 @@ impl InvestmentPortfolioUserAggregate {
         let return_on_investment = if invested_value.is_zero() {
             Decimal::ZERO
         } else {
-            (current_portfolio_value - invested_value) / invested_value
+            ((current_portfolio_value - invested_value) / invested_value) * Decimal::from(100)
         };
 
         let carbon_tons_offset = Token::total_burned(
@@ -173,7 +175,7 @@ impl InvestmentPortfolioUserAggregate {
             &account.to_string(),
             carbon_credit_contract_index,
             carbon_credit_token_id,
-            now.naive_utc(),
+            now,
         )?;
 
         Ok(InvestmentPortfolioUserAggregate {
@@ -189,7 +191,7 @@ impl InvestmentPortfolioUserAggregate {
     fn calculate_portfolio_value(
         conn: &mut DbConn,
         account: &AccountAddress,
-        now: chrono::DateTime<chrono::Utc>,
+        now: NaiveDateTime,
     ) -> QueryResult<CurrencyAmount> {
         let account = account.to_string();
         #[rustfmt::skip]
@@ -235,7 +237,7 @@ impl InvestmentPortfolioUserAggregate {
         let amounts = amounts
             .bind::<VarChar, _>(account)
             .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<Timestamp, _>(now.naive_utc())
+            .bind::<Timestamp, _>(now)
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
@@ -246,7 +248,7 @@ impl InvestmentPortfolioUserAggregate {
         account: &AccountAddress,
         euro_e_contract_index: Decimal,
         euro_e_token_id: Decimal,
-        now: chrono::DateTime<chrono::Utc>,
+        now: NaiveDateTime,
     ) -> QueryResult<CurrencyAmount> {
         let account = account.to_string();
         #[rustfmt::skip]
@@ -290,7 +292,7 @@ impl InvestmentPortfolioUserAggregate {
         let amounts = amounts
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(now.naive_utc())
+            .bind::<Timestamp, _>(now)
             .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
             .bind::<Numeric, _>(euro_e_contract_index)
             .bind::<Numeric, _>(euro_e_token_id)
@@ -303,7 +305,7 @@ impl InvestmentPortfolioUserAggregate {
         account: &AccountAddress,
         euro_e_contract_index: Decimal,
         euro_e_token_id: Decimal,
-        now: chrono::DateTime<chrono::Utc>,
+        now: NaiveDateTime,
     ) -> QueryResult<CurrencyAmount> {
         let account = account.to_string();
         #[rustfmt::skip]
@@ -348,7 +350,7 @@ impl InvestmentPortfolioUserAggregate {
             .bind::<Numeric, _>(euro_e_token_id)
             .bind::<VarChar, _>(account)
             .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<Timestamp, _>(now.naive_utc())
+            .bind::<Timestamp, _>(now)
             .bind::<Integer, _>(InvestmentRecordType::Claimed)
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
@@ -360,7 +362,7 @@ impl InvestmentPortfolioUserAggregate {
         account: &AccountAddress,
         euro_e_contract_index: Decimal,
         euro_e_token_id: Decimal,
-        now: chrono::DateTime<chrono::Utc>,
+        now: NaiveDateTime,
     ) -> QueryResult<CurrencyAmount> {
         let account = account.to_string();
         #[rustfmt::skip]
@@ -384,7 +386,7 @@ impl InvestmentPortfolioUserAggregate {
             .bind::<Numeric, _>(euro_e_token_id)
             .bind::<VarChar, _>(account)
             .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<Timestamp, _>(now.naive_utc())
+            .bind::<Timestamp, _>(now)
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
@@ -400,5 +402,5 @@ pub struct CurrencyAmount {
 #[derive(serde::Serialize, Object)]
 pub struct PortfolioValue {
     pub portfolio_value: Decimal,
-    pub at:              DateTime<Utc>,
+    pub at:              NaiveDateTime,
 }
