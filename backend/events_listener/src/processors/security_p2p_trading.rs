@@ -8,7 +8,7 @@ use shared::db::security_p2p_trading::{
     P2PTradeContract, Trade, Trader, TradingRecord, TradingRecordType,
 };
 use shared::db_shared::DbConn;
-use tracing::{debug, instrument};
+use tracing::{info, instrument, trace};
 use uuid::Uuid;
 
 use crate::processors::cis2_utils::{
@@ -29,7 +29,7 @@ pub fn contract_name() -> OwnedContractName {
 }
 
 #[instrument(
-    name="security_p2p_trading_process_events",
+    name="p2p_trading",
     skip_all,
     fields(contract = %contract, events = events.len())
 )]
@@ -41,11 +41,7 @@ pub fn process_events(
 ) -> Result<(), ProcessorError> {
     for event in events {
         let event = event.parse::<Event>().expect("Failed to parse event");
-        debug!(
-            "Processing event for contract: {}/{}",
-            contract.index, contract.subindex
-        );
-        debug!("Event details: {:#?}", event);
+        trace!("Event details: {:#?}", event);
 
         match event {
             Event::Initialized(event) => {
@@ -60,6 +56,7 @@ pub fn process_events(
                     update_time: now,
                 }
                 .insert(conn)?;
+                info!("initialized");
             }
             Event::Sell(event) => {
                 let rate = rate_to_decimal(event.rate.numerator, event.rate.denominator);
@@ -91,6 +88,13 @@ pub fn process_events(
                     create_time: now,
                 }
                 .insert(conn)?;
+                info!(
+                    "sell by: {}, amount: {}, rate: {}/{}",
+                    event.from,
+                    event.amount.to_decimal(),
+                    event.rate.numerator,
+                    event.rate.denominator
+                );
             }
             Event::SellCancelled(event) => {
                 let trader = Trader::sub_amount(
@@ -118,6 +122,11 @@ pub fn process_events(
                     create_time: now,
                 }
                 .insert(conn)?;
+                info!(
+                    "sell cancelled by: {}, amount: {}",
+                    event.from,
+                    event.amount.to_decimal()
+                );
             }
             Event::Exchange(event) => {
                 let trader = Trader::sub_amount(
@@ -156,6 +165,13 @@ pub fn process_events(
                     create_time:      now,
                 }
                 .insert(conn)?;
+                info!(
+                    "exchange by: {}, to: {}, sell amount: {}, pay amount: {}",
+                    event.seller,
+                    event.payer,
+                    event.sell_amount.to_decimal(),
+                    event.pay_amount.to_decimal()
+                );
             }
         }
     }

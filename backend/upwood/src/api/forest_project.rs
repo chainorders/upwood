@@ -1,3 +1,5 @@
+use std::cmp;
+
 use diesel::Connection;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
@@ -5,17 +7,17 @@ use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectHolderRewardTotal, ForestProjectMedia, ForestProjectPrice,
-    ForestProjectState, ForestProjectUser, HolderReward,
+    ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectMedia,
+    ForestProjectPrice, ForestProjectState, ForestProjectUser, HolderReward,
 };
 use tracing::{debug, info};
 
 use super::*;
 pub const MEDIA_LIMIT: i64 = 4;
-pub struct Api;
+pub struct ForestProjectApi;
 
 #[OpenApi]
-impl Api {
+impl ForestProjectApi {
     /// Lists the active forest projects, paginated by the provided page number. Active projects are those in the funding state.
     ///
     /// # Arguments
@@ -30,7 +32,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list_active(
+    pub async fn forest_project_list_active(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -76,7 +78,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list_funded(
+    pub async fn forest_project_list_funded(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -112,7 +114,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list_owned(
+    pub async fn forest_project_list_owned(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -143,7 +145,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn find(
+    pub async fn forest_project_find(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -167,7 +169,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list_media(
+    pub async fn forest_project_list_media(
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -188,7 +190,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn find_media(
+    pub async fn forest_project_find_media(
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -210,7 +212,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn total_rewards(
+    pub async fn forest_project_rewards_total(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -226,7 +228,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn claimable_rewards(
+    pub async fn forest_project_rewards_claimable(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -238,10 +240,10 @@ impl Api {
     }
 }
 
-pub struct AdminApi;
+pub struct ForestProjectAdminApi;
 
 #[OpenApi]
-impl AdminApi {
+impl ForestProjectAdminApi {
     /// Finds a forest project by its ID.
     /// Only admins can access this endpoint.
     ///
@@ -257,7 +259,7 @@ impl AdminApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn find(
+    pub async fn admin_find_forest_project(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -276,7 +278,7 @@ impl AdminApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list(
+    pub async fn admin_list_forest_projects(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -298,22 +300,19 @@ impl AdminApi {
         method = "post",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn create(
+    pub async fn admin_create_forest_project(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Json(mut project): Json<ForestProject>,
+        Json(project): Json<ForestProject>,
     ) -> JsonResult<ForestProject> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let now = chrono::Utc::now().naive_utc();
         if project.state != ForestProjectState::Draft {
             return Err(Error::BadRequest(PlainText(
                 "Only draft projects can be created".to_string(),
             )));
         }
-        project.created_at = now;
-        project.updated_at = now;
         debug!("Creating project: {:?}", project);
         let project = project.insert(conn);
         let project = match project {
@@ -330,7 +329,7 @@ impl AdminApi {
         ForestProjectPrice {
             price:      project.latest_price,
             project_id: project.id,
-            price_at:   chrono::Utc::now().naive_utc(),
+            price_at:   project.created_at,
         }
         .insert(conn)?;
         Ok(Json(project))
@@ -341,15 +340,14 @@ impl AdminApi {
         method = "put",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn update(
+    pub async fn admin_update_forest_project(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Json(mut project): Json<ForestProject>,
+        Json(project): Json<ForestProject>,
     ) -> JsonResult<ForestProject> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let now = chrono::Utc::now().naive_utc();
         let existing_project = ForestProject::find(conn, project.id)?.ok_or(Error::NotFound(
             PlainText(format!("Forest project not found: {}", project.id)),
         ))?;
@@ -357,11 +355,10 @@ impl AdminApi {
             ForestProjectPrice {
                 price:      project.latest_price,
                 project_id: project.id,
-                price_at:   now,
+                price_at:   existing_project.updated_at,
             }
             .insert(conn)?;
         }
-        project.updated_at = now;
         debug!("Updating project: {:?}", project);
         let project = project.update(conn);
         let project = match project {
@@ -382,7 +379,7 @@ impl AdminApi {
         method = "post",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn create_media(
+    pub async fn admin_create_forest_project_media(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -405,7 +402,7 @@ impl AdminApi {
         method = "delete",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn delete_media(
+    pub async fn admin_delete_forest_project_media(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -434,7 +431,7 @@ impl AdminApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn find_price(
+    pub async fn admin_find_forest_project_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -457,7 +454,7 @@ impl AdminApi {
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn list_price(
+    pub async fn admin_forest_project_list_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -479,7 +476,7 @@ impl AdminApi {
         method = "post",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn create_price(
+    pub async fn admin_forest_project_create_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -487,7 +484,6 @@ impl AdminApi {
         Json(price): Json<ForestProjectPrice>,
     ) -> JsonResult<ForestProjectPrice> {
         ensure_is_admin(&claims)?;
-        let now = chrono::Utc::now().naive_utc();
         if project_id != price.project_id {
             return Err(Error::BadRequest(PlainText(
                 "Project id in path and body must be the same".to_string(),
@@ -500,11 +496,13 @@ impl AdminApi {
                 ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
                     format!("Forest project not found: {}", project_id),
                 )))?;
-            if forest_project.latest_price.ne(&price.price) {
-                forest_project.latest_price = price.price;
-                forest_project.updated_at = now;
-                forest_project.update(conn)?;
-            }
+            let latest_price =
+                ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(PlainText(
+                    format!("Latest price not found for project: {}", project_id),
+                )))?;
+            forest_project.latest_price = latest_price.price;
+            forest_project.updated_at = cmp::max(forest_project.updated_at, price.price_at);
+            forest_project.update(conn)?;
             Ok(price)
         })?;
         Ok(Json(price))
@@ -515,7 +513,7 @@ impl AdminApi {
         method = "delete",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn delete_price(
+    pub async fn admin_forest_project_delete_price(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -524,7 +522,44 @@ impl AdminApi {
     ) -> NoResResult {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        ForestProjectPrice::delete(conn, project_id, price_at)?;
+        conn.transaction(|conn| {
+            ForestProjectPrice::delete(conn, project_id, price_at)?;
+            let latest_price =
+                ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(PlainText(
+                    format!("Latest price not found for project: {}", project_id),
+                )))?;
+            let mut forest_project =
+                ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
+                    format!("Forest project not found: {}", project_id),
+                )))?;
+            forest_project.latest_price = latest_price.price;
+            forest_project.updated_at = latest_price.price_at;
+            forest_project.update(conn)?;
+            NoResResult::Ok(())
+        })?;
         Ok(())
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/:project_id/fund/investor/list/:page",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_forest_project_investor_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<ForestProjectInvestor>> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let (investors, page_count) =
+            ForestProjectInvestor::list(conn, project_id, page, PAGE_SIZE)?;
+        Ok(Json(PagedResponse {
+            data: investors,
+            page_count,
+            page,
+        }))
     }
 }

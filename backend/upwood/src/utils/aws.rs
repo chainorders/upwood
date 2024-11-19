@@ -9,7 +9,7 @@ pub mod cognito {
     use jsonwebtokens_cognito::KeySet;
     use poem_openapi::Object;
     use serde::{Deserialize, Serialize};
-    use tracing::{debug, instrument, trace};
+    use tracing::{instrument, trace};
 
     use crate::utils::CognitoClient;
 

@@ -6,7 +6,7 @@ use nft_multi_rewarded::types::Event;
 use shared::db::cis2_security::Agent;
 use shared::db::nft_multi_rewarded::{AddressNonce, NftMultiRewardedContract};
 use shared::db_shared::DbConn;
-use tracing::{debug, instrument};
+use tracing::{info, instrument, trace};
 
 use crate::processors::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 use crate::processors::{cis2_security, ProcessorError};
@@ -24,7 +24,7 @@ pub fn contract_name() -> OwnedContractName {
 }
 
 #[instrument(
-    name="nft_multi_rewarded_process_events",
+    name="nft",
     skip_all,
     fields(contract = %contract, events = events.len())
 )]
@@ -36,18 +36,16 @@ pub fn process_events(
 ) -> Result<(), ProcessorError> {
     for event in events {
         let parsed_event = event.parse::<Event>().expect("Failed to parse event");
-        debug!(
-            "Processing event for contract: {}/{}",
-            contract.index, contract.subindex
-        );
-        debug!("Event details: {:#?}", parsed_event);
+        trace!("Event details: {:#?}", parsed_event);
 
         match parsed_event {
             Event::AgentAdded(e) => {
                 Agent::new(e, now, contract.to_decimal(), vec![]).insert(conn)?;
+                info!("Agent: {} added", e.to_string());
             }
             Event::AgentRemoved(e) => {
                 Agent::delete(conn, contract.to_decimal(), &e)?;
+                info!("Agent: {} removed", e.to_string());
             }
             Event::Cis2(event) => {
                 cis2_security::process_events_cis2(conn, now, contract, event)?;
@@ -60,6 +58,7 @@ pub fn process_events(
                     now,
                 )
                 .upsert(conn)?;
+                info!("Reward token updated: {}", e.reward_token.id.to_string());
             }
             Event::NonceUpdated(address, nonce) => {
                 AddressNonce {
@@ -68,6 +67,7 @@ pub fn process_events(
                     nonce:            nonce as i64,
                 }
                 .upsert(conn)?;
+                info!("Nonce updated: {}, nonce: {}", address.to_string(), nonce);
             }
         }
     }

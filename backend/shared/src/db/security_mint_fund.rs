@@ -264,26 +264,6 @@ impl Investor {
         Ok(investors)
     }
 
-    fn sub_token_amount(
-        conn: &mut DbConn,
-        contract: Decimal,
-        investor: &str,
-        security_amount: Decimal,
-        now: NaiveDateTime,
-    ) -> DbResult<Self> {
-        let investor = diesel::update(security_mint_fund_investors::table)
-            .filter(security_mint_fund_investors::contract_address.eq(contract))
-            .filter(security_mint_fund_investors::investor.eq(investor))
-            .set((
-                security_mint_fund_investors::token_amount
-                    .eq(security_mint_fund_investors::token_amount.sub(security_amount)),
-                security_mint_fund_investors::update_time.eq(now),
-            ))
-            .returning(Self::as_returning())
-            .get_result(conn)?;
-        Ok(investor)
-    }
-
     fn sub_investment_amount(
         conn: &mut DbConn,
         contract: Decimal,
@@ -327,16 +307,25 @@ impl Investor {
         Ok(investor)
     }
 
-    #[instrument(skip_all, fields(investor = %investor))]
-    pub fn claim_investment(
-        conn: &mut DbConn,
-        contract: Decimal,
-        investor: &AccountAddress,
-        security_amount: Decimal,
-        now: NaiveDateTime,
-    ) -> DbResult<Self> {
-        let investor = investor.to_string();
-        let investor = Self::sub_token_amount(conn, contract, &investor, security_amount, now)?;
+    #[instrument(skip_all, fields(investor = %self.investor))]
+    pub fn claim_investment(&self, conn: &mut DbConn, now: NaiveDateTime) -> DbResult<Self> {
+        let investor = Self::sub_investment_amount(
+            conn,
+            self.contract_address,
+            &self.investor,
+            self.currency_amount,
+            self.token_amount,
+            now,
+        )?;
+        Ok(investor)
+    }
+
+    pub fn find(conn: &mut DbConn, contract: Decimal, investor: &str) -> DbResult<Option<Self>> {
+        let investor = security_mint_fund_investors::table
+            .filter(security_mint_fund_investors::contract_address.eq(contract))
+            .filter(security_mint_fund_investors::investor.eq(investor))
+            .first(conn)
+            .optional()?;
         Ok(investor)
     }
 }
@@ -390,7 +379,6 @@ pub enum InvestmentRecordType {
     Invested  = 0,
     Cancelled = 1,
     Claimed   = 2,
-    Disbursed = 3,
 }
 
 impl FromSql<Integer, diesel::pg::Pg> for InvestmentRecordType {
@@ -400,7 +388,6 @@ impl FromSql<Integer, diesel::pg::Pg> for InvestmentRecordType {
             0 => Ok(InvestmentRecordType::Invested),
             1 => Ok(InvestmentRecordType::Cancelled),
             2 => Ok(InvestmentRecordType::Claimed),
-            3 => Ok(InvestmentRecordType::Disbursed),
             _ => Err(format!("Unknown call type: {}", value).into()),
         }
     }

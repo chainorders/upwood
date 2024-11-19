@@ -15,7 +15,6 @@ use concordium_rust_sdk::v2;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use futures::TryStreamExt;
-use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use shared::db::txn_listener::ListenerBlock;
 use shared::db_shared::DbConn;
@@ -45,13 +44,38 @@ pub struct ContractCall {
 }
 
 impl ContractCall {
-    pub fn contract_address(&self) -> ContractAddress {
-        ContractAddress::new(
-            self.contract
-                .to_u64()
-                .expect("error converting contract decimal to u64"),
-            0,
-        )
+    pub fn parse_effects(effects: Vec<ContractTraceElement>) -> Vec<Self> {
+        let mut res = Vec::with_capacity(effects.len());
+        let mut collected_events: BTreeMap<ContractAddress, Vec<ContractEvent>> = BTreeMap::new();
+        for effect in effects {
+            match effect {
+                ContractTraceElement::Interrupted { address, events } => {
+                    // If we have events for this address, add them to the interrupt events and continue
+                    collected_events
+                        .entry(address)
+                        .and_modify(|e| e.extend(events.clone().into_iter()))
+                        .or_insert(events);
+                }
+                ContractTraceElement::Updated { data } => {
+                    // after interrupt the contract is resumed and updated.
+                    // So we can add the interrupt events to the update events
+                    let interrupt_events = collected_events.remove(&data.address);
+                    res.push(ContractCall {
+                        contract:  data.address.to_decimal(),
+                        call_type: ContractCallType::create_update(data, interrupt_events),
+                    });
+                }
+                ContractTraceElement::Upgraded { address, from, to } => {
+                    res.push(ContractCall {
+                        contract:  address.to_decimal(),
+                        call_type: ContractCallType::Upgraded { from, to },
+                    });
+                }
+                _ => {}
+            }
+        }
+
+        res
     }
 }
 
@@ -289,44 +313,12 @@ fn parse_block_item_summary(summary: BlockItemSummary) -> Option<ParsedTxn> {
                     call_type: ContractCallType::create_init(data),
                 }],
             }),
-            AccountTransactionEffects::ContractUpdateIssued { effects } => {
-                let mut res = Vec::with_capacity(effects.len());
-                let mut collected_events: BTreeMap<ContractAddress, Vec<ContractEvent>> =
-                    BTreeMap::new();
-                for effect in effects {
-                    match effect {
-                        ContractTraceElement::Interrupted { address, events } => {
-                            // If we have events for this address, add them to the interrupt events and continue
-                            collected_events
-                                .entry(address)
-                                .and_modify(|e| e.extend(events.clone().into_iter()))
-                                .or_insert(events);
-                        }
-                        ContractTraceElement::Updated { data } => {
-                            // after interrupt the contract is resumed and updated.
-                            // So we can add the interrupt events to the update events
-                            let interrupt_events = collected_events.remove(&data.address);
-                            res.push(ContractCall {
-                                contract:  data.address.to_decimal(),
-                                call_type: ContractCallType::create_update(data, interrupt_events),
-                            });
-                        }
-                        ContractTraceElement::Upgraded { address, from, to } => {
-                            res.push(ContractCall {
-                                contract:  address.to_decimal(),
-                                call_type: ContractCallType::Upgraded { from, to },
-                            });
-                        }
-                        _ => {}
-                    }
-                }
-                Some(ParsedTxn {
-                    index:          index.index,
-                    hash:           hash.bytes.into(),
-                    sender:         at.sender.to_string(),
-                    contract_calls: res,
-                })
-            }
+            AccountTransactionEffects::ContractUpdateIssued { effects } => Some(ParsedTxn {
+                index:          index.index,
+                hash:           hash.bytes.into(),
+                sender:         at.sender.to_string(),
+                contract_calls: ContractCall::parse_effects(effects),
+            }),
             _ => None,
         }
     } else {

@@ -26,11 +26,11 @@ use integration_tests::security_sft_rewards_client::SftRewardsTestClient;
 use integration_tests::security_sft_single_client::SftSingleTestClient;
 use passwords::PasswordGenerator;
 use rust_decimal::prelude::ToPrimitive;
-use security_mint_fund::{FundState, TransferInvestParams};
+use rust_decimal::Decimal;
+use security_mint_fund::{ClaimInvestmentParam, FundState, TransferInvestParams};
 use security_sft_rewards::types::TRACKED_TOKEN_ID;
 use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{ForestProject, ForestProjectState};
-use shared::db_setup;
 use shared::db_shared::{DbConn, DbPool};
 use test_log::test;
 use test_utils::test_api::ApiTestClient;
@@ -38,6 +38,7 @@ use test_utils::test_chain::{Account, Chain};
 use test_utils::test_cognito::CognitoTestClient;
 use test_utils::test_user::UserTestClient;
 use upwood::api;
+use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
 use upwood::api::user::UserRegisterReq;
 use uuid::Uuid;
 
@@ -67,7 +68,7 @@ pub async fn test_forest_projects_single_user() {
         .checked_sub_months(Months::new(12 * 10))
         .unwrap();
     // let (db_config, _container) = shared_tests::create_new_database_container().await;
-    // db_setup::run_migrations(&db_config.db_url());
+    // shared::db_setup::run_migrations(&db_config.db_url());
     let db_config = shared_tests::PostgresTestConfig {
         postgres_db:       "concordium_rwa_dev".to_string(),
         postgres_host:     "localhost".to_string(),
@@ -250,11 +251,38 @@ pub async fn test_forest_projects_single_user() {
         &mut api,
         &mut cognito,
         &admin,
-        format!("user_1_{}@yopmail.com", test_id),
+        format!("user_2_{}@yopmail.com", test_id),
         user_2,
     )
     .await;
 
+    // minting euroe for users
+    {
+        admin
+            .transact(|account| {
+                chain.update(
+                    account,
+                    euroe.mint_payload(&integration_tests::euroe::MintParams {
+                        owner:  user_1.account_address().into(),
+                        amount: TokenAmountU64(1000 * 1_000_000),
+                    }),
+                )
+            })
+            .expect("Failed to mint euroe for user_1");
+        admin
+            .transact(|account| {
+                chain.update(
+                    account,
+                    euroe.mint_payload(&integration_tests::euroe::MintParams {
+                        owner:  user_2.account_address().into(),
+                        amount: TokenAmountU64(1000 * 1_000_000),
+                    }),
+                )
+            })
+            .expect("Failed to mint euroe for user_2");
+    }
+
+    // registering users in identity registry
     {
         admin
             .transact(|account| {
@@ -321,66 +349,43 @@ pub async fn test_forest_projects_single_user() {
     )
     .await;
 
+    // asserting user forest project active list before listing
     {
-        {
-            let projects = user_1
-                .call_api(|token| api.user_forest_projects_list_active(token, 0))
-                .await;
-            assert_eq!(projects.data.len(), 0);
-        }
-
-        let fp_1 = admin
-            .call_api(|token| {
-                api.admin_forest_project_update(token, ForestProject {
-                    state: ForestProjectState::Listed,
-                    ..fp_1
-                })
-            })
+        let projects = user_1
+            .call_api(|token| api.forest_project_list_active(token, 0))
             .await;
-        assert_eq!(fp_1.state, ForestProjectState::Listed);
-
-        {
-            let projects = user_1
-                .call_api(|token| api.user_forest_projects_list_active(token, 0))
-                .await;
-            assert_eq!(projects.data.len(), 1);
-            assert_eq!(projects.data[0].id, fp_1.id);
-            assert_eq!(projects.data[0].mint_fund_rate, 1.into());
-            assert_eq!(
-                projects.data[0].mint_fund_state,
-                SecurityMintFundState::Open
-            );
-            assert_eq!(projects.data[0].mint_fund_token_un_frozen_balance, None);
-            assert_eq!(projects.data[0].p2p_trading_token_amount, None);
-        }
+        assert_eq!(projects.data.len(), 0);
     }
 
-    {
-        {
-            admin
-                .transact(|account| {
-                    chain.update(
-                        account,
-                        euroe.mint_payload(&integration_tests::euroe::MintParams {
-                            owner:  user_1.account_address().into(),
-                            amount: TokenAmountU64(1000 * 1_000_000),
-                        }),
-                    )
-                })
-                .expect("Failed to mint euroe for user_1");
-            admin
-                .transact(|account| {
-                    chain.update(
-                        account,
-                        euroe.mint_payload(&integration_tests::euroe::MintParams {
-                            owner:  user_2.account_address().into(),
-                            amount: TokenAmountU64(1000 * 1_000_000),
-                        }),
-                    )
-                })
-                .expect("Failed to mint euroe for user_2");
-        }
+    let fp_1 = admin
+        .call_api(|token| {
+            api.admin_forest_project_update(token, ForestProject {
+                state: ForestProjectState::Listed,
+                ..fp_1
+            })
+        })
+        .await;
+    assert_eq!(fp_1.state, ForestProjectState::Listed);
 
+    // asserting user forest project active list
+    {
+        let projects = user_1
+            .call_api(|token| api.forest_project_list_active(token, 0))
+            .await;
+        assert_eq!(projects.data.len(), 1);
+        assert_eq!(projects.data[0].id, fp_1.id);
+        assert_eq!(projects.data[0].mint_fund_rate, 1.into());
+        assert_eq!(
+            projects.data[0].mint_fund_state,
+            SecurityMintFundState::Open
+        );
+        assert_eq!(projects.data[0].mint_fund_token_un_frozen_balance, None);
+        assert_eq!(projects.data[0].p2p_trading_token_amount, None);
+    }
+
+    // mint fund 1 investments
+    {
+        // user 1 investments in mint fund 1
         {
             user_1
                 .transact(|account| {
@@ -405,8 +410,13 @@ pub async fn test_forest_projects_single_user() {
                     )
                 })
                 .expect("Failed to transfer invest for user_1");
+            processor
+                .process_block(&mut listener_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
         }
 
+        // user 2 investments in mint fund 1
         {
             user_2
                 .transact(|account| {
@@ -431,20 +441,19 @@ pub async fn test_forest_projects_single_user() {
                     )
                 })
                 .expect("Failed to transfer invest for user_2");
+            processor
+                .process_block(&mut listener_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
         }
 
-        processor
-            .process_block(&mut listener_conn, &chain.produce_block())
-            .await
-            .expect("Error processing block");
-
+        // asserting user portfolio after investment in mint fund 1
         {
             let projects = user_1
-                .call_api(|token| api.user_forest_projects_list_active(token, 0))
+                .call_api(|token| api.forest_project_list_active(token, 0))
                 .await;
             assert_eq!(projects.data.len(), 1);
             assert_eq!(projects.data[0].id, fp_1.id);
-            assert_eq!(projects.data[0].mint_fund_rate, 1.into());
             assert_eq!(
                 projects.data[0].mint_fund_state,
                 SecurityMintFundState::Open
@@ -454,6 +463,89 @@ pub async fn test_forest_projects_single_user() {
                 Some(100.into())
             );
             assert_eq!(projects.data[0].p2p_trading_token_amount, None);
+
+            let portfolio = user_1.call_api(|token| api.user_portfolio_agg(token)).await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_euro_e_amount:    100.into(),
+                current_portfolio_value: Decimal::ZERO,
+                carbon_tons_offset:      Decimal::ZERO,
+                monthly_return:          Decimal::ZERO,
+                return_on_investment:    Decimal::ZERO,
+                yearly_return:           Decimal::ZERO,
+            });
+
+            let portfolio = user_2.call_api(|token| api.user_portfolio_agg(token)).await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_euro_e_amount:    200.into(),
+                current_portfolio_value: Decimal::ZERO,
+                carbon_tons_offset:      Decimal::ZERO,
+                monthly_return:          Decimal::ZERO,
+                return_on_investment:    Decimal::ZERO,
+                yearly_return:           Decimal::ZERO,
+            });
+        }
+
+        // successfull completion of mint fund 1
+        {
+            admin
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        mint_fund_1.update_fund_state_payload(&FundState::Success(
+                            admin.account_address().into(),
+                        )),
+                    )
+                })
+                .expect("Failed to update mint fund 1 state to success");
+            processor
+                .process_block(&mut listener_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
+
+            let investors = admin
+                .call_api(|token| api.admin_forest_project_investor_list(token, fp_1.id, 0))
+                .await
+                .data;
+            assert_eq!(investors.len(), 2);
+            println!("Investors: {:?}", investors);
+            admin
+                .transact(|account| {
+                    chain.update(
+                        account,
+                        mint_fund_1.claim_investment_payload(
+                            &security_mint_fund::ClaimInvestParams {
+                                investments: investors
+                                    .iter()
+                                    .map(|i| ClaimInvestmentParam {
+                                        investor: i
+                                            .investor
+                                            .parse()
+                                            .expect("Failed to parse investor"),
+                                    })
+                                    .collect(),
+                            },
+                        ),
+                    )
+                })
+                .expect("Failed to claim mint fund 1 for investors");
+
+            processor
+                .process_block(&mut listener_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
+        }
+
+        // assertion of portfolio after mint fund completion
+        {
+            let portfolio = user_1.call_api(|token| api.user_portfolio_agg(token)).await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_euro_e_amount:    0.into(),
+                current_portfolio_value: 100.into(),
+                carbon_tons_offset:      Decimal::ZERO,
+                monthly_return:          Decimal::ZERO,
+                return_on_investment:    Decimal::ZERO,
+                yearly_return:           Decimal::ZERO,
+            });
         }
     }
 }
@@ -475,7 +567,7 @@ async fn create_forest_project(
     P2PTradeTestClient,
     ForestProject,
 ) {
-    let project_contract: SftRewardsTestClient = admin
+    let project_contract = admin
         .transact(|account| {
             chain.init(
                 account,
@@ -557,6 +649,17 @@ async fn create_forest_project(
             )
         })
         .expect("Failed to add mint fund as agent to fund tracked token");
+    admin.transact(|sender| {
+        chain
+            .update(
+                sender,
+                project_contract.add_agent_payload(&security_sft_rewards::types::Agent {
+                    address: mint_fund.0.into(),
+                    roles:   vec![security_sft_rewards::types::AgentRole::Mint],
+                }),
+            )
+            .expect("Failed to add mint fund as agent to project contract")
+    });
     let p2p_trade = admin
         .transact(|account| {
             chain.init(
@@ -581,7 +684,8 @@ async fn create_forest_project(
         .expect("Error processing block");
     let project = admin
         .call_api(|token| {
-            api.admin_forest_projects_create(token, ForestProject {
+            api.admin_create_forest_project(token, ForestProject {
+                id: Uuid::new_v4(),
                 area: "100 HA".to_string(),
                 desc_long: format!("Forest Project {} Long description", index),
                 name: format!("Forest Project {}", index),
@@ -595,15 +699,14 @@ async fn create_forest_project(
                 shares_available: 100,
                 contract_address: project_contract.0.to_decimal(),
                 latest_price: 1.into(),
-                created_at: chain.block_time_naive_utc(),
-                updated_at: chain.block_time_naive_utc(),
                 geo_spatial_url: Some("https://geo.com/spatial".to_string()),
                 offering_doc_link: Some("https://offering.com/doc".to_string()),
-                id: Uuid::new_v4(),
                 mint_fund_contract_address: Some(mint_fund.0.to_decimal()),
                 p2p_trade_contract_address: Some(p2p_trade.0.to_decimal()),
                 roi_percent: 12.5,
                 state: ForestProjectState::Draft,
+                created_at: chain.block_time_naive_utc(),
+                updated_at: chain.block_time_naive_utc(),
             })
         })
         .await;

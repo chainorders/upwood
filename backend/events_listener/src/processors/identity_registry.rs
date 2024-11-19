@@ -4,7 +4,7 @@ use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_identity_registry::event::Event;
 use shared::db::identity_registry::{Agent, Identity, Issuer};
 use shared::db_shared::DbConn;
-use tracing::{debug, instrument};
+use tracing::{info, instrument, trace};
 
 use crate::processors::cis2_utils::ContractAddressToDecimal;
 use crate::processors::ProcessorError;
@@ -23,7 +23,7 @@ use crate::processors::ProcessorError;
 ///
 /// * A `Result` indicating the success or failure of the operation.
 #[instrument(
-    name="identity_registry_process_events",
+    name="identity_registry",
     skip_all,
     fields(contract = %contract, events = events.len())
 )]
@@ -35,30 +35,32 @@ pub fn process_events(
 ) -> Result<(), ProcessorError> {
     for event in events {
         let parsed_event = event.parse::<Event>().expect("Failed to parse event");
-        debug!(
-            "Processing event for contract: {}/{}",
-            contract.index, contract.subindex
-        );
-        debug!("Event details: {:#?}", parsed_event);
+        trace!("Event details: {:#?}", parsed_event);
 
         match parsed_event {
             Event::AgentAdded(e) => {
                 Agent::new(e.agent, now, contract.to_decimal()).insert(conn)?;
+                info!("Agent: {} added", e.agent.to_string());
             }
             Event::AgentRemoved(e) => {
                 Agent::delete(conn, contract.to_decimal(), &e.agent)?;
+                info!("Agent: {} removed", e.agent.to_string());
             }
             Event::IdentityRegistered(e) => {
                 Identity::new(&e.address, now, contract.to_decimal()).insert(conn)?;
+                info!("Identity: {} registered", e.address.to_string());
             }
             Event::IdentityRemoved(e) => {
                 Identity::delete(conn, contract.to_decimal(), &e.address)?;
+                info!("Identity: {} removed", e.address.to_string());
             }
             Event::IssuerAdded(e) => {
                 Issuer::new(e.issuer.to_decimal(), now, contract.to_decimal()).insert(conn)?;
+                info!("Issuer: {} added", e.issuer.to_string());
             }
             Event::IssuerRemoved(e) => {
                 Issuer::delete(conn, contract.to_decimal(), e.issuer.to_decimal())?;
+                info!("Issuer: {} removed", e.issuer.to_string());
             }
         }
     }

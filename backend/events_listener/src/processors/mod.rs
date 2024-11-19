@@ -11,7 +11,7 @@ mod cis2_security;
 mod security_sft_single;
 use diesel::Connection;
 use rust_decimal::Decimal;
-use tracing::{debug, info, instrument, warn};
+use tracing::{debug, info, instrument, trace, warn};
 pub mod cis2_utils;
 mod identity_registry;
 mod nft_multi_rewarded;
@@ -212,15 +212,17 @@ impl Processors {
                                 created_at:       block_slot_time,
                             }
                             .insert(conn)?;
-                            debug!(
+                            trace!(
                                 "Init contract call processed. contract: {}, sender: {}, \
                                  contract_name: {}",
-                                contract.contract_address, txn.sender, init.contract_name
+                                contract.contract_address,
+                                txn.sender,
+                                init.contract_name
                             );
                             Some((contract, contract_call, Some(&init.events)))
                         } else {
                             debug!(
-                                "Contract call not processed. Processor type not found. \
+                                "Init contract call not processed. Processor type not found. \
                                  module_ref: {}, contract_name: {}",
                                 init.module_ref, init.contract_name
                             );
@@ -251,17 +253,19 @@ impl Processors {
                                 created_at:       block_slot_time,
                             }
                             .insert(conn)?;
-                            debug!(
+                            trace!(
                                 "Update contract call processed. contract: {}, sender: {}, \
                                  entrypoint: {}",
-                                contract.contract_address, txn.sender, update.receive_name
+                                contract.contract_address,
+                                txn.sender,
+                                update.receive_name
                             );
                             Some((contract, contract_call, Some(&update.events)))
                         }
                         None => {
-                            debug!(
-                                "Update contract call not processed. Contract not present in database: \
-                                 contract: {}",
+                            trace!(
+                                "Update contract call not processed. Contract not present in \
+                                 database: contract: {}",
                                 contract_call.contract
                             );
                             None
@@ -308,24 +312,25 @@ impl Processors {
                             };
                             contract_call.update_processed(conn)?;
                             is_any_processed = true;
-                            info!(
+                            debug!(
                                 "Processed contract call contract: {}, sender: {}, events count: \
                                  {}",
-                                contract.contract_address(),
+                                contract.contract_address,
                                 contract_call.sender,
                                 events_length
                             );
                         }
                         None => warn!(
                             "No processor found for contract: {} & type: {}",
-                            contract.contract_address(),
+                            contract.contract_address,
                             contract.processor_type
                         ),
                     }
                 }
-                None => debug!(
+                None => trace!(
                     "Contract call not processed: contract: {}, sender: {}",
-                    contract_call.contract, txn.sender
+                    contract_call.contract,
+                    txn.sender
                 ),
             }
         }

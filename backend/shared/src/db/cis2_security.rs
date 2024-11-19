@@ -180,6 +180,7 @@ pub struct TokenHolder {
     pub frozen_balance:    Decimal,
     pub un_frozen_balance: Decimal,
     pub create_time:       NaiveDateTime,
+    pub update_time:       NaiveDateTime,
 }
 
 impl TokenHolder {
@@ -187,21 +188,75 @@ impl TokenHolder {
         cis2_address: Decimal,
         token_id: Decimal,
         holder_address: &Address,
-        balance: Decimal,
-        create_time: NaiveDateTime,
+        un_frozen_balance: Decimal,
+        now: NaiveDateTime,
     ) -> Self {
         Self {
             token_id,
             cis2_address,
             holder_address: holder_address.to_string(),
-            un_frozen_balance: balance,
+            un_frozen_balance,
             frozen_balance: Decimal::ZERO,
-            create_time,
+            create_time: now,
+            update_time: now,
         }
     }
 
+    pub fn find(
+        conn: &mut DbConn,
+        cis2_address: Decimal,
+        token_id: Decimal,
+        holder_address: &str,
+    ) -> DbResult<Option<TokenHolder>> {
+        let holder = cis2_token_holders::table
+            .filter(
+                cis2_token_holders::cis2_address
+                    .eq(cis2_address)
+                    .and(cis2_token_holders::token_id.eq(token_id))
+                    .and(cis2_token_holders::holder_address.eq(holder_address)),
+            )
+            .first::<TokenHolder>(conn)
+            .optional()?;
+        Ok(holder)
+    }
+
+    pub fn sub_amount(&mut self, amount: Decimal, now: NaiveDateTime) -> &mut Self {
+        if amount <= self.un_frozen_balance {
+            self.un_frozen_balance = self.un_frozen_balance.sub(amount);
+            self.update_time = now;
+        } else {
+            let remaining_amount = amount.sub(self.un_frozen_balance);
+            self.un_frozen_balance = Decimal::ZERO;
+            self.frozen_balance = self.frozen_balance.sub(remaining_amount);
+            self.update_time = now;
+        }
+
+        self
+    }
+
+    pub fn add_amount(&mut self, amount: Decimal, now: NaiveDateTime) -> &mut Self {
+        self.un_frozen_balance = self.un_frozen_balance.add(amount);
+        self.update_time = now;
+        self
+    }
+
+    pub fn save(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let holder = diesel::update(cis2_token_holders::table)
+            .filter(
+                cis2_token_holders::cis2_address
+                    .eq(self.cis2_address)
+                    .and(cis2_token_holders::token_id.eq(self.token_id))
+                    .and(cis2_token_holders::holder_address.eq(&self.holder_address)),
+            )
+            .set(self)
+            .returning(TokenHolder::as_returning())
+            .get_result(conn)?;
+
+        Ok(holder)
+    }
+
     #[instrument(skip_all, fields(holder = self.holder_address.to_string()))]
-    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
+    pub fn insert_or_update_add_un_frozen_balance(&self, conn: &mut DbConn) -> DbResult<Self> {
         let holder = diesel::insert_into(cis2_token_holders::table)
             .values(self)
             .on_conflict((
@@ -210,35 +265,11 @@ impl TokenHolder {
                 cis2_token_holders::holder_address,
             ))
             .do_update()
-            .set(
+            .set((
                 cis2_token_holders::un_frozen_balance
                     .eq(cis2_token_holders::un_frozen_balance.add(&self.un_frozen_balance)),
-            )
-            .returning(TokenHolder::as_returning())
-            .get_result(conn)?;
-
-        Ok(holder)
-    }
-
-    #[instrument(skip_all, fields(holder = holder_address.to_string()))]
-    pub fn sub_balance_unfrozen(
-        conn: &mut DbConn,
-        cis2_address: Decimal,
-        token_id: Decimal,
-        holder_address: &Address,
-        balance_delta: Decimal,
-    ) -> DbResult<TokenHolder> {
-        let holder = diesel::update(cis2_token_holders::table)
-            .filter(
-                cis2_token_holders::cis2_address
-                    .eq(cis2_address)
-                    .and(cis2_token_holders::token_id.eq(token_id))
-                    .and(cis2_token_holders::holder_address.eq(holder_address.to_string())),
-            )
-            .set(
-                cis2_token_holders::un_frozen_balance
-                    .eq(cis2_token_holders::un_frozen_balance.sub(balance_delta)),
-            )
+                cis2_token_holders::update_time.eq(&self.update_time),
+            ))
             .returning(TokenHolder::as_returning())
             .get_result(conn)?;
 
@@ -462,6 +493,7 @@ impl TokenHolderBalanceUpdate {
         Ok((updates, page_count))
     }
 }
+
 #[repr(i32)]
 #[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize)]
 #[diesel(sql_type = Integer)]

@@ -2,8 +2,11 @@ use poem::http::{Method, StatusCode};
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
 use shared::api::PagedResponse;
-use shared::db_app::forest_project::{ForestProject, ForestProjectState, ForestProjectUser};
+use shared::db_app::forest_project::{
+    ForestProject, ForestProjectInvestor, ForestProjectState, ForestProjectUser,
+};
 use upwood::api;
+use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
 use upwood::api::user::{
     AdminUser, ApiUser, UserRegisterReq, UserRegistrationInvitationSendReq,
     UserUpdateAccountAddressRequest,
@@ -241,7 +244,7 @@ impl ApiTestClient {
 
 // Forest Projects Admin Implementation
 impl ApiTestClient {
-    pub async fn admin_forest_projects_create(
+    pub async fn admin_create_forest_project(
         &mut self,
         id_token: String,
         req: ForestProject,
@@ -303,8 +306,9 @@ impl ApiTestClient {
     }
 }
 
+// Forest Projects User Implementation
 impl ApiTestClient {
-    pub async fn user_forest_projects_list_active(
+    pub async fn forest_project_list_active(
         &self,
         id_token: String,
         page: i64,
@@ -321,5 +325,46 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse list active forest projects response")
+    }
+
+    pub async fn admin_forest_project_investor_list(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        page: i64,
+    ) -> PagedResponse<ForestProjectInvestor> {
+        let res = self
+            .client
+            .get(format!(
+                "/admin/forest_projects/{}/fund/investor/list/{}",
+                project_id, page
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list forest project investors response")
+    }
+}
+
+// User Portfolio Implementation
+impl ApiTestClient {
+    pub async fn user_portfolio_agg(&self, id_token: String) -> InvestmentPortfolioUserAggregate {
+        let res = self
+            .client
+            .get("/portfolio/aggregate")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list portfolio response")
     }
 }

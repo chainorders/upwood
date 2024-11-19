@@ -35,6 +35,30 @@ impl MintFundTestClient {
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
     }
+
+    pub fn update_fund_state_payload(&self, params: &FundState) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("updateFundState"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    pub fn claim_investment_payload(&self, params: &ClaimInvestParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("claimInvestment"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {

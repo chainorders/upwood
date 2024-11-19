@@ -1,3 +1,5 @@
+drop view if exists forest_project_investors_view;
+
 drop view if exists forest_project_user_view;
 
 drop view if exists forest_project_holder_rewards_total_view;

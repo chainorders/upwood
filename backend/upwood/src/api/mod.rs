@@ -3,9 +3,7 @@ pub mod files;
 pub mod forest_project;
 pub mod identity_registry;
 pub mod investment_portfolio;
-pub mod tree_fts;
 pub mod tree_nft;
-pub mod tree_nft_metadata;
 pub mod user;
 pub mod user_communication;
 
@@ -19,10 +17,9 @@ use concordium_rust_sdk::web3id::did::Network;
 use concordium_rust_sdk::{cis2, v2};
 use diesel::r2d2::ConnectionManager;
 use events_listener::processors::cis2_utils::Cis2TokenIdToDecimal;
-use poem::error::ResponseError;
 use poem::http::StatusCode;
 use poem::middleware::{AddData, Cors, Tracing};
-use poem::{EndpointExt, IntoResponse, Route};
+use poem::{EndpointExt, Route};
 use poem_openapi::auth::Bearer;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{ApiResponse, Object, SecurityScheme};
@@ -40,14 +37,13 @@ use crate::utils::{self, *};
 pub type OpenApiServiceType = poem_openapi::OpenApiService<
     (
         user::Api,
-        tree_nft_metadata::Api,
         tree_nft::Api,
-        tree_fts::Api,
+        tree_nft::Api,
         files::Api,
         identity_registry::Api,
         carbon_credits::Api,
-        forest_project::Api,
-        forest_project::AdminApi,
+        forest_project::ForestProjectApi,
+        forest_project::ForestProjectAdminApi,
         investment_portfolio::Api,
         user_communication::Api,
     ),
@@ -155,12 +151,12 @@ impl Config {
             .expect("Failed to parse Tree NFT Agent Wallet JSON")
     }
 
-    pub fn tree_nft_agent(&self) -> tree_nft_metadata::TreeNftAgent {
-        tree_nft_metadata::TreeNftAgent(self.tree_nft_agent_wallet())
+    pub fn tree_nft_agent(&self) -> tree_nft::TreeNftAgent {
+        tree_nft::TreeNftAgent(self.tree_nft_agent_wallet())
     }
 
-    pub fn tree_nft_config(&self) -> tree_nft_metadata::TreeNftConfig {
-        tree_nft_metadata::TreeNftConfig {
+    pub fn tree_nft_config(&self) -> tree_nft::TreeNftConfig {
+        tree_nft::TreeNftConfig {
             agent: Arc::new(self.tree_nft_agent()),
         }
     }
@@ -250,14 +246,13 @@ pub fn create_service() -> OpenApiServiceType {
     poem_openapi::OpenApiService::new(
         (
             user::Api,
-            tree_nft_metadata::Api,
             tree_nft::Api,
-            tree_fts::Api,
+            tree_nft::Api,
             files::Api,
             identity_registry::Api,
             carbon_credits::Api,
-            forest_project::Api,
-            forest_project::AdminApi,
+            forest_project::ForestProjectApi,
+            forest_project::ForestProjectAdminApi,
             investment_portfolio::Api,
             user_communication::Api,
         ),

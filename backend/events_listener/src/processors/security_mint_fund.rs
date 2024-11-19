@@ -9,7 +9,7 @@ use shared::db::security_mint_fund::{
     SecurityMintFundState,
 };
 use shared::db_shared::DbConn;
-use tracing::{debug, instrument};
+use tracing::{info, instrument, warn};
 use uuid::Uuid;
 
 use crate::processors::cis2_utils::{
@@ -30,7 +30,7 @@ pub fn contract_name() -> OwnedContractName {
 }
 
 #[instrument(
-    name="security_mint_fund_process_events",
+    name="mint_fund",
     skip_all,
     fields(contract = %contract, events = events.len())
 )]
@@ -42,11 +42,6 @@ pub fn process_events(
 ) -> Result<(), ProcessorError> {
     for event in events {
         let event = event.parse::<Event>().expect("Failed to parse event");
-        debug!(
-            "Processing event for contract: {}/{}",
-            contract.index, contract.subindex
-        );
-        debug!("Event details: {:#?}", event);
 
         match event {
             Event::Initialized(event) => {
@@ -68,6 +63,7 @@ pub fn process_events(
                     update_time: now,
                 }
                 .insert(conn)?;
+                info!("initialized");
             }
             Event::FundStateUpdated(fund_state) => {
                 let (fund_state, receiver_address) = to_db_fund_state(fund_state);
@@ -78,6 +74,7 @@ pub fn process_events(
                     receiver_address,
                     now,
                 )?;
+                info!("state updated: to: {:?}", fund_state);
             }
             Event::Invested(event) => {
                 let investor = Investor::new(
@@ -107,6 +104,12 @@ pub fn process_events(
                     event.security_amount.to_decimal(),
                     now,
                 )?;
+                info!(
+                    "Investment received: from: {}, currency amount: {}, token amount: {}",
+                    event.investor.to_string(),
+                    event.currency_amount.to_decimal(),
+                    event.security_amount.to_decimal()
+                );
             }
             Event::InvestmentCancelled(event) => {
                 let investor = Investor::cancel_investment(
@@ -136,33 +139,61 @@ pub fn process_events(
                     event.security_amount.to_decimal(),
                     now,
                 )?;
+                info!(
+                    "Investment cancelled: from: {}, currency amount: {}, token amount: {}",
+                    event.investor.to_string(),
+                    event.currency_amount.to_decimal(),
+                    event.security_amount.to_decimal()
+                );
             }
             Event::InvestmentClaimed(event) => {
+                let investor =
+                    Investor::find(conn, contract.to_decimal(), &event.investor.to_string())?
+                        .ok_or(ProcessorError::DatabaseError(
+                            diesel::result::Error::NotFound,
+                        ))?;
+                if event
+                    .security_amount
+                    .to_decimal()
+                    .ne(&investor.token_amount)
+                {
+                    // This should not happen, but if it does, we log it
+                    // and continue processing the event.
+                    warn!(
+                        "Investment claim mismatch: from: {}, token amount: {}, expected: {}",
+                        event.investor.to_string(),
+                        event.security_amount.to_decimal(),
+                        investor.token_amount
+                    );
+                }
+
                 SecurityMintFundContract::sub_token_amount(
                     conn,
                     contract.to_decimal(),
-                    event.security_amount.to_decimal(),
+                    investor.token_amount,
                     now,
                 )?;
-                let investor = Investor::claim_investment(
-                    conn,
-                    contract.to_decimal(),
-                    &event.investor,
-                    event.security_amount.to_decimal(),
-                    now,
-                )?;
+                let curr_currency_amount = investor.currency_amount;
+                let curr_token_amount = investor.token_amount;
+                let investor: Investor = investor.claim_investment(conn, now)?;
                 InvestmentRecord {
                     id: Uuid::new_v4(),
                     contract_address: contract.to_decimal(),
                     investor: event.investor.to_string(),
-                    currency_amount: Decimal::ZERO,
-                    token_amount: event.security_amount.to_decimal(),
+                    currency_amount: curr_currency_amount,
+                    token_amount: curr_token_amount,
                     currency_amount_balance: investor.currency_amount,
                     token_amount_balance: investor.token_amount,
                     investment_record_type: InvestmentRecordType::Claimed,
                     create_time: now,
                 }
                 .insert(conn)?;
+                info!(
+                    "Investment claimed: from: {}, token amount: {}, currency amount: {}",
+                    event.investor.to_string(),
+                    curr_token_amount,
+                    curr_currency_amount
+                );
             }
             Event::InvestmentDisbursed(event) => {
                 SecurityMintFundContract::sub_currency_amount(
@@ -171,21 +202,10 @@ pub fn process_events(
                     event.currency_amount.to_decimal(),
                     now,
                 )?;
-                let investors = Investor::list_all(conn, contract.to_decimal())?;
-                for investor in investors {
-                    InvestmentRecord {
-                        id: Uuid::new_v4(),
-                        contract_address: contract.to_decimal(),
-                        investor: investor.investor.to_string(),
-                        currency_amount: investor.currency_amount,
-                        token_amount: Decimal::ZERO,
-                        currency_amount_balance: Decimal::ZERO,
-                        token_amount_balance: investor.token_amount,
-                        investment_record_type: InvestmentRecordType::Disbursed,
-                        create_time: now,
-                    }
-                    .insert(conn)?;
-                }
+                info!(
+                    "Investment disbursed: currency amount: {}",
+                    event.currency_amount.to_decimal()
+                );
             }
         }
     }

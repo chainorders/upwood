@@ -22,7 +22,7 @@ pub fn contract_name() -> OwnedContractName {
 }
 
 #[instrument(
-    name="security_sft_single_process_events",
+    name="sft_single",
     skip_all,
     fields(contract = %contract, events = events.len())
 )]

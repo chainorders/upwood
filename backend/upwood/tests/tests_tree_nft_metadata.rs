@@ -23,7 +23,7 @@ use shared::db_setup;
 use shared::db_shared::DbPool;
 use test_utils::conversions::{to_contract_call_init, to_contract_call_update};
 use tracing_test::traced_test;
-use upwood::api::tree_nft_metadata::{self, AddMetadataRequest};
+use upwood::api::tree_nft::{self, AddMetadataRequest};
 use upwood::api::{self, BearerAuthorization, SystemContractsConfig};
 use upwood::utils::aws::cognito::Claims;
 
@@ -53,9 +53,9 @@ async fn signature_tests() {
     let mut processor_db_conn = pool.get().expect("db connection");
 
     // api
-    let metadata_admin_api = api::tree_nft_metadata::Api;
+    let metadata_admin_api = api::tree_nft::Api;
     metadata_admin_api
-        .metadata_insert(
+        .admin_tree_nft_metadata_insert(
             BearerAuthorization(Claims {
                 sub:            "USER_ID".to_string(),
                 email:          "admin@example.com".to_string(),
@@ -65,7 +65,7 @@ async fn signature_tests() {
             }),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
-                metadata_url:          api::tree_nft_metadata::MetadataUrl {
+                metadata_url:          api::tree_nft::MetadataUrl {
                     url:  NFT_METADATA.to_string(),
                     hash: None,
                 },
@@ -215,8 +215,8 @@ async fn signature_tests() {
     }
 
     // Api Interactions
-    let tree_nft_config = tree_nft_metadata::TreeNftConfig {
-        agent: Arc::new(tree_nft_metadata::TreeNftAgent(WalletAccount {
+    let tree_nft_config = tree_nft::TreeNftConfig {
+        agent: Arc::new(tree_nft::TreeNftAgent(WalletAccount {
             address: agent.address,
             keys:    agent_account_keys,
         })),
@@ -229,8 +229,8 @@ async fn signature_tests() {
         account:        Some(holder.address.to_string()),
     });
 
-    let poem_openapi::payload::Json(random_metadata) = tree_nft_metadata::Api
-        .metadata_get_random(
+    let poem_openapi::payload::Json(random_metadata) = tree_nft::Api
+        .tree_nft_metadata_get_random(
             api_user_claims.clone(),
             Data(&pool),
             Data(&tree_nft_config),
@@ -292,7 +292,7 @@ async fn signature_tests() {
     assert_eq!(balance, 1.into());
 
     let poem_openapi::payload::Json(nonce) = api::tree_nft::Api
-        .nonce(api_user_claims, Data(&pool), Data(&contracts))
+        .tree_nft_contract_self_nonce(api_user_claims, Data(&pool), Data(&contracts))
         .await
         .expect("nonce");
     assert_eq!(nonce, 1);

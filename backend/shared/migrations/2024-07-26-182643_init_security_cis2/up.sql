@@ -35,6 +35,7 @@ create table
         frozen_balance numeric(78) not null,
         un_frozen_balance numeric(78) not null,
         create_time timestamp not null,
+        update_time timestamp not null,
         primary key (cis2_address, token_id, holder_address),
         foreign key (cis2_address, token_id) references cis2_tokens (cis2_address, token_id)
     );

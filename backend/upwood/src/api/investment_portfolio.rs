@@ -1,18 +1,22 @@
 use chrono::{DateTime, Months, Utc};
 use concordium_rust_sdk::id::types::AccountAddress;
+use diesel::sql_types::{Integer, Nullable, Numeric, Timestamp, VarChar};
 use diesel::{sql_query, QueryResult};
 use poem::web::Data;
 use poem_openapi::param::Path;
-use poem_openapi::payload::Json;
+use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 use shared::db::cis2_security::Token;
+use shared::db::security_mint_fund::InvestmentRecordType;
 use shared::db_app::forest_project::ForestProjectState;
 use shared::db_shared::{DbConn, DbPool};
 use shared::schema;
+use tracing::error;
 
 use super::{ensure_account_registered, BearerAuthorization, JsonResult, SystemContractsConfig};
-use crate::api::ApiTags;
+use crate::api::{ApiTags, Error};
 
 pub struct Api;
 
@@ -40,7 +44,19 @@ impl Api {
             contracts.carbon_credit_contract_index,
             contracts.carbon_credit_token_id,
             now,
-        )?;
+        );
+        let ret = match ret {
+            Ok(ret) => ret,
+            Err(error) => {
+                error!(
+                    "Error while calculating investment portfolio aggregate: {:?}",
+                    error
+                );
+                return Err(Error::InternalServer(PlainText(
+                    "Error while calculating investment portfolio aggregate".to_string(),
+                )));
+            }
+        };
         Ok(Json(ret))
     }
 
@@ -64,7 +80,7 @@ impl Api {
             let value =
                 InvestmentPortfolioUserAggregate::calculate_portfolio_value(conn, &account, time)?;
             ret.push(PortfolioValue {
-                portfolio_value: value.currency,
+                portfolio_value: value.currency.unwrap_or(Decimal::ZERO),
                 at:              time,
             });
         }
@@ -72,7 +88,7 @@ impl Api {
     }
 }
 
-#[derive(serde::Serialize, Object)]
+#[derive(Serialize, Deserialize, Object, Eq, PartialEq, Debug)]
 pub struct InvestmentPortfolioUserAggregate {
     /// The amount of locked euros in the all the mint fund contracts
     pub locked_euro_e_amount:    Decimal,
@@ -106,41 +122,52 @@ impl InvestmentPortfolioUserAggregate {
             euro_e_token_id,
             now,
         )?
-        .currency;
-        let current_portfolio_value = Self::calculate_portfolio_value(conn, account, now)?.currency;
+        .currency
+        .unwrap_or(Decimal::ZERO);
+        let current_portfolio_value = Self::calculate_portfolio_value(conn, account, now)?
+            .currency
+            .unwrap_or(Decimal::ZERO);
         let portfolio_value_at_start_of_year = Self::calculate_portfolio_value(
             conn,
             account,
             now.checked_sub_months(Months::new(12)).unwrap(),
         )?
-        .currency;
+        .currency
+        .unwrap_or(Decimal::ZERO);
         let yearly_return = current_portfolio_value - portfolio_value_at_start_of_year;
         let portfolio_value_at_start_of_month = Self::calculate_portfolio_value(
             conn,
             account,
             now.checked_sub_months(Months::new(1)).unwrap(),
-        )?;
-        let monthly_return = current_portfolio_value - portfolio_value_at_start_of_month.currency;
+        )?
+        .currency
+        .unwrap_or(Decimal::ZERO);
+        let monthly_return = current_portfolio_value - portfolio_value_at_start_of_month;
         let invested_amount_mint_fund = Self::calculate_euro_e_invested_amount_mint_funds(
             conn,
             account,
             euro_e_contract_index,
             euro_e_token_id,
             now,
-        )?;
+        )?
+        .currency
+        .unwrap_or(Decimal::ZERO);
         let p2p_trade_buy_amount = Self::calculate_p2p_trade_buy_amount(
             conn,
             account,
             euro_e_contract_index,
             euro_e_token_id,
             now,
-        )?;
-        let invested_value = invested_amount_mint_fund.currency + p2p_trade_buy_amount.currency;
+        )?
+        .currency
+        .unwrap_or(Decimal::ZERO);
+        let invested_value = invested_amount_mint_fund + p2p_trade_buy_amount;
         let return_on_investment = if invested_value.is_zero() {
             Decimal::ZERO
         } else {
             (current_portfolio_value - invested_value) / invested_value
         };
+
         let carbon_tons_offset = Token::total_burned(
             conn,
             &account.to_string(),
@@ -181,18 +208,18 @@ impl InvestmentPortfolioUserAggregate {
                             bu.create_time as update_time,
                             bu.un_frozen_balance,
                             fpp.price,
-                            fpp.created_at as price_time
+                            fpp.price_at as price_time
                         from
                             forest_projects
                             join cis2_token_holder_balance_updates as bu on forest_projects.contract_address = bu.cis2_address
                             and bu.token_id = 0
-                            and bu.holder_address = ?
-                            and bu.create_time > ?
-                            and bu.create_time <= ?
+                            and bu.holder_address = $1
+                            and bu.create_time > $2
+                            and bu.create_time <= $3
                             join forest_project_prices as fpp on forest_projects.id = fpp.project_id
-                            and fpp.created_at <= bu.create_time
+                            and fpp.price_at <= bu.create_time
                         where
-                            forest_projects.state = ?
+                            forest_projects.state = $4
                     ) as t
                 window
                     w as (
@@ -206,9 +233,9 @@ impl InvestmentPortfolioUserAggregate {
         ");
 
         let amounts = amounts
-            .bind::<diesel::sql_types::VarChar, _>(account)
-            .bind::<diesel::sql_types::Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<diesel::sql_types::Timestamp, _>(now.naive_utc())
+            .bind::<VarChar, _>(account)
+            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
+            .bind::<Timestamp, _>(now.naive_utc())
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
@@ -243,12 +270,12 @@ impl InvestmentPortfolioUserAggregate {
                                 join security_mint_fund_contracts on forest_projects.mint_fund_contract_address = security_mint_fund_contracts.contract_address
                                 join security_mint_fund_investment_records on security_mint_fund_contracts.contract_address = security_mint_fund_investment_records.contract_address
                             where
-                                forest_projects.state = ?
-                                and security_mint_fund_investment_records.investor = ?
-                                and security_mint_fund_investment_records.create_time <= ?
-                                and security_mint_fund_investment_records.create_time > ?
-                                and security_mint_fund_contracts.currency_token_contract_address = ?
-                                and security_mint_fund_contracts.currency_token_id = ?
+                                forest_projects.state = $1
+                                and security_mint_fund_investment_records.investor = $2
+                                and security_mint_fund_investment_records.create_time <= $3
+                                and security_mint_fund_investment_records.create_time > $4
+                                and security_mint_fund_contracts.currency_token_contract_address = $5
+                                and security_mint_fund_contracts.currency_token_id = $6
                         ) as t
                     window
                         w as (
@@ -262,11 +289,11 @@ impl InvestmentPortfolioUserAggregate {
 
         let amounts = amounts
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
-            .bind::<diesel::sql_types::VarChar, _>(account)
-            .bind::<diesel::sql_types::Timestamp, _>(now.naive_utc())
-            .bind::<diesel::sql_types::Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<diesel::sql_types::Numeric, _>(euro_e_contract_index)
-            .bind::<diesel::sql_types::Numeric, _>(euro_e_token_id)
+            .bind::<VarChar, _>(account)
+            .bind::<Timestamp, _>(now.naive_utc())
+            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
+            .bind::<Numeric, _>(euro_e_contract_index)
+            .bind::<Numeric, _>(euro_e_token_id)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
     }
@@ -287,25 +314,25 @@ impl InvestmentPortfolioUserAggregate {
             (
                 select distinct
                     on (project_id) project_id,
-                    first_value(currency_amount_balance) over w as currency
+                    first_value(currency_amount) over w as currency
                 from
                     (
                         select
                             forest_projects.id as project_id,
                             ir.create_time,
-                            ir.currency_amount_balance
+                            ir.currency_amount
                         from
                             forest_projects
                             join security_mint_fund_contracts as funds on forest_projects.mint_fund_contract_address = funds.contract_address
-                            and funds.currency_token_contract_address = ?
-                            and funds.currency_token_id = ?
+                            and funds.currency_token_contract_address = $1
+                            and funds.currency_token_id = $2
                             join security_mint_fund_investment_records as ir on funds.contract_address = ir.contract_address
-                            and ir.investor = ?
-                            and ir.create_time > ?
-                            and ir.create_time <= ?
-                            and ir.investment_record_type = 2 -- claimed records
+                            and ir.investor = $3
+                            and ir.create_time > $4
+                            and ir.create_time <= $5
+                            and ir.investment_record_type = $6 -- claimed records
                         where
-                            forest_projects.state = ?
+                            forest_projects.state = $7
                     ) as t
                 window
                     w as (
@@ -317,11 +344,12 @@ impl InvestmentPortfolioUserAggregate {
             ) t2;"
         );
         let amounts = amounts
-            .bind::<diesel::sql_types::Numeric, _>(euro_e_contract_index)
-            .bind::<diesel::sql_types::Numeric, _>(euro_e_token_id)
-            .bind::<diesel::sql_types::VarChar, _>(account)
-            .bind::<diesel::sql_types::Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<diesel::sql_types::Timestamp, _>(now.naive_utc())
+            .bind::<Numeric, _>(euro_e_contract_index)
+            .bind::<Numeric, _>(euro_e_token_id)
+            .bind::<VarChar, _>(account)
+            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
+            .bind::<Timestamp, _>(now.naive_utc())
+            .bind::<Integer, _>(InvestmentRecordType::Claimed)
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
@@ -342,21 +370,21 @@ impl InvestmentPortfolioUserAggregate {
         from
             forest_projects
             join security_p2p_trading_contracts on forest_projects.p2p_trade_contract_address = security_p2p_trading_contracts.contract_address
-            and security_p2p_trading_contracts.currency_token_contract_address = ?
-            and security_p2p_trading_contracts.currency_token_id = ?
+            and security_p2p_trading_contracts.currency_token_contract_address = $1
+            and security_p2p_trading_contracts.currency_token_id = $2
             join security_p2p_trading_trades on security_p2p_trading_contracts.contract_address = security_p2p_trading_trades.contract_address
-            and security_p2p_trading_trades.buyer_address = ?
-            and security_p2p_trading_trades.create_time > ?
-            and security_p2p_trading_trades.create_time <= ?
+            and security_p2p_trading_trades.buyer_address = $3
+            and security_p2p_trading_trades.create_time > $4
+            and security_p2p_trading_trades.create_time <= $5
         where
-            forest_projects.state = ?"
+            forest_projects.state = $6"
         );
         let amounts = amounts
-            .bind::<diesel::sql_types::Numeric, _>(euro_e_contract_index)
-            .bind::<diesel::sql_types::Numeric, _>(euro_e_token_id)
-            .bind::<diesel::sql_types::VarChar, _>(account)
-            .bind::<diesel::sql_types::Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<diesel::sql_types::Timestamp, _>(now.naive_utc())
+            .bind::<Numeric, _>(euro_e_contract_index)
+            .bind::<Numeric, _>(euro_e_token_id)
+            .bind::<VarChar, _>(account)
+            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
+            .bind::<Timestamp, _>(now.naive_utc())
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
@@ -365,8 +393,8 @@ impl InvestmentPortfolioUserAggregate {
 
 #[derive(QueryableByName)]
 pub struct CurrencyAmount {
-    #[diesel(sql_type = diesel::sql_types::Numeric)]
-    currency: Decimal,
+    #[diesel(sql_type = Nullable<Numeric>)]
+    currency: Option<Decimal>,
 }
 
 #[derive(serde::Serialize, Object)]

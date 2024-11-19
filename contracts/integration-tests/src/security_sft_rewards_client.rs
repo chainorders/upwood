@@ -24,6 +24,18 @@ impl SftRewardsTestClient {
             param:     OwnedParameter::from_serial(param).unwrap(),
         }
     }
+
+    pub fn add_agent_payload(&self, agent: &Agent) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("addAgent"),
+            ),
+            message:      OwnedParameter::from_serial(agent).unwrap(),
+        }
+    }
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {

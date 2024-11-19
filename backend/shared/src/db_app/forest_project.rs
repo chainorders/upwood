@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use chrono::NaiveDateTime;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::ContractAddress;
 use diesel::deserialize::{FromSql, FromSqlRow};
@@ -18,6 +19,8 @@ use crate::db::security_mint_fund::{SecurityMintFundContract, SecurityMintFundSt
 use crate::db::security_p2p_trading::P2PTradeContract;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema;
+
+pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
 
 #[derive(
     Object,
@@ -55,8 +58,8 @@ pub struct ForestProject {
     pub property_media_header: String,
     pub property_media_footer: String,
     pub latest_price: Decimal,
-    pub created_at: chrono::NaiveDateTime,
-    pub updated_at: chrono::NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 impl ForestProject {
@@ -264,8 +267,8 @@ pub struct ForestProjectUser {
     pub property_media_header: String,
     pub property_media_footer: String,
     pub latest_price: Decimal,
-    pub created_at: chrono::NaiveDateTime,
-    pub updated_at: chrono::NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
     pub notification_id: Option<uuid::Uuid>,
     pub notification_cognito_user_id: Option<String>,
     pub legal_contract_signed: Option<uuid::Uuid>,
@@ -575,7 +578,7 @@ impl ToSql<schema::sql_types::ForestProjectState, diesel::pg::Pg> for ForestProj
 pub struct ForestProjectPrice {
     pub project_id: uuid::Uuid,
     pub price:      Decimal,
-    pub price_at:   chrono::NaiveDateTime,
+    pub price_at:   NaiveDateTime,
 }
 
 impl ForestProjectPrice {
@@ -599,7 +602,7 @@ impl ForestProjectPrice {
     pub fn find(
         conn: &mut DbConn,
         project_id: uuid::Uuid,
-        price_at: chrono::NaiveDateTime,
+        price_at: NaiveDateTime,
     ) -> DbResult<Option<Self>> {
         schema::forest_project_prices::table
             .filter(
@@ -638,7 +641,7 @@ impl ForestProjectPrice {
     pub fn delete(
         conn: &mut DbConn,
         project_id: uuid::Uuid,
-        price_at: chrono::NaiveDateTime,
+        price_at: NaiveDateTime,
     ) -> DbResult<usize> {
         diesel::delete(
             schema::forest_project_prices::table.filter(
@@ -671,8 +674,8 @@ pub struct LegalContractUserSignature {
     cognito_user_id: String,
     user_account:    String,
     user_signature:  String,
-    created_at:      chrono::NaiveDateTime,
-    updated_at:      chrono::NaiveDateTime,
+    created_at:      NaiveDateTime,
+    updated_at:      NaiveDateTime,
 }
 
 impl LegalContractUserSignature {
@@ -705,8 +708,8 @@ pub struct LegalContract {
     text_url:   String,
     edoc_url:   String,
     pdf_url:    String,
-    created_at: chrono::NaiveDateTime,
-    updated_at: chrono::NaiveDateTime,
+    created_at: NaiveDateTime,
+    updated_at: NaiveDateTime,
 }
 
 impl LegalContract {
@@ -738,8 +741,8 @@ pub struct Notification {
     pub id:              uuid::Uuid,
     pub project_id:      uuid::Uuid,
     pub cognito_user_id: String,
-    pub created_at:      chrono::NaiveDateTime,
-    pub updated_at:      chrono::NaiveDateTime,
+    pub created_at:      NaiveDateTime,
+    pub updated_at:      NaiveDateTime,
 }
 
 impl Notification {
@@ -881,5 +884,75 @@ impl ForestProjectHolderRewardTotal {
             .filter(forest_project_holder_rewards_total_view::holder_address.eq(holder_address))
             .select(ForestProjectHolderRewardTotal::as_select())
             .get_results(conn)
+    }
+}
+
+diesel::table! {
+    forest_project_investors_view (forest_project_id, investor) {
+        cognito_user_id -> Varchar,
+        email -> Varchar,
+        account_address -> Varchar,
+        forest_project_id -> Uuid,
+        forest_project_contract_address -> Numeric,
+        mint_fund_contract_address -> Numeric,
+        investor -> Varchar,
+        currency_amount -> Numeric,
+        token_amount -> Numeric
+    }
+}
+#[derive(Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize)]
+#[diesel(table_name = forest_project_investors_view)]
+#[diesel(primary_key(forest_project_id, investor))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ForestProjectInvestor {
+    pub cognito_user_id: String,
+    pub email: String,
+    pub account_address: String,
+    pub forest_project_id: uuid::Uuid,
+    pub forest_project_contract_address: Decimal,
+    pub mint_fund_contract_address: Decimal,
+    pub investor: String,
+    pub currency_amount: Decimal,
+    pub token_amount: Decimal,
+}
+
+impl ForestProjectInvestor {
+    pub fn list(
+        conn: &mut DbConn,
+        project_id: uuid::Uuid,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        let investors = forest_project_investors_view::table
+            .filter(forest_project_investors_view::forest_project_id.eq(project_id))
+            .select(ForestProjectInvestor::as_select())
+            .order(forest_project_investors_view::investor.asc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+
+        let total_count = forest_project_investors_view::table
+            .filter(forest_project_investors_view::forest_project_id.eq(project_id))
+            .count()
+            .get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((investors, page_count))
+    }
+
+    pub fn find(
+        conn: &mut DbConn,
+        project_id: uuid::Uuid,
+        investor: &str,
+    ) -> DbResult<Option<Self>> {
+        forest_project_investors_view::table
+            .filter(
+                forest_project_investors_view::forest_project_id
+                    .eq(project_id)
+                    .and(forest_project_investors_view::investor.eq(investor)),
+            )
+            .select(ForestProjectInvestor::as_select())
+            .first(conn)
+            .optional()
     }
 }

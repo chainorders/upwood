@@ -238,3 +238,22 @@ group by
     forest_project_holder_rewards_agg_view.id,
     forest_project_holder_rewards_agg_view.contract_address,
     forest_project_holder_rewards_agg_view.holder_address;
+
+create
+or replace view forest_project_investors_view as
+select
+    users.cognito_user_id,
+    users.email,
+    users.account_address,
+    projects.id as forest_project_id,
+    projects.contract_address as forest_project_contract_address,
+    funds.contract_address as mint_fund_contract_address,
+    investors.investor,
+    investors.currency_amount,
+    investors.token_amount
+from
+    forest_projects as projects
+    join security_mint_fund_contracts as funds on projects.mint_fund_contract_address = funds.contract_address
+    join security_mint_fund_investors as investors on funds.contract_address = investors.contract_address
+    join users on users.account_address = investors.investor
+    and users.account_address is not null;

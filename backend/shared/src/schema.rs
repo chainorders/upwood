@@ -72,6 +72,7 @@ diesel::table! {
         frozen_balance -> Numeric,
         un_frozen_balance -> Numeric,
         create_time -> Timestamp,
+        update_time -> Timestamp,
     }
 }
 

@@ -3,18 +3,15 @@ use concordium_protocols::concordium_cis2_security::Cis2SecurityEvent;
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
-use rust_decimal::Decimal;
 use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
 use shared::db::security_sft_rewards::{ContractReward, RewardClaimed, RewardToken};
 use shared::db_shared::DbConn;
-use tracing::{debug, instrument};
+use tracing::{info, instrument, trace};
 
 use crate::processors::cis2_utils::{
     rate_to_decimal, ContractAddressToDecimal, TokenAmountToDecimal, TokenIdToDecimal,
 };
 use crate::processors::{cis2_security, ProcessorError};
-pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
-
 pub fn module_ref() -> ModuleReference {
     WasmModule::from_slice(include_bytes!(
         "../../../../contracts/security-sft-rewards/contract.wasm.v1"
@@ -37,7 +34,7 @@ fn process_cis2_security_event(
 }
 
 #[instrument(
-    name="security_sft_rewards_process_events",
+    name="security_sft_rewards",
     skip_all,
     fields(contract = %contract, events = events.len())
 )]
@@ -49,11 +46,7 @@ pub fn process_events(
 ) -> Result<(), ProcessorError> {
     for event in events {
         let parsed_event = event.parse::<Event>().expect("Failed to parse event");
-        debug!(
-            "Processing event for contract: {}/{}",
-            contract.index, contract.subindex
-        );
-        debug!("Event details: {:#?}", parsed_event);
+        trace!("Event details: {:#?}", parsed_event);
 
         match parsed_event {
             Event::AgentAdded(a) => {
@@ -122,6 +115,15 @@ pub fn process_events(
                     update_time:             now,
                 }
                 .insert(conn)?;
+                info!(
+                    "Reward added on token: {}, rewarded token: {}/{}, amount: {}, rate: {}/{}",
+                    event.token_id,
+                    event.rewarded_token_contract,
+                    event.rewarded_token_id,
+                    event.reward_amount.to_decimal(),
+                    event.reward_rate.numerator,
+                    event.reward_rate.denominator
+                );
             }
             Event::RewardClaimed(event) => {
                 ContractReward::sub_amount(
@@ -154,6 +156,14 @@ pub fn process_events(
                     update_time: now,
                 }
                 .insert(conn)?;
+                info!(
+                    "Reward claimed on token: {}, rewarded token: {}/{}, amount: {}, by: {}",
+                    event.token_id,
+                    event.rewarded_token_contract,
+                    event.rewarded_token_id,
+                    event.reward_amount.to_decimal(),
+                    event.owner.to_string()
+                );
             }
         }
     }
