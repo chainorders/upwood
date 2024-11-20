@@ -19,7 +19,6 @@ pub struct TransferAddRewardParams {
     pub reward_token_contract: ContractAddress,
     pub reward_token_id:       TokenIdVec,
     pub data:                  AddRewardContractParam,
-    pub token_id:              TokenId,
 }
 
 #[receive(
@@ -39,9 +38,9 @@ pub fn transfer_add_reward(ctx: &ReceiveContext, host: &mut Host<State>) -> Cont
 
     let params: TransferAddRewardParams = ctx.parameter_cursor().get()?;
     let curr_supply = state
-        .token(&params.token_id)
+        .token(&TRACKED_TOKEN_ID)
         .ok_or(Error::InvalidTokenId)?
-        .reward()
+        .main()
         .ok_or(Error::InvalidTokenId)?
         .supply;
     let (rewarded_amount, _) = params.data.rate.convert(&curr_supply.0)?;
