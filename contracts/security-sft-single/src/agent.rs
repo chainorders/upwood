@@ -4,7 +4,7 @@ use concordium_std::*;
 use super::error::Error;
 use super::state::State;
 use super::types::{Agent, ContractResult, Event};
-use crate::state::{AddressState, AgentState};
+use crate::state::{AddressState, HolderState};
 /// Returns true if the given address is an agent.
 ///
 /// # Returns
@@ -54,9 +54,10 @@ pub fn add_agent(
         ctx.sender().matches_account(&ctx.owner()),
         Error::Unauthorized
     );
-    host.state_mut().add_address(
+    let (state, state_builder) = host.state_and_builder();
+    state.add_address(
         params.address,
-        AddressState::Agent(AgentState(params.roles.clone())),
+        AddressState::Holder(HolderState::new_with_roles(state_builder, &params.roles)),
     )?;
     logger.log(&Event::AgentAdded(AgentUpdatedEvent {
         agent: params.address,
@@ -93,11 +94,16 @@ pub fn remove_agent(
         Error::Unauthorized
     );
     let address: Address = ctx.parameter_cursor().get()?;
-    let state = host.state_mut().remove_and_get_address(&address)?;
-    let agent = state.agent().ok_or(Error::InvalidAddress)?;
+    host.state_mut()
+        .address_mut(&address)
+        .ok_or(Error::InvalidAddress)?
+        .active_mut()
+        .ok_or(Error::InvalidAddress)?
+        .agent_roles
+        .clear();
     logger.log(&Event::AgentRemoved(AgentUpdatedEvent {
         agent: address,
-        roles: agent.roles().clone(),
+        roles: vec![],
     }))?;
 
     Ok(())

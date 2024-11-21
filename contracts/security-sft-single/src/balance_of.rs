@@ -28,15 +28,12 @@ pub fn balance_of(
     for query in queries {
         let balance: TokenAmount = match state.address(&query.address) {
             None => TokenAmount::zero(),
-            Some(address) => match address.holder() {
+            Some(address) => match address.active() {
                 None => TokenAmount::zero(),
-                Some(holder) => match holder.active() {
-                    None => TokenAmount::zero(),
-                    Some(holder_state) => holder_state
-                        .balance(&query.token_id)
-                        .map(|b| b.total())
-                        .unwrap_or(TokenAmount::zero()),
-                },
+                Some(holder_state) => holder_state
+                    .balance(&query.token_id)
+                    .map(|b| b.total())
+                    .unwrap_or(TokenAmount::zero()),
             },
         };
         res.push(balance);

@@ -28,7 +28,7 @@ pub fn mint(
     let state = host.state();
     let is_authorized = state
         .address(&ctx.sender())
-        .is_some_and(|a| a.is_agent(&[AgentRole::Mint]));
+        .is_some_and(|a| a.active().is_some_and(|a| a.has_roles(&[AgentRole::Mint])));
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -57,8 +57,7 @@ pub fn mint(
         let (state, state_builder) = host.state_and_builder();
         {
             // Mint tokens
-            let mut address = state.address_or_insert_holder(&owner, state_builder);
-            let holder = address.holder_mut().ok_or(Error::InvalidAddress)?;
+            let mut holder = state.address_or_insert_holder(&owner, state_builder);
             let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             active_holder.add_assign_balance(&params.token_id, amount);
         }

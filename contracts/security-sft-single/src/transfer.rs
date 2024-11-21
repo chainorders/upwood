@@ -10,7 +10,6 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
-use crate::state::AddressState;
 
 /// Executes a compliant transfer of token ownership between verified accounts
 ///
@@ -98,7 +97,6 @@ pub fn transfer(
 
         {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             ensure!(
                 from.eq(&sender) || from_holder.has_operator(&sender),
@@ -109,7 +107,6 @@ pub fn transfer(
 
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             to_holder.add_assign_balance(&token_id, amount);
         }
@@ -179,12 +176,10 @@ pub fn forced_transfer(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state();
-    let is_authorized =
-        state
-            .address(&ctx.sender())
-            .is_some_and(|a: StateRef<AddressState<ExternStateApi>>| {
-                a.is_agent(&[AgentRole::ForcedTransfer])
-            });
+    let is_authorized = state.address(&ctx.sender()).is_some_and(|a| {
+        a.active()
+            .is_some_and(|a| a.has_roles(&[AgentRole::ForcedTransfer]))
+    });
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -215,7 +210,6 @@ pub fn forced_transfer(
 
         let un_frozen_amount = {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             let un_frozen_amount = from_holder.un_freeze_balance_to_match(&token_id, amount)?;
             from_holder.sub_assign_balance(&token_id, amount)?;
@@ -225,7 +219,6 @@ pub fn forced_transfer(
 
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             to_holder.add_assign_balance(&token_id, amount);
         }

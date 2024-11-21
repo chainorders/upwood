@@ -7,7 +7,7 @@ use concordium_std::*;
 use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
-use crate::state::{AddressState, AgentState, MainTokenState, RewardTokenState, TokenState};
+use crate::state::{AddressState, HolderState, MainTokenState, RewardTokenState, TokenState};
 use crate::types::{MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID};
 /// Initializes the contract with the given parameters.
 ///
@@ -36,7 +36,10 @@ pub fn init(
         let mut addresses = state_builder.new_map();
         let _ = addresses.insert(
             owner,
-            AddressState::Agent(AgentState(AgentRole::owner_roles())),
+            AddressState::Holder(HolderState::new_with_roles(
+                state_builder,
+                &AgentRole::owner_roles(),
+            )),
         );
         addresses
     };
@@ -73,14 +76,10 @@ pub fn init(
         state.identity_registry,
     )))?;
     logger.log(&Event::ComplianceAdded(ComplianceAdded(state.compliance)))?;
-    for (address, address_state) in state.addresses.iter() {
-        if let Some(agent) = address_state.agent() {
-            logger.log(&Event::AgentAdded(AgentUpdatedEvent {
-                agent: *address,
-                roles: agent.0.clone(),
-            }))?;
-        }
-    }
+    logger.log(&Event::AgentAdded(AgentUpdatedEvent {
+        agent: owner,
+        roles: AgentRole::owner_roles(),
+    }))?;
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
         metadata_url: params.metadata_url.into(),
         token_id:     TRACKED_TOKEN_ID,

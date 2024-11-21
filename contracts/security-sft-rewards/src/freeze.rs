@@ -54,7 +54,6 @@ pub fn freeze(
     let mut owner = state
         .address_mut(&owner_address)
         .ok_or(Error::InvalidAddress)?;
-    let owner = owner.holder_mut().ok_or(Error::InvalidAddress)?;
     let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
 
     for FreezeParam {
@@ -124,7 +123,6 @@ pub fn un_freeze(
     let mut owner = state
         .address_mut(&owner_address)
         .ok_or(Error::InvalidAddress)?;
-    let owner = owner.holder_mut().ok_or(Error::InvalidAddress)?;
     let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
 
     for FreezeParam {
@@ -178,15 +176,12 @@ pub fn balance_of_frozen(
         let balance = {
             match state.address(&query.address) {
                 None => TokenAmount::zero(),
-                Some(address) => match address.holder() {
+                Some(holder) => match holder.active() {
                     None => TokenAmount::zero(),
-                    Some(holder) => match holder.active() {
-                        None => TokenAmount::zero(),
-                        Some(active) => active
-                            .balance(&query.token_id)
-                            .map(|b| b.frozen)
-                            .unwrap_or(TokenAmount::zero()),
-                    },
+                    Some(active) => active
+                        .balance(&query.token_id)
+                        .map(|b| b.frozen)
+                        .unwrap_or(TokenAmount::zero()),
                 },
             }
         };
@@ -226,15 +221,12 @@ pub fn balance_of_un_frozen(
         let balance = {
             match state.address(&query.address) {
                 None => TokenAmount::zero(),
-                Some(address) => match address.holder() {
+                Some(holder) => match holder.active() {
                     None => TokenAmount::zero(),
-                    Some(holder) => match holder.active() {
-                        None => TokenAmount::zero(),
-                        Some(active) => active
-                            .balance(&query.token_id)
-                            .map(|b| b.un_frozen)
-                            .unwrap_or(TokenAmount::zero()),
-                    },
+                    Some(active) => active
+                        .balance(&query.token_id)
+                        .map(|b| b.un_frozen)
+                        .unwrap_or(TokenAmount::zero()),
                 },
             }
         };

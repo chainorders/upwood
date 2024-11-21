@@ -33,7 +33,6 @@ pub fn update_operator(
 
     for UpdateOperator { operator, update } in updates {
         let mut holder = state.address_or_insert_holder(&sender, state_builder);
-        let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
         let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
 
         match update {
@@ -76,9 +75,7 @@ pub fn operator_of(
 
     for query in queries {
         let is_operator = state.address(&query.owner).map_or(false, |a| {
-            a.holder().map_or(false, |h| {
-                h.active().map_or(false, |a| a.has_operator(&query.address))
-            })
+            a.active().map_or(false, |a| a.has_operator(&query.address))
         });
         res.push(is_operator);
     }

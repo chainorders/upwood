@@ -7,7 +7,7 @@ use concordium_std::*;
 use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
-use crate::state::{AddressState, AgentState, TokenState};
+use crate::state::{AddressState, HolderState, TokenState};
 /// Initializes the contract with the given parameters.
 ///
 /// # Returns
@@ -35,7 +35,10 @@ pub fn init(
         let mut addresses = state_builder.new_map();
         let _ = addresses.insert(
             owner,
-            AddressState::Agent(AgentState(AgentRole::owner_roles())),
+            AddressState::Holder(HolderState::new_with_roles(
+                state_builder,
+                &AgentRole::owner_roles(),
+            )),
         );
         addresses
     };
@@ -55,14 +58,10 @@ pub fn init(
         state.identity_registry,
     )))?;
     logger.log(&Event::ComplianceAdded(ComplianceAdded(state.compliance)))?;
-    for (address, address_state) in state.addresses.iter() {
-        if let Some(agent) = address_state.agent() {
-            logger.log(&Event::AgentAdded(AgentUpdatedEvent {
-                agent: *address,
-                roles: agent.0.clone(),
-            }))?;
-        }
-    }
+    logger.log(&Event::AgentAdded(AgentUpdatedEvent {
+        agent: owner,
+        roles: AgentRole::owner_roles(),
+    }))?;
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
         metadata_url: state.token.metadata_url().clone(),
         token_id:     TokenIdUnit(),
@@ -110,10 +109,10 @@ pub fn set_identity_registry(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host
-        .state()
-        .address(&ctx.sender())
-        .is_some_and(|a| a.is_agent(&[AgentRole::SetIdentityRegistry]));
+    let is_authorized = host.state().address(&ctx.sender()).is_some_and(|a| {
+        a.active()
+            .is_some_and(|a| a.has_roles(&[AgentRole::SetIdentityRegistry]))
+    });
     ensure!(is_authorized, Error::Unauthorized);
 
     let identity_registry: ContractAddress = ctx.parameter_cursor().get()?;
@@ -167,10 +166,10 @@ pub fn set_compliance(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host
-        .state()
-        .address(&ctx.sender())
-        .is_some_and(|a| a.is_agent(&[AgentRole::SetCompliance]));
+    let is_authorized = host.state().address(&ctx.sender()).is_some_and(|a| {
+        a.active()
+            .is_some_and(|a| a.has_roles(&[AgentRole::SetCompliance]))
+    });
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance: ContractAddress = ctx.parameter_cursor().get()?;

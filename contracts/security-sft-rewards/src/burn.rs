@@ -48,7 +48,6 @@ pub fn burn(
         let state = host.state_mut();
         let rewards = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
-            let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             let is_authorized = owner.eq(&sender) || holder.has_operator(&sender);
             ensure!(is_authorized, Error::Unauthorized);
@@ -129,7 +128,6 @@ pub fn forced_burn(
         let state = host.state_mut();
         let rewards = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
-            let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             holder.un_freeze_balance_to_match(&token_id, amount)?;
             holder.sub_assign_unfrozen_balance(&token_id, amount)?;

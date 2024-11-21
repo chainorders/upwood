@@ -194,7 +194,6 @@ pub fn claim_rewards(
                 .ok_or(Error::InvalidTokenId)?;
             let curr_reward_token = curr_reward_token.reward().ok_or(Error::InvalidTokenId)?;
             let holder = state.address(&owner_address).ok_or(Error::InvalidAddress)?;
-            let holder = holder.holder().ok_or(Error::InvalidAddress)?;
             let holder = holder.active().ok_or(Error::RecoveredAddress)?;
             let claim_amount = holder
                 .balance(&curr_reward_token_id)
@@ -257,7 +256,6 @@ pub fn claim_rewards(
             let mut holder = state
                 .address_mut(&owner_address)
                 .ok_or(Error::InvalidAddress)?;
-            let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             holder.sub_assign_unfrozen_balance(&curr_reward_token_id, claim_amount)?;
             holder.add_assign_unfrozen_balance(&next_reward_token_id, claim_amount);

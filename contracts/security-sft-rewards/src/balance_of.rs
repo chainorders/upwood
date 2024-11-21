@@ -30,15 +30,12 @@ pub fn balance_of(
         state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
         let balance: TokenAmount = match state.address(&query.address) {
             None => TokenAmount::zero(),
-            Some(address) => match address.holder() {
+            Some(holder) => match holder.active() {
                 None => TokenAmount::zero(),
-                Some(holder) => match holder.active() {
-                    None => TokenAmount::zero(),
-                    Some(holder_state) => holder_state
-                        .balance(&query.token_id)
-                        .map(|b| b.total())
-                        .unwrap_or(TokenAmount::zero()),
-                },
+                Some(holder_state) => holder_state
+                    .balance(&query.token_id)
+                    .map(|b| b.total())
+                    .unwrap_or(TokenAmount::zero()),
             },
         };
         res.push(balance);

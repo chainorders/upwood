@@ -11,77 +11,44 @@ use crate::error::Error;
 
 #[derive(Serial, DeserialWithState, Deletable)]
 #[concordium(state_parameter = "S")]
-pub enum HolderAddressState<S> {
+pub enum AddressState<S> {
     Holder(HolderState<S>),
     Recovered(Address),
 }
 
-impl<S: HasStateApi> HolderAddressState<S> {
+impl<S: HasStateApi> AddressState<S> {
     pub fn active(&self) -> Option<&HolderState<S>> {
         match self {
-            HolderAddressState::Holder(holder) => Some(holder),
+            AddressState::Holder(holder) => Some(holder),
             _ => None,
         }
     }
 
     pub fn active_mut(&mut self) -> Option<&mut HolderState<S>> {
         match self {
-            HolderAddressState::Holder(holder) => Some(holder),
+            AddressState::Holder(holder) => Some(holder),
             _ => None,
         }
     }
 
     pub fn recovered(&self) -> Option<&Address> {
         match self {
-            HolderAddressState::Recovered(address) => Some(address),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Serialize, Clone)]
-pub struct AgentState(pub Vec<AgentRole>);
-impl AgentState {
-    pub fn has_roles(&self, roles: &[AgentRole]) -> bool {
-        roles.iter().all(|r| self.0.contains(r))
-    }
-
-    pub fn roles(&self) -> &Vec<AgentRole> { &self.0 }
-}
-
-#[derive(Serial, DeserialWithState, Deletable)]
-#[concordium(state_parameter = "S")]
-pub enum AddressState<S> {
-    Agent(AgentState),
-    Holder(HolderAddressState<S>),
-}
-
-impl<S> AddressState<S> {
-    pub fn agent(&self) -> Option<&AgentState> {
-        match self {
-            AddressState::Agent(agent) => Some(agent),
+            AddressState::Recovered(address) => Some(address),
             _ => None,
         }
     }
 
     pub fn is_agent(&self, roles: &[AgentRole]) -> bool {
         match self {
-            AddressState::Agent(agent) => agent.has_roles(roles),
+            AddressState::Holder(holder) => holder.has_roles(roles),
             _ => false,
         }
     }
 
-    pub fn holder(&self) -> Option<&HolderAddressState<S>> {
+    pub fn has_role(&self, role: AgentRole) -> bool {
         match self {
-            AddressState::Holder(holder) => Some(holder),
-            _ => None,
-        }
-    }
-
-    pub fn holder_mut(&mut self) -> Option<&mut HolderAddressState<S>> {
-        match self {
-            AddressState::Holder(holder) => Some(holder),
-            _ => None,
+            AddressState::Holder(holder) => holder.agent_roles.contains(&role),
+            _ => false,
         }
     }
 }
@@ -109,9 +76,7 @@ impl<S: HasStateApi> State<S> {
     ) -> StateRefMut<AddressState<S>, S> {
         self.addresses
             .entry(*address)
-            .or_insert(AddressState::Holder(HolderAddressState::Holder(
-                HolderState::new(state_builder),
-            )));
+            .or_insert(AddressState::Holder(HolderState::new(state_builder)));
         self.address_mut(address).unwrap()
     }
 
@@ -129,14 +94,6 @@ impl<S: HasStateApi> State<S> {
             .vacant_or(Error::InvalidAddress)?
             .insert(state);
         let address = self.address_mut(&address).ok_or(Error::InvalidAddress)?;
-        Ok(address)
-    }
-
-    pub fn remove_and_get_address(&mut self, address: &Address) -> Result<AddressState<S>, Error> {
-        let address = self
-            .addresses
-            .remove_and_get(address)
-            .ok_or(Error::InvalidAddress)?;
         Ok(address)
     }
 
@@ -225,15 +182,26 @@ impl HolderStateBalance {
 #[derive(DeserialWithState, Serial, Deletable)]
 #[concordium(state_parameter = "S")]
 pub struct HolderState<S=StateApi> {
-    pub operators: StateSet<Address, S>,
-    pub balances:  StateMap<TokenId, HolderStateBalance, S>,
+    pub operators:   StateSet<Address, S>,
+    pub balances:    StateMap<TokenId, HolderStateBalance, S>,
+    pub agent_roles: StateSet<AgentRole, S>,
 }
+
 impl<S: HasStateApi> HolderState<S> {
     pub fn new(state_builder: &mut StateBuilder<S>) -> Self {
         HolderState {
-            operators: state_builder.new_set(),
-            balances:  state_builder.new_map(),
+            operators:   state_builder.new_set(),
+            balances:    state_builder.new_map(),
+            agent_roles: state_builder.new_set(),
         }
+    }
+
+    pub fn new_with_roles(state_builder: &mut StateBuilder<S>, roles: &[AgentRole]) -> Self {
+        let mut holder = HolderState::new(state_builder);
+        for role in roles {
+            holder.agent_roles.insert(*role);
+        }
+        holder
     }
 
     pub fn balance(&self, token_id: &TokenId) -> Option<StateRef<HolderStateBalance>> {
@@ -297,5 +265,9 @@ impl<S: HasStateApi> HolderState<S> {
             let _ = new_holder.balances.insert(*token_id, balance.clone());
         }
         new_holder
+    }
+
+    pub fn has_roles(&self, roles: &[AgentRole]) -> bool {
+        roles.iter().all(|r| self.agent_roles.contains(r))
     }
 }

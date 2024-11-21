@@ -59,8 +59,7 @@ pub fn mint(
         let (state, state_builder) = host.state_and_builder();
         {
             // Mint tokens
-            let mut address = state.address_or_insert_holder(&owner, state_builder);
-            let holder = address.holder_mut().ok_or(Error::InvalidAddress)?;
+            let mut holder = state.address_or_insert_holder(&owner, state_builder);
             let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             active_holder.add_assign_unfrozen_balance(&params.token_id, amount);
             active_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount);

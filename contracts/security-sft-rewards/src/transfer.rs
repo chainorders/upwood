@@ -104,7 +104,6 @@ pub fn transfer(
 
         let rewards = {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             ensure!(
                 from.eq(&sender) || from_holder.has_operator(&sender),
@@ -116,7 +115,6 @@ pub fn transfer(
 
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             to_holder.add_assign_unfrozen_balance(&token_id, amount);
             to_holder.add_assign_balance_rewards(&rewards)?;
@@ -240,7 +238,6 @@ pub fn forced_transfer(
 
         let (rewards, un_frozen_amount) = {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             let un_frozen_amount = from_holder.un_freeze_balance_to_match(&token_id, amount)?;
             from_holder.sub_assign_unfrozen_balance(&token_id, amount)?;
@@ -251,7 +248,6 @@ pub fn forced_transfer(
 
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.holder_mut().ok_or(Error::InvalidAddress)?;
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             to_holder.add_assign_unfrozen_balance(&token_id, amount);
             to_holder.add_assign_balance_rewards(&rewards)?;
