@@ -33,8 +33,8 @@ use security_sft_rewards::rewards::ClaimRewardsParam;
 use security_sft_rewards::types::TRACKED_TOKEN_ID;
 use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectHolderRewardTotal, ForestProjectState, ForestProjectUser,
-    HolderReward,
+    ForestProject, ForestProjectHolderRewardTotal, ForestProjectState,
+    ForestProjectUserHolderReward, HolderReward,
 };
 use shared::db_shared::{DbConn, DbPool};
 use test_log::test;
@@ -804,21 +804,87 @@ pub async fn test_forest_projects() {
             .await
             .expect("Error processing block");
 
-        let rewards_claimable = user_1
-            .call_api(|id_token| api.forest_project_rewards_claimable(id_token))
-            .await;
-        assert_eq!(rewards_claimable, vec![HolderReward {
-            id: fp_1.id,
-            contract_address: fp_1.contract_address,
-            holder_address: user_1.account_address.clone(),
-            token_id: 2.into(),
-            rewarded_token_id: 0.into(),
-            rewarded_token_contract: carbon_credits.0.to_decimal(),
-            frozen_balance: Decimal::ZERO,
-            frozen_reward: Decimal::ZERO,
-            un_frozen_balance: 100.into(),
-            un_frozen_reward: 50000.into(),
-        }]);
+        // Asserting total rewards for user 1
+        {
+            let rewards_total = user_1
+                .call_api(|id_token| api.forest_project_rewards_total(id_token))
+                .await;
+            assert_eq!(rewards_total, vec![
+                ForestProjectHolderRewardTotal {
+                    holder_address:          user_1.address().to_string(),
+                    rewarded_token_id:       0.into(),
+                    rewarded_token_contract: carbon_credits.0.to_decimal(),
+                    total_frozen_reward:     Decimal::ZERO,
+                    total_un_frozen_reward:  50000.into(),
+                },
+                ForestProjectHolderRewardTotal {
+                    holder_address:          user_1.address().to_string(),
+                    rewarded_token_id:       0.into(),
+                    rewarded_token_contract: tree_sft.0.to_decimal(),
+                    total_frozen_reward:     Decimal::ZERO,
+                    total_un_frozen_reward:  100.into(),
+                },
+            ]);
+        }
+
+        // Asserting claimable rewards for user 1
+        {
+            let rewards_claimable = user_1
+                .call_api(|id_token| api.forest_project_rewards_claimable(id_token))
+                .await;
+            assert_eq!(rewards_claimable, vec![HolderReward {
+                id: fp_1.id,
+                contract_address: fp_1.contract_address,
+                holder_address: user_1.account_address.clone(),
+                token_id: 2.into(),
+                rewarded_token_id: 0.into(),
+                rewarded_token_contract: carbon_credits.0.to_decimal(),
+                frozen_balance: Decimal::ZERO,
+                frozen_reward: Decimal::ZERO,
+                un_frozen_balance: 100.into(),
+                un_frozen_reward: 50000.into(),
+            }]);
+        }
+
+        // asserting owned forest projects for user 1
+        {
+            let user_1_owned_fps = user_1
+                .call_api(|id_token| api.forest_project_list_owned(id_token))
+                .await;
+            assert_eq!(user_1_owned_fps.data.len(), 1);
+            assert_eq!(user_1_owned_fps.data[0].id, fp_1.id);
+            assert_eq!(
+                user_1_owned_fps.data[0].project_token_holder_address,
+                Some(user_1.account_address.clone())
+            );
+            assert_eq!(
+                user_1_owned_fps.data[0].project_token_un_frozen_balance,
+                Some(100.into())
+            );
+            assert_eq!(
+                user_1_owned_fps.data[0].project_token_frozen_balance,
+                Some(0.into())
+            );
+            assert_eq!(
+                user_1_owned_fps.data[0]
+                    .holder_rewards_parsed()
+                    .expect("error parsing holder rewards"),
+                vec![
+                    ForestProjectUserHolderReward {
+                        rewarded_token_contract: carbon_credits.0.to_decimal(),
+                        rewarded_token_id:       0.into(),
+                        total_frozen_reward:     Decimal::ZERO,
+                        total_un_frozen_reward:  50000.into(),
+                    },
+                    ForestProjectUserHolderReward {
+                        rewarded_token_contract: tree_sft.0.to_decimal(),
+                        rewarded_token_id:       0.into(),
+                        total_frozen_reward:     Decimal::ZERO,
+                        total_un_frozen_reward:  100.into(),
+                    }
+                ]
+            );
+        }
     }
 
     // // user 1 open a sell position of p2p trade contract

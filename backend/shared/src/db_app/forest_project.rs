@@ -12,7 +12,6 @@ use poem_openapi::{Enum, Object};
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use uuid::Uuid;
 
 use crate::db::security_mint_fund::{SecurityMintFundContract, SecurityMintFundState};
@@ -292,7 +291,7 @@ pub struct ForestProjectUser {
     pub p2p_trading_rate: Option<Decimal>,
     pub p2p_trading_token_amount: Option<Decimal>,
     pub p2p_trading_trader_address: Option<String>,
-    pub holder_rewards: Value,
+    pub holder_rewards: serde_json::Value,
 }
 
 impl ForestProjectUser {
@@ -546,6 +545,22 @@ impl ForestProjectUser {
 
         Ok((projects, page_count))
     }
+
+    pub fn holder_rewards_parsed(
+        &self,
+    ) -> Result<Vec<ForestProjectUserHolderReward>, serde_json::Error> {
+        let rewards: Vec<ForestProjectUserHolderReward> =
+            serde_json::from_value(self.holder_rewards.clone())?;
+        Ok(rewards)
+    }
+}
+
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ForestProjectUserHolderReward {
+    pub rewarded_token_contract: Decimal,
+    pub rewarded_token_id:       Decimal,
+    pub total_frozen_reward:     Decimal,
+    pub total_un_frozen_reward:  Decimal,
 }
 
 #[derive(

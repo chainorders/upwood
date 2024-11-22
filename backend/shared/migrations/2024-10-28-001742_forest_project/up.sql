@@ -112,7 +112,10 @@ from
 group by
     hra.holder_address,
     hra.rewarded_token_contract,
-    hra.rewarded_token_id;
+    hra.rewarded_token_id
+having
+    sum(hra.total_un_frozen_reward) > 0
+    or sum(hra.total_frozen_reward) > 0;
 
 -- Rewards by forest project reward token and holder
 -- This view is used to calculate the rewards for a holder for a particular reward token in a forest project
@@ -215,6 +218,10 @@ from
     left join security_p2p_trading_deposits on security_p2p_trading_contracts.contract_address = security_p2p_trading_deposits.contract_address
     left join forest_project_holder_rewards_agg_view on forest_project_holder_rewards_agg_view.contract_address = forest_projects.contract_address
     and forest_project_holder_rewards_agg_view.holder_address = project_token_holders.holder_address
+    and (
+        forest_project_holder_rewards_agg_view.total_un_frozen_reward > 0
+        or forest_project_holder_rewards_agg_view.total_frozen_reward > 0
+    )
 group by
     forest_projects.id,
     forest_project_notifications.cognito_user_id,
