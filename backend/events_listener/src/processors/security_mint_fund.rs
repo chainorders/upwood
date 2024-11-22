@@ -149,9 +149,10 @@ pub fn process_events(
             Event::InvestmentClaimed(event) => {
                 let investor =
                     Investor::find(conn, contract.to_decimal(), &event.investor.to_string())?
-                        .ok_or(ProcessorError::DatabaseError(
-                            diesel::result::Error::NotFound,
-                        ))?;
+                        .ok_or(ProcessorError::InvestorNotFound {
+                            investor: event.investor.to_string(),
+                            contract: contract.to_decimal(),
+                        })?;
                 if event
                     .security_amount
                     .to_decimal()

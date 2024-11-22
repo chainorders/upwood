@@ -4,7 +4,8 @@ use poem::test::{TestClient, TestResponse};
 use poem::Route;
 use shared::api::PagedResponse;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectInvestor, ForestProjectState, ForestProjectUser,
+    ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectPrice,
+    ForestProjectState, ForestProjectUser, HolderReward,
 };
 use upwood::api;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
@@ -245,6 +246,25 @@ impl ApiTestClient {
 
 // Forest Projects Admin Implementation
 impl ApiTestClient {
+    pub async fn admin_find_forest_project(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+    ) -> ForestProject {
+        let res = self
+            .client
+            .get(format!("/admin/forest_projects/{}", project_id))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse find forest project response")
+    }
+
     pub async fn admin_create_forest_project(
         &mut self,
         id_token: String,
@@ -286,7 +306,7 @@ impl ApiTestClient {
             .expect("Failed to parse list forest projects response")
     }
 
-    pub async fn admin_forest_project_update(
+    pub async fn admin_update_forest_project(
         &mut self,
         id_token: String,
         req: ForestProject,
@@ -304,6 +324,27 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse update forest project response")
+    }
+
+    pub async fn admin_forest_project_create_price(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        price: &ForestProjectPrice,
+    ) -> ForestProjectPrice {
+        let res = self
+            .client
+            .post(format!("/admin/forest_projects/{}/price", project_id))
+            .body_json(price)
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse create forest project price response")
     }
 }
 
@@ -328,6 +369,24 @@ impl ApiTestClient {
             .expect("Failed to parse list active forest projects response")
     }
 
+    pub async fn forest_project_list_owned(
+        &self,
+        id_token: String,
+    ) -> PagedResponse<ForestProjectUser> {
+        let res = self
+            .client
+            .get("/forest_projects/list/owned")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list owned forest projects response")
+    }
+
     pub async fn admin_forest_project_investor_list(
         &self,
         id_token: String,
@@ -350,11 +409,48 @@ impl ApiTestClient {
             .await
             .expect("Failed to parse list forest project investors response")
     }
+
+    pub async fn forest_project_rewards_total(
+        &self,
+        id_token: String,
+    ) -> Vec<ForestProjectHolderRewardTotal> {
+        let res = self
+            .client
+            .get("/forest_projects/rewards/total")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse forest project rewards total response")
+    }
+
+    pub async fn forest_project_rewards_claimable(&self, id_token: String) -> Vec<HolderReward> {
+        let res = self
+            .client
+            .get("/forest_projects/rewards/claimable")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await;
+        assert_eq!(res.0.status(), StatusCode::OK);
+        res.0
+            .into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse forest project rewards claimable response")
+    }
 }
 
 // User Portfolio Implementation
 impl ApiTestClient {
-    pub async fn portfolio_aggreagte(&self, id_token: String, now: Option<NaiveDateTime>) -> InvestmentPortfolioUserAggregate {
+    pub async fn portfolio_aggreagte(
+        &self,
+        id_token: String,
+        now: Option<NaiveDateTime>,
+    ) -> InvestmentPortfolioUserAggregate {
         let res = self
             .client
             .get("/portfolio/aggregate")

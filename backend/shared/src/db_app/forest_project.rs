@@ -33,6 +33,7 @@ pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
     Serialize,
     AsChangeset,
     Deserialize,
+    Clone,
 )]
 #[diesel(table_name = crate::schema::forest_projects)]
 #[diesel(primary_key(id))]
@@ -384,16 +385,48 @@ impl ForestProjectUser {
                 .limit(page_size)
                 .offset(page * page_size)
                 .get_results(conn)?;
-        let total_count = forest_project_user_view::table
-            .filter(
-                forest_project_user_view::notification_cognito_user_id
-                    .eq(user_cognito_id)
-                    .or(forest_project_user_view::project_token_holder_address.eq(user_account))
-                    .or(forest_project_user_view::legal_contract_signer.eq(user_cognito_id)),
-            )
-            .filter(forest_project_user_view::mint_fund_state.eq(mint_fund_state))
-            .count()
-            .get_result::<i64>(conn)?;
+        let total_count =
+            forest_project_user_view::table
+                .filter(
+                    forest_project_user_view::notification_cognito_user_id
+                        .is_null()
+                        .or(forest_project_user_view::notification_cognito_user_id
+                            .eq(user_cognito_id))
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::legal_contract_signer
+                                .is_null()
+                                .or(forest_project_user_view::legal_contract_signer
+                                    .eq(user_cognito_id)),
+                        )
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::mint_fund_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::mint_fund_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::p2p_trading_trader_address
+                                .is_null()
+                                .or(forest_project_user_view::p2p_trading_trader_address
+                                    .eq(user_account.to_owned())),
+                        ),
+                )
+                .filter(forest_project_user_view::mint_fund_state.eq(mint_fund_state))
+                .filter(forest_project_user_view::state.eq(ForestProjectState::Listed))
+                .count()
+                .get_result::<i64>(conn)?;
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((projects, page_count))
@@ -407,43 +440,107 @@ impl ForestProjectUser {
         page_size: i64,
     ) -> DbResult<(Vec<Self>, i64)> {
         let user_account = user_account.to_string();
-        let projects = forest_project_user_view::table
-            .filter(
-                forest_project_user_view::notification_cognito_user_id
-                    .eq(user_cognito_id)
-                    .or(forest_project_user_view::legal_contract_signer.eq(user_cognito_id)),
-            )
-            .filter(
-                forest_project_user_view::project_token_holder_address.eq(user_account.to_owned()),
-            )
-            .filter(
-                forest_project_user_view::project_token_un_frozen_balance
-                    .is_not_null()
-                    .and(
-                        forest_project_user_view::project_token_un_frozen_balance.gt(Decimal::ZERO),
-                    ),
-            )
-            .select(ForestProjectUser::as_select())
-            .order(forest_project_user_view::created_at.desc())
-            .limit(page_size)
-            .offset(page * page_size)
-            .get_results(conn)?;
-        let total_count = forest_project_user_view::table
-            .filter(
-                forest_project_user_view::notification_cognito_user_id
-                    .eq(user_cognito_id)
-                    .or(forest_project_user_view::legal_contract_signer.eq(user_cognito_id)),
-            )
-            .filter(forest_project_user_view::project_token_holder_address.eq(user_account))
-            .filter(
-                forest_project_user_view::project_token_un_frozen_balance
-                    .is_not_null()
-                    .and(
-                        forest_project_user_view::project_token_un_frozen_balance.gt(Decimal::ZERO),
-                    ),
-            )
-            .count()
-            .get_result::<i64>(conn)?;
+        let projects =
+            forest_project_user_view::table
+                .filter(
+                    forest_project_user_view::notification_cognito_user_id
+                        .is_null()
+                        .or(forest_project_user_view::notification_cognito_user_id
+                            .eq(user_cognito_id))
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::legal_contract_signer
+                                .is_null()
+                                .or(forest_project_user_view::legal_contract_signer
+                                    .eq(user_cognito_id)),
+                        )
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::mint_fund_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::mint_fund_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::p2p_trading_trader_address
+                                .is_null()
+                                .or(forest_project_user_view::p2p_trading_trader_address
+                                    .eq(user_account.to_owned())),
+                        ),
+                )
+                .filter(forest_project_user_view::state.eq(ForestProjectState::Listed))
+                .filter(
+                    forest_project_user_view::project_token_un_frozen_balance
+                        .is_not_null()
+                        .and(
+                            forest_project_user_view::project_token_un_frozen_balance
+                                .gt(Decimal::ZERO),
+                        ),
+                )
+                .select(ForestProjectUser::as_select())
+                .order(forest_project_user_view::created_at.desc())
+                .limit(page_size)
+                .offset(page * page_size)
+                .get_results(conn)?;
+        let total_count =
+            forest_project_user_view::table
+                .filter(
+                    forest_project_user_view::notification_cognito_user_id
+                        .is_null()
+                        .or(forest_project_user_view::notification_cognito_user_id
+                            .eq(user_cognito_id))
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::legal_contract_signer
+                                .is_null()
+                                .or(forest_project_user_view::legal_contract_signer
+                                    .eq(user_cognito_id)),
+                        )
+                        .and(
+                            forest_project_user_view::project_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::project_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::mint_fund_token_holder_address
+                                .is_null()
+                                .or(forest_project_user_view::mint_fund_token_holder_address
+                                    .eq(user_account.to_owned())),
+                        )
+                        .and(
+                            forest_project_user_view::p2p_trading_trader_address
+                                .is_null()
+                                .or(forest_project_user_view::p2p_trading_trader_address
+                                    .eq(user_account.to_owned())),
+                        ),
+                )
+                .filter(forest_project_user_view::state.eq(ForestProjectState::Listed))
+                .filter(
+                    forest_project_user_view::project_token_un_frozen_balance
+                        .is_not_null()
+                        .and(
+                            forest_project_user_view::project_token_un_frozen_balance
+                                .gt(Decimal::ZERO),
+                        ),
+                )
+                .count()
+                .get_result::<i64>(conn)?;
 
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
@@ -570,6 +667,7 @@ impl ToSql<schema::sql_types::ForestProjectState, diesel::pg::Pg> for ForestProj
     Insertable,
     Associations,
     Serialize,
+    Deserialize,
 )]
 #[diesel(table_name = crate::schema::forest_project_prices)]
 #[diesel(belongs_to(ForestProject, foreign_key = project_id))]
@@ -824,7 +922,17 @@ diesel::table! {
 
 /// Claimable rewards for a holder
 /// After claiming more rewards might be added
-#[derive(Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Insertable, Serialize)]
+#[derive(
+    Object,
+    Selectable,
+    Queryable,
+    Identifiable,
+    Debug,
+    PartialEq,
+    Insertable,
+    Serialize,
+    Deserialize,
+)]
 #[diesel(table_name = forest_project_holder_rewards_view)]
 #[diesel(primary_key(
     id,
@@ -866,7 +974,17 @@ diesel::table! {
     }
 }
 
-#[derive(Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Insertable, Serialize)]
+#[derive(
+    Object,
+    Selectable,
+    Queryable,
+    Identifiable,
+    Debug,
+    PartialEq,
+    Insertable,
+    Serialize,
+    Deserialize,
+)]
 #[diesel(table_name = forest_project_holder_rewards_total_view)]
 #[diesel(primary_key(holder_address, rewarded_token_contract, rewarded_token_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]

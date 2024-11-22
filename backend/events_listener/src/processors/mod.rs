@@ -6,7 +6,6 @@
 //! functions to run the contracts API server and listener, as well as to
 //! generate the API client. It also includes helper functions to create the
 //! listener, server routes, and service for the contracts API.
-
 mod cis2_security;
 mod security_sft_single;
 use diesel::Connection;
@@ -19,6 +18,7 @@ mod security_mint_fund;
 mod security_p2p_trading;
 mod security_sft_rewards;
 
+use std::backtrace::Backtrace;
 use std::collections::{BTreeMap, HashSet};
 
 use chrono::{NaiveDateTime, Utc};
@@ -34,12 +34,34 @@ use crate::listener::{ContractCallType, ParsedBlock, ParsedTxn};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProcessorError {
-    #[error("R2D2 pool Database error: {0}")]
-    DatabasePoolError(#[from] r2d2::Error),
-    #[error("Events Parse Error: {0}")]
-    EventsParseError(#[from] concordium_rust_sdk::base::contracts_common::ParseError),
-    #[error("Database error: {0}")]
-    DatabaseError(#[from] diesel::result::Error),
+    #[error("R2D2 pool Database error: {source}")]
+    DatabasePoolError {
+        #[from]
+        source:    r2d2::Error,
+        backtrace: Backtrace,
+    },
+    #[error("Events Parse Error: {source}")]
+    EventsParseError {
+        #[from]
+        source:    concordium_rust_sdk::base::contracts_common::ParseError,
+        backtrace: Backtrace,
+    },
+    #[error("Database error: {source}")]
+    DatabaseError {
+        #[from]
+        source:    diesel::result::Error,
+        backtrace: Backtrace,
+    },
+    #[error("Investor not found: {investor}, contract: {contract}")]
+    InvestorNotFound { investor: String, contract: Decimal },
+    #[error(
+        "Token Holder not found: {holder_address}, contract: {contract}, token_id: {token_id}"
+    )]
+    TokenHolderNotFound {
+        holder_address: String,
+        contract:       Decimal,
+        token_id:       Decimal,
+    },
 }
 
 pub type ProcessorFnType = fn(
@@ -49,7 +71,6 @@ pub type ProcessorFnType = fn(
     &[ContractEvent],
 ) -> Result<(), ProcessorError>;
 
-#[derive(Clone)]
 pub struct Processors {
     pub processors_types: BTreeMap<(ModuleReference, OwnedContractName), ProcessorType>,
     pub processors:       BTreeMap<ProcessorType, ProcessorFnType>,
@@ -183,6 +204,10 @@ impl Processors {
     ) -> Result<bool, ProcessorError> {
         let mut is_any_processed = false;
         for contract_call in &txn.contract_calls {
+            debug!(
+                "Processing contract call: contract: {}, sender: {}, call_type: {:?}",
+                contract_call.contract, txn.sender, contract_call.call_type
+            );
             let is_processed = match &contract_call.call_type {
                 ContractCallType::Init(init) => {
                     // If the contract is owned by the owner, then we process the init call
@@ -315,15 +340,12 @@ impl Processors {
                             debug!(
                                 "Processed contract call contract: {}, sender: {}, events count: \
                                  {}",
-                                contract.contract_address,
-                                contract_call.sender,
-                                events_length
+                                contract.contract_address, contract_call.sender, events_length
                             );
                         }
                         None => warn!(
                             "No processor found for contract: {} & type: {}",
-                            contract.contract_address,
-                            contract.processor_type
+                            contract.contract_address, contract.processor_type
                         ),
                     }
                 }

@@ -128,9 +128,7 @@ impl Chain {
         };
         self.pending_transactions = Vec::new();
         self.block_count += 1;
-        self.chain
-            .tick_block_time(Duration::from_seconds(2))
-            .expect("tick block time");
+        self.tick_block_time(Duration::from_seconds(2));
         block
     }
 
@@ -138,6 +136,12 @@ impl Chain {
         DateTime::from_timestamp_millis(self.chain.block_time().millis.to_i64().unwrap())
             .unwrap()
             .naive_utc()
+    }
+
+    pub fn tick_block_time(&mut self, duration: Duration) {
+        self.chain
+            .tick_block_time(duration)
+            .expect("tick block time");
     }
 }
 

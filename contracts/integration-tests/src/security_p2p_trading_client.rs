@@ -26,6 +26,18 @@ impl P2PTradeTestClient {
             param:     OwnedParameter::from_serial(param).unwrap(),
         }
     }
+
+    pub fn transfer_sell_payload(&self, params: &TransferSellParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("transferSell"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {

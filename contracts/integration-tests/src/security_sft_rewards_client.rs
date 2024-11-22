@@ -6,7 +6,7 @@ use concordium_smart_contract_testing::*;
 use security_sft_rewards::rewards::{ClaimRewardsParams, TransferAddRewardParams};
 use security_sft_rewards::types::*;
 
-use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
+use super::{cis2, cis2_security, MAX_ENERGY};
 
 pub const MODULE_BYTES: &[u8] = include_bytes!("../../security-sft-rewards/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_rewards");
@@ -34,6 +34,33 @@ impl SftRewardsTestClient {
                 EntrypointName::new_unchecked("addAgent"),
             ),
             message:      OwnedParameter::from_serial(agent).unwrap(),
+        }
+    }
+
+    pub fn transfer_add_reward_payload(
+        &self,
+        payload: &TransferAddRewardParams,
+    ) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("transferAddReward"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        }
+    }
+
+    pub fn claim_rewards_payload(&self, payload: &ClaimRewardsParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("claimRewards"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
         }
     }
 }
@@ -262,7 +289,21 @@ pub fn transfer_add_reward(
     contract: ContractAddress,
     payload: &TransferAddRewardParams,
 ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    cis2_security_rewards::transfer_add_reward(chain, sender, contract, CONTRACT_NAME, payload)
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("transferAddReward"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn claim_rewards(
@@ -271,7 +312,21 @@ pub fn claim_rewards(
     contract: ContractAddress,
     payload: &ClaimRewardsParams,
 ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    cis2_security_rewards::claim_rewards(chain, sender, contract, CONTRACT_NAME, payload)
+    chain.contract_update(
+        Signer::with_one_key(),
+        sender.address,
+        sender.address.into(),
+        MAX_ENERGY,
+        UpdateContractPayload {
+            address:      contract,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("claimRewards"),
+            ),
+            message:      OwnedParameter::from_serial(payload).unwrap(),
+        },
+    )
 }
 
 pub fn update_operator(

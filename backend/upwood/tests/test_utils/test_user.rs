@@ -16,7 +16,7 @@ impl UserTestClient {
         call(self.id_token.clone()).await
     }
 
-    pub fn account_address(&self) -> AccountAddress {
+    pub fn address(&self) -> AccountAddress {
         self.account_address
             .parse()
             .expect("Failed to parse account address")
@@ -24,6 +24,6 @@ impl UserTestClient {
 
     pub fn transact<F, T>(&self, f: F) -> T
     where F: FnOnce(AccountAddress) -> T {
-        f(self.account_address())
+        f(self.address())
     }
 }

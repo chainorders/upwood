@@ -165,9 +165,27 @@ impl ListenerError {
             ListenerError::QueryError(_) => true,
             ListenerError::DatabasePoolError(_) => true,
             ListenerError::GrpcError(_) => true,
-            ListenerError::ProcessorError(ProcessorError::EventsParseError(_)) => false,
-            ListenerError::ProcessorError(ProcessorError::DatabaseError(_)) => false,
-            ListenerError::ProcessorError(ProcessorError::DatabasePoolError(_)) => true,
+            ListenerError::ProcessorError(ProcessorError::EventsParseError {
+                source: _,
+                backtrace: _,
+            }) => false,
+            ListenerError::ProcessorError(ProcessorError::DatabaseError {
+                source: _,
+                backtrace: _,
+            }) => false,
+            ListenerError::ProcessorError(ProcessorError::DatabasePoolError {
+                source: _,
+                backtrace: _,
+            }) => true,
+            ListenerError::ProcessorError(ProcessorError::InvestorNotFound {
+                investor: _,
+                contract: _,
+            }) => false,
+            ListenerError::ProcessorError(ProcessorError::TokenHolderNotFound {
+                holder_address: _,
+                contract: _,
+                token_id: _,
+            }) => false,
         }
     }
 }
@@ -176,7 +194,6 @@ impl ListenerError {
 /// Concordium node and processes them. It maintains a connection to the node
 /// and a MongoDB database, and uses a set of processors to process the
 /// transactions.
-#[derive(Clone)]
 pub struct Listener {
     processors:           Processors, // Processors to process the transactions
     database:             Pool<ConnectionManager<PgConnection>>, // postgres pool

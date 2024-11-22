@@ -81,7 +81,6 @@ fn normal_reward_distribution() {
         &admin,
         token_contract,
         &TransferAddRewardParams {
-            token_id:              MIN_REWARD_TOKEN_ID,
             reward_token_id:       to_token_id_vec(TokenIdUnit()),
             reward_token_contract: euroe,
             data:                  AddRewardContractParam {

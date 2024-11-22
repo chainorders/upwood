@@ -100,6 +100,8 @@ pub struct InvestmentPortfolioUserAggregate {
     pub yearly_return:           Decimal,
     /// Current portfolio value - Portfolio value at the beginning of the month - Amount invested in the month + Amount withdrawn in the month
     pub monthly_return:          Decimal,
+    /// Sum of the amount invested in the mint funds and the amount bought in the P2P trading
+    pub invested_value:          Decimal,
     /// (Current portfolio value - Amount withdrawn) / Total amount invested
     pub return_on_investment:    Decimal,
     /// The total amount of carbon credit tokens burned
@@ -183,6 +185,7 @@ impl InvestmentPortfolioUserAggregate {
             current_portfolio_value,
             yearly_return,
             monthly_return,
+            invested_value,
             return_on_investment,
             carbon_tons_offset,
         })
@@ -219,7 +222,7 @@ impl InvestmentPortfolioUserAggregate {
                             and bu.create_time > $2
                             and bu.create_time <= $3
                             join forest_project_prices as fpp on forest_projects.id = fpp.project_id
-                            and fpp.price_at <= bu.create_time
+                            and fpp.price_at <= $3
                         where
                             forest_projects.state = $4
                     ) as t
@@ -332,7 +335,7 @@ impl InvestmentPortfolioUserAggregate {
                             and ir.investor = $3
                             and ir.create_time > $4
                             and ir.create_time <= $5
-                            and ir.investment_record_type = $6 -- claimed records
+                            and ir.investment_record_type = $6
                         where
                             forest_projects.state = $7
                     ) as t
@@ -351,7 +354,7 @@ impl InvestmentPortfolioUserAggregate {
             .bind::<VarChar, _>(account)
             .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
             .bind::<Timestamp, _>(now)
-            .bind::<Integer, _>(InvestmentRecordType::Claimed)
+            .bind::<Integer, _>(InvestmentRecordType::Invested)
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)

@@ -15,7 +15,7 @@ use shared::db::cis2_security::{
     Agent, Compliance, IdentityRegistry, Operator, RecoveryRecord, Token, TokenHolder,
     TokenHolderBalanceUpdate, TokenHolderBalanceUpdateType,
 };
-use shared::db_shared::{DbConn, DbResult};
+use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
 use uuid::Uuid;
 
@@ -32,7 +32,7 @@ pub fn process_events_cis2<T, A>(
     now: NaiveDateTime,
     contract: &ContractAddress,
     event: Cis2Event<T, A>,
-) -> DbResult<()>
+) -> Result<(), ProcessorError>
 where
     T: IsTokenId,
     A: IsTokenAmount+Serial,
@@ -45,8 +45,13 @@ where
         }) => {
             let token_id = token_id.to_decimal();
             let amount = amount.to_decimal();
-            let holder = TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, now)
-                .insert_or_update_add_un_frozen_balance(conn)?;
+            let holder =
+                TokenHolder::find(conn, contract.to_decimal(), token_id, &owner.to_string())?;
+            let holder = match holder {
+                Some(mut holder) => holder.add_amount(amount, now).update(conn)?,
+                None => TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, now)
+                    .insert(conn)?,
+            };
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
                 cis2_address: contract.to_decimal(),
@@ -98,9 +103,13 @@ where
             let token_id = token_id.to_decimal();
             let amount = amount.to_decimal();
             let holder = TokenHolder::find(conn, contract, token_id, &owner.to_string())?
-                .ok_or(diesel::result::Error::NotFound)?
+                .ok_or(ProcessorError::TokenHolderNotFound {
+                    contract,
+                    token_id,
+                    holder_address: owner.to_string(),
+                })?
                 .sub_amount(amount, now)
-                .save(conn)?;
+                .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
                 cis2_address: contract,
@@ -132,9 +141,13 @@ where
             let amount = amount.to_decimal();
             let holder_from =
                 TokenHolder::find(conn, contract.to_decimal(), token_id, &from.to_string())?
-                    .ok_or(diesel::result::Error::NotFound)?
+                    .ok_or(ProcessorError::TokenHolderNotFound {
+                        contract: contract.to_decimal(),
+                        token_id,
+                        holder_address: from.to_string(),
+                    })?
                     .sub_amount(amount, now)
-                    .save(conn)?;
+                    .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
                 cis2_address: contract.to_decimal(),
@@ -150,7 +163,7 @@ where
             let holder_to =
                 TokenHolder::find(conn, contract.to_decimal(), token_id, &to.to_string())?;
             let holder_to = match holder_to {
-                Some(mut holder_to) => holder_to.add_amount(amount, now).save(conn)?,
+                Some(mut holder_to) => holder_to.add_amount(amount, now).update(conn)?,
                 None => TokenHolder {
                     cis2_address: contract.to_decimal(),
                     holder_address: to.to_string(),
@@ -160,7 +173,7 @@ where
                     update_time: now,
                     create_time: now,
                 }
-                .save(conn)?,
+                .insert(conn)?,
             };
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),

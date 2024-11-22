@@ -240,7 +240,7 @@ impl TokenHolder {
         self
     }
 
-    pub fn save(&self, conn: &mut DbConn) -> DbResult<Self> {
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
         let holder = diesel::update(cis2_token_holders::table)
             .filter(
                 cis2_token_holders::cis2_address
@@ -255,21 +255,10 @@ impl TokenHolder {
         Ok(holder)
     }
 
-    #[instrument(skip_all, fields(holder = self.holder_address.to_string()))]
-    pub fn insert_or_update_add_un_frozen_balance(&self, conn: &mut DbConn) -> DbResult<Self> {
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
         let holder = diesel::insert_into(cis2_token_holders::table)
             .values(self)
-            .on_conflict((
-                cis2_token_holders::cis2_address,
-                cis2_token_holders::token_id,
-                cis2_token_holders::holder_address,
-            ))
-            .do_update()
-            .set((
-                cis2_token_holders::un_frozen_balance
-                    .eq(cis2_token_holders::un_frozen_balance.add(&self.un_frozen_balance)),
-                cis2_token_holders::update_time.eq(&self.update_time),
-            ))
             .returning(TokenHolder::as_returning())
             .get_result(conn)?;
 

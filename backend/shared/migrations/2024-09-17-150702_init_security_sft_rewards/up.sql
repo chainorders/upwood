@@ -88,4 +88,5 @@ from
     join cis2_token_holders as holders on (
         reward_tokens.contract_address,
         reward_tokens.token_id
-    ) = (holders.cis2_address, holders.token_id);
+    ) = (holders.cis2_address, holders.token_id)
+    and holders.frozen_balance + holders.un_frozen_balance > 0;

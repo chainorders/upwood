@@ -351,26 +351,43 @@ impl ForestProjectAdminApi {
         let existing_project = ForestProject::find(conn, project.id)?.ok_or(Error::NotFound(
             PlainText(format!("Forest project not found: {}", project.id)),
         ))?;
-        if existing_project.latest_price != project.latest_price {
-            ForestProjectPrice {
-                price:      project.latest_price,
-                project_id: project.id,
-                price_at:   existing_project.updated_at,
+        let project = conn.transaction(|conn| {
+            if existing_project.latest_price != project.latest_price {
+                let price = ForestProjectPrice {
+                    price:      project.latest_price,
+                    project_id: project.id,
+                    price_at:   project.updated_at,
+                }
+                .insert(conn);
+                match price {
+                    Ok(price) => {
+                        debug!("Inserted price: {:?}", price);
+                    }
+                    Err(e) => {
+                        error!("Failed to insert price: {}", e);
+                        return Err(Error::InternalServer(PlainText(format!(
+                            "Failed to insert price: {}",
+                            e
+                        ))));
+                    }
+                }
             }
-            .insert(conn)?;
-        }
-        debug!("Updating project: {:?}", project);
-        let project = project.update(conn);
-        let project = match project {
-            Ok(project) => project,
-            Err(e) => {
-                error!("Failed to update project: {}", e);
-                return Err(Error::InternalServer(PlainText(format!(
-                    "Failed to update project: {}",
-                    e
-                ))));
-            }
-        };
+            debug!("Updating project: {:?}", project);
+            let project = project.update(conn);
+            let project = match project {
+                Ok(project) => project,
+                Err(e) => {
+                    error!("Failed to update project: {}", e);
+                    return Err(Error::InternalServer(PlainText(format!(
+                        "Failed to update project: {}",
+                        e
+                    ))));
+                }
+            };
+
+            Ok(project)
+        })?;
+
         Ok(Json(project))
     }
 
@@ -489,9 +506,11 @@ impl ForestProjectAdminApi {
                 "Project id in path and body must be the same".to_string(),
             )));
         }
+
         let conn = &mut db_pool.get()?;
         conn.transaction::<_, Error, _>(|conn| {
             let price = price.insert(conn)?;
+            // Update the latest price and updated_at fields of the forest project
             let mut forest_project =
                 ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
                     format!("Forest project not found: {}", project_id),

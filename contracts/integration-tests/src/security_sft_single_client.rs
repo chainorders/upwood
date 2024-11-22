@@ -5,7 +5,8 @@ use concordium_cis2::{TransferParams, UpdateOperator, UpdateOperatorParams};
 use concordium_smart_contract_testing::*;
 use security_sft_single::types::*;
 
-use super::{cis2, cis2_security, cis2_security_rewards, MAX_ENERGY};
+use super::{cis2, cis2_security, MAX_ENERGY};
+use crate::cis2_test_client::Cis2TestClient;
 
 pub const MODULE_BYTES: &[u8] = include_bytes!("../../security-sft-single/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_single");
@@ -32,6 +33,25 @@ impl SftSingleTestClient {
                 EntrypointName::new_unchecked("addAgent"),
             ),
             message:      OwnedParameter::from_serial(agent).unwrap(),
+        }
+    }
+
+    pub fn mint_payload(&self, mint_params: &MintParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("mint"),
+            ),
+            message:      OwnedParameter::from_serial(mint_params).unwrap(),
+        }
+    }
+
+    pub fn cis2(&self) -> Cis2TestClient {
+        Cis2TestClient {
+            address:       self.0,
+            contract_name: CONTRACT_NAME.to_owned(),
         }
     }
 }

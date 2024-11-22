@@ -65,7 +65,6 @@ impl Api {
         Ok(Json(user))
     }
 
-    #[oai(path = "/users/invitation", method = "post", tag = "ApiTags::User")]
     /// Sends a registration invitation for a new user.
     ///
     /// This function first checks if the user already exists in the Cognito user pool. If the user exists and their email is already verified, an error is returned.
@@ -80,6 +79,7 @@ impl Api {
     ///
     /// # Returns
     /// The user ID of the user for whom the registration invitation was sent.
+    #[oai(path = "/users/invitation", method = "post", tag = "ApiTags::User")]
     pub async fn register_invitation_send(
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,

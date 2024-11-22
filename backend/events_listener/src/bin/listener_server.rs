@@ -122,7 +122,6 @@ async fn main() -> Result<(), Error> {
     info!("default block height: {}", default_block_height);
 
     let owner_account: AccountAddress = config.account.parse().expect("Invalid account");
-    let processors = Processors::new(vec![owner_account.to_string()]);
     let retry_policy = ExponentialBuilder::default()
         .with_max_times(config.listener_retry_times)
         .with_min_delay(Duration::from_millis(
@@ -136,10 +135,11 @@ async fn main() -> Result<(), Error> {
         .build(ConnectionManager::<PgConnection>::new(&database_url))
         .expect("Failed to create connection pool");
     let listen = || async {
+        let processors = Processors::new(vec![owner_account.to_string()]);
         let mut listener_blocks = Listener::new(
             concordium_client.clone(),
             db_pool.clone(),
-            processors.clone(),
+            processors,
             default_block_height,
         );
         info!("Contracts Listener: Starting");
