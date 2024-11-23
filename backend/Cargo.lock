@@ -2769,7 +2769,6 @@ dependencies = [
  "concordium-std",
  "concordium_base",
  "nft-multi-rewarded",
- "rand_core",
  "security-mint-fund",
  "security-p2p-trading",
  "security-sft-rewards",

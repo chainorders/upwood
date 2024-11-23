@@ -1,4 +1,4 @@
-use chrono::{Months, NaiveDateTime, Utc};
+use chrono::{DateTime, Months, NaiveDateTime, Utc};
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::sql_types::{Integer, Nullable, Numeric, Timestamp, VarChar};
 use diesel::{sql_query, QueryResult};
@@ -93,19 +93,19 @@ impl Api {
 #[derive(Serialize, Deserialize, Object, Eq, PartialEq, Debug)]
 pub struct InvestmentPortfolioUserAggregate {
     /// The amount of locked euros in the all the mint fund contracts
-    pub locked_euro_e_amount:    Decimal,
+    pub locked_mint_fund_euro_e_amount: Decimal,
     /// Sum Of(Balance of each Forest Project Token * the current price of the token)
-    pub current_portfolio_value: Decimal,
+    pub current_portfolio_value:        Decimal,
     /// Current portfolio value - Portfolio value at the beginning of the year - Amount invested in the year + Amount withdrawn in the year
-    pub yearly_return:           Decimal,
+    pub yearly_return:                  Decimal,
     /// Current portfolio value - Portfolio value at the beginning of the month - Amount invested in the month + Amount withdrawn in the month
-    pub monthly_return:          Decimal,
+    pub monthly_return:                 Decimal,
     /// Sum of the amount invested in the mint funds and the amount bought in the P2P trading
-    pub invested_value:          Decimal,
+    pub invested_value:                 Decimal,
     /// (Current portfolio value - Amount withdrawn) / Total amount invested
-    pub return_on_investment:    Decimal,
+    pub return_on_investment:           Decimal,
     /// The total amount of carbon credit tokens burned
-    pub carbon_tons_offset:      Decimal,
+    pub carbon_tons_offset:             Decimal,
 }
 
 use diesel::prelude::*;
@@ -119,7 +119,10 @@ impl InvestmentPortfolioUserAggregate {
         carbon_credit_token_id: Decimal,
         now: NaiveDateTime,
     ) -> QueryResult<Self> {
-        let locked_euro_e_amount = Self::calculate_locked_euro_e_amounts(
+        let start_of_year = now.checked_sub_months(Months::new(12)).unwrap();
+        let start_of_month = now.checked_sub_months(Months::new(1)).unwrap();
+
+        let locked_mint_fund_euro_e_amount = Self::calculate_mint_fund_locked_euro_e_amounts(
             conn,
             account,
             euro_e_contract_index,
@@ -131,22 +134,22 @@ impl InvestmentPortfolioUserAggregate {
         let current_portfolio_value = Self::calculate_portfolio_value(conn, account, now)?
             .currency
             .unwrap_or(Decimal::ZERO);
-        let portfolio_value_at_start_of_year = Self::calculate_portfolio_value(
-            conn,
-            account,
-            now.checked_sub_months(Months::new(12)).unwrap(),
-        )?
-        .currency
-        .unwrap_or(Decimal::ZERO);
-        let yearly_return = current_portfolio_value - portfolio_value_at_start_of_year;
-        let portfolio_value_at_start_of_month = Self::calculate_portfolio_value(
-            conn,
-            account,
-            now.checked_sub_months(Months::new(1)).unwrap(),
-        )?
-        .currency
-        .unwrap_or(Decimal::ZERO);
-        let monthly_return = current_portfolio_value - portfolio_value_at_start_of_month;
+        let portfolio_value_at_start_of_year =
+            Self::calculate_portfolio_value(conn, account, start_of_year)?
+                .currency
+                .unwrap_or(Decimal::ZERO);
+        let outgoing_amount_year =
+            Self::calculate_outgoing_amount(conn, account, start_of_year, now)?;
+        let yearly_return =
+            current_portfolio_value - portfolio_value_at_start_of_year + outgoing_amount_year;
+        let portfolio_value_at_start_of_month =
+            Self::calculate_portfolio_value(conn, account, start_of_month)?
+                .currency
+                .unwrap_or(Decimal::ZERO);
+        let outgoing_amount_month =
+            Self::calculate_outgoing_amount(conn, account, start_of_month, now)?;
+        let monthly_return =
+            current_portfolio_value - portfolio_value_at_start_of_month + outgoing_amount_month;
         let invested_amount_mint_fund = Self::calculate_euro_e_invested_amount_mint_funds(
             conn,
             account,
@@ -165,11 +168,14 @@ impl InvestmentPortfolioUserAggregate {
         )?
         .currency
         .unwrap_or(Decimal::ZERO);
+        let total_outgoing_amount =
+            Self::calculate_outgoing_amount(conn, account, DateTime::UNIX_EPOCH.naive_utc(), now)?;
         let invested_value = invested_amount_mint_fund + p2p_trade_buy_amount;
         let return_on_investment = if invested_value.is_zero() {
             Decimal::ZERO
         } else {
-            ((current_portfolio_value - invested_value) / invested_value) * Decimal::from(100)
+            ((current_portfolio_value + total_outgoing_amount - invested_value) / invested_value)
+                * Decimal::from(100)
         };
 
         let carbon_tons_offset = Token::total_burned(
@@ -181,7 +187,7 @@ impl InvestmentPortfolioUserAggregate {
         )?;
 
         Ok(InvestmentPortfolioUserAggregate {
-            locked_euro_e_amount,
+            locked_mint_fund_euro_e_amount,
             current_portfolio_value,
             yearly_return,
             monthly_return,
@@ -246,7 +252,7 @@ impl InvestmentPortfolioUserAggregate {
         Ok(amounts)
     }
 
-    fn calculate_locked_euro_e_amounts(
+    fn calculate_mint_fund_locked_euro_e_amounts(
         conn: &mut DbConn,
         account: &AccountAddress,
         euro_e_contract_index: Decimal,
@@ -388,11 +394,75 @@ impl InvestmentPortfolioUserAggregate {
             .bind::<Numeric, _>(euro_e_contract_index)
             .bind::<Numeric, _>(euro_e_token_id)
             .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
+            .bind::<Timestamp, _>(DateTime::UNIX_EPOCH.naive_utc())
             .bind::<Timestamp, _>(now)
             .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
             .get_result::<CurrencyAmount>(conn)?;
         Ok(amounts)
+    }
+
+    pub fn calculate_outgoing_amount(
+        conn: &mut DbConn,
+        account: &AccountAddress,
+        start: NaiveDateTime,
+        end: NaiveDateTime,
+    ) -> QueryResult<Decimal> {
+        let account = account.to_string();
+        #[rustfmt::skip]
+        let amounts = sql_query("
+        select
+            sum(currency) as currency
+        from
+            (
+                select distinct
+                on (project_id, update_time) project_id,
+                update_time,
+                first_value(amount) over w as amount,
+                first_value(price) over w as price,
+                first_value(price_time) over w as price_time,
+                first_value(price) over w * first_value(amount) over w as currency
+            from
+                (
+                    select
+                        projects.id as project_id,
+                        bu.amount,
+                        bu.create_time as update_time,
+                        prices.price,
+                        prices.price_at as price_time
+                    from
+                        forest_projects as projects
+                        join cis2_token_holder_balance_updates as bu on projects.contract_address = bu.cis2_address
+                        and bu.token_id = 0
+                        and (
+                            bu.update_type = 'transfer_out'
+                            or bu.update_type = 'burn'
+                        )
+                        and bu.holder_address = $1
+                        and bu.create_time > $2
+                        and bu.create_time <= $3
+                        join forest_project_prices as prices on projects.id = prices.project_id
+                        and prices.price_at <= bu.create_time
+                    where
+                        projects.state = 'listed'
+                ) as t
+            window
+                w as (
+                    partition by
+                        project_id,
+                        update_time
+                    order by
+                        update_time desc,
+                        price_time desc
+                )
+            ) as t2
+        "
+        );
+        let amounts = amounts
+            .bind::<VarChar, _>(account)
+            .bind::<Timestamp, _>(start)
+            .bind::<Timestamp, _>(end)
+            .get_result::<CurrencyAmount>(conn)?;
+        Ok(amounts.currency.unwrap_or(Decimal::ZERO))
     }
 }
 

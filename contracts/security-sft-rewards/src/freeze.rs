@@ -225,7 +225,7 @@ pub fn balance_of_un_frozen(
                     None => TokenAmount::zero(),
                     Some(active) => active
                         .balance(&query.token_id)
-                        .map(|b| b.un_frozen)
+                        .map(|b| b.un_frozen.as_amount())
                         .unwrap_or(TokenAmount::zero()),
                 },
             }

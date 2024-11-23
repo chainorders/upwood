@@ -1,4 +1,6 @@
-use concordium_cis2::{Cis2Event, OnReceivingCis2Params, Receiver, TransferEvent};
+use concordium_cis2::{
+    BurnEvent, Cis2Event, MintEvent, OnReceivingCis2Params, Receiver, TransferEvent,
+};
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::{
     compliance_client, identity_registry_client, CanTransferParam, TokenFrozen, TokenUId,
@@ -51,6 +53,7 @@ pub fn transfer(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
+    let zero_amount = TokenAmount::zero();
     let state = host.state();
     let (sender, params) = {
         let sender = ctx.sender();
@@ -67,8 +70,8 @@ pub fn transfer(
     let compliance = state.compliance;
     let identity_registry = state.identity_registry;
     let self_address = ctx.self_address();
-    let reward_token_range = state.rewards_ids_range;
     let concordium_cis2::TransferParams(transfers) = params;
+    let (_, max_reward_token_id) = state.rewards_ids_range;
 
     for concordium_cis2::Transfer {
         to,
@@ -102,22 +105,54 @@ pub fn transfer(
             .paused;
         ensure!(!is_paused, Error::PausedToken);
 
-        let rewards = {
+        {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             ensure!(
                 from.eq(&sender) || from_holder.has_operator(&sender),
                 Error::Unauthorized
             );
+
             from_holder.sub_assign_unfrozen_balance(&token_id, amount)?;
-            from_holder.sub_assign_balance_rewards(&reward_token_range, amount)?
+            let reward_carry =
+                from_holder.sub_assign_unfrozen_balance_signed(&max_reward_token_id, amount);
+            if reward_carry.gt(&zero_amount) {
+                // The sender does not have enough rewards to cover the transfer of rewards
+                // We mint the missing rewards
+                // We burn it later upon the next transfer / mint / reward claim
+                logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+                    amount:   reward_carry,
+                    token_id: max_reward_token_id,
+                    owner:    from,
+                })))?;
+            }
         };
+
+        logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
+            amount,
+            token_id,
+            from,
+            to: to.address(),
+        })))?;
+        logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
+            amount,
+            token_id: max_reward_token_id,
+            from,
+            to: to.address(),
+        })))?;
 
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             to_holder.add_assign_unfrozen_balance(&token_id, amount);
-            to_holder.add_assign_balance_rewards(&rewards)?;
+            let to_burn = to_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount);
+            if to_burn.gt(&zero_amount) {
+                logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+                    amount:   to_burn,
+                    token_id: max_reward_token_id,
+                    owner:    to.address(),
+                })))?;
+            }
         }
 
         compliance_client::transferred(host, &compliance, &TransferredParam {
@@ -126,22 +161,6 @@ pub fn transfer(
             to: to.address(),
             amount,
         })?;
-
-        logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
-            amount,
-            token_id,
-            from,
-            to: to.address(),
-        })))?;
-
-        for (token_id, amount) in rewards {
-            logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
-                amount,
-                token_id,
-                from,
-                to: to.address(),
-            })))?;
-        }
 
         if let Receiver::Contract(to_contract, entrypoint) = to {
             let parameter = OnReceivingCis2Params {
@@ -206,7 +225,8 @@ pub fn forced_transfer(
     let compliance = state.compliance;
     let identity_registry = state.identity_registry;
     let self_address = ctx.self_address();
-    let reward_token_range = state.rewards_ids_range;
+    let (_, max_reward_token_id) = state.rewards_ids_range;
+
     let params: TransferParams = ctx.parameter_cursor().get()?;
 
     for concordium_cis2::Transfer {
@@ -236,29 +256,16 @@ pub fn forced_transfer(
             .paused;
         ensure!(!is_paused, Error::PausedToken);
 
-        let (rewards, un_frozen_amount) = {
+        let (un_frozen_amount, rewards_carry) = {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
             let un_frozen_amount = from_holder.un_freeze_balance_to_match(&token_id, amount)?;
             from_holder.sub_assign_unfrozen_balance(&token_id, amount)?;
-            let rewards = from_holder.sub_assign_balance_rewards(&reward_token_range, amount)?;
+            let rewards_carry =
+                from_holder.sub_assign_unfrozen_balance_signed(&max_reward_token_id, amount);
 
-            (rewards, un_frozen_amount)
+            (un_frozen_amount, rewards_carry)
         };
-
-        {
-            let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.add_assign_unfrozen_balance(&token_id, amount);
-            to_holder.add_assign_balance_rewards(&rewards)?;
-        }
-
-        compliance_client::transferred(host, &compliance, &TransferredParam {
-            token_id: compliance_token,
-            from,
-            to: to.address(),
-            amount,
-        })?;
 
         if un_frozen_amount.gt(&TokenAmount::zero()) {
             logger.log(&Event::TokenUnFrozen(TokenFrozen {
@@ -267,20 +274,50 @@ pub fn forced_transfer(
                 address: from,
             }))?;
         }
+        if rewards_carry.gt(&TokenAmount::zero()) {
+            // The sender does not have enough rewards to cover the transfer of rewards
+            // We mint the missing rewards
+            // We burn it later upon the next transfer / mint / reward claim
+            logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+                amount:   rewards_carry,
+                token_id: max_reward_token_id,
+                owner:    from,
+            })))?;
+        }
+
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
             token_id,
             from,
             to: to.address(),
         })))?;
-        for (token_id, amount) in rewards {
-            logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
-                amount,
-                token_id,
-                from,
-                to: to.address(),
+        logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
+            amount,
+            token_id: max_reward_token_id,
+            from,
+            to: to.address(),
+        })))?;
+
+        let to_burn = {
+            let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
+            let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            to_holder.add_assign_unfrozen_balance(&token_id, amount);
+            to_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount)
+        };
+
+        if to_burn.gt(&TokenAmount::zero()) {
+            logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+                amount:   to_burn,
+                token_id: max_reward_token_id,
+                owner:    to.address(),
             })))?;
         }
+        compliance_client::transferred(host, &compliance, &TransferredParam {
+            token_id: compliance_token,
+            from,
+            to: to.address(),
+            amount,
+        })?;
 
         if let Address::Contract(_from_contract) = from {
             // TODO: there should be a way to notify that the transfer has been

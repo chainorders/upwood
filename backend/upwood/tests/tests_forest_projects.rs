@@ -3,16 +3,16 @@
 #![feature(assert_matches)]
 mod test_utils;
 
-use chrono::Months;
+use chrono::{DateTime, Utc};
 use concordium_cis2::{
-    OperatorUpdate, Receiver, TokenAmountU64, TokenIdUnit, TokenIdVec, UpdateOperator,
-    UpdateOperatorParams,
+    AdditionalData, OperatorUpdate, Receiver, TokenAmountU64, TokenIdU32, TokenIdUnit, TokenIdVec,
+    Transfer, TransferParams, UpdateOperator, UpdateOperatorParams,
 };
 use concordium_protocols::concordium_cis2_security::{Identity, TokenUId};
 use concordium_protocols::rate::Rate;
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
 use concordium_rwa_identity_registry::types::IdentityAttribute;
-use concordium_smart_contract_testing::{AccountAddress, Amount};
+use concordium_smart_contract_testing::{AccountAddress, Amount, Energy};
 use diesel::r2d2::ConnectionManager;
 use events_listener::processors::cis2_utils::ContractAddressToDecimal;
 use events_listener::processors::Processors;
@@ -71,11 +71,10 @@ const AGENT_WALLET_JSON_STR: &str = "{\"type\":\"concordium-browser-wallet-accou
 #[test(tokio::test)]
 pub async fn test_forest_projects() {
     let test_id = format!("fpsu_{}", uuid::Uuid::new_v4());
-    let mut chain = Chain::new(
-        chrono::Utc::now()
-            .checked_sub_months(Months::new(12 * 10))
-            .unwrap(),
-    );
+    let start_time = DateTime::parse_from_rfc3339("2021-01-01T00:00:00Z")
+        .expect("Failed to parse start time")
+        .with_timezone(&Utc);
+    let mut chain = Chain::new(start_time);
     let admin = chain.create_account(APP_ADMIN, DEFAULT_ACCOUNT_BALANCE);
     let chain_deployer = chain.create_account(CHAIN_ADMIN, DEFAULT_ACCOUNT_BALANCE);
     deploy_modules(&mut chain, &chain_deployer);
@@ -296,7 +295,7 @@ pub async fn test_forest_projects() {
     .await;
 
     // Adding forest project as a registered holder in Identity Registry
-    // This is needed so that Forest Project COntract can hold Carbon Credits
+    // This is needed so that Forest Project Contract can hold Carbon Credits
     admin
         .transact(|sender| {
             chain.update(
@@ -385,11 +384,12 @@ pub async fn test_forest_projects() {
                 .expect("Failed to update euroe operator for mint fund 1 for user_1");
             user_1
                 .transact(|account| {
-                    chain.update(
+                    chain.update_with_energy(
                         account,
                         mint_fund_1.transfer_invest_payload(&TransferInvestParams {
                             amount: TokenAmountU64(100),
                         }),
+                        Energy { energy: 30_000 },
                     )
                 })
                 .expect("Failed to transfer invest for user_1");
@@ -416,11 +416,12 @@ pub async fn test_forest_projects() {
                 .expect("Failed to update euroe operator for mint fund 1 for user_2");
             user_2
                 .transact(|account| {
-                    chain.update(
+                    chain.update_with_energy(
                         account,
                         mint_fund_1.transfer_invest_payload(&TransferInvestParams {
                             amount: TokenAmountU64(200),
                         }),
+                        Energy { energy: 30_000 },
                     )
                 })
                 .expect("Failed to transfer invest for user_2");
@@ -453,13 +454,13 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                locked_euro_e_amount:    100.into(),
-                invested_value:          100.into(),
-                current_portfolio_value: Decimal::ZERO,
-                carbon_tons_offset:      Decimal::ZERO,
-                monthly_return:          Decimal::ZERO,
-                return_on_investment:    Decimal::from(-100),
-                yearly_return:           Decimal::ZERO,
+                locked_mint_fund_euro_e_amount: 100.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        Decimal::ZERO,
+                carbon_tons_offset:             Decimal::ZERO,
+                monthly_return:                 Decimal::ZERO,
+                return_on_investment:           Decimal::from(-100),
+                yearly_return:                  Decimal::ZERO,
             });
 
             let portfolio = user_2
@@ -468,13 +469,13 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                locked_euro_e_amount:    200.into(),
-                invested_value:          200.into(),
-                current_portfolio_value: Decimal::ZERO,
-                carbon_tons_offset:      Decimal::ZERO,
-                monthly_return:          Decimal::ZERO,
-                return_on_investment:    Decimal::from(-100),
-                yearly_return:           Decimal::ZERO,
+                locked_mint_fund_euro_e_amount: 200.into(),
+                invested_value:                 200.into(),
+                current_portfolio_value:        Decimal::ZERO,
+                carbon_tons_offset:             Decimal::ZERO,
+                monthly_return:                 Decimal::ZERO,
+                return_on_investment:           Decimal::from(-100),
+                yearly_return:                  Decimal::ZERO,
             });
         }
 
@@ -502,7 +503,7 @@ pub async fn test_forest_projects() {
             println!("Investors: {:?}", investors);
             admin
                 .transact(|account| {
-                    chain.update(
+                    chain.update_with_energy(
                         account,
                         mint_fund_1.claim_investment_payload(
                             &security_mint_fund::ClaimInvestParams {
@@ -517,6 +518,7 @@ pub async fn test_forest_projects() {
                                     .collect(),
                             },
                         ),
+                        Energy { energy: 60_000 },
                     )
                 })
                 .expect("Failed to claim mint fund 1 for investors");
@@ -535,13 +537,13 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                locked_euro_e_amount:    0.into(),
-                invested_value:          100.into(),
-                current_portfolio_value: 200.into(), // 100 shares at 2 price
-                carbon_tons_offset:      Decimal::ZERO,
-                monthly_return:          200.into(),
-                return_on_investment:    100.into(),
-                yearly_return:           200.into(),
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        200.into(), // 100 shares at 2 price
+                carbon_tons_offset:             Decimal::ZERO,
+                monthly_return:                 200.into(),
+                return_on_investment:           100.into(),
+                yearly_return:                  200.into(),
             });
 
             let portfolio = user_2
@@ -550,13 +552,13 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                locked_euro_e_amount:    0.into(),
-                invested_value:          200.into(),
-                current_portfolio_value: 400.into(),
-                carbon_tons_offset:      Decimal::ZERO,
-                monthly_return:          400.into(),
-                return_on_investment:    100.into(),
-                yearly_return:           400.into(),
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 200.into(),
+                current_portfolio_value:        400.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+                monthly_return:                 400.into(),
+                return_on_investment:           100.into(),
+                yearly_return:                  400.into(),
             });
         }
 
@@ -609,13 +611,13 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggreagte(token, Some(mint_fund_completion_time)))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-            locked_euro_e_amount:    0.into(),
-            invested_value:          100.into(),
-            current_portfolio_value: 200.into(), // 100 shares at 2 price
-            carbon_tons_offset:      Decimal::ZERO,
-            monthly_return:          200.into(),
-            return_on_investment:    100.into(),
-            yearly_return:           200.into(),
+            locked_mint_fund_euro_e_amount: 0.into(),
+            invested_value:                 100.into(),
+            current_portfolio_value:        200.into(), // 100 shares at 2 price
+            carbon_tons_offset:             Decimal::ZERO,
+            monthly_return:                 200.into(),
+            return_on_investment:           100.into(),
+            yearly_return:                  200.into(),
         });
 
         chain.tick_block_time(concordium_smart_contract_testing::Duration::from_days(15));
@@ -624,14 +626,14 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc())))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-            locked_euro_e_amount:    0.into(),
-            invested_value:          100.into(),
+            locked_mint_fund_euro_e_amount: 0.into(),
+            invested_value:                 100.into(),
             // (initial price of 2 + 12 months increase of 1 each month) * 100 shares
-            current_portfolio_value: 1400.into(),
-            yearly_return:           1200.into(),
-            monthly_return:          100.into(),
-            return_on_investment:    1300.into(),
-            carbon_tons_offset:      Decimal::ZERO,
+            current_portfolio_value:        1400.into(),
+            yearly_return:                  1200.into(),
+            monthly_return:                 100.into(),
+            return_on_investment:           1300.into(),
+            carbon_tons_offset:             Decimal::ZERO,
         });
     }
 
@@ -677,7 +679,7 @@ pub async fn test_forest_projects() {
         // adding Carbon Credits Reward
         admin
             .transact(|sender| {
-                chain.update(
+                chain.update_with_energy(
                     sender,
                     fp_1_contract.transfer_add_reward_payload(
                         &security_sft_rewards::rewards::TransferAddRewardParams {
@@ -693,6 +695,7 @@ pub async fn test_forest_projects() {
                                 },
                         },
                     ),
+                    Energy { energy: 30_000 },
                 )
             })
             .expect("Failed to add carbon credits reward to forest project 1");
@@ -714,7 +717,7 @@ pub async fn test_forest_projects() {
         // adding Tree SFT Reward
         admin
             .transact(|sender| {
-                chain.update(
+                chain.update_with_energy(
                     sender,
                     fp_1_contract.transfer_add_reward_payload(
                         &security_sft_rewards::rewards::TransferAddRewardParams {
@@ -730,6 +733,7 @@ pub async fn test_forest_projects() {
                                 },
                         },
                     ),
+                    Energy { energy: 40_000 },
                 )
             })
             .expect("Failed to add tree sft reward to forest project 1");
@@ -887,20 +891,176 @@ pub async fn test_forest_projects() {
         }
     }
 
-    // // user 1 open a sell position of p2p trade contract
-    // {
-    //     user_1
-    //         .transact(|sender| {
-    //             chain.update(
-    //                 sender,
-    //                 p2p_trade_1.transfer_sell_payload(&security_p2p_trading::TransferSellParams {
-    //                     amount: TokenAmountU64(100),
-    //                     rate:   Rate::new(2, 1).unwrap(),
-    //                 }),
-    //             )
-    //         })
-    //         .expect("Failed to open sell position for user 1");
-    // }
+    // user 1 transfers the forest project units & assertions
+    {
+        // asserting portfolio values before manual transfer
+        {
+            assert_eq!(
+                chain.block_time_naive_utc(),
+                DateTime::parse_from_rfc3339("2022-01-11T00:00:18Z")
+                    .unwrap()
+                    .naive_utc()
+            );
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        1400.into(),
+                yearly_return:                  1200.into(),
+                monthly_return:                 100.into(),
+                return_on_investment:           1300.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+            });
+        }
+
+        user_1
+            .transact(|sender| {
+                chain.update_with_energy(
+                    sender,
+                    fp_1_contract
+                        .cis2()
+                        .transfer_payload(&TransferParams(vec![Transfer {
+                            amount:   TokenAmountU64(50),
+                            token_id: TokenIdU32(0),
+                            to:       user_2.address().into(),
+                            from:     sender.into(),
+                            data:     AdditionalData::empty(),
+                        }])),
+                    Energy { energy: 15_000 },
+                )
+            })
+            .expect("Failed to transfer forest project 1 units from user 1 to user 2");
+        processor
+            .process_block(&mut db_conn, &chain.produce_block())
+            .await
+            .expect("Error processing block");
+
+        // Asserting portfolio values after transfer
+        {
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
+            // here only the `current_portfolio_value` has changed
+            // because transfers are assumed to be done at market rate / forest project price
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        700.into(),
+                yearly_return:                  1200.into(),
+                monthly_return:                 100.into(),
+                return_on_investment:           1300.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+            });
+        }
+
+        // Asserting total rewards for user 1
+        // These are unchanged because because on transferring tokens the rewards are not transferred
+        {
+            let rewards_total = user_1
+                .call_api(|id_token| api.forest_project_rewards_total(id_token))
+                .await;
+            assert_eq!(rewards_total, vec![
+                ForestProjectHolderRewardTotal {
+                    holder_address:          user_1.address().to_string(),
+                    rewarded_token_id:       0.into(),
+                    rewarded_token_contract: carbon_credits.0.to_decimal(),
+                    total_frozen_reward:     Decimal::ZERO,
+                    total_un_frozen_reward:  50000.into(),
+                },
+                ForestProjectHolderRewardTotal {
+                    holder_address:          user_1.address().to_string(),
+                    rewarded_token_id:       0.into(),
+                    rewarded_token_contract: tree_sft.0.to_decimal(),
+                    total_frozen_reward:     Decimal::ZERO,
+                    total_un_frozen_reward:  100.into(),
+                },
+            ]);
+        }
+
+        // Asserting claimable rewards for user 1
+        // These are unchanged because because on transferring tokens the rewards are not transferred
+        {
+            let rewards_claimable = user_1
+                .call_api(|id_token| api.forest_project_rewards_claimable(id_token))
+                .await;
+            assert_eq!(rewards_claimable, vec![HolderReward {
+                id: fp_1.id,
+                contract_address: fp_1.contract_address,
+                holder_address: user_1.account_address.clone(),
+                token_id: 2.into(),
+                rewarded_token_id: 0.into(),
+                rewarded_token_contract: carbon_credits.0.to_decimal(),
+                frozen_balance: Decimal::ZERO,
+                frozen_reward: Decimal::ZERO,
+                un_frozen_balance: 100.into(),
+                un_frozen_reward: 50000.into(),
+            }]);
+        }
+    }
+
+    // user 1 open a sell position of p2p trade contract
+    {
+        user_1
+            .transact(|sender| {
+                chain.update(
+                    sender,
+                    fp_1_contract
+                        .cis2()
+                        .update_operator_payload(&UpdateOperatorParams(vec![UpdateOperator {
+                            operator: p2p_trade_1.0.into(),
+                            update:   OperatorUpdate::Add,
+                        }])),
+                )
+            })
+            .expect("Failed to update p2p trade operator for forest project 1 for user 1");
+
+        user_1
+            .transact(|sender| {
+                chain.update(
+                    sender,
+                    p2p_trade_1.transfer_sell_payload(&security_p2p_trading::TransferSellParams {
+                        amount: TokenAmountU64(50),
+                        rate:   Rate::new(1, 2).unwrap(),
+                    }),
+                )
+            })
+            .expect("Failed to open sell position for user 1");
+
+        processor
+            .process_block(&mut db_conn, &chain.produce_block())
+            .await
+            .expect("Error processing block");
+
+        // Asserting portfolio values after opening sell position
+        {
+            assert_eq!(
+                chain.block_time_naive_utc(),
+                DateTime::parse_from_rfc3339("2022-01-11T00:00:22Z")
+                    .unwrap()
+                    .naive_utc()
+            );
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        0.into(),
+                yearly_return:                  1200.into(),
+                monthly_return:                 100.into(),
+                return_on_investment:           1300.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+            });
+        }
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1078,10 +1238,30 @@ async fn create_forest_project(
         })
         .map(P2PTradeTestClient)
         .expect("Failed to init p2p trade contract");
+    // Adding P2P trade contract as verified in identity registry
+    // So that users can transfer the tokens to the contract in order to trade / sell
+    admin
+        .transact(|sender| {
+            chain.update(
+                sender,
+                identity_registry.register_identity_payload(RegisterIdentityParams {
+                    address:  p2p_trade.0.into(),
+                    identity: Identity {
+                        attributes:  vec![IdentityAttribute {
+                            tag:   5,
+                            value: COMPLIANT_NATIONALITIES[0].to_string(),
+                        }],
+                        credentials: vec![],
+                    },
+                }),
+            )
+        })
+        .expect("Failed to add p2p trade as identity to identity registry");
     processors
         .process_block(db_conn, &chain.produce_block())
         .await
         .expect("Error processing block");
+
     let project = admin
         .call_api(|token| {
             api.admin_create_forest_project(token, ForestProject {

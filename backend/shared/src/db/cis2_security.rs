@@ -3,15 +3,11 @@ use std::ops::{Add, Sub};
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::Address;
-use diesel::deserialize::FromSql;
 use diesel::prelude::*;
-use diesel::serialize::ToSql;
-use diesel::sql_types::Integer;
-use diesel::{AsExpression, FromSqlRow};
 use num_traits::{ToPrimitive, Zero};
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::db_shared::{DbConn, DbResult};
@@ -483,41 +479,17 @@ impl TokenHolderBalanceUpdate {
     }
 }
 
-#[repr(i32)]
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize)]
-#[diesel(sql_type = Integer)]
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, PartialEq, Enum, Clone, Copy, Serialize, Deserialize,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::Cis2TokenHolderBalanceUpdateType"]
 pub enum TokenHolderBalanceUpdateType {
     Mint,
     Burn,
-    Transfer,
-    Recieved,
+    TransferOut,
+    TransferIn,
     Freeze,
     UnFreeze,
-}
-
-impl FromSql<Integer, diesel::pg::Pg> for TokenHolderBalanceUpdateType {
-    fn from_sql(bytes: diesel::pg::PgValue<'_>) -> diesel::deserialize::Result<Self> {
-        let value = i32::from_sql(bytes)?;
-        match value {
-            0 => Ok(TokenHolderBalanceUpdateType::Mint),
-            1 => Ok(TokenHolderBalanceUpdateType::Burn),
-            2 => Ok(TokenHolderBalanceUpdateType::Transfer),
-            3 => Ok(TokenHolderBalanceUpdateType::Recieved),
-            4 => Ok(TokenHolderBalanceUpdateType::Freeze),
-            5 => Ok(TokenHolderBalanceUpdateType::UnFreeze),
-            _ => Err(format!("Unknown call type: {}", value).into()),
-        }
-    }
-}
-
-impl ToSql<Integer, diesel::pg::Pg> for TokenHolderBalanceUpdateType {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut diesel::serialize::Output<'b, '_, diesel::pg::Pg>,
-    ) -> diesel::serialize::Result {
-        let v = *self as i32;
-        <i32 as ToSql<Integer, diesel::pg::Pg>>::to_sql(&v, &mut out.reborrow())
-    }
 }
 
 #[instrument(skip(conn))]

@@ -102,7 +102,7 @@ pub fn forced_burn(
     let state = host.state();
     let is_authorized = state.address(&ctx.sender()).is_some_and(|a| {
         a.active()
-            .is_some_and(|a| a.has_roles(&vec![AgentRole::ForcedBurn]))
+            .is_some_and(|a| a.has_roles(&[AgentRole::ForcedBurn]))
     });
     ensure!(is_authorized, Error::Unauthorized);
 

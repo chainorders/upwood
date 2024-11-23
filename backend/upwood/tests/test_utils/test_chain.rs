@@ -20,7 +20,7 @@ pub struct Chain {
 }
 
 impl Chain {
-    const MAX_ENERGY: Energy = Energy { energy: 60_000 };
+    const MAX_ENERGY: Energy = Energy { energy: 20_000 };
 
     pub fn new(now: DateTime<Utc>) -> Self {
         let chain = concordium_smart_contract_testing::Chain::new_with_time(
@@ -84,11 +84,20 @@ impl Chain {
         sender: AccountAddress,
         payload: UpdateContractPayload,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        self.update_with_energy(sender, payload, Self::MAX_ENERGY)
+    }
+
+    pub fn update_with_energy(
+        &mut self,
+        sender: AccountAddress,
+        payload: UpdateContractPayload,
+        energy: Energy,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         let res = self.chain.contract_update(
             Signer::with_one_key(),
             sender,
             sender.into(),
-            Self::MAX_ENERGY,
+            energy,
             payload.clone(),
         )?;
         self.insert_transaction(ParsedTxn {

@@ -7,6 +7,7 @@ use security_sft_rewards::rewards::{ClaimRewardsParams, TransferAddRewardParams}
 use security_sft_rewards::types::*;
 
 use super::{cis2, cis2_security, MAX_ENERGY};
+use crate::cis2_test_client::Cis2TestClient;
 
 pub const MODULE_BYTES: &[u8] = include_bytes!("../../security-sft-rewards/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_security_sft_rewards");
@@ -61,6 +62,13 @@ impl SftRewardsTestClient {
                 EntrypointName::new_unchecked("claimRewards"),
             ),
             message:      OwnedParameter::from_serial(payload).unwrap(),
+        }
+    }
+
+    pub fn cis2(&self) -> Cis2TestClient {
+        Cis2TestClient {
+            address:       self.0,
+            contract_name: CONTRACT_NAME.to_owned(),
         }
     }
 }

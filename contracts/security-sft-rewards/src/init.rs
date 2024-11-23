@@ -1,4 +1,5 @@
 use concordium_cis2::{Cis2Event, TokenMetadataEvent};
+use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::{
     AgentUpdatedEvent, ComplianceAdded, IdentityRegistryAdded,
 };
@@ -7,8 +8,10 @@ use concordium_std::*;
 use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
-use crate::state::{AddressState, HolderState, MainTokenState, RewardTokenState, TokenState};
-use crate::types::{MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID};
+use crate::state::{
+    AddressState, HolderState, MainTokenState, RewardTokenState, TokenAmountSigned, TokenState,
+};
+use crate::types::{TokenAmount, MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID};
 /// Initializes the contract with the given parameters.
 ///
 /// # Returns
@@ -49,7 +52,7 @@ pub fn init(
             TRACKED_TOKEN_ID,
             TokenState::Main(MainTokenState {
                 metadata_url: params.metadata_url.clone().into(),
-                supply:       0.into(),
+                supply:       TokenAmount::zero(),
                 paused:       false,
             }),
         );
@@ -57,7 +60,7 @@ pub fn init(
             MIN_REWARD_TOKEN_ID,
             TokenState::Reward(RewardTokenState {
                 metadata_url: params.blank_reward_metadata_url.clone().into(),
-                supply:       0.into(),
+                supply:       TokenAmountSigned::zero(),
                 reward:       None,
             }),
         );

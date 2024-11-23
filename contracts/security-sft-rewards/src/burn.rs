@@ -1,6 +1,8 @@
-use concordium_cis2::{BurnEvent, Cis2Event};
+use concordium_cis2::{BurnEvent, Cis2Event, MintEvent};
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
-use concordium_protocols::concordium_cis2_security::{compliance_client, BurnedParam, TokenUId};
+use concordium_protocols::concordium_cis2_security::{
+    compliance_client, BurnedParam, TokenFrozen, TokenUId,
+};
 use concordium_std::*;
 
 use super::error::Error;
@@ -36,7 +38,7 @@ pub fn burn(
     let params: BurnParams = ctx.parameter_cursor().get()?;
     let state = host.state();
     let compliance: ContractAddress = state.compliance;
-    let rewards_ids_range = state.rewards_ids_range;
+    let (_, max_reward_token_id) = state.rewards_ids_range;
 
     for Burn {
         token_id,
@@ -46,36 +48,43 @@ pub fn burn(
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         let state = host.state_mut();
-        let rewards = {
+        let reward_carry = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             let is_authorized = owner.eq(&sender) || holder.has_operator(&sender);
             ensure!(is_authorized, Error::Unauthorized);
 
             holder.sub_assign_unfrozen_balance(&token_id, amount)?;
-            holder.sub_assign_balance_rewards(&rewards_ids_range, amount)?
+            holder.sub_assign_unfrozen_balance_signed(&max_reward_token_id, amount)
         };
 
+        if reward_carry.gt(&TokenAmount::zero()) {
+            logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+                amount: reward_carry,
+                token_id: max_reward_token_id,
+                owner,
+            })))?;
+        }
+
         state.sub_assign_supply(&token_id, amount)?;
-        state.sub_assign_supply_rewards(&rewards)?;
+        state.sub_assign_supply_signed(&max_reward_token_id, amount)?;
+
+        logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+            amount,
+            token_id,
+            owner,
+        })))?;
+        logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+            amount,
+            token_id: max_reward_token_id,
+            owner,
+        })))?;
 
         compliance_client::burned(host, &compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
             owner,
         })?;
-        logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
-            amount,
-            token_id,
-            owner,
-        })))?;
-        for (token_id, amount) in rewards {
-            logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
-                amount,
-                token_id,
-                owner,
-            })))?;
-        }
     }
 
     Ok(())
@@ -108,6 +117,7 @@ pub fn forced_burn(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
+    let zero_amount = TokenAmount::zero();
     let params: BurnParams = ctx.parameter_cursor().get()?;
     let state = host.state();
     let is_authorized = state
@@ -116,7 +126,7 @@ pub fn forced_burn(
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance: ContractAddress = state.compliance;
-    let rewards_ids_range = state.rewards_ids_range;
+    let (_, max_reward_token_id) = state.rewards_ids_range;
 
     for Burn {
         token_id,
@@ -124,36 +134,52 @@ pub fn forced_burn(
         owner,
     } in params.0
     {
-        ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(amount.gt(&zero_amount), Error::InvalidAmount);
         let state = host.state_mut();
-        let rewards = {
+        let (un_frozen_amount, reward_carry) = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.un_freeze_balance_to_match(&token_id, amount)?;
+            let un_frozen_amount = holder.un_freeze_balance_to_match(&token_id, amount)?;
             holder.sub_assign_unfrozen_balance(&token_id, amount)?;
-            holder.sub_assign_balance_rewards(&rewards_ids_range, amount)?
+            let reward_carry =
+                holder.sub_assign_unfrozen_balance_signed(&max_reward_token_id, amount);
+            (un_frozen_amount, reward_carry)
         };
-
         state.sub_assign_supply(&token_id, amount)?;
-        state.sub_assign_supply_rewards(&rewards)?;
+        state.sub_assign_supply_signed(&max_reward_token_id, amount)?;
+
+        if un_frozen_amount.gt(&zero_amount) {
+            logger.log(&Event::TokenUnFrozen(TokenFrozen {
+                token_id,
+                amount: un_frozen_amount,
+                address: owner,
+            }))?;
+        }
+
+        if reward_carry.gt(&zero_amount) {
+            logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+                amount: reward_carry,
+                token_id: max_reward_token_id,
+                owner,
+            })))?;
+        }
+
+        logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+            amount,
+            token_id,
+            owner,
+        })))?;
+        logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+            amount,
+            token_id,
+            owner,
+        })))?;
 
         compliance_client::burned(host, &compliance, &BurnedParam {
             token_id: TokenUId::new(token_id, ctx.self_address()),
             amount,
             owner,
         })?;
-        logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
-            amount,
-            token_id,
-            owner,
-        })))?;
-        for (token_id, amount) in rewards {
-            logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
-                amount,
-                token_id,
-                owner,
-            })))?;
-        }
     }
 
     Ok(())

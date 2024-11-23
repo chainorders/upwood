@@ -12,7 +12,7 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
-use crate::state::{RewardDeposited, RewardTokenState, TokenState};
+use crate::state::{RewardDeposited, RewardTokenState, TokenAmountSigned, TokenState};
 
 #[derive(Debug, Serialize, Clone, SchemaType)]
 pub struct TransferAddRewardParams {
@@ -109,8 +109,6 @@ pub fn receive_add_reward(
             .token_mut(&max_reward_token_id)
             .ok_or(Error::InvalidTokenId)?;
         let max_reward_token = max_reward_token.reward_mut().ok_or(Error::InvalidTokenId)?;
-        // next token id is the current max reward token id plus one
-        let next_token_id = max_reward_token_id.plus_one();
         // Copy the existing metadata url to the new token
         // This metadata url will always be the default metadata url specified at the contract init
         let next_token_metadata_url = max_reward_token.metadata_url.clone();
@@ -129,7 +127,7 @@ pub fn receive_add_reward(
             reward_rate:             params.data.rate,
         }))?;
 
-        (next_token_id, next_token_metadata_url)
+        (max_reward_token_id.plus_one(), next_token_metadata_url)
     };
 
     state.add_token(
@@ -137,10 +135,11 @@ pub fn receive_add_reward(
         TokenState::Reward(RewardTokenState {
             metadata_url: next_token_metadata_url.clone(),
             reward:       None,
-            supply:       TokenAmount::zero(),
+            supply:       TokenAmountSigned::zero(),
         }),
     )?;
     state.rewards_ids_range = (min_reward_token_id, next_token_id);
+    concordium_dbg!("rewards_ids_range: {:?}", state.rewards_ids_range);
 
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
         token_id:     max_reward_token_id,
@@ -187,7 +186,7 @@ pub fn claim_rewards(
         let next_reward_token_id = claim.token_id.plus_one();
         let state = host.state();
 
-        // Calculated the amount of reward token to be burned and amount ot rewarded token to be transferred
+        // Calculated the amount of reward token to be burned and amount of rewarded token to be transferred
         let (claim_amount, rewarded) = {
             let curr_reward_token = state
                 .token(&curr_reward_token_id)
@@ -197,8 +196,9 @@ pub fn claim_rewards(
             let holder = holder.active().ok_or(Error::RecoveredAddress)?;
             let claim_amount = holder
                 .balance(&curr_reward_token_id)
-                .map(|h| h.un_frozen)
-                .unwrap_or(0.into());
+                .map(|h| h.un_frozen.as_amount())
+                .unwrap_or(TokenAmount::zero());
+
             match &curr_reward_token.reward {
                 None => {
                     // Reward token has no attached rewards
@@ -231,7 +231,7 @@ pub fn claim_rewards(
             let curr_reward_token = curr_reward_token
                 .reward_mut()
                 .ok_or(Error::InvalidTokenId)?;
-            curr_reward_token.sub_assign_supply(claim_amount)?;
+            curr_reward_token.sub_assign_supply_signed(claim_amount);
 
             if let Some((_, rewarded_amount)) = rewarded {
                 curr_reward_token
@@ -252,13 +252,20 @@ pub fn claim_rewards(
                 .add_assign_supply(claim_amount);
         }
 
-        {
+        let to_burn = {
             let mut holder = state
                 .address_mut(&owner_address)
                 .ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             holder.sub_assign_unfrozen_balance(&curr_reward_token_id, claim_amount)?;
-            holder.add_assign_unfrozen_balance(&next_reward_token_id, claim_amount);
+            holder.add_assign_unfrozen_balance(&next_reward_token_id, claim_amount)
+        };
+        if to_burn.gt(&TokenAmount::zero()) {
+            logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+                amount:   to_burn,
+                token_id: next_reward_token_id,
+                owner:    owner_address,
+            })))?;
         }
 
         if let Some((deposits, rewarded_amount)) = rewarded {

@@ -42,6 +42,8 @@ create table
 
 create index cis2_token_holder on cis2_token_holders (cis2_address, holder_address);
 
+create type cis2_token_holder_balance_update_type as enum ('mint', 'burn', 'transfer_out', 'transfer_in', 'freeze', 'un_freeze');
+
 create table cis2_token_holder_balance_updates (
     id uuid primary key,
     cis2_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
@@ -50,7 +52,7 @@ create table cis2_token_holder_balance_updates (
     amount numeric(78) not null,
     frozen_balance numeric(78) not null,
     un_frozen_balance numeric(78) not null,
-    update_type integer not null,
+    update_type cis2_token_holder_balance_update_type not null,
     create_time timestamp not null,
     foreign key (cis2_address, token_id, holder_address) references cis2_token_holders (cis2_address, token_id, holder_address) on delete cascade
 );

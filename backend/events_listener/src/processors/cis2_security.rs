@@ -156,7 +156,7 @@ where
                 amount,
                 frozen_balance: holder_from.frozen_balance,
                 un_frozen_balance: holder_from.un_frozen_balance,
-                update_type: TokenHolderBalanceUpdateType::Transfer,
+                update_type: TokenHolderBalanceUpdateType::TransferOut,
                 create_time: now,
             }
             .insert(conn)?;
@@ -183,7 +183,7 @@ where
                 amount,
                 frozen_balance: holder_to.frozen_balance,
                 un_frozen_balance: holder_to.un_frozen_balance,
-                update_type: TokenHolderBalanceUpdateType::Recieved,
+                update_type: TokenHolderBalanceUpdateType::TransferIn,
                 create_time: now,
             }
             .insert(conn)?;

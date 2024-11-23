@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "cis2_token_holder_balance_update_type"))]
+    pub struct Cis2TokenHolderBalanceUpdateType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "forest_project_state"))]
     pub struct ForestProjectState;
 
@@ -51,6 +55,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::Cis2TokenHolderBalanceUpdateType;
+
     cis2_token_holder_balance_updates (id) {
         id -> Uuid,
         cis2_address -> Numeric,
@@ -59,7 +66,7 @@ diesel::table! {
         amount -> Numeric,
         frozen_balance -> Numeric,
         un_frozen_balance -> Numeric,
-        update_type -> Int4,
+        update_type -> Cis2TokenHolderBalanceUpdateType,
         create_time -> Timestamp,
     }
 }

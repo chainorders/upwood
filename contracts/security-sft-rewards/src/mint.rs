@@ -1,4 +1,4 @@
-use concordium_cis2::{Cis2Event, MintEvent};
+use concordium_cis2::{BurnEvent, Cis2Event, MintEvent};
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::{
     compliance_client, identity_registry_client, CanTransferParam, MintedParam, TokenUId,
@@ -57,13 +57,31 @@ pub fn mint(
         ensure!(compliance_can_transfer, Error::InCompliantTransfer);
 
         let (state, state_builder) = host.state_and_builder();
-        {
+        let to_burn = {
             // Mint tokens
             let mut holder = state.address_or_insert_holder(&owner, state_builder);
             let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             active_holder.add_assign_unfrozen_balance(&params.token_id, amount);
-            active_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount);
+            active_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount)
+        };
+        logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+            token_id: params.token_id,
+            amount,
+            owner,
+        })))?;
+        logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+            token_id: max_reward_token_id,
+            amount,
+            owner,
+        })))?;
+        if to_burn.gt(&TokenAmount::zero()) {
+            logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
+                amount: to_burn,
+                token_id: max_reward_token_id,
+                owner,
+            })))?;
         }
+
         {
             // Update minted supply
             state
@@ -85,17 +103,6 @@ pub fn mint(
             amount,
             owner,
         })?;
-
-        logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
-            token_id: params.token_id,
-            amount,
-            owner,
-        })))?;
-        logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
-            token_id: max_reward_token_id,
-            amount,
-            owner,
-        })))?;
     }
 
     Ok(())
