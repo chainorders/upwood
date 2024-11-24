@@ -336,6 +336,8 @@ impl Investor {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct InvestmentRecord {
     pub id: Uuid,
+    pub block_height: Decimal,
+    pub txn_index: Decimal,
     pub contract_address: Decimal,
     pub investor: String,
     pub currency_amount: Decimal,
@@ -373,8 +375,9 @@ impl InvestmentRecord {
 }
 
 #[derive(diesel_derive_enum::DbEnum, Debug, PartialEq)]
-#[ExistingTypePath = "crate::schema::sql_types::SecurityMintFundInvestmentRecordType"]pub enum InvestmentRecordType {
+#[ExistingTypePath = "crate::schema::sql_types::SecurityMintFundInvestmentRecordType"]
+pub enum InvestmentRecordType {
     Invested,
     Cancelled,
-    Claimed
+    Claimed,
 }

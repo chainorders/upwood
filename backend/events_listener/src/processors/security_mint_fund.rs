@@ -36,7 +36,9 @@ pub fn contract_name() -> OwnedContractName {
 )]
 pub fn process_events(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -59,8 +61,8 @@ pub fn process_events(
                     receiver_address,
                     currency_amount: Decimal::ZERO,
                     token_amount: Decimal::ZERO,
-                    create_time: now,
-                    update_time: now,
+                    create_time: block_time,
+                    update_time: block_time,
                 }
                 .insert(conn)?;
                 info!("initialized");
@@ -72,7 +74,7 @@ pub fn process_events(
                     contract.to_decimal(),
                     fund_state,
                     receiver_address,
-                    now,
+                    block_time,
                 )?;
                 info!("state updated: to: {:?}", fund_state);
             }
@@ -82,11 +84,13 @@ pub fn process_events(
                     &event.investor,
                     event.currency_amount.to_decimal(),
                     event.security_amount.to_decimal(),
-                    now,
+                    block_time,
                 )
                 .upsert(conn)?;
                 InvestmentRecord {
                     id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
                     investor: investor.investor.to_string(),
                     currency_amount: event.currency_amount.to_decimal(),
@@ -94,7 +98,7 @@ pub fn process_events(
                     currency_amount_balance: investor.currency_amount,
                     token_amount_balance: investor.token_amount,
                     investment_record_type: InvestmentRecordType::Invested,
-                    create_time: now,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 SecurityMintFundContract::add_investment_amount(
@@ -102,7 +106,7 @@ pub fn process_events(
                     contract.to_decimal(),
                     event.currency_amount.to_decimal(),
                     event.security_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 info!(
                     "Investment received: from: {}, currency amount: {}, token amount: {}",
@@ -118,10 +122,12 @@ pub fn process_events(
                     &event.investor,
                     event.currency_amount.to_decimal(),
                     event.security_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 InvestmentRecord {
                     id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
                     investor: event.investor.to_string(),
                     currency_amount: event.currency_amount.to_decimal(),
@@ -129,7 +135,7 @@ pub fn process_events(
                     currency_amount_balance: investor.currency_amount,
                     token_amount_balance: investor.token_amount,
                     investment_record_type: InvestmentRecordType::Cancelled,
-                    create_time: now,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 SecurityMintFundContract::sub_investment_amount(
@@ -137,7 +143,7 @@ pub fn process_events(
                     contract.to_decimal(),
                     event.currency_amount.to_decimal(),
                     event.security_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 info!(
                     "Investment cancelled: from: {}, currency amount: {}, token amount: {}",
@@ -172,13 +178,15 @@ pub fn process_events(
                     conn,
                     contract.to_decimal(),
                     investor.token_amount,
-                    now,
+                    block_time,
                 )?;
                 let curr_currency_amount = investor.currency_amount;
                 let curr_token_amount = investor.token_amount;
-                let investor: Investor = investor.claim_investment(conn, now)?;
+                let investor: Investor = investor.claim_investment(conn, block_time)?;
                 InvestmentRecord {
                     id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
                     investor: event.investor.to_string(),
                     currency_amount: curr_currency_amount,
@@ -186,7 +194,7 @@ pub fn process_events(
                     currency_amount_balance: investor.currency_amount,
                     token_amount_balance: investor.token_amount,
                     investment_record_type: InvestmentRecordType::Claimed,
-                    create_time: now,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 info!(
@@ -201,7 +209,7 @@ pub fn process_events(
                     conn,
                     contract.to_decimal(),
                     event.currency_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 info!(
                     "Investment disbursed: currency amount: {}",

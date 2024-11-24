@@ -8,6 +8,7 @@ use concordium_smart_contract_testing::{
 use events_listener::listener::{ParsedBlock, ParsedTxn};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
+use sha2::Sha256;
 use shared::db::txn_listener::ListenerBlock;
 
 use super::conversions::{to_contract_call_init, to_contract_call_update};
@@ -67,7 +68,7 @@ impl Chain {
             payload.clone(),
         )?;
         self.insert_transaction(ParsedTxn {
-            hash:           self.generate_random_hash(),
+            hash:           self.generate_random_hash(self.total_txn_count),
             index:          self.pending_transactions.len() as u64,
             sender:         sender.to_string(),
             contract_calls: vec![to_contract_call_init(
@@ -101,7 +102,7 @@ impl Chain {
             payload.clone(),
         )?;
         self.insert_transaction(ParsedTxn {
-            hash:           self.generate_random_hash(),
+            hash:           self.generate_random_hash(self.total_txn_count),
             index:          self.pending_transactions.len() as u64,
             sender:         sender.to_string(),
             contract_calls: to_contract_call_update(&res),
@@ -109,12 +110,12 @@ impl Chain {
         Ok(res)
     }
 
-    fn generate_random_hash(&self) -> Vec<u8> {
-        let mut hash = Vec::new();
-        for _ in 0..32 {
-            hash.push(rand::random());
-        }
-        hash
+    fn generate_random_hash(&self, seed: u32) -> Vec<u8> {
+        use sha2::Digest;
+        let mut hasher = Sha256::new();
+        hasher.update(seed.to_be_bytes());
+        let hash = hasher.finalize();
+        hash.into_iter().collect()
     }
 
     pub fn insert_transaction(&mut self, txn: ParsedTxn) {
@@ -126,7 +127,7 @@ impl Chain {
         let block = ParsedBlock {
             block:        ListenerBlock {
                 block_height:    Decimal::from_u32(self.block_count).unwrap(),
-                block_hash:      self.generate_random_hash(),
+                block_hash:      self.generate_random_hash(self.block_count),
                 block_slot_time: DateTime::from_timestamp_millis(
                     self.chain.block_time().millis.to_i64().unwrap(),
                 )

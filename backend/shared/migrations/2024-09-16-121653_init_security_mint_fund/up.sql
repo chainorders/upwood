@@ -37,6 +37,8 @@ create type security_mint_fund_investment_record_type as enum ('invested', 'canc
 create table
     security_mint_fund_investment_records (
         id uuid primary key not null,
+        block_height numeric(20) not null,
+        txn_index numeric(20) not null,
         contract_address numeric(20) not null references security_mint_fund_contracts (contract_address) on delete cascade,
         investor varchar not null,
         currency_amount numeric(78) not null,

@@ -66,7 +66,9 @@ pub enum ProcessorError {
 
 pub type ProcessorFnType = fn(
     &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     &ContractAddress,
     &[ContractEvent],
 ) -> Result<(), ProcessorError>;
@@ -162,7 +164,8 @@ impl Processors {
     ) -> Result<(), ProcessorError> {
         let res = conn.transaction(|conn| {
             for txn in transactions.iter() {
-                let is_txn_processed = self.process_txn(conn, block.block_slot_time, txn)?;
+                let is_txn_processed =
+                    self.process_txn(conn, block.block_height, block.block_slot_time, txn)?;
 
                 if is_txn_processed {
                     ListenerTransaction {
@@ -199,6 +202,7 @@ impl Processors {
     fn process_txn(
         &self,
         conn: &mut DbConn,
+        block_height: Decimal,
         block_slot_time: NaiveDateTime,
         txn: &ParsedTxn,
     ) -> Result<bool, ProcessorError> {
@@ -323,11 +327,13 @@ impl Processors {
             match is_processed {
                 Some((contract, contract_call, events)) => {
                     match self.find_by_type(&contract.processor_type) {
-                        Some(processor) => {
+                        Some(process_events) => {
                             let events_length = if let Some(events) = events {
-                                processor(
+                                process_events(
                                     conn,
+                                    block_height,
                                     block_slot_time,
+                                    txn.index.into(),
                                     &contract.contract_address(),
                                     events,
                                 )?;

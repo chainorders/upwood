@@ -5,7 +5,7 @@ use poem::Route;
 use shared::api::PagedResponse;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectPrice,
-    ForestProjectSeller, ForestProjectState, ForestProjectUser, HolderReward,
+    ForestProjectSeller, ForestProjectState, ForestProjectUser, HolderReward, UserTransaction,
 };
 use upwood::api;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
@@ -155,6 +155,25 @@ impl ApiTestClient {
                 panic!("Failed to delete user: {} {}", status_code, res);
             }
         }
+    }
+
+    pub async fn txn_history_list(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<UserTransaction> {
+        let res = self
+            .client
+            .get(format!("/user/txn_history/list/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list txn history response")
     }
 }
 

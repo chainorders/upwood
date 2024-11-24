@@ -381,6 +381,8 @@ impl TokenHolder {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct TokenHolderBalanceUpdate {
     pub id:                uuid::Uuid,
+    pub block_height:      Decimal,
+    pub txn_index:         Decimal,
     pub cis2_address:      Decimal,
     pub token_id:          Decimal,
     pub holder_address:    String,
@@ -409,30 +411,30 @@ impl TokenHolderBalanceUpdate {
         Ok(update)
     }
 
-    #[instrument(skip(conn))]
-    pub fn sum_amount_by_type(
-        conn: &mut DbConn,
-        cis2_address: Decimal,
-        token_id: Decimal,
-        holder_address: &Address,
-        update_type: TokenHolderBalanceUpdateType,
-    ) -> DbResult<Decimal> {
-        let amount = cis2_token_holder_balance_updates::table
-            .filter(
-                cis2_token_holder_balance_updates::cis2_address
-                    .eq(cis2_address)
-                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
-                    .and(
-                        cis2_token_holder_balance_updates::holder_address
-                            .eq(holder_address.to_string()),
-                    )
-                    .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
-            )
-            .select(diesel::dsl::sum(cis2_token_holder_balance_updates::amount))
-            .first::<Option<Decimal>>(conn)?
-            .unwrap_or(Decimal::ZERO);
-        Ok(amount)
-    }
+    // #[instrument(skip(conn))]
+    // pub fn sum_amount_by_type(
+    //     conn: &mut DbConn,
+    //     cis2_address: Decimal,
+    //     token_id: Decimal,
+    //     holder_address: &Address,
+    //     update_type: TokenHolderBalanceUpdateType,
+    // ) -> DbResult<Decimal> {
+    //     let amount = cis2_token_holder_balance_updates::table
+    //         .filter(
+    //             cis2_token_holder_balance_updates::cis2_address
+    //                 .eq(cis2_address)
+    //                 .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
+    //                 .and(
+    //                     cis2_token_holder_balance_updates::holder_address
+    //                         .eq(holder_address.to_string()),
+    //                 )
+    //                 .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
+    //         )
+    //         .select(diesel::dsl::sum(cis2_token_holder_balance_updates::amount))
+    //         .first::<Option<Decimal>>(conn)?
+    //         .unwrap_or(Decimal::ZERO);
+    //     Ok(amount)
+    // }
 
     #[instrument(skip(conn))]
     pub fn list_by_type(

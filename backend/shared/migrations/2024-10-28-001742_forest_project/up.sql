@@ -280,4 +280,60 @@ from
     forest_projects
     join security_p2p_trading_contracts as p2p_trade on forest_projects.p2p_trade_contract_address = p2p_trade.contract_address
     join security_p2p_trading_deposits as sellers on p2p_trade.contract_address = sellers.contract_address
-    and sellers.token_amount > 0
+    and sellers.token_amount > 0;
+
+create
+or replace view user_transactions_view as
+select
+    users.cognito_user_id,
+    t.*
+from
+    (
+        select
+            txns.transaction_hash as txn_hash,
+            'p2p_trading' as txn_type,
+            trading_records.record_type::varchar as txn_subtype,
+            projects.id as project_id,
+            trading_records.trader_address as account_address,
+            trading_records.currency_amount,
+            trading_records.create_time as txn_time
+        from
+            forest_projects as projects
+            join security_p2p_trading_contracts as p2p_trade_contracts on projects.p2p_trade_contract_address = p2p_trade_contracts.contract_address
+            join security_p2p_trading_records as trading_records on p2p_trade_contracts.contract_address = trading_records.contract_address
+            join listener_transactions txns on txns.block_height = trading_records.block_height
+            and txns.transaction_index = trading_records.txn_index
+        union all
+        select
+            txns.transaction_hash as txn_hash,
+            'p2p_trading' as txn_type,
+            'exchange_buy' as txn_subtype,
+            projects.id as project_id,
+            trades.buyer_address as account_address,
+            trades.currency_amount,
+            trades.create_time as txn_time
+        from
+            forest_projects as projects
+            join security_p2p_trading_contracts as p2p_trade_contracts on projects.p2p_trade_contract_address = p2p_trade_contracts.contract_address
+            join security_p2p_trading_trades as trades on p2p_trade_contracts.contract_address = trades.contract_address
+            join listener_transactions txns on txns.block_height = trades.block_height
+            and txns.transaction_index = trades.txn_index
+        union all
+        select
+            txns.transaction_hash as txn_hash,
+            'mint_fund' as txn_type,
+            records.investment_record_type::varchar as txn_subtype,
+            projects.id as project_id,
+            records.investor as account_address,
+            records.currency_amount,
+            records.create_time as txn_time
+        from
+            forest_projects as projects
+            join security_mint_fund_contracts as funds on projects.mint_fund_contract_address = funds.contract_address
+            join security_mint_fund_investment_records as records on funds.contract_address = records.contract_address
+            join listener_transactions txns on txns.block_height = records.block_height
+            and txns.transaction_index = records.txn_index
+    ) t
+join users on t.account_address = users.account_address
+order by
+    txn_time desc;

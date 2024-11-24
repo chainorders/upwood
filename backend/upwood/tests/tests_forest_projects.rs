@@ -34,7 +34,7 @@ use security_sft_rewards::types::TRACKED_TOKEN_ID;
 use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectSeller, ForestProjectState,
-    ForestProjectUserHolderReward, HolderReward,
+    ForestProjectUserHolderReward, HolderReward, UserTransaction,
 };
 use shared::db_shared::{DbConn, DbPool};
 use test_log::test;
@@ -1136,6 +1136,7 @@ pub async fn test_forest_projects() {
         .call_api(|token| api.forest_project_find(token, fp_1.id))
         .await;
     assert_eq!(forest_project.latest_price, 14.into());
+
     // user2 opens a sell position of p2p trade contract & user 1 buys it
     {
         user_2
@@ -1239,9 +1240,83 @@ pub async fn test_forest_projects() {
             return_on_investment:           ((Decimal::from_u64(1400).unwrap()
                 - Decimal::from_u64(1500).unwrap())
                 / Decimal::from_u64(1500).unwrap())
-                * Decimal::from_u64(100).unwrap(),
+                * Decimal::from_u64(100).unwrap(), // (1400 - 1500 / 1500) * 100
             carbon_tons_offset:             1000.into(),
         });
+    }
+
+    // user 1 transactions addertions
+    {
+        let user_1_txns = user_1
+            .call_api(|token| api.txn_history_list(token, 0))
+            .await;
+        assert_eq!(user_1_txns.data, vec![
+            UserTransaction {
+                cognito_user_id: user_1.id.clone(),
+                txn_hash:        "daceee899cdb68711b2b16b1708d684b193062163a2ef8ca80e5a3f002212822"
+                    .to_string(),
+                txn_type:        "p2p_trading".to_string(),
+                txn_subtype:     "exchange_buy".to_string(),
+                project_id:      fp_1.id,
+                account_address: user_1.account_address.clone(),
+                currency_amount: Decimal::from(1400),
+                txn_time:        DateTime::parse_from_rfc3339("2022-01-11T00:00:28Z")
+                    .unwrap()
+                    .naive_utc(),
+            },
+            UserTransaction {
+                cognito_user_id: user_1.id.clone(),
+                txn_hash:        "ae3c8b8d99a39542f78af83dbbb42c81cd94199ec1b5f60a0801063e95842570"
+                    .to_string(),
+                txn_type:        "p2p_trading".to_string(),
+                txn_subtype:     "sell_cancel".to_string(),
+                project_id:      fp_1.id,
+                account_address: user_1.account_address.clone(),
+                currency_amount: Decimal::from(25),
+                txn_time:        DateTime::parse_from_rfc3339("2022-01-11T00:00:24Z")
+                    .unwrap()
+                    .naive_utc(),
+            },
+            UserTransaction {
+                cognito_user_id: user_1.id.clone(),
+                txn_hash:        "c8d26116ed30f9816a05fdf061b2535145472f388d9814e96f33f08369dbcbd0"
+                    .to_string(),
+                txn_type:        "p2p_trading".to_string(),
+                txn_subtype:     "sell".to_string(),
+                project_id:      fp_1.id,
+                account_address: user_1.account_address.clone(),
+                currency_amount: Decimal::from(25),
+                txn_time:        DateTime::parse_from_rfc3339("2022-01-11T00:00:22Z")
+                    .unwrap()
+                    .naive_utc(),
+            },
+            UserTransaction {
+                cognito_user_id: user_1.id.clone(),
+                txn_hash:        "560231689713a5933b6c8ac3e6b2f243730e49e1c6b0c610c41e8e8dad26044c"
+                    .to_string(),
+                txn_type:        "mint_fund".to_string(),
+                txn_subtype:     "claimed".to_string(),
+                project_id:      fp_1.id,
+                account_address: user_1.account_address.clone(),
+                currency_amount: Decimal::from(100),
+                txn_time:        DateTime::parse_from_rfc3339("2021-01-01T00:00:12Z")
+                    .unwrap()
+                    .naive_utc(),
+            },
+            UserTransaction {
+                cognito_user_id: user_1.id.clone(),
+                txn_hash:        "c1c3c8fdf22e3a4adef796c8fdaf739d7d3b222f995891eb8f495ca71fb932a8"
+                    .to_string(),
+                txn_type:        "mint_fund".to_string(),
+                txn_subtype:     "invested".to_string(),
+                project_id:      fp_1.id,
+                account_address: user_1.account_address.clone(),
+                currency_amount: Decimal::from(100),
+                txn_time:        DateTime::parse_from_rfc3339("2021-01-01T00:00:06Z")
+                    .unwrap()
+                    .naive_utc(),
+            },
+        ]);
     }
 }
 

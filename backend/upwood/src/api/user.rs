@@ -15,6 +15,7 @@ use poem_openapi::{Object, OpenApi};
 use serde::Serialize;
 use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
+use shared::db_app::forest_project::UserTransaction;
 use shared::db_app::user_challenges::UserChallenge;
 use shared::db_app::users::{User, UserAffiliate};
 use tracing::info;
@@ -23,10 +24,10 @@ use crate::api::*;
 use crate::utils::*;
 
 #[derive(Clone, Copy)]
-pub struct Api;
+pub struct UserApi;
 
 #[OpenApi]
-impl Api {
+impl UserApi {
     #[oai(path = "/users", method = "get", tag = "ApiTags::User")]
     /// Retrieves the current user's information based on the provided bearer authorization token.
     ///
@@ -504,6 +505,27 @@ impl Api {
             .await?;
         User::update_account_address(&mut conn, &cognito_user_id, &account_address)?;
         Ok(())
+    }
+
+    #[oai(
+        path = "/user/txn_history/list/:page",
+        method = "get",
+        tag = "ApiTags::Wallet"
+    )]
+    pub async fn txn_history_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<UserTransaction>> {
+        let mut conn = db_pool.get()?;
+        let (users, page_count) = UserTransaction::list(&mut conn, &claims.sub, page, PAGE_SIZE)?;
+
+        Ok(Json(PagedResponse {
+            data: users,
+            page,
+            page_count,
+        }))
     }
 
     #[oai(path = "/system_config", method = "get", tag = "ApiTags::User")]

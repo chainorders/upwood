@@ -64,6 +64,8 @@ diesel::table! {
 
     cis2_token_holder_balance_updates (id) {
         id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
         cis2_address -> Numeric,
         token_id -> Numeric,
         holder_address -> Varchar,
@@ -336,6 +338,8 @@ diesel::table! {
 
     security_mint_fund_investment_records (id) {
         id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
         contract_address -> Numeric,
         investor -> Varchar,
         currency_amount -> Numeric,
@@ -388,6 +392,8 @@ diesel::table! {
 
     security_p2p_trading_records (id) {
         id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
         contract_address -> Numeric,
         trader_address -> Varchar,
         record_type -> SecurityP2pTradingRecordType,
@@ -402,6 +408,8 @@ diesel::table! {
 diesel::table! {
     security_p2p_trading_trades (id) {
         id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
         contract_address -> Numeric,
         seller_address -> Varchar,
         buyer_address -> Varchar,

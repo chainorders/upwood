@@ -28,6 +28,8 @@ create type security_p2p_trading_record_type as enum ('sell', 'sell_cancel', 'ex
 create table
     security_p2p_trading_records (
         id uuid primary key,
+        block_height numeric(20) not null,
+        txn_index numeric(20) not null,
         contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         trader_address varchar not null,
         record_type security_p2p_trading_record_type not null,
@@ -42,6 +44,8 @@ create table
 create table
     security_p2p_trading_trades (
         id uuid primary key,
+        block_height numeric(20) not null,
+        txn_index numeric(20) not null,
         contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         seller_address varchar not null,
         buyer_address varchar not null,

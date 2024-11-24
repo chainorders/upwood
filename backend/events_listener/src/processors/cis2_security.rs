@@ -29,7 +29,9 @@ use crate::processors::ProcessorError;
 )]
 pub fn process_events_cis2<T, A>(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     event: Cis2Event<T, A>,
 ) -> Result<(), ProcessorError>
@@ -48,12 +50,16 @@ where
             let holder =
                 TokenHolder::find(conn, contract.to_decimal(), token_id, &owner.to_string())?;
             let holder = match holder {
-                Some(mut holder) => holder.add_amount(amount, now).update(conn)?,
-                None => TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, now)
-                    .insert(conn)?,
+                Some(mut holder) => holder.add_amount(amount, block_time).update(conn)?,
+                None => {
+                    TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, block_time)
+                        .insert(conn)?
+                }
             };
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                block_height,
+                txn_index,
                 cis2_address: contract.to_decimal(),
                 token_id,
                 holder_address: owner.to_string(),
@@ -61,7 +67,7 @@ where
                 frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
                 update_type: TokenHolderBalanceUpdateType::Mint,
-                create_time: now,
+                create_time: block_time,
             }
             .insert(conn)?;
             Token::update_supply(conn, contract.to_decimal(), token_id, amount, true)?;
@@ -84,7 +90,7 @@ where
                 metadata_url.url.clone(),
                 metadata_url.hash,
                 Decimal::ZERO,
-                now,
+                block_time,
             )
             .upsert(conn)?;
             info!(
@@ -108,10 +114,12 @@ where
                     token_id,
                     holder_address: owner.to_string(),
                 })?
-                .sub_amount(amount, now)
+                .sub_amount(amount, block_time)
                 .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                block_height,
+                txn_index,
                 cis2_address: contract,
                 token_id,
                 holder_address: owner.to_string(),
@@ -119,7 +127,7 @@ where
                 frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
                 update_type: TokenHolderBalanceUpdateType::Burn,
-                create_time: now,
+                create_time: block_time,
             }
             .insert(conn)?;
             Token::update_supply(conn, contract, token_id, amount, false)?;
@@ -146,10 +154,12 @@ where
                         token_id,
                         holder_address: from.to_string(),
                     })?
-                    .sub_amount(amount, now)
+                    .sub_amount(amount, block_time)
                     .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                block_height,
+                txn_index,
                 cis2_address: contract.to_decimal(),
                 token_id,
                 holder_address: holder_from.holder_address,
@@ -157,26 +167,28 @@ where
                 frozen_balance: holder_from.frozen_balance,
                 un_frozen_balance: holder_from.un_frozen_balance,
                 update_type: TokenHolderBalanceUpdateType::TransferOut,
-                create_time: now,
+                create_time: block_time,
             }
             .insert(conn)?;
             let holder_to =
                 TokenHolder::find(conn, contract.to_decimal(), token_id, &to.to_string())?;
             let holder_to = match holder_to {
-                Some(mut holder_to) => holder_to.add_amount(amount, now).update(conn)?,
+                Some(mut holder_to) => holder_to.add_amount(amount, block_time).update(conn)?,
                 None => TokenHolder {
                     cis2_address: contract.to_decimal(),
                     holder_address: to.to_string(),
                     token_id,
                     frozen_balance: Decimal::ZERO,
                     un_frozen_balance: amount,
-                    update_time: now,
-                    create_time: now,
+                    update_time: block_time,
+                    create_time: block_time,
                 }
                 .insert(conn)?,
             };
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                block_height,
+                txn_index,
                 cis2_address: contract.to_decimal(),
                 token_id,
                 holder_address: holder_to.holder_address,
@@ -184,7 +196,7 @@ where
                 frozen_balance: holder_to.frozen_balance,
                 un_frozen_balance: holder_to.un_frozen_balance,
                 update_type: TokenHolderBalanceUpdateType::TransferIn,
-                create_time: now,
+                create_time: block_time,
             }
             .insert(conn)?;
             info!(
@@ -227,7 +239,9 @@ where
 
 pub fn process_events<T, A, R>(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError>
@@ -242,7 +256,14 @@ where
             .expect("Failed to parse event");
         trace!("{:#?}", parsed_event);
 
-        process_parsed_event(conn, contract, parsed_event, now)?;
+        process_parsed_event(
+            conn,
+            contract,
+            parsed_event,
+            block_time,
+            block_height,
+            txn_index,
+        )?;
     }
 
     Ok(())
@@ -252,7 +273,9 @@ pub fn process_parsed_event<T, A, R>(
     conn: &mut r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
     contract: &ContractAddress,
     parsed_event: Cis2SecurityEvent<T, A, R>,
-    now: NaiveDateTime,
+    block_time: NaiveDateTime,
+    block_height: Decimal,
+    txn_index: Decimal,
 ) -> Result<(), ProcessorError>
 where
     T: IsTokenId+fmt::Debug,
@@ -263,7 +286,7 @@ where
         Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent { agent, roles }) => {
             Agent::new(
                 agent,
-                now,
+                block_time,
                 contract.to_decimal(),
                 roles.iter().map(|r| r.to_string()).collect(),
             )
@@ -336,15 +359,17 @@ where
                 true,
             )?;
             TokenHolderBalanceUpdate {
-                id:                Uuid::new_v4(),
-                cis2_address:      contract.to_decimal(),
-                token_id:          token_id.to_decimal(),
-                holder_address:    address.to_string(),
-                amount:            amount.to_decimal(),
-                frozen_balance:    holder.frozen_balance,
+                id: Uuid::new_v4(),
+                block_height,
+                txn_index,
+                cis2_address: contract.to_decimal(),
+                token_id: token_id.to_decimal(),
+                holder_address: address.to_string(),
+                amount: amount.to_decimal(),
+                frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
-                update_type:       TokenHolderBalanceUpdateType::Freeze,
-                create_time:       now,
+                update_type: TokenHolderBalanceUpdateType::Freeze,
+                create_time: block_time,
             }
             .insert(conn)?;
             info!(
@@ -368,15 +393,17 @@ where
                 false,
             )?;
             TokenHolderBalanceUpdate {
-                id:                Uuid::new_v4(),
-                cis2_address:      contract.to_decimal(),
-                token_id:          token_id.to_decimal(),
-                holder_address:    address.to_string(),
-                amount:            amount.to_decimal(),
-                frozen_balance:    holder.frozen_balance,
+                id: Uuid::new_v4(),
+                block_height,
+                txn_index,
+                cis2_address: contract.to_decimal(),
+                token_id: token_id.to_decimal(),
+                holder_address: address.to_string(),
+                amount: amount.to_decimal(),
+                frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
-                update_type:       TokenHolderBalanceUpdateType::UnFreeze,
-                create_time:       now,
+                update_type: TokenHolderBalanceUpdateType::UnFreeze,
+                create_time: block_time,
             }
             .insert(conn)?;
             info!(
@@ -386,7 +413,9 @@ where
                 address.to_string()
             );
         }
-        Cis2SecurityEvent::Cis2(e) => process_events_cis2(conn, now, contract, e)?,
+        Cis2SecurityEvent::Cis2(e) => {
+            process_events_cis2(conn, block_height, block_time, txn_index, contract, e)?
+        }
     };
     Ok(())
 }

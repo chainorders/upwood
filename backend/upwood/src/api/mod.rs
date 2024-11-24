@@ -36,8 +36,7 @@ use tracing::error;
 use crate::utils::{self, *};
 pub type OpenApiServiceType = poem_openapi::OpenApiService<
     (
-        user::Api,
-        tree_nft::Api,
+        user::UserApi,
         tree_nft::Api,
         files::Api,
         identity_registry::Api,
@@ -245,8 +244,7 @@ pub async fn create_web_app(config: Config) -> Route {
 pub fn create_service() -> OpenApiServiceType {
     poem_openapi::OpenApiService::new(
         (
-            user::Api,
-            tree_nft::Api,
+            user::UserApi,
             tree_nft::Api,
             files::Api,
             identity_registry::Api,
@@ -386,6 +384,7 @@ enum ApiTags {
     ForestProject,
     InvestmentPortfolio,
     UserCommunication,
+    Wallet,
 }
 
 #[derive(Clone, Object)]

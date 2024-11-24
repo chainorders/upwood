@@ -5,7 +5,7 @@ use concordium_rust_sdk::types::ContractAddress;
 use rust_decimal::Decimal;
 use security_p2p_trading::Event;
 use shared::db::security_p2p_trading::{
-    P2PTradeContract, Trade, Seller, TradingRecord, TradingRecordType,
+    P2PTradeContract, Seller, Trade, TradingRecord, TradingRecordType,
 };
 use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
@@ -35,7 +35,9 @@ pub fn contract_name() -> OwnedContractName {
 )]
 pub fn process_events(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -52,8 +54,8 @@ pub fn process_events(
                     currency_token_id: event.currency.id.to_decimal(),
                     currency_token_contract_address: event.currency.contract.to_decimal(),
                     token_amount: Decimal::ZERO,
-                    create_time: now,
-                    update_time: now,
+                    create_time: block_time,
+                    update_time: block_time,
                 }
                 .insert(conn)?;
                 info!("initialized");
@@ -66,18 +68,20 @@ pub fn process_events(
                     rate,
                     token_amount: event.amount.to_decimal(),
                     trader_address: event.from.to_string(),
-                    create_time: now,
-                    update_time: now,
+                    create_time: block_time,
+                    update_time: block_time,
                 }
                 .upsert(conn)?;
                 P2PTradeContract::add_amount(
                     conn,
                     contract.to_decimal(),
                     event.amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 TradingRecord {
                     id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
                     trader_address: event.from.to_string(),
                     token_amount: event.amount.to_decimal(),
@@ -85,7 +89,7 @@ pub fn process_events(
                     token_amount_balance: trader.token_amount,
                     currency_amount_balance: trader.token_amount * rate,
                     record_type: TradingRecordType::Sell,
-                    create_time: now,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 info!(
@@ -102,16 +106,18 @@ pub fn process_events(
                     contract.to_decimal(),
                     &event.from,
                     event.amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 P2PTradeContract::sub_amount(
                     conn,
                     contract.to_decimal(),
                     event.amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 TradingRecord {
                     id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
                     trader_address: event.from.to_string(),
                     token_amount: event.amount.to_decimal(),
@@ -119,7 +125,7 @@ pub fn process_events(
                     token_amount_balance: trader.token_amount,
                     currency_amount_balance: trader.token_amount * trader.rate,
                     record_type: TradingRecordType::SellCancel,
-                    create_time: now,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 info!(
@@ -134,16 +140,18 @@ pub fn process_events(
                     contract.to_decimal(),
                     &event.seller,
                     event.sell_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 P2PTradeContract::sub_amount(
                     conn,
                     contract.to_decimal(),
                     event.sell_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 TradingRecord {
                     id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
                     trader_address: event.seller.to_string(),
                     token_amount: event.sell_amount.to_decimal(),
@@ -151,18 +159,20 @@ pub fn process_events(
                     token_amount_balance: trader.token_amount,
                     currency_amount_balance: trader.token_amount * trader.rate,
                     record_type: TradingRecordType::Exchange,
-                    create_time: now,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 Trade {
-                    id:               Uuid::new_v4(),
+                    id: Uuid::new_v4(),
+                    block_height,
+                    txn_index,
                     contract_address: contract.to_decimal(),
-                    seller_address:   event.seller.to_string(),
-                    buyer_address:    event.payer.to_string(),
-                    token_amount:     event.sell_amount.to_decimal(),
-                    currency_amount:  event.pay_amount.to_decimal(),
-                    rate:             trader.rate,
-                    create_time:      now,
+                    seller_address: event.seller.to_string(),
+                    buyer_address: event.payer.to_string(),
+                    token_amount: event.sell_amount.to_decimal(),
+                    currency_amount: event.pay_amount.to_decimal(),
+                    rate: trader.rate,
+                    create_time: block_time,
                 }
                 .insert(conn)?;
                 info!(

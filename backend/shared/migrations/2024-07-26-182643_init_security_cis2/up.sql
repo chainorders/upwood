@@ -46,6 +46,8 @@ create type cis2_token_holder_balance_update_type as enum ('mint', 'burn', 'tran
 
 create table cis2_token_holder_balance_updates (
     id uuid primary key,
+    block_height numeric(20) not null,
+    txn_index numeric(20) not null,
     cis2_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
     token_id numeric(20) not null,
     holder_address varchar not null,

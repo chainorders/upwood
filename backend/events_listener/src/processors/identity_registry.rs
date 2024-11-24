@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 use concordium_rust_sdk::types::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
 use concordium_rwa_identity_registry::event::Event;
+use rust_decimal::Decimal;
 use shared::db::identity_registry::{Agent, Identity, Issuer};
 use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
@@ -29,7 +30,9 @@ use crate::processors::ProcessorError;
 )]
 pub fn process_events(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    _block_height: Decimal,
+    block_time: NaiveDateTime,
+    _txn_index: Decimal,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -39,7 +42,7 @@ pub fn process_events(
 
         match parsed_event {
             Event::AgentAdded(e) => {
-                Agent::new(e.agent, now, contract.to_decimal()).insert(conn)?;
+                Agent::new(e.agent, block_time, contract.to_decimal()).insert(conn)?;
                 info!("Agent: {} added", e.agent.to_string());
             }
             Event::AgentRemoved(e) => {
@@ -47,7 +50,7 @@ pub fn process_events(
                 info!("Agent: {} removed", e.agent.to_string());
             }
             Event::IdentityRegistered(e) => {
-                Identity::new(&e.address, now, contract.to_decimal()).insert(conn)?;
+                Identity::new(&e.address, block_time, contract.to_decimal()).insert(conn)?;
                 info!("Identity: {} registered", e.address.to_string());
             }
             Event::IdentityRemoved(e) => {
@@ -55,7 +58,8 @@ pub fn process_events(
                 info!("Identity: {} removed", e.address.to_string());
             }
             Event::IssuerAdded(e) => {
-                Issuer::new(e.issuer.to_decimal(), now, contract.to_decimal()).insert(conn)?;
+                Issuer::new(e.issuer.to_decimal(), block_time, contract.to_decimal())
+                    .insert(conn)?;
                 info!("Issuer: {} added", e.issuer.to_string());
             }
             Event::IssuerRemoved(e) => {

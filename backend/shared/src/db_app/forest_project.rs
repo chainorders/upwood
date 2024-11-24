@@ -1162,3 +1162,49 @@ impl ForestProjectSeller {
             .optional()
     }
 }
+
+diesel::table! {
+    user_transactions_view (cognito_user_id, txn_hash) {
+        cognito_user_id -> VarChar,
+        txn_hash -> VarChar,
+        txn_type -> VarChar,
+        txn_subtype -> VarChar,
+        project_id -> Uuid,
+        account_address -> VarChar,
+        currency_amount -> Numeric,
+        txn_time -> Timestamp,
+    }
+}
+
+#[derive(Queryable, Insertable, Debug, PartialEq, Object, serde::Serialize, Deserialize)]
+#[table_name = "user_transactions_view"]
+pub struct UserTransaction {
+    pub cognito_user_id: String,
+    pub txn_hash:        String,
+    pub txn_type:        String,
+    pub txn_subtype:     String,
+    pub project_id:      Uuid,
+    pub account_address: String,
+    pub currency_amount: rust_decimal::Decimal,
+    pub txn_time:        chrono::NaiveDateTime,
+}
+
+impl UserTransaction {
+    pub fn list(
+        conn: &mut DbConn,
+        cognito_user_id: &str,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<UserTransaction>, i64)> {
+        let query = user_transactions_view::table
+            .filter(user_transactions_view::cognito_user_id.eq(cognito_user_id))
+            .select(user_transactions_view::all_columns);
+        let transactions = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+        let count: i64 = query.count().get_result(conn)?;
+        let page_count = (count + page_size - 1) / page_size;
+        Ok((transactions, page_count))
+    }
+}

@@ -3,6 +3,7 @@ use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
 use nft_multi_rewarded::types::Event;
+use rust_decimal::Decimal;
 use shared::db::cis2_security::Agent;
 use shared::db::nft_multi_rewarded::{AddressNonce, NftMultiRewardedContract};
 use shared::db_shared::DbConn;
@@ -30,7 +31,9 @@ pub fn contract_name() -> OwnedContractName {
 )]
 pub fn process_events(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -40,7 +43,7 @@ pub fn process_events(
 
         match parsed_event {
             Event::AgentAdded(e) => {
-                Agent::new(e, now, contract.to_decimal(), vec![]).insert(conn)?;
+                Agent::new(e, block_time, contract.to_decimal(), vec![]).insert(conn)?;
                 info!("Agent: {} added", e.to_string());
             }
             Event::AgentRemoved(e) => {
@@ -48,14 +51,21 @@ pub fn process_events(
                 info!("Agent: {} removed", e.to_string());
             }
             Event::Cis2(event) => {
-                cis2_security::process_events_cis2(conn, now, contract, event)?;
+                cis2_security::process_events_cis2(
+                    conn,
+                    block_height,
+                    block_time,
+                    txn_index,
+                    contract,
+                    event,
+                )?;
             }
             Event::RewardTokenUpdated(e) => {
                 NftMultiRewardedContract::new(
                     contract.to_decimal(),
                     e.reward_token.contract.to_decimal(),
                     e.reward_token.id.to_decimal(),
-                    now,
+                    block_time,
                 )
                 .upsert(conn)?;
                 info!("Reward token updated: {}", e.reward_token.id.to_string());

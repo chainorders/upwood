@@ -219,6 +219,8 @@ pub enum TradingRecordType {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct TradingRecord {
     pub id: Uuid,
+    pub block_height: Decimal,
+    pub txn_index: Decimal,
     pub contract_address: Decimal,
     pub trader_address: String,
     pub record_type: TradingRecordType,
@@ -269,6 +271,8 @@ impl TradingRecord {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Trade {
     pub id:               Uuid,
+    pub block_height:     Decimal,
+    pub txn_index:        Decimal,
     pub contract_address: Decimal,
     pub seller_address:   String,
     pub buyer_address:    String,

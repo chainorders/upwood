@@ -3,6 +3,7 @@ use concordium_protocols::concordium_cis2_security::Cis2SecurityEvent;
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
+use rust_decimal::Decimal;
 use security_sft_rewards::types::{AgentRole, Event, TokenAmount, TokenId};
 use shared::db::security_sft_rewards::{ContractReward, RewardClaimed, RewardToken};
 use shared::db_shared::DbConn;
@@ -26,11 +27,13 @@ pub fn contract_name() -> OwnedContractName {
 
 fn process_cis2_security_event(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     event: Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>,
 ) -> Result<(), ProcessorError> {
-    cis2_security::process_parsed_event(conn, contract, event, now)
+    cis2_security::process_parsed_event(conn, contract, event, block_time, block_height, txn_index)
 }
 
 #[instrument(
@@ -40,7 +43,9 @@ fn process_cis2_security_event(
 )]
 pub fn process_events(
     conn: &mut DbConn,
-    now: NaiveDateTime,
+    block_height: Decimal,
+    block_time: NaiveDateTime,
+    txn_index: Decimal,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -49,45 +54,83 @@ pub fn process_events(
         trace!("Event details: {:#?}", parsed_event);
 
         match parsed_event {
-            Event::AgentAdded(a) => {
-                process_cis2_security_event(conn, now, contract, Cis2SecurityEvent::AgentAdded(a))?
-            }
+            Event::AgentAdded(a) => process_cis2_security_event(
+                conn,
+                block_height,
+                block_time,
+                txn_index,
+                contract,
+                Cis2SecurityEvent::AgentAdded(a),
+            )?,
             Event::AgentRemoved(a) => process_cis2_security_event(
                 conn,
-                now,
+                block_height,
+                block_time,
+                txn_index,
                 contract,
                 Cis2SecurityEvent::AgentRemoved(a),
             )?,
-            Event::Cis2(event) => {
-                process_cis2_security_event(conn, now, contract, Cis2SecurityEvent::Cis2(event))?
-            }
+            Event::Cis2(event) => process_cis2_security_event(
+                conn,
+                block_height,
+                block_time,
+                txn_index,
+                contract,
+                Cis2SecurityEvent::Cis2(event),
+            )?,
             Event::ComplianceAdded(a) => process_cis2_security_event(
                 conn,
-                now,
+                block_height,
+                block_time,
+                txn_index,
                 contract,
                 Cis2SecurityEvent::ComplianceAdded(a),
             )?,
             Event::IdentityRegistryAdded(a) => process_cis2_security_event(
                 conn,
-                now,
+                block_height,
+                block_time,
+                txn_index,
                 contract,
                 Cis2SecurityEvent::IdentityRegistryAdded(a),
             )?,
-            Event::Paused(a) => {
-                process_cis2_security_event(conn, now, contract, Cis2SecurityEvent::Paused(a))?
-            }
-            Event::UnPaused(a) => {
-                process_cis2_security_event(conn, now, contract, Cis2SecurityEvent::UnPaused(a))?
-            }
-            Event::Recovered(a) => {
-                process_cis2_security_event(conn, now, contract, Cis2SecurityEvent::Recovered(a))?
-            }
-            Event::TokenFrozen(a) => {
-                process_cis2_security_event(conn, now, contract, Cis2SecurityEvent::TokenFrozen(a))?
-            }
+            Event::Paused(a) => process_cis2_security_event(
+                conn,
+                block_height,
+                block_time,
+                txn_index,
+                contract,
+                Cis2SecurityEvent::Paused(a),
+            )?,
+            Event::UnPaused(a) => process_cis2_security_event(
+                conn,
+                block_height,
+                block_time,
+                txn_index,
+                contract,
+                Cis2SecurityEvent::UnPaused(a),
+            )?,
+            Event::Recovered(a) => process_cis2_security_event(
+                conn,
+                block_height,
+                block_time,
+                txn_index,
+                contract,
+                Cis2SecurityEvent::Recovered(a),
+            )?,
+            Event::TokenFrozen(a) => process_cis2_security_event(
+                conn,
+                block_height,
+                block_time,
+                txn_index,
+                contract,
+                Cis2SecurityEvent::TokenFrozen(a),
+            )?,
             Event::TokenUnFrozen(a) => process_cis2_security_event(
                 conn,
-                now,
+                block_height,
+                block_time,
+                txn_index,
                 contract,
                 Cis2SecurityEvent::TokenUnFrozen(a),
             )?,
@@ -97,8 +140,8 @@ pub fn process_events(
                     rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
                     rewarded_token_id:       event.rewarded_token_id.to_decimal(),
                     reward_amount:           event.reward_amount.to_decimal(),
-                    create_time:             now,
-                    update_time:             now,
+                    create_time:             block_time,
+                    update_time:             block_time,
                 }
                 .upsert_add_amount(conn)?;
                 RewardToken {
@@ -111,8 +154,8 @@ pub fn process_events(
                     ),
                     rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
                     rewarded_token_id:       event.rewarded_token_id.to_decimal(),
-                    create_time:             now,
-                    update_time:             now,
+                    create_time:             block_time,
+                    update_time:             block_time,
                 }
                 .insert(conn)?;
                 info!(
@@ -132,7 +175,7 @@ pub fn process_events(
                     event.rewarded_token_contract.to_decimal(),
                     event.rewarded_token_id.to_decimal(),
                     event.reward_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 RewardToken::sub_amount(
                     conn,
@@ -141,7 +184,7 @@ pub fn process_events(
                     event.rewarded_token_contract.to_decimal(),
                     event.rewarded_token_id.to_decimal(),
                     event.reward_amount.to_decimal(),
-                    now,
+                    block_time,
                 )?;
                 RewardClaimed {
                     id: uuid::Uuid::new_v4(),
@@ -152,8 +195,8 @@ pub fn process_events(
                     rewarded_token_contract: event.rewarded_token_contract.to_decimal(),
                     rewarded_token_id: event.rewarded_token_id.to_decimal(),
                     reward_amount: event.reward_amount.to_decimal(),
-                    create_time: now,
-                    update_time: now,
+                    create_time: block_time,
+                    update_time: block_time,
                 }
                 .insert(conn)?;
                 info!(
