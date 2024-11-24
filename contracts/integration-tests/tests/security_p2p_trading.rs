@@ -94,7 +94,7 @@ pub fn normal_flow_sft_single() {
     )
     .expect("should update operator");
 
-    let rate = Rate::new(1, 1000).unwrap();
+    let rate = Rate::new(1000, 1).unwrap();
     security_p2p_trading_client::transfer_sell(
         &mut chain,
         &holder,
@@ -148,8 +148,8 @@ pub fn normal_flow_sft_single() {
         &TransferExchangeParams {
             pay: TokenAmountU64(1000),
             get: ExchangeParams {
-                from: holder.address,
-                rate,
+                from:   holder.address,
+                amount: TokenAmountU64(1),
             },
         },
     )
@@ -261,7 +261,7 @@ pub fn normal_flow_sft_rewards() {
     )
     .expect("should update operator");
 
-    let rate = Rate::new(1, 1000).unwrap();
+    let rate = Rate::new(1000, 1).unwrap();
     security_p2p_trading_client::transfer_sell(
         &mut chain,
         &seller,
@@ -315,8 +315,8 @@ pub fn normal_flow_sft_rewards() {
         &TransferExchangeParams {
             pay: TokenAmountU64(1000),
             get: ExchangeParams {
-                from: seller.address,
-                rate,
+                from:   seller.address,
+                amount: TokenAmountU64(1),
             },
         },
     )

@@ -266,6 +266,7 @@ pub struct ForestProjectUser {
     pub offering_doc_link: Option<String>,
     pub property_media_header: String,
     pub property_media_footer: String,
+    /// EuroE token amount without decimals
     pub latest_price: Decimal,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -1085,6 +1086,78 @@ impl ForestProjectInvestor {
                     .and(forest_project_investors_view::investor.eq(investor)),
             )
             .select(ForestProjectInvestor::as_select())
+            .first(conn)
+            .optional()
+    }
+}
+
+diesel::table! {
+    forest_project_seller_view (forest_project_id, trader_address) {
+        forest_project_id -> Uuid,
+        forest_project_state -> crate::schema::sql_types::ForestProjectState,
+        p2p_trade_contract_address -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
+        trader_address -> Varchar,
+        token_amount -> Numeric,
+        rate -> Numeric,
+    }
+}
+
+#[derive(Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize)]
+#[diesel(table_name = forest_project_seller_view)]
+#[diesel(primary_key(forest_project_id, trader_address))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ForestProjectSeller {
+    pub forest_project_id: uuid::Uuid,
+    pub forest_project_state: ForestProjectState,
+    pub p2p_trade_contract_address: Decimal,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub trader_address: String,
+    pub token_amount: Decimal,
+    pub rate: Decimal,
+}
+
+impl ForestProjectSeller {
+    pub fn list(
+        conn: &mut DbConn,
+        project_id: uuid::Uuid,
+        min_token_amount: Decimal,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        let sellers = forest_project_seller_view::table
+            .filter(forest_project_seller_view::forest_project_id.eq(project_id))
+            .filter(forest_project_seller_view::token_amount.ge(min_token_amount))
+            .select(ForestProjectSeller::as_select())
+            .order(forest_project_seller_view::rate.asc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+
+        let total_count = forest_project_seller_view::table
+            .filter(forest_project_seller_view::forest_project_id.eq(project_id))
+            .filter(forest_project_seller_view::token_amount.ge(min_token_amount))
+            .count()
+            .get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((sellers, page_count))
+    }
+
+    pub fn find(
+        conn: &mut DbConn,
+        project_id: uuid::Uuid,
+        trader_address: &str,
+    ) -> DbResult<Option<Self>> {
+        forest_project_seller_view::table
+            .filter(
+                forest_project_seller_view::forest_project_id
+                    .eq(project_id)
+                    .and(forest_project_seller_view::trader_address.eq(trader_address)),
+            )
+            .select(ForestProjectSeller::as_select())
             .first(conn)
             .optional()
     }

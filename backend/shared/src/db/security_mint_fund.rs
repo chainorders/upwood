@@ -372,33 +372,9 @@ impl InvestmentRecord {
     }
 }
 
-#[repr(i32)]
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq)]
-#[diesel(sql_type = Integer)]
-pub enum InvestmentRecordType {
-    Invested  = 0,
-    Cancelled = 1,
-    Claimed   = 2,
-}
-
-impl FromSql<Integer, diesel::pg::Pg> for InvestmentRecordType {
-    fn from_sql(bytes: diesel::pg::PgValue<'_>) -> diesel::deserialize::Result<Self> {
-        let value = i32::from_sql(bytes)?;
-        match value {
-            0 => Ok(InvestmentRecordType::Invested),
-            1 => Ok(InvestmentRecordType::Cancelled),
-            2 => Ok(InvestmentRecordType::Claimed),
-            _ => Err(format!("Unknown call type: {}", value).into()),
-        }
-    }
-}
-
-impl ToSql<Integer, diesel::pg::Pg> for InvestmentRecordType {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut diesel::serialize::Output<'b, '_, diesel::pg::Pg>,
-    ) -> diesel::serialize::Result {
-        let v = *self as i32;
-        <i32 as ToSql<Integer, diesel::pg::Pg>>::to_sql(&v, &mut out.reborrow())
-    }
+#[derive(diesel_derive_enum::DbEnum, Debug, PartialEq)]
+#[ExistingTypePath = "crate::schema::sql_types::SecurityMintFundInvestmentRecordType"]pub enum InvestmentRecordType {
+    Invested,
+    Cancelled,
+    Claimed
 }

@@ -131,7 +131,7 @@ impl P2PTradeContract {
 #[diesel(table_name = security_p2p_trading_deposits)]
 #[diesel(primary_key(contract_address, trader_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct Trader {
+pub struct Seller {
     pub contract_address: Decimal,
     pub trader_address:   String,
     pub token_amount:     Decimal,
@@ -140,7 +140,7 @@ pub struct Trader {
     pub update_time:      NaiveDateTime,
 }
 
-impl Trader {
+impl Seller {
     /// Inserts a new deposit record or updates an existing one by adding the specified amount.
     ///
     /// # Arguments

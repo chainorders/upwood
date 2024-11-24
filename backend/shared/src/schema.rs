@@ -10,6 +10,10 @@ pub mod sql_types {
     pub struct ForestProjectState;
 
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "security_mint_fund_investment_record_type"))]
+    pub struct SecurityMintFundInvestmentRecordType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "security_p2p_trading_record_type"))]
     pub struct SecurityP2pTradingRecordType;
 }
@@ -327,6 +331,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::SecurityMintFundInvestmentRecordType;
+
     security_mint_fund_investment_records (id) {
         id -> Uuid,
         contract_address -> Numeric,
@@ -335,7 +342,7 @@ diesel::table! {
         token_amount -> Numeric,
         currency_amount_balance -> Numeric,
         token_amount_balance -> Numeric,
-        investment_record_type -> Int4,
+        investment_record_type -> SecurityMintFundInvestmentRecordType,
         create_time -> Timestamp,
     }
 }

@@ -38,6 +38,33 @@ impl P2PTradeTestClient {
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
     }
+
+    pub fn cancel_sell_payload(&self) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("cancelSell"),
+            ),
+            message:      OwnedParameter::empty(),
+        }
+    }
+
+    pub fn transfer_exchange_payload(
+        &self,
+        params: &TransferExchangeParams,
+    ) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("transferExchange"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {

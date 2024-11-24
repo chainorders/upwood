@@ -8,7 +8,7 @@ use shared::api::PagedResponse;
 use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectMedia,
-    ForestProjectPrice, ForestProjectState, ForestProjectUser, HolderReward,
+    ForestProjectPrice, ForestProjectSeller, ForestProjectState, ForestProjectUser, HolderReward,
 };
 use tracing::{debug, info};
 
@@ -237,6 +237,31 @@ impl ForestProjectApi {
         let conn = &mut db_pool.get()?;
         let rewards = HolderReward::list(conn, &account.to_string())?;
         Ok(Json(rewards))
+    }
+
+    #[oai(
+        path = "/forest_projects/:project_id/p2p-trade/sellers/list/:page",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_p2p_trade_sellers_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(page): Path<i64>,
+        Query(min_token_amount): Query<Option<u64>>,
+    ) -> JsonResult<PagedResponse<ForestProjectSeller>> {
+        ensure_registered(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let min_token_amount = min_token_amount.unwrap_or(0);
+        let (sellers, page_count) =
+            ForestProjectSeller::list(conn, project_id, min_token_amount.into(), page, PAGE_SIZE)?;
+        Ok(Json(PagedResponse {
+            data: sellers,
+            page_count,
+            page,
+        }))
     }
 }
 

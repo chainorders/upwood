@@ -264,3 +264,20 @@ from
     join security_mint_fund_investors as investors on funds.contract_address = investors.contract_address
     join users on users.account_address = investors.investor
     and users.account_address is not null;
+
+create
+or replace view forest_project_seller_view as
+select
+    forest_projects.id as forest_project_id,
+    forest_projects.state as forest_project_state,
+    p2p_trade.contract_address as p2p_trade_contract_address,
+    p2p_trade.currency_token_id,
+    p2p_trade.currency_token_contract_address,
+    sellers.trader_address,
+    sellers.token_amount,
+    sellers.rate
+from
+    forest_projects
+    join security_p2p_trading_contracts as p2p_trade on forest_projects.p2p_trade_contract_address = p2p_trade.contract_address
+    join security_p2p_trading_deposits as sellers on p2p_trade.contract_address = sellers.contract_address
+    and sellers.token_amount > 0

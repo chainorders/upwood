@@ -32,6 +32,8 @@ create table
         primary key (contract_address, investor)
     );
 
+create type security_mint_fund_investment_record_type as enum ('invested', 'cancelled', 'claimed');
+
 create table
     security_mint_fund_investment_records (
         id uuid primary key not null,
@@ -41,7 +43,7 @@ create table
         token_amount numeric(78) not null,
         currency_amount_balance numeric(78) not null,
         token_amount_balance numeric(78) not null,
-        investment_record_type int not null,
+        investment_record_type security_mint_fund_investment_record_type not null,
         create_time timestamp not null,
         foreign key (contract_address, investor) references security_mint_fund_investors (contract_address, investor) on delete cascade
     );

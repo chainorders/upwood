@@ -301,8 +301,8 @@ pub struct TransferExchangeParams {
 
 #[derive(Serialize, SchemaType)]
 pub struct ExchangeParams {
-    pub from: AccountAddress,
-    pub rate: Rate,
+    pub from:   AccountAddress,
+    pub amount: TokenAmount,
 }
 
 /// This function should be called by the buyer of the tracked security token.
@@ -351,11 +351,20 @@ pub fn exchange(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let ExchangeReceiveParams {
-        amount: pay_amount,
+        amount: pay_currency_amount,
         from: payer,
         token_id: currency_token_id,
-        data: ExchangeParams { from: seller, rate },
+        data:
+            ExchangeParams {
+                from: seller,
+                amount: buy_token_amount,
+            },
     } = ctx.parameter_cursor().get()?;
+    ensure!(
+        buy_token_amount.gt(&TokenAmountU64(0)),
+        Error::InvalidAmount
+    );
+
     let currency = TokenUId {
         id:       currency_token_id,
         contract: match ctx.sender() {
@@ -377,20 +386,17 @@ pub fn exchange(
             .deposits
             .get_mut(&seller)
             .ok_or(Error::SellPositionMissing)?;
-        ensure!(deposit.rate.eq(&rate), Error::SellPositionMissing);
-
-        let (sell_amount, un_converted_pay_amount) = deposit
+        ensure!(buy_token_amount.le(&deposit.amount), Error::InvalidAmount);
+        let (pay_amount, un_converted_sell_amount) = deposit
             .rate
-            .convert(&pay_amount.0)
+            .convert(&buy_token_amount.0)
             .map_err(|_| Error::InvalidConversion)?;
+        ensure_eq!(un_converted_sell_amount, 0, Error::InvalidAmount);
+        let pay_amount = TokenAmountU64(pay_amount);
+        ensure!(pay_amount.eq(&pay_currency_amount), Error::InvalidAmount);
+        deposit.amount.sub_assign(buy_token_amount);
 
-        let sell_amount = TokenAmountU64(sell_amount);
-        ensure_eq!(un_converted_pay_amount, 0, Error::InvalidAmount);
-        ensure!(sell_amount.le(&deposit.amount), Error::InvalidAmount);
-        ensure!(sell_amount.gt(&TokenAmountU64(0)), Error::InvalidAmount);
-        deposit.amount.sub_assign(sell_amount);
-
-        (state.token.clone(), pay_amount, sell_amount)
+        (state.token.clone(), pay_currency_amount, buy_token_amount)
     };
 
     cis2_client::transfer_single(host, &currency.contract, Transfer {

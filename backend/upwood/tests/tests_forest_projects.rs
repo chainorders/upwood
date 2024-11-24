@@ -26,14 +26,14 @@ use integration_tests::security_p2p_trading_client::P2PTradeTestClient;
 use integration_tests::security_sft_rewards_client::SftRewardsTestClient;
 use integration_tests::security_sft_single_client::SftSingleTestClient;
 use passwords::PasswordGenerator;
-use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use security_mint_fund::{ClaimInvestmentParam, FundState, TransferInvestParams};
 use security_sft_rewards::rewards::ClaimRewardsParam;
 use security_sft_rewards::types::TRACKED_TOKEN_ID;
 use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectHolderRewardTotal, ForestProjectState,
+    ForestProject, ForestProjectHolderRewardTotal, ForestProjectSeller, ForestProjectState,
     ForestProjectUserHolderReward, HolderReward,
 };
 use shared::db_shared::{DbConn, DbPool};
@@ -458,9 +458,9 @@ pub async fn test_forest_projects() {
                 invested_value:                 100.into(),
                 current_portfolio_value:        Decimal::ZERO,
                 carbon_tons_offset:             Decimal::ZERO,
-                monthly_return:                 Decimal::ZERO,
+                monthly_return:                 Decimal::from(-100),
                 return_on_investment:           Decimal::from(-100),
-                yearly_return:                  Decimal::ZERO,
+                yearly_return:                  Decimal::from(-100),
             });
 
             let portfolio = user_2
@@ -473,9 +473,9 @@ pub async fn test_forest_projects() {
                 invested_value:                 200.into(),
                 current_portfolio_value:        Decimal::ZERO,
                 carbon_tons_offset:             Decimal::ZERO,
-                monthly_return:                 Decimal::ZERO,
+                monthly_return:                 Decimal::from(-200),
                 return_on_investment:           Decimal::from(-100),
-                yearly_return:                  Decimal::ZERO,
+                yearly_return:                  Decimal::from(-200),
             });
         }
 
@@ -540,10 +540,10 @@ pub async fn test_forest_projects() {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        200.into(), // 100 shares at 2 price
-                carbon_tons_offset:             Decimal::ZERO,
-                monthly_return:                 200.into(),
+                yearly_return:                  100.into(),
+                monthly_return:                 100.into(),
                 return_on_investment:           100.into(),
-                yearly_return:                  200.into(),
+                carbon_tons_offset:             Decimal::ZERO,
             });
 
             let portfolio = user_2
@@ -555,10 +555,10 @@ pub async fn test_forest_projects() {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 200.into(),
                 current_portfolio_value:        400.into(),
-                carbon_tons_offset:             Decimal::ZERO,
-                monthly_return:                 400.into(),
+                yearly_return:                  200.into(),
+                monthly_return:                 200.into(),
                 return_on_investment:           100.into(),
-                yearly_return:                  400.into(),
+                carbon_tons_offset:             Decimal::ZERO,
             });
         }
 
@@ -614,10 +614,10 @@ pub async fn test_forest_projects() {
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        200.into(), // 100 shares at 2 price
-            carbon_tons_offset:             Decimal::ZERO,
-            monthly_return:                 200.into(),
+            yearly_return:                  100.into(),
+            monthly_return:                 100.into(),
             return_on_investment:           100.into(),
-            yearly_return:                  200.into(),
+            carbon_tons_offset:             Decimal::ZERO,
         });
 
         chain.tick_block_time(concordium_smart_contract_testing::Duration::from_days(15));
@@ -1006,7 +1006,115 @@ pub async fn test_forest_projects() {
 
     // user 1 open a sell position of p2p trade contract
     {
-        user_1
+        // Asserting portfolio values BEFORE opening sell position
+        {
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        700.into(),
+                yearly_return:                  1200.into(),
+                monthly_return:                 100.into(),
+                return_on_investment:           1300.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+            });
+        }
+
+        // open a sell position
+        {
+            user_1
+                .transact(|sender| {
+                    chain.update(
+                        sender,
+                        fp_1_contract
+                            .cis2()
+                            .update_operator_payload(&UpdateOperatorParams(vec![UpdateOperator {
+                                operator: p2p_trade_1.0.into(),
+                                update:   OperatorUpdate::Add,
+                            }])),
+                    )
+                })
+                .expect("Failed to update p2p trade operator for forest project 1 for user 1");
+
+            user_1
+                .transact(|sender| {
+                    chain.update(
+                        sender,
+                        p2p_trade_1.transfer_sell_payload(
+                            &security_p2p_trading::TransferSellParams {
+                                amount: TokenAmountU64(50),
+                                rate:   Rate::new(1, 2).unwrap(),
+                            },
+                        ),
+                    )
+                })
+                .expect("Failed to open sell position for user 1");
+
+            processor
+                .process_block(&mut db_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
+        }
+
+        // Asserting portfolio values AFTER opening sell position
+        {
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        0.into(), /* all the shares are locked in sell position */
+                yearly_return:                  1200.into(),
+                monthly_return:                 100.into(),
+                return_on_investment:           1300.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+            });
+        }
+
+        // cancel sell postion
+        {
+            user_1
+                .transact(|sender| chain.update(sender, p2p_trade_1.cancel_sell_payload()))
+                .expect("Failed to cancel sell position for user 1");
+            processor
+                .process_block(&mut db_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
+        }
+
+        // Asserting portfolio values after cancel sell
+        {
+            let portfolio = user_1
+                .call_api(|token| {
+                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
+                })
+                .await;
+            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                locked_mint_fund_euro_e_amount: 0.into(),
+                invested_value:                 100.into(),
+                current_portfolio_value:        700.into(),
+                yearly_return:                  1200.into(),
+                monthly_return:                 100.into(),
+                return_on_investment:           1300.into(),
+                carbon_tons_offset:             Decimal::ZERO,
+            });
+        }
+    }
+
+    let forest_project = user_2
+        .call_api(|token| api.forest_project_find(token, fp_1.id))
+        .await;
+    assert_eq!(forest_project.latest_price, 14.into());
+    // user2 opens a sell position of p2p trade contract & user 1 buys it
+    {
+        user_2
             .transact(|sender| {
                 chain.update(
                     sender,
@@ -1018,48 +1126,96 @@ pub async fn test_forest_projects() {
                         }])),
                 )
             })
-            .expect("Failed to update p2p trade operator for forest project 1 for user 1");
+            .expect("Failed to update p2p trade operator for forest project 1 for user 2");
 
-        user_1
+        user_2
             .transact(|sender| {
                 chain.update(
                     sender,
                     p2p_trade_1.transfer_sell_payload(&security_p2p_trading::TransferSellParams {
                         amount: TokenAmountU64(50),
-                        rate:   Rate::new(1, 2).unwrap(),
+                        rate:   Rate::new(forest_project.latest_price.to_u64().unwrap(), 1)
+                            .unwrap(),
                     }),
                 )
             })
-            .expect("Failed to open sell position for user 1");
+            .expect("Failed to open sell position for user 2");
+        processor
+            .process_block(&mut db_conn, &chain.produce_block())
+            .await
+            .expect("Error processing block");
+    }
 
+    // user 1 buys / exchanges the sell position
+    {
+        // user 1 discovers the sell position of user 2
+        let sellers = user_1
+            .call_api(|token| api.forest_project_p2p_trade_sellers_list(token, fp_1.id, 0))
+            .await;
+        assert_eq!(sellers.data.len(), 1);
+        assert_eq!(sellers.data[0], ForestProjectSeller {
+            currency_token_id: 0.into(),
+            currency_token_contract_address: euroe.0.to_decimal(),
+            p2p_trade_contract_address: p2p_trade_1.0.to_decimal(),
+            rate: 14.into(),
+            token_amount: 50.into(),
+            forest_project_id: fp_1.id,
+            forest_project_state: ForestProjectState::Listed,
+            trader_address: user_2.account_address.clone(),
+        });
+
+        let seller = &sellers.data[0];
+        user_1
+            .transact(|sender| {
+                chain.update(
+                    sender,
+                    euroe
+                        .cis2()
+                        .update_operator_payload(&UpdateOperatorParams(vec![UpdateOperator {
+                            operator: p2p_trade_1.0.into(),
+                            update:   OperatorUpdate::Add,
+                        }])),
+                )
+            })
+            .expect("Failed to update euroe operator for p2p trade contract for user 1");
+
+        user_1
+            .transact(|sender| {
+                chain.update_with_energy(
+                    sender,
+                    p2p_trade_1.transfer_exchange_payload(
+                        &security_p2p_trading::TransferExchangeParams {
+                            pay: TokenAmountU64(700), // 14*50 : buying 50 units at market price
+                            get: security_p2p_trading::ExchangeParams {
+                                from:   seller
+                                    .trader_address
+                                    .parse()
+                                    .expect("Failed to parse address"),
+                                amount: 50.into(), // buying 50 units
+                            },
+                        },
+                    ),
+                    Energy { energy: 30_000 },
+                )
+            })
+            .expect("Failed to exchange sell position for user 1");
         processor
             .process_block(&mut db_conn, &chain.produce_block())
             .await
             .expect("Error processing block");
 
-        // Asserting portfolio values after opening sell position
-        {
-            assert_eq!(
-                chain.block_time_naive_utc(),
-                DateTime::parse_from_rfc3339("2022-01-11T00:00:22Z")
-                    .unwrap()
-                    .naive_utc()
-            );
-            let portfolio = user_1
-                .call_api(|token| {
-                    api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
-                })
-                .await;
-            assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                locked_mint_fund_euro_e_amount: 0.into(),
-                invested_value:                 100.into(),
-                current_portfolio_value:        0.into(),
-                yearly_return:                  1200.into(),
-                monthly_return:                 100.into(),
-                return_on_investment:           1300.into(),
-                carbon_tons_offset:             Decimal::ZERO,
-            });
-        }
+        let portfolio = user_1
+            .call_api(|token| api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc())))
+            .await;
+        assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+            locked_mint_fund_euro_e_amount: 0.into(),
+            invested_value:                 800.into(), /* 100 for mint fund and 700 for buying 50 units at 14 price */
+            current_portfolio_value:        1400.into(),
+            yearly_return:                  1200.into(),
+            monthly_return:                 100.into(),
+            return_on_investment:           75.into(),
+            carbon_tons_offset:             Decimal::ZERO,
+        });
     }
 }
 

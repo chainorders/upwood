@@ -5,7 +5,7 @@ use concordium_rust_sdk::types::ContractAddress;
 use rust_decimal::Decimal;
 use security_p2p_trading::Event;
 use shared::db::security_p2p_trading::{
-    P2PTradeContract, Trade, Trader, TradingRecord, TradingRecordType,
+    P2PTradeContract, Trade, Seller, TradingRecord, TradingRecordType,
 };
 use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
@@ -60,8 +60,8 @@ pub fn process_events(
             }
             Event::Sell(event) => {
                 let rate = rate_to_decimal(event.rate.numerator, event.rate.denominator);
-                // Only a single deposit / sell position exists per trader
-                let trader = Trader {
+                // Only a single deposit / sell position exists per seller
+                let trader = Seller {
                     contract_address: contract.to_decimal(),
                     rate,
                     token_amount: event.amount.to_decimal(),
@@ -97,7 +97,7 @@ pub fn process_events(
                 );
             }
             Event::SellCancelled(event) => {
-                let trader = Trader::sub_amount(
+                let trader = Seller::sub_amount(
                     conn,
                     contract.to_decimal(),
                     &event.from,
@@ -129,7 +129,7 @@ pub fn process_events(
                 );
             }
             Event::Exchange(event) => {
-                let trader = Trader::sub_amount(
+                let trader = Seller::sub_amount(
                     conn,
                     contract.to_decimal(),
                     &event.seller,
