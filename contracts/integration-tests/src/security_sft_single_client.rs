@@ -54,6 +54,18 @@ impl SftSingleTestClient {
             contract_name: CONTRACT_NAME.to_owned(),
         }
     }
+
+    pub fn burn_payload(&self, burn_params: &BurnParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.0,
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                CONTRACT_NAME,
+                EntrypointName::new_unchecked("burn"),
+            ),
+            message:      OwnedParameter::from_serial(burn_params).unwrap(),
+        }
+    }
 }
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {

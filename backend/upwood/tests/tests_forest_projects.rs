@@ -792,21 +792,24 @@ pub async fn test_forest_projects() {
         }]);
     }
 
-    // user 1 claim rewards and assert
+    // user 1 claim euro e rewards and assert
     {
-        user_1.transact(|sender| {
-            chain.update(sender, fp_1_contract.claim_rewards_payload(&security_sft_rewards::rewards::ClaimRewardsParams {
-                owner: Receiver::Account(sender),
-                claims: vec![ClaimRewardsParam {
-                    token_id: 1.into(), // received from `forest_project_rewards_claimable` call
-                }]
-            }))
-        }).expect("Failed to claim rewards for user 1");
+        // claiming euro e rewards
+        {
+            user_1.transact(|sender| {
+                chain.update(sender, fp_1_contract.claim_rewards_payload(&security_sft_rewards::rewards::ClaimRewardsParams {
+                    owner: Receiver::Account(sender),
+                    claims: vec![ClaimRewardsParam {
+                        token_id: 1.into(), // received from `forest_project_rewards_claimable` call
+                    }]
+                }))
+            }).expect("Failed to claim euro e rewards for user 1");
 
-        processor
-            .process_block(&mut db_conn, &chain.produce_block())
-            .await
-            .expect("Error processing block");
+            processor
+                .process_block(&mut db_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
+        }
 
         // Asserting total rewards for user 1
         {
@@ -891,16 +894,46 @@ pub async fn test_forest_projects() {
         }
     }
 
+    // user 1 burns claimed carbon credits
+    {
+        // claiming carbon credit rewards
+        {
+            user_1.transact(|sender| {
+                chain.update(sender, fp_1_contract.claim_rewards_payload(&security_sft_rewards::rewards::ClaimRewardsParams {
+                    owner: Receiver::Account(sender),
+                    claims: vec![ClaimRewardsParam {
+                        token_id: 2.into(), // received from `forest_project_rewards_claimable` call
+                    }]
+                }))
+            }).expect("Failed to claim carbon credit rewards for user 1");
+        }
+
+        user_1
+            .transact(|sender| {
+                chain.update(
+                    sender,
+                    carbon_credits.burn_payload(
+                        &concordium_protocols::concordium_cis2_security::BurnParams(vec![
+                            security_sft_single::types::Burn {
+                                amount:   1000.into(),
+                                owner:    sender.into(),
+                                token_id: TokenIdUnit(),
+                            },
+                        ]),
+                    ),
+                )
+            })
+            .expect("Failed to burn carbon credits for user 1");
+        processor
+            .process_block(&mut db_conn, &chain.produce_block())
+            .await
+            .expect("Error processing block");
+    }
+
     // user 1 transfers the forest project units & assertions
     {
         // asserting portfolio values before manual transfer
         {
-            assert_eq!(
-                chain.block_time_naive_utc(),
-                DateTime::parse_from_rfc3339("2022-01-11T00:00:18Z")
-                    .unwrap()
-                    .naive_utc()
-            );
             let portfolio = user_1
                 .call_api(|token| {
                     api.portfolio_aggreagte(token, Some(chain.block_time_naive_utc()))
@@ -913,7 +946,7 @@ pub async fn test_forest_projects() {
                 yearly_return:                  1200.into(),
                 monthly_return:                 100.into(),
                 return_on_investment:           1300.into(),
-                carbon_tons_offset:             Decimal::ZERO,
+                carbon_tons_offset:             1000.into(),
             });
         }
 
@@ -955,7 +988,7 @@ pub async fn test_forest_projects() {
                 yearly_return:                  1200.into(),
                 monthly_return:                 100.into(),
                 return_on_investment:           1300.into(),
-                carbon_tons_offset:             Decimal::ZERO,
+                carbon_tons_offset:             1000.into(),
             });
         }
 
@@ -965,22 +998,13 @@ pub async fn test_forest_projects() {
             let rewards_total = user_1
                 .call_api(|id_token| api.forest_project_rewards_total(id_token))
                 .await;
-            assert_eq!(rewards_total, vec![
-                ForestProjectHolderRewardTotal {
-                    holder_address:          user_1.address().to_string(),
-                    rewarded_token_id:       0.into(),
-                    rewarded_token_contract: carbon_credits.0.to_decimal(),
-                    total_frozen_reward:     Decimal::ZERO,
-                    total_un_frozen_reward:  50000.into(),
-                },
-                ForestProjectHolderRewardTotal {
-                    holder_address:          user_1.address().to_string(),
-                    rewarded_token_id:       0.into(),
-                    rewarded_token_contract: tree_sft.0.to_decimal(),
-                    total_frozen_reward:     Decimal::ZERO,
-                    total_un_frozen_reward:  100.into(),
-                },
-            ]);
+            assert_eq!(rewards_total, vec![ForestProjectHolderRewardTotal {
+                holder_address:          user_1.address().to_string(),
+                rewarded_token_id:       0.into(),
+                rewarded_token_contract: tree_sft.0.to_decimal(),
+                total_frozen_reward:     Decimal::ZERO,
+                total_un_frozen_reward:  100.into(),
+            },]);
         }
 
         // Asserting claimable rewards for user 1
@@ -993,13 +1017,13 @@ pub async fn test_forest_projects() {
                 id: fp_1.id,
                 contract_address: fp_1.contract_address,
                 holder_address: user_1.account_address.clone(),
-                token_id: 2.into(),
+                token_id: 3.into(),
                 rewarded_token_id: 0.into(),
-                rewarded_token_contract: carbon_credits.0.to_decimal(),
+                rewarded_token_contract: tree_sft.0.to_decimal(),
                 frozen_balance: Decimal::ZERO,
                 frozen_reward: Decimal::ZERO,
                 un_frozen_balance: 100.into(),
-                un_frozen_reward: 50000.into(),
+                un_frozen_reward: 100.into(),
             }]);
         }
     }
@@ -1020,7 +1044,7 @@ pub async fn test_forest_projects() {
                 yearly_return:                  1200.into(),
                 monthly_return:                 100.into(),
                 return_on_investment:           1300.into(),
-                carbon_tons_offset:             Decimal::ZERO,
+                carbon_tons_offset:             1000.into(),
             });
         }
 
@@ -1074,7 +1098,7 @@ pub async fn test_forest_projects() {
                 yearly_return:                  1200.into(),
                 monthly_return:                 100.into(),
                 return_on_investment:           1300.into(),
-                carbon_tons_offset:             Decimal::ZERO,
+                carbon_tons_offset:             1000.into(),
             });
         }
 
@@ -1103,7 +1127,7 @@ pub async fn test_forest_projects() {
                 yearly_return:                  1200.into(),
                 monthly_return:                 100.into(),
                 return_on_investment:           1300.into(),
-                carbon_tons_offset:             Decimal::ZERO,
+                carbon_tons_offset:             1000.into(),
             });
         }
     }
@@ -1134,8 +1158,7 @@ pub async fn test_forest_projects() {
                     sender,
                     p2p_trade_1.transfer_sell_payload(&security_p2p_trading::TransferSellParams {
                         amount: TokenAmountU64(50),
-                        rate:   Rate::new(forest_project.latest_price.to_u64().unwrap(), 1)
-                            .unwrap(),
+                        rate:   Rate::new(28, 1).unwrap(), // double the price
                     }),
                 )
             })
@@ -1157,7 +1180,7 @@ pub async fn test_forest_projects() {
             currency_token_id: 0.into(),
             currency_token_contract_address: euroe.0.to_decimal(),
             p2p_trade_contract_address: p2p_trade_1.0.to_decimal(),
-            rate: 14.into(),
+            rate: 28.into(),
             token_amount: 50.into(),
             forest_project_id: fp_1.id,
             forest_project_state: ForestProjectState::Listed,
@@ -1185,7 +1208,7 @@ pub async fn test_forest_projects() {
                     sender,
                     p2p_trade_1.transfer_exchange_payload(
                         &security_p2p_trading::TransferExchangeParams {
-                            pay: TokenAmountU64(700), // 14*50 : buying 50 units at market price
+                            pay: TokenAmountU64(28 * 50), // 28*50 : buying 50 units at double market price = 1400
                             get: security_p2p_trading::ExchangeParams {
                                 from:   seller
                                     .trader_address
@@ -1209,12 +1232,15 @@ pub async fn test_forest_projects() {
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
             locked_mint_fund_euro_e_amount: 0.into(),
-            invested_value:                 800.into(), /* 100 for mint fund and 700 for buying 50 units at 14 price */
-            current_portfolio_value:        1400.into(),
+            invested_value:                 1500.into(), /* 100 for mint fund and 1400 for buying 50 units at 28 price */
+            current_portfolio_value:        1400.into(), // 100 shares at 14 price
             yearly_return:                  1200.into(),
             monthly_return:                 100.into(),
-            return_on_investment:           75.into(),
-            carbon_tons_offset:             Decimal::ZERO,
+            return_on_investment:           ((Decimal::from_u64(1400).unwrap()
+                - Decimal::from_u64(1500).unwrap())
+                / Decimal::from_u64(1500).unwrap())
+                * Decimal::from_u64(100).unwrap(),
+            carbon_tons_offset:             1000.into(),
         });
     }
 }
