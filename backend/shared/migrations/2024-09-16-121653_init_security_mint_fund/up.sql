@@ -1,3 +1,5 @@
+create type security_mint_fund_state as enum ('open', 'success', 'sail');
+
 create table
     security_mint_fund_contracts (
         contract_address numeric(20) primary key not null references listener_contracts (contract_address) on delete cascade,
@@ -8,7 +10,7 @@ create table
         currency_token_contract_address numeric(20) not null,
         currency_token_id numeric(20) not null,
         rate numeric(40, 20) not null,
-        fund_state int not null,
+        fund_state security_mint_fund_state not null,
         receiver_address varchar,
         currency_amount numeric(78) not null default 0,
         token_amount numeric(78) not null default 0,

@@ -14,6 +14,10 @@ pub mod sql_types {
     pub struct SecurityMintFundInvestmentRecordType;
 
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "security_mint_fund_state"))]
+    pub struct SecurityMintFundState;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "security_p2p_trading_record_type"))]
     pub struct SecurityP2pTradingRecordType;
 }
@@ -314,6 +318,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::SecurityMintFundState;
+
     security_mint_fund_contracts (contract_address) {
         contract_address -> Numeric,
         token_contract_address -> Numeric,
@@ -323,7 +330,7 @@ diesel::table! {
         currency_token_contract_address -> Numeric,
         currency_token_id -> Numeric,
         rate -> Numeric,
-        fund_state -> Int4,
+        fund_state -> SecurityMintFundState,
         receiver_address -> Nullable<Varchar>,
         currency_amount -> Numeric,
         token_amount -> Numeric,
@@ -482,16 +489,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    user_affiliate_accounts (account_address) {
-        #[max_length = 255]
-        account_address -> Varchar,
-        #[max_length = 255]
-        cognito_user_id -> Varchar,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     user_affiliates (id) {
         id -> Int4,
         #[max_length = 255]
@@ -523,6 +520,7 @@ diesel::table! {
         #[max_length = 255]
         account_address -> Nullable<Varchar>,
         desired_investment_amount -> Nullable<Int4>,
+        affiliate_commission -> Nullable<Numeric>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -561,8 +559,6 @@ diesel::joinable!(security_sft_rewards_claimed_reward -> listener_contracts (con
 diesel::joinable!(security_sft_rewards_contract_rewards -> listener_contracts (contract_address));
 diesel::joinable!(security_sft_rewards_reward_tokens -> listener_contracts (contract_address));
 diesel::joinable!(support_questions -> users (cognito_user_id));
-diesel::joinable!(user_affiliate_accounts -> users (cognito_user_id));
-diesel::joinable!(user_affiliates -> users (cognito_user_id));
 diesel::joinable!(user_challenges -> users (cognito_user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -605,7 +601,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_sft_rewards_reward_tokens,
     support_questions,
     tree_nft_metadatas,
-    user_affiliate_accounts,
     user_affiliates,
     user_challenges,
     users,

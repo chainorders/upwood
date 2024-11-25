@@ -1,3 +1,5 @@
+drop view if exists affiliate_rewards_view;
+
 drop view if exists user_transactions_view;
 
 drop view if exists forest_project_seller_view;

@@ -182,6 +182,7 @@ impl ForestProject {
 
 diesel::table! {
     use diesel::sql_types::*;
+    use crate::schema::sql_types::SecurityMintFundState;
 
     forest_project_user_view (
         id,
@@ -221,7 +222,7 @@ diesel::table! {
         project_token_frozen_balance -> Nullable<Numeric>,
         project_token_un_frozen_balance -> Nullable<Numeric>,
         mint_fund_rate -> Numeric,
-        mint_fund_state -> Int4,
+        mint_fund_state -> SecurityMintFundState,
         mint_fund_token_contract_address -> Numeric,
         mint_fund_token_id -> Numeric,
         mint_fund_token_is_paused -> Bool,
@@ -378,7 +379,7 @@ impl ForestProjectUser {
                                     .eq(user_account.to_owned())),
                         ),
                 )
-                .filter(forest_project_user_view::mint_fund_state.eq(mint_fund_state))
+                .filter(forest_project_user_view::mint_fund_state.eq(&mint_fund_state))
                 .filter(forest_project_user_view::state.eq(ForestProjectState::Listed))
                 .select(ForestProjectUser::as_select())
                 .order(forest_project_user_view::created_at.desc())
@@ -423,7 +424,7 @@ impl ForestProjectUser {
                                     .eq(user_account.to_owned())),
                         ),
                 )
-                .filter(forest_project_user_view::mint_fund_state.eq(mint_fund_state))
+                .filter(forest_project_user_view::mint_fund_state.eq(&mint_fund_state))
                 .filter(forest_project_user_view::state.eq(ForestProjectState::Listed))
                 .count()
                 .get_result::<i64>(conn)?;

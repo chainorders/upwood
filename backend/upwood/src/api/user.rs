@@ -17,7 +17,7 @@ use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
 use shared::db_app::forest_project::UserTransaction;
 use shared::db_app::user_challenges::UserChallenge;
-use shared::db_app::users::{User, UserAffiliate};
+use shared::db_app::users::{AffiliateReward, User, UserAffiliate};
 use tracing::info;
 
 use crate::api::*;
@@ -88,7 +88,7 @@ impl UserApi {
         Json(req): Json<UserRegistrationInvitationSendReq>,
     ) -> JsonResult<String> {
         let user = user_pool.find_user_by_email(&req.email).await?;
-        let user = if let Some(user) = &user {
+        let user_id = if let Some(user) = &user {
             for attr in user.attributes() {
                 if attr.name().eq("email_verified") && attr.value().eq(&Some("true")) {
                     return Err(Error::BadRequest(PlainText(
@@ -113,10 +113,10 @@ impl UserApi {
 
         if let Some(account) = req.affiliate_account_address()? {
             let mut conn = db_pool.get()?;
-            UserAffiliate::insert(&mut conn, &user, &account)?;
+            UserAffiliate::insert(&mut conn, &user_id, &account)?;
         }
 
-        Ok(Json(user.to_owned()))
+        Ok(Json(user_id.to_owned()))
     }
 
     #[oai(path = "/users", method = "post", tag = "ApiTags::User")]
@@ -148,6 +148,11 @@ impl UserApi {
         if !claims.email_verified() {
             user_pool.set_email_verified(&claims.sub).await?;
         }
+        if req.affiliate_commission > Decimal::ONE || req.affiliate_commission < Decimal::ZERO {
+            return Err(Error::BadRequest(PlainText(
+                "Affiliate commission must be between 0 and 1".to_string(),
+            )));
+        }
 
         let mut conn = db_pool.get()?;
         let user = User {
@@ -155,6 +160,7 @@ impl UserApi {
             cognito_user_id:           claims.sub.to_owned(),
             account_address:           None,
             desired_investment_amount: Some(req.desired_investment_amount),
+            affiliate_commission:      Some(req.affiliate_commission),
         }
         .upsert(&mut conn)?;
         let user = ApiUser::new(
@@ -284,7 +290,11 @@ impl UserApi {
             .update_account_address(&claims.sub, &account_address)
             .await?;
         conn.transaction(|conn| {
-            User::update_account_address(conn, &claims.sub, &account_address)?;
+            let mut user = User::find(conn, &claims.sub)?
+                .ok_or(Error::NotFound(PlainText("User not found".to_string())))?;
+            user.account_address = Some(account_address.to_string());
+            user.affiliate_commission = Some(request.affiliate_commission);
+            user.upsert(conn)?;
             UserChallenge::delete_by_user_id(conn, &claims.sub)?;
             Ok::<_, Error>(())
         })
@@ -503,7 +513,13 @@ impl UserApi {
         user_pool
             .update_account_address(&cognito_user_id, &account_address)
             .await?;
-        User::update_account_address(&mut conn, &cognito_user_id, &account_address)?;
+        {
+            let mut user = User::find(&mut conn, &cognito_user_id)?
+                .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
+            user.account_address = Some(account_address.to_string());
+            user.affiliate_commission = Some(request.affiliate_commission);
+            user.upsert(&mut conn)?;
+        }
         Ok(())
     }
 
@@ -520,6 +536,29 @@ impl UserApi {
     ) -> JsonResult<PagedResponse<UserTransaction>> {
         let mut conn = db_pool.get()?;
         let (users, page_count) = UserTransaction::list(&mut conn, &claims.sub, page, PAGE_SIZE)?;
+
+        Ok(Json(PagedResponse {
+            data: users,
+            page,
+            page_count,
+        }))
+    }
+
+    #[oai(
+        path = "/user/affiliate/rewards/list/:page",
+        method = "get",
+        tag = "ApiTags::Wallet"
+    )]
+    pub async fn user_affiliate_rewards_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<AffiliateReward>> {
+        let account = ensure_account_registered(&claims)?;
+        let mut conn = db_pool.get()?;
+        let (users, page_count) =
+            AffiliateReward::list_by_affiliate(&mut conn, &account.to_string(), page, PAGE_SIZE)?;
 
         Ok(Json(PagedResponse {
             data: users,
@@ -609,7 +648,8 @@ impl AdminUser {
 
 #[derive(Serialize, Object)]
 pub struct UserUpdateAccountAddressRequest {
-    pub account_address: String,
+    pub account_address:      String,
+    pub affiliate_commission: Decimal,
 }
 
 impl UserUpdateAccountAddressRequest {
@@ -623,6 +663,7 @@ impl UserUpdateAccountAddressRequest {
 #[derive(Serialize, Object)]
 pub struct UserRegisterReq {
     pub desired_investment_amount: i32,
+    pub affiliate_commission:      Decimal,
 }
 
 #[derive(Serialize, Object)]
@@ -668,7 +709,8 @@ pub struct CreateChallengeResponse {
 
 #[derive(Object)]
 pub struct UpdateAccountAddressReq {
-    pub proof: serde_json::Value,
+    pub proof:                serde_json::Value,
+    pub affiliate_commission: Decimal,
 }
 impl UpdateAccountAddressReq {
     pub fn proof(&self) -> Result<concordium::identity::Presentation> {

@@ -337,3 +337,27 @@ from
 join users on t.account_address = users.account_address
 order by
     txn_time desc;
+
+
+create or replace view affiliate_rewards_view as
+select
+    projects.id as forest_project_id,
+    funds.contract_address as fund_contract_address,
+    records.investor,
+    records.currency_amount,
+    investor_user.email as investor_email,
+    affiliate.affiliate_account_address as affiliate_account_address,
+    users.email as affiliate_email,
+    users.affiliate_commission as affiliate_commission,
+    records.currency_amount * users.affiliate_commission as affiliate_reward
+from
+    forest_projects as projects
+    join security_mint_fund_contracts as funds on projects.mint_fund_contract_address = funds.contract_address
+    and funds.fund_state = 'success'
+    join security_mint_fund_investment_records as records on funds.contract_address = records.contract_address
+    and records.investment_record_type = 'claimed'
+    join users investor_user on records.investor = investor_user.account_address
+    join user_affiliates as affiliate on investor_user.cognito_user_id = affiliate.cognito_user_id
+    join users on affiliate.affiliate_account_address = users.account_address
+    and users.affiliate_commission is not null
+    and users.affiliate_commission > 0;

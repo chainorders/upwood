@@ -36,6 +36,7 @@ use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectSeller, ForestProjectState,
     ForestProjectUserHolderReward, HolderReward, UserTransaction,
 };
+use shared::db_app::users::AffiliateReward;
 use shared::db_shared::{DbConn, DbPool};
 use test_log::test;
 use test_utils::test_api::ApiTestClient;
@@ -44,7 +45,9 @@ use test_utils::test_cognito::CognitoTestClient;
 use test_utils::test_user::UserTestClient;
 use upwood::api;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
-use upwood::api::user::UserRegisterReq;
+use upwood::api::user::{
+    UserRegisterReq, UserRegistrationInvitationSendReq, UserUpdateAccountAddressRequest,
+};
 use uuid::Uuid;
 
 const PASS_GENERATOR: PasswordGenerator = PasswordGenerator::new()
@@ -157,15 +160,15 @@ pub async fn test_forest_projects() {
         .map(NftMultiRewardedTestClient)
         .expect("Failed to init tree nft contract");
 
-    let (db_config, _container) = shared_tests::create_new_database_container().await;
-    shared::db_setup::run_migrations(&db_config.db_url());
-    // let db_config = shared_tests::PostgresTestConfig {
-    //     postgres_db:       "concordium_rwa_dev".to_string(),
-    //     postgres_host:     "localhost".to_string(),
-    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
-    //     postgres_port:     5432,
-    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
-    // };
+    // let (db_config, _container) = shared_tests::create_new_database_container().await;
+    // shared::db_setup::run_migrations(&db_config.db_url());
+    let db_config = shared_tests::PostgresTestConfig {
+        postgres_db:       "concordium_rwa_dev".to_string(),
+        postgres_host:     "localhost".to_string(),
+        postgres_password: "concordium_rwa_dev_pswd".to_string(),
+        postgres_port:     5432,
+        postgres_user:     "concordium_rwa_dev_user".to_string(),
+    };
 
     let db_url = db_config.db_url();
     let pool: DbPool = r2d2::Pool::builder()
@@ -262,6 +265,8 @@ pub async fn test_forest_projects() {
         &admin,
         &euroe,
         &identity_registry,
+        None,
+        Decimal::from_f64(0.05).unwrap(), // charging 5% for user affiliations
         1,
     )
     .await;
@@ -274,6 +279,8 @@ pub async fn test_forest_projects() {
         &admin,
         &euroe,
         &identity_registry,
+        Some(user_1.account_address.clone()),
+        0.into(),
         2,
     )
     .await;
@@ -1245,7 +1252,7 @@ pub async fn test_forest_projects() {
         });
     }
 
-    // user 1 transactions addertions
+    // user 1 transactions assertions
     {
         let user_1_txns = user_1
             .call_api(|token| api.txn_history_list(token, 0))
@@ -1317,6 +1324,25 @@ pub async fn test_forest_projects() {
                     .naive_utc(),
             },
         ]);
+    }
+
+    // user 1 affiliate assertions
+    {
+        let affiliate_rewards = user_1
+            .call_api(|token| api.user_affiliate_rewards_list(token, 0))
+            .await;
+        assert_eq!(affiliate_rewards.data.len(), 1);
+        assert_eq!(affiliate_rewards.data[0], AffiliateReward {
+            forest_project_id:         fp_1.id,
+            investor:                  user_2.account_address,
+            investor_email:            user_2.email.clone(),
+            fund_contract_address:     fp_1.mint_fund_contract_address.unwrap(),
+            currency_amount:           200.into(),
+            affiliate_commission:      Decimal::from_f64(0.05).unwrap(),
+            affiliate_reward:          10.into(),
+            affiliate_account_address: user_1.account_address.clone(),
+            affiliate_email:           user_1.email.clone(),
+        });
     }
 }
 
@@ -1586,6 +1612,8 @@ pub async fn create_user(
     admin: &UserTestClient,
     euroe: &EuroETestClient,
     identity_registry: &IdentityRegistryTestClient,
+    affiliate_account_address: Option<String>,
+    user_affiliate_fees: Decimal,
     index: u8,
 ) -> UserTestClient {
     let user = chain.create_account(AccountAddress([100 + index; 32]), DEFAULT_ACCOUNT_BALANCE);
@@ -1595,6 +1623,8 @@ pub async fn create_user(
         admin,
         format!("user_{}_{}@yopmail.com", index, test_id),
         user,
+        affiliate_account_address,
+        user_affiliate_fees,
     )
     .await;
     admin
@@ -1634,7 +1664,7 @@ pub async fn create_login_api_admin(
     email: String,
     account: Account,
 ) -> UserTestClient {
-    let (user_id, password) = create_api_user(api, cognito, &email).await;
+    let (user_id, password) = create_api_user(api, cognito, &email, None).await;
     cognito.admin_add_to_admin_group(&user_id).await;
     let id_token = cognito.user_login(&email, &password).await;
     let admin = UserTestClient {
@@ -1644,9 +1674,14 @@ pub async fn create_login_api_admin(
         id_token,
         account_address: "".to_string(),
     };
+
+    let update_account_req = UserUpdateAccountAddressRequest {
+        account_address:      account.address_str().clone(),
+        affiliate_commission: Decimal::ZERO,
+    };
     admin
         .call_api(|id_token| {
-            api.admin_user_update_account_address(id_token, user_id.clone(), account.address_str())
+            api.admin_user_update_account_address(id_token, user_id.clone(), &update_account_req)
         })
         .await;
 
@@ -1661,12 +1696,19 @@ pub async fn create_login_api_user(
     cognito: &mut CognitoTestClient,
     admin: &UserTestClient,
     email: String,
-    account: Account,
+    user_account: Account,
+    affiliate_account_address: Option<String>,
+    user_affiliate_fees: Decimal,
 ) -> UserTestClient {
-    let (user_id, password) = create_api_user(api, cognito, &email).await;
+    let (user_id, password) =
+        create_api_user(api, cognito, &email, affiliate_account_address).await;
+    let update_account_req = UserUpdateAccountAddressRequest {
+        account_address:      user_account.address_str().clone(),
+        affiliate_commission: user_affiliate_fees,
+    };
     admin
         .call_api(|id_token| {
-            api.admin_user_update_account_address(id_token, user_id.clone(), account.address_str())
+            api.admin_user_update_account_address(id_token, user_id.clone(), &update_account_req)
         })
         .await
         .assert_status_is_ok();
@@ -1677,7 +1719,7 @@ pub async fn create_login_api_user(
         email,
         password,
         id_token,
-        account_address: account.address_str(),
+        account_address: user_account.address_str(),
     }
 }
 
@@ -1685,8 +1727,14 @@ async fn create_api_user(
     api: &mut ApiTestClient,
     cognito: &mut CognitoTestClient,
     email: &str,
+    affiliate_account_address: Option<String>,
 ) -> (String, String) {
-    let user_id = api.user_send_invitation(email).await;
+    let user_id = api
+        .user_send_invitation(&UserRegistrationInvitationSendReq {
+            email: email.to_string(),
+            affiliate_account_address,
+        })
+        .await;
     let temp_password = PASS_GENERATOR.generate_one().unwrap();
     // This is needed just to ensure that temp passwords match
     // API call sets random passwords for Cognito users (It it set by Cognito)
@@ -1699,6 +1747,7 @@ async fn create_api_user(
         .await;
     api.user_register(id_token, &UserRegisterReq {
         desired_investment_amount: 100,
+        affiliate_commission:      Decimal::ZERO,
     })
     .await;
     (user_id, password)

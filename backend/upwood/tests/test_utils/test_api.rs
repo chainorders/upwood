@@ -7,6 +7,7 @@ use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectPrice,
     ForestProjectSeller, ForestProjectState, ForestProjectUser, HolderReward, UserTransaction,
 };
+use shared::db_app::users::AffiliateReward;
 use upwood::api;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
 use upwood::api::user::{
@@ -27,14 +28,14 @@ impl ApiTestClient {
         Self { client: api }
     }
 
-    pub async fn user_send_invitation(&mut self, email: &str) -> String {
+    pub async fn user_send_invitation(
+        &mut self,
+        req: &UserRegistrationInvitationSendReq,
+    ) -> String {
         let mut invitation_res = self
             .client
             .post("/users/invitation")
-            .body_json(&UserRegistrationInvitationSendReq {
-                email:                     email.to_owned(),
-                affiliate_account_address: None,
-            })
+            .body_json(req)
             .send()
             .await
             .0;
@@ -109,13 +110,11 @@ impl ApiTestClient {
         &mut self,
         id_token: String,
         cognito_user_id: String,
-        account_address: String,
+        req: &UserUpdateAccountAddressRequest,
     ) -> TestResponse {
         self.client
             .put(format!("/admin/users/{}/account_address", cognito_user_id))
-            .body_json(&UserUpdateAccountAddressRequest {
-                account_address: account_address.to_owned(),
-            })
+            .body_json(req)
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await
@@ -174,6 +173,25 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse list txn history response")
+    }
+
+    pub async fn user_affiliate_rewards_list(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<AffiliateReward> {
+        let res = self
+            .client
+            .get(format!("/user/affiliate/rewards/list/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list affiliate rewards response")
     }
 }
 

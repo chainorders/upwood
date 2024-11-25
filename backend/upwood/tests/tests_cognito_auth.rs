@@ -3,11 +3,15 @@ mod test_utils;
 use concordium_smart_contract_testing::AccountAddress;
 use passwords::PasswordGenerator;
 use poem::http::StatusCode;
+use rust_decimal::Decimal;
 use test_utils::test_api::ApiTestClient;
 use test_utils::test_cognito::CognitoTestClient;
 use tracing_test::traced_test;
 use upwood::api;
-use upwood::api::user::{AdminUser, ApiUser, UserRegisterReq};
+use upwood::api::user::{
+    AdminUser, ApiUser, UserRegisterReq, UserRegistrationInvitationSendReq,
+    UserUpdateAccountAddressRequest,
+};
 use uuid::Uuid;
 
 #[traced_test]
@@ -44,7 +48,12 @@ async fn cognito_auth_test() {
     let email = format!("cognito_auth_test_{}@yopmail.com", Uuid::new_v4());
     let password_temp = pass_generator.generate_one().unwrap();
 
-    let user_id = api.user_send_invitation(&email).await;
+    let user_id = api
+        .user_send_invitation(&UserRegistrationInvitationSendReq {
+            email:                     email.clone(),
+            affiliate_account_address: None,
+        })
+        .await;
     // This is needed just to ensure that temp passwords match
     // API call sets random passwords for Cognito users (It it set by Cognito)
     cognito
@@ -63,6 +72,7 @@ async fn cognito_auth_test() {
     let user_update = api
         .user_register(id_token.clone(), &UserRegisterReq {
             desired_investment_amount: 100,
+            affiliate_commission:      Decimal::ZERO,
         })
         .await;
     let user = api.user_self(id_token).await;
@@ -94,7 +104,10 @@ async fn cognito_auth_test() {
     api.admin_user_update_account_address(
         id_token,
         user.cognito_user_id.clone(),
-        account_address.clone(),
+        &UserUpdateAccountAddressRequest {
+            account_address:      account_address.clone(),
+            affiliate_commission: Decimal::ZERO,
+        },
     )
     .await;
     println!("updated account address: {}", user.cognito_user_id);

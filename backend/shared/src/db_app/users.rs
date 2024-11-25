@@ -1,5 +1,7 @@
 use concordium_rust_sdk::id::types::AccountAddress;
 use diesel::prelude::*;
+use poem_openapi::Object;
+use rust_decimal::Decimal;
 use tracing::instrument;
 
 use crate::db_shared::{DbConn, DbResult};
@@ -14,6 +16,7 @@ pub struct User {
     pub email:                     String,
     pub account_address:           Option<String>,
     pub desired_investment_amount: Option<i32>,
+    pub affiliate_commission:      Option<Decimal>,
 }
 
 impl User {
@@ -58,7 +61,7 @@ impl User {
             .offset(page * page_size)
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
-        let page_count = (count + page_size - 1) / page_size;
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
         Ok((users, page_count))
     }
 
@@ -118,5 +121,55 @@ impl UserAffiliate {
             .returning(UserAffiliate::as_returning())
             .get_result(conn)?;
         Ok(res)
+    }
+}
+
+diesel::table! {
+    affiliate_rewards_view (forest_project_id) {
+        forest_project_id -> Uuid,
+        fund_contract_address -> Numeric,
+        investor -> Text,
+        currency_amount -> Decimal,
+        investor_email -> Text,
+        affiliate_account_address -> Text,
+        affiliate_email -> Text,
+        affiliate_commission -> Decimal,
+        affiliate_reward -> Decimal,
+    }
+}
+
+#[derive(Object, Selectable, Queryable, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[diesel(table_name = affiliate_rewards_view)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct AffiliateReward {
+    pub forest_project_id:         uuid::Uuid,
+    pub fund_contract_address:     Decimal,
+    pub investor:                  String,
+    pub currency_amount:           Decimal,
+    pub investor_email:            String,
+    pub affiliate_account_address: String,
+    pub affiliate_email:           String,
+    pub affiliate_commission:      Decimal,
+    pub affiliate_reward:          Decimal,
+}
+
+impl AffiliateReward {
+    pub fn list_by_affiliate(
+        conn: &mut DbConn,
+        affiliate_account_address: &str,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<AffiliateReward>, i64)> {
+        let rewards = affiliate_rewards_view::table
+            .filter(affiliate_rewards_view::affiliate_account_address.eq(affiliate_account_address))
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+        let count: i64 = affiliate_rewards_view::table
+            .filter(affiliate_rewards_view::affiliate_account_address.eq(affiliate_account_address))
+            .count()
+            .get_result(conn)?;
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((rewards, page_count))
     }
 }

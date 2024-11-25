@@ -3,14 +3,10 @@ use std::ops::{Add, Sub};
 use chrono::NaiveDateTime;
 // use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::id::types::AccountAddress;
-use diesel::deserialize::{FromSql, FromSqlRow};
-use diesel::expression::AsExpression;
 use diesel::prelude::*;
-use diesel::serialize::ToSql;
-use diesel::sql_types::Integer;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tracing::{debug, instrument};
 use uuid::Uuid;
 
@@ -21,35 +17,21 @@ use crate::schema::{
     security_mint_fund_investors,
 };
 
-#[repr(i32)]
-#[derive(FromSqlRow, Debug, AsExpression, Clone, Copy, PartialEq, Enum, Serialize, Deserialize)]
-#[diesel(sql_type = Integer)]
+#[derive(
+    diesel_derive_enum::DbEnum,
+    Debug,
+    PartialEq,
+    Enum,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::SecurityMintFundState"]
 pub enum SecurityMintFundState {
-    Open    = 0,
-    Success = 1,
-    Fail    = 2,
-}
-
-impl FromSql<Integer, diesel::pg::Pg> for SecurityMintFundState {
-    fn from_sql(bytes: diesel::pg::PgValue<'_>) -> diesel::deserialize::Result<Self> {
-        let value = i32::from_sql(bytes)?;
-        match value {
-            0 => Ok(SecurityMintFundState::Open),
-            1 => Ok(SecurityMintFundState::Success),
-            2 => Ok(SecurityMintFundState::Fail),
-            _ => Err(format!("Unknown call type: {}", value).into()),
-        }
-    }
-}
-
-impl ToSql<Integer, diesel::pg::Pg> for SecurityMintFundState {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut diesel::serialize::Output<'b, '_, diesel::pg::Pg>,
-    ) -> diesel::serialize::Result {
-        let v = *self as i32;
-        <i32 as ToSql<Integer, diesel::pg::Pg>>::to_sql(&v, &mut out.reborrow())
-    }
+    Open,
+    Success,
+    Fail,
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object, Serialize)]
