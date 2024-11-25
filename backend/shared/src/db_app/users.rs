@@ -1,4 +1,5 @@
 use concordium_rust_sdk::id::types::AccountAddress;
+use diesel::dsl::Nullable;
 use diesel::prelude::*;
 use poem_openapi::Object;
 use rust_decimal::Decimal;
@@ -126,22 +127,31 @@ impl UserAffiliate {
 
 diesel::table! {
     affiliate_rewards_view (forest_project_id) {
+        investment_record_id -> Uuid,
         forest_project_id -> Uuid,
         fund_contract_address -> Numeric,
         investor -> Text,
-        currency_amount -> Decimal,
+        currency_amount -> Numeric,
         investor_email -> Text,
         affiliate_account_address -> Text,
         affiliate_email -> Text,
-        affiliate_commission -> Decimal,
-        affiliate_reward -> Decimal,
+        affiliate_commission -> Numeric,
+        reward_amount -> Numeric,
+        claim_id -> Nullable<Uuid>,
+        claimed_reward_amount -> Nullable<Numeric>,
+        remaining_reward_amount -> Nullable<Numeric>,
+        investment_time -> Timestamp,
     }
 }
 
-#[derive(Object, Selectable, Queryable, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Object, Selectable, Queryable, Debug, PartialEq, serde::Serialize, serde::Deserialize, Clone,
+)]
 #[diesel(table_name = affiliate_rewards_view)]
+#[diesel(primary_key(investment_record_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct AffiliateReward {
+    pub investment_record_id:      uuid::Uuid,
     pub forest_project_id:         uuid::Uuid,
     pub fund_contract_address:     Decimal,
     pub investor:                  String,
@@ -150,7 +160,11 @@ pub struct AffiliateReward {
     pub affiliate_account_address: String,
     pub affiliate_email:           String,
     pub affiliate_commission:      Decimal,
-    pub affiliate_reward:          Decimal,
+    pub reward_amount:             Decimal,
+    pub claim_id:                  Option<uuid::Uuid>,
+    pub claimed_reward_amount:     Option<Decimal>,
+    pub remaining_reward_amount:   Option<Decimal>,
+    pub investment_time:           chrono::NaiveDateTime,
 }
 
 impl AffiliateReward {
@@ -164,6 +178,7 @@ impl AffiliateReward {
             .filter(affiliate_rewards_view::affiliate_account_address.eq(affiliate_account_address))
             .limit(page_size)
             .offset(page * page_size)
+            .order_by(affiliate_rewards_view::investment_time.desc())
             .get_results(conn)?;
         let count: i64 = affiliate_rewards_view::table
             .filter(affiliate_rewards_view::affiliate_account_address.eq(affiliate_account_address))
@@ -171,5 +186,16 @@ impl AffiliateReward {
             .get_result(conn)?;
         let page_count = (count as f64 / page_size as f64).ceil() as i64;
         Ok((rewards, page_count))
+    }
+
+    pub fn find(
+        conn: &mut DbConn,
+        investment_record_id: &uuid::Uuid,
+    ) -> DbResult<Option<AffiliateReward>> {
+        affiliate_rewards_view::table
+            .filter(affiliate_rewards_view::investment_record_id.eq(investment_record_id))
+            .select(AffiliateReward::as_select())
+            .first(conn)
+            .optional()
     }
 }

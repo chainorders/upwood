@@ -7,6 +7,8 @@ default-run = "upwood_api_server"
 [dependencies]
 shared = { path = "../shared" }
 nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
+offchain-rewards = { path = "../../contracts/offchain-rewards" }
+concordium-cis2 = { workspace = true }
 poem-openapi = { workspace = true, features = [
     "swagger-ui",
     "chrono",

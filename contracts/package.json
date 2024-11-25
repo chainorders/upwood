@@ -15,7 +15,8 @@
     "security-mint-fund",
     "nft-multi-rewarded",
     "integration-tests",
-    "utils"
+    "utils",
+    "offchain-rewards"
   ],
   "scripts": {
     "format": "yarn workspaces foreach -Ap --include 'contracts/*' run format",

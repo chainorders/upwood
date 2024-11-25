@@ -72,6 +72,8 @@ pub struct Config {
     pub euro_e_contract_index: Decimal,
     pub tree_ft_contract_index: Decimal,
     pub tree_nft_contract_index: Decimal,
+    pub offchain_rewards_contract_index: Decimal,
+    pub offchain_rewards_agent_wallet_json_str: String,
     pub files_bucket_name: String,
     pub files_presigned_url_expiry_secs: u64,
     pub filebase_s3_endpoint_url: String,
@@ -160,6 +162,21 @@ impl Config {
         }
     }
 
+    pub fn offchain_rewards_agent_wallet(&self) -> WalletAccount {
+        WalletAccount::from_json_str(&self.offchain_rewards_agent_wallet_json_str)
+            .expect("Failed to parse Offchain Rewards Agent Wallet JSON")
+    }
+
+    pub fn offchain_rewards_agent(&self) -> user::OffchainRewardsAgent {
+        user::OffchainRewardsAgent(self.offchain_rewards_agent_wallet())
+    }
+
+    pub fn offchain_rewards_config(&self) -> user::OffchainRewardsConfig {
+        user::OffchainRewardsConfig {
+            agent: Arc::new(self.offchain_rewards_agent()),
+        }
+    }
+
     pub fn ipfs_files_bucket(&self) -> ipfs::filebase::FilesBucket {
         ipfs::filebase::FilesBucket::new(
             self.filebase_s3_endpoint_url.clone(),
@@ -188,6 +205,7 @@ impl Config {
             euro_e_token_id:                  cis2::TokenId::new_unchecked(vec![]).to_decimal(),
             tree_ft_contract_index:           self.tree_ft_contract_index,
             tree_nft_contract_index:          self.tree_nft_contract_index,
+            offchain_rewards_contract_index:  self.offchain_rewards_contract_index,
         }
     }
 
@@ -226,6 +244,7 @@ pub async fn create_web_app(config: Config) -> Route {
         .with(AddData::new(config.contracts_config()))
         .with(AddData::new(config.user_challenge_config()))
         .with(AddData::new(config.tree_nft_config()))
+        .with(AddData::new(config.offchain_rewards_config()))
         .with(Cors::new())
         .after(|f| async move {
             match f {
@@ -397,6 +416,7 @@ pub struct SystemContractsConfig {
     pub euro_e_token_id:                  Decimal,
     pub tree_ft_contract_index:           Decimal,
     pub tree_nft_contract_index:          Decimal,
+    pub offchain_rewards_contract_index:  Decimal,
 }
 
 impl SystemContractsConfig {
@@ -422,5 +442,9 @@ impl SystemContractsConfig {
 
     pub fn tree_nft(&self) -> ContractAddress {
         ContractAddress::new(self.tree_nft_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn offchain_rewards(&self) -> ContractAddress {
+        ContractAddress::new(self.offchain_rewards_contract_index.to_u64().unwrap(), 0)
     }
 }

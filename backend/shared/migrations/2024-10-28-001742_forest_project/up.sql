@@ -343,13 +343,18 @@ create or replace view affiliate_rewards_view as
 select
     projects.id as forest_project_id,
     funds.contract_address as fund_contract_address,
+    records.id as investment_record_id,
     records.investor,
     records.currency_amount,
     investor_user.email as investor_email,
     affiliate.affiliate_account_address as affiliate_account_address,
     users.email as affiliate_email,
     users.affiliate_commission as affiliate_commission,
-    records.currency_amount * users.affiliate_commission as affiliate_reward
+    records.currency_amount * users.affiliate_commission as reward_amount,
+    claims.id as claim_id,
+    claims.reward_amount as claimed_reward_amount,
+    records.currency_amount * users.affiliate_commission - claims.reward_amount as remaining_reward_amount,
+    records.create_time as investment_time
 from
     forest_projects as projects
     join security_mint_fund_contracts as funds on projects.mint_fund_contract_address = funds.contract_address
@@ -360,4 +365,5 @@ from
     join user_affiliates as affiliate on investor_user.cognito_user_id = affiliate.cognito_user_id
     join users on affiliate.affiliate_account_address = users.account_address
     and users.affiliate_commission is not null
-    and users.affiliate_commission > 0;
+    and users.affiliate_commission > 0
+    left join offchain_reward_claims claims on claims.reward_id = decode(replace(records.id::text, '-', ''), 'hex');

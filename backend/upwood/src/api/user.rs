@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 
 use chrono::Utc;
+use concordium::account::Signer;
 use concordium::identity::Presentation;
+use concordium_cis2::{TokenAmountU64, TokenIdUnit};
+use concordium_rust_sdk::base::contracts_common::AccountSignatures;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::Address;
 use concordium_rust_sdk::v2::BlockIdentifier;
@@ -15,6 +18,7 @@ use poem_openapi::{Object, OpenApi};
 use serde::Serialize;
 use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
+use shared::db::offchain_rewards::{OffchainRewardClaim, OffchainRewardee};
 use shared::db_app::forest_project::UserTransaction;
 use shared::db_app::user_challenges::UserChallenge;
 use shared::db_app::users::{AffiliateReward, User, UserAffiliate};
@@ -567,6 +571,58 @@ impl UserApi {
         }))
     }
 
+    #[oai(
+        path = "/user/affiliate/rewards/claim/:investment_record_id",
+        method = "get",
+        tag = "ApiTags::Wallet"
+    )]
+    pub async fn user_affiliate_rewards_claim(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Data(config): Data<&OffchainRewardsConfig>,
+        Path(investment_record_id): Path<uuid::Uuid>,
+    ) -> JsonResult<ClaimRequest> {
+        let account = ensure_account_registered(&claims)?;
+        let mut conn = db_pool.get()?;
+        let reward = AffiliateReward::find(&mut conn, &investment_record_id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Reward not found".to_string())))?;
+        let remaining_reward_amount = reward
+            .remaining_reward_amount
+            .unwrap_or(reward.reward_amount);
+        if remaining_reward_amount.is_zero() {
+            return Err(Error::BadRequest(PlainText(
+                "Reward already claimed".to_string(),
+            )));
+        }
+        let nonce = OffchainRewardee::find(
+            &mut conn,
+            contracts.offchain_rewards_contract_index,
+            &account.to_string(),
+        )?
+        .map(|r| r.nonce)
+        .unwrap_or(Decimal::ZERO);
+        let claim = ClaimInfo {
+            account:               account.to_string(),
+            account_nonce:         nonce.to_u64().unwrap(),
+            contract_address:      contracts.offchain_rewards_contract_index,
+            reward_id:             reward.investment_record_id.as_bytes().to_vec(),
+            reward_amount:         remaining_reward_amount,
+            reward_token_id:       "".to_string(),
+            reward_token_contract: contracts.euro_e_contract_index,
+        };
+        let signature = hash_and_sign(&claim, &config.agent)?;
+        let signature = serde_json::to_value(signature).map_err(|_| {
+            Error::InternalServer(PlainText("Failed to serialize signature".to_string()))
+        })?;
+        Ok(Json(ClaimRequest {
+            claim,
+            signer: config.agent.address().to_string(),
+            signature,
+        }))
+    }
+
     #[oai(path = "/system_config", method = "get", tag = "ApiTags::User")]
     pub async fn system_config(
         &self,
@@ -574,6 +630,86 @@ impl UserApi {
     ) -> JsonResult<SystemContractsConfig> {
         Ok(Json(contracts.clone()))
     }
+}
+
+#[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ClaimRequest {
+    pub claim:     ClaimInfo,
+    pub signer:    String,
+    /// Json serialized `AccountSignatures`
+    pub signature: serde_json::Value,
+}
+
+#[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ClaimInfo {
+    pub contract_address:      Decimal,
+    pub account:               String,
+    pub account_nonce:         u64,
+    pub reward_id:             Vec<u8>,
+    pub reward_token_id:       String,
+    pub reward_token_contract: Decimal,
+    pub reward_amount:         Decimal,
+}
+
+impl ClaimInfo {
+    pub fn hash<T>(&self, hasher: T) -> std::result::Result<[u8; 32], HashError>
+    where T: FnOnce(Vec<u8>) -> [u8; 32] {
+        let internal = ::offchain_rewards::types::ClaimInfo {
+            contract_address:      ContractAddress::new(
+                self.contract_address
+                    .to_u64()
+                    .expect("unable to convert contract address to u64"),
+                0,
+            ),
+            account:               self.account.parse().map_err(|_| HashError::AccountParse)?,
+            account_nonce:         self.account_nonce,
+            reward_id:             self.reward_id.clone(),
+            reward_amount:         TokenAmountU64(
+                self.reward_amount
+                    .to_u64()
+                    .expect("unable to convert reward amount to u64"),
+            ),
+            reward_token_id:       TokenIdUnit(),
+            reward_token_contract: ContractAddress::new(
+                self.reward_token_contract
+                    .to_u64()
+                    .expect("unable to convert reward token contract to u64"),
+                0,
+            ),
+        };
+        let hash = internal.hash(hasher).map_err(|_| HashError::Hash)?;
+        Ok(hash)
+    }
+}
+
+fn hash_and_sign(claim: &ClaimInfo, agent: &OffchainRewardsAgent) -> Result<AccountSignatures> {
+    let hash = claim.hash(hasher)?;
+    let signature = agent.sign(&hash);
+    Ok(signature)
+}
+
+pub struct OffchainRewardsAgent(pub WalletAccount);
+impl Signer for OffchainRewardsAgent {
+    fn wallet(&self) -> &WalletAccount { &self.0 }
+}
+
+#[derive(Debug)]
+pub enum HashError {
+    ContractParse,
+    AccountParse,
+    MetadataUrlHexDecode,
+    Hash,
+}
+
+impl From<HashError> for Error {
+    fn from(val: HashError) -> Self {
+        Error::InternalServer(PlainText(format!("Hash Error: {val:?}")))
+    }
+}
+
+#[derive(Clone)]
+pub struct OffchainRewardsConfig {
+    pub agent: Arc<OffchainRewardsAgent>,
 }
 
 #[derive(Object, Serialize, Deserialize, PartialEq, Debug)]

@@ -12,7 +12,10 @@ use concordium_protocols::concordium_cis2_security::{Identity, TokenUId};
 use concordium_protocols::rate::Rate;
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
 use concordium_rwa_identity_registry::types::IdentityAttribute;
-use concordium_smart_contract_testing::{AccountAddress, Amount, Energy};
+use concordium_smart_contract_testing::{
+    AccountAccessStructure, AccountAddress, AccountBalance, AccountKeys, Amount, ContractAddress,
+    Energy,
+};
 use diesel::r2d2::ConnectionManager;
 use events_listener::processors::cis2_utils::ContractAddressToDecimal;
 use events_listener::processors::Processors;
@@ -21,6 +24,7 @@ use integration_tests::compliance::{ComplianceTestClient, NationalitiesModuleTes
 use integration_tests::euroe::{EuroETestClient, RoleTypes};
 use integration_tests::identity_registry::IdentityRegistryTestClient;
 use integration_tests::nft_multi_rewarded_client::NftMultiRewardedTestClient;
+use integration_tests::offchain_rewards_client::OffchainRewardsTestClient;
 use integration_tests::security_mint_fund_client::MintFundTestClient;
 use integration_tests::security_p2p_trading_client::P2PTradeTestClient;
 use integration_tests::security_sft_rewards_client::SftRewardsTestClient;
@@ -36,7 +40,6 @@ use shared::db_app::forest_project::{
     ForestProject, ForestProjectHolderRewardTotal, ForestProjectSeller, ForestProjectState,
     ForestProjectUserHolderReward, HolderReward, UserTransaction,
 };
-use shared::db_app::users::AffiliateReward;
 use shared::db_shared::{DbConn, DbPool};
 use test_log::test;
 use test_utils::test_api::ApiTestClient;
@@ -159,6 +162,17 @@ pub async fn test_forest_projects() {
         })
         .map(NftMultiRewardedTestClient)
         .expect("Failed to init tree nft contract");
+    let offchain_rewards = admin
+        .transact(|account| {
+            chain.init(
+                account,
+                OffchainRewardsTestClient::init_payload(&offchain_rewards::types::InitParam {
+                    treasury: admin.address().into(),
+                }),
+            )
+        })
+        .map(OffchainRewardsTestClient)
+        .expect("Failed to init offchain rewards contract");
 
     // let (db_config, _container) = shared_tests::create_new_database_container().await;
     // shared::db_setup::run_migrations(&db_config.db_url());
@@ -225,12 +239,17 @@ pub async fn test_forest_projects() {
         identity_registry_contract_index: identity_registry.0.to_decimal(),
         tree_ft_contract_index: tree_sft.0.to_decimal(),
         tree_nft_contract_index: tree_nft.0.to_decimal(),
+        offchain_rewards_contract_index: offchain_rewards.0.to_decimal(),
         filebase_access_key_id: "".into(),
         filebase_secret_access_key: "".into(),
         files_presigned_url_expiry_secs: 0,
         tree_nft_agent_wallet_json_str: AGENT_WALLET_JSON_STR.to_string(),
+        offchain_rewards_agent_wallet_json_str: AGENT_WALLET_JSON_STR.to_string(),
         user_challenge_expiry_duration_mins: 0,
     };
+    let offchain_agent_account_address = api_config.offchain_rewards_agent_wallet().address;
+    let offchain_agent_account_keys = api_config.offchain_rewards_agent_wallet().keys;
+
     let mut api = ApiTestClient::new(api_config.clone()).await;
     let aws_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let mut cognito = CognitoTestClient::new(
@@ -1260,7 +1279,7 @@ pub async fn test_forest_projects() {
         assert_eq!(user_1_txns.data, vec![
             UserTransaction {
                 cognito_user_id: user_1.id.clone(),
-                txn_hash:        "daceee899cdb68711b2b16b1708d684b193062163a2ef8ca80e5a3f002212822"
+                txn_hash:        "6b0e4bfa8dc9b19ccc121b2bd0d22da7298d7a4d72b4ba1df1bbec5d56800a66"
                     .to_string(),
                 txn_type:        "p2p_trading".to_string(),
                 txn_subtype:     "exchange_buy".to_string(),
@@ -1273,7 +1292,7 @@ pub async fn test_forest_projects() {
             },
             UserTransaction {
                 cognito_user_id: user_1.id.clone(),
-                txn_hash:        "ae3c8b8d99a39542f78af83dbbb42c81cd94199ec1b5f60a0801063e95842570"
+                txn_hash:        "d596e806d34bd7d4304b9f00ec340f02fa90c4faa17fe39729cb15c76e0de77f"
                     .to_string(),
                 txn_type:        "p2p_trading".to_string(),
                 txn_subtype:     "sell_cancel".to_string(),
@@ -1286,7 +1305,7 @@ pub async fn test_forest_projects() {
             },
             UserTransaction {
                 cognito_user_id: user_1.id.clone(),
-                txn_hash:        "c8d26116ed30f9816a05fdf061b2535145472f388d9814e96f33f08369dbcbd0"
+                txn_hash:        "ae3c8b8d99a39542f78af83dbbb42c81cd94199ec1b5f60a0801063e95842570"
                     .to_string(),
                 txn_type:        "p2p_trading".to_string(),
                 txn_subtype:     "sell".to_string(),
@@ -1299,7 +1318,7 @@ pub async fn test_forest_projects() {
             },
             UserTransaction {
                 cognito_user_id: user_1.id.clone(),
-                txn_hash:        "560231689713a5933b6c8ac3e6b2f243730e49e1c6b0c610c41e8e8dad26044c"
+                txn_hash:        "fe5b0deca006174e2151088e1a7d60fe91819467db5d709ae5a19c01a3cd3e3f"
                     .to_string(),
                 txn_type:        "mint_fund".to_string(),
                 txn_subtype:     "claimed".to_string(),
@@ -1312,7 +1331,7 @@ pub async fn test_forest_projects() {
             },
             UserTransaction {
                 cognito_user_id: user_1.id.clone(),
-                txn_hash:        "c1c3c8fdf22e3a4adef796c8fdaf739d7d3b222f995891eb8f495ca71fb932a8"
+                txn_hash:        "688e94a51ee508a95e761294afb7a6004b432c15d9890c80ddf23bde8caa4c26"
                     .to_string(),
                 txn_type:        "mint_fund".to_string(),
                 txn_subtype:     "invested".to_string(),
@@ -1326,23 +1345,130 @@ pub async fn test_forest_projects() {
         ]);
     }
 
-    // user 1 affiliate assertions
+    // admin adds agent to offchain rewards
     {
-        let affiliate_rewards = user_1
-            .call_api(|token| api.user_affiliate_rewards_list(token, 0))
-            .await;
-        assert_eq!(affiliate_rewards.data.len(), 1);
-        assert_eq!(affiliate_rewards.data[0], AffiliateReward {
-            forest_project_id:         fp_1.id,
-            investor:                  user_2.account_address,
-            investor_email:            user_2.email.clone(),
-            fund_contract_address:     fp_1.mint_fund_contract_address.unwrap(),
-            currency_amount:           200.into(),
-            affiliate_commission:      Decimal::from_f64(0.05).unwrap(),
-            affiliate_reward:          10.into(),
-            affiliate_account_address: user_1.account_address.clone(),
-            affiliate_email:           user_1.email.clone(),
-        });
+        chain.create_account_with_keys(
+            offchain_agent_account_address,
+            offchain_agent_account_keys,
+            DEFAULT_ACCOUNT_BALANCE,
+        );
+
+        admin
+            .transact(|sender| {
+                chain.update(
+                    sender,
+                    offchain_rewards.add_agent_payload(&offchain_rewards::types::Agent {
+                        address: offchain_agent_account_address.into(),
+                    }),
+                )
+            })
+            .expect("Failed to add agent to offchain rewards");
+        admin
+            .transact(|sender| {
+                chain.update(
+                    sender,
+                    euroe
+                        .cis2()
+                        .update_operator_payload(&UpdateOperatorParams(vec![UpdateOperator {
+                            operator: offchain_rewards.0.into(),
+                            update:   OperatorUpdate::Add,
+                        }])),
+                )
+            })
+            .expect("Failed to update euroe operator for offchain rewards");
+    }
+
+    // user 1 affiliate rewards
+    {
+        // Asserting affiliate rewards for user 1
+        let reward = {
+            let affiliate_rewards = user_1
+                .call_api(|token| api.user_affiliate_rewards_list(token, 0))
+                .await;
+            assert_eq!(affiliate_rewards.data.len(), 1);
+            assert_eq!(affiliate_rewards.data[0].currency_amount, 200.into());
+            assert_eq!(
+                affiliate_rewards.data[0].affiliate_commission,
+                Decimal::from_f64(0.05).unwrap()
+            );
+            assert_eq!(affiliate_rewards.data[0].reward_amount, 10.into());
+            assert_eq!(affiliate_rewards.data[0].remaining_reward_amount, None);
+            assert_eq!(
+                affiliate_rewards.data[0].affiliate_account_address,
+                user_1.account_address
+            );
+
+            affiliate_rewards.data[0].clone()
+        };
+
+        // Claiming affiliate rewards for user 1
+        {
+            let claim_req = user_1
+                .call_api(|token| {
+                    api.user_affiliate_rewards_claim(token, reward.investment_record_id)
+                })
+                .await;
+
+            user_1
+                .transact(|sender| {
+                    chain.update(
+                        sender,
+                        offchain_rewards.claim_reward_payload(
+                            &offchain_rewards::types::ClaimRequest {
+                                claim:     offchain_rewards::types::ClaimInfo {
+                                    account:               claim_req.claim.account.parse().unwrap(),
+                                    account_nonce:         claim_req.claim.account_nonce,
+                                    contract_address:      ContractAddress::new(
+                                        claim_req.claim.contract_address.to_u64().unwrap(),
+                                        0,
+                                    ),
+                                    reward_id:             claim_req.claim.reward_id,
+                                    reward_amount:         TokenAmountU64(
+                                        claim_req.claim.reward_amount.to_u64().unwrap(),
+                                    ),
+                                    reward_token_id:       TokenIdUnit(),
+                                    reward_token_contract: ContractAddress::new(
+                                        claim_req.claim.reward_token_contract.to_u64().unwrap(),
+                                        0,
+                                    ),
+                                },
+                                signer:    claim_req.signer.parse().unwrap(),
+                                signature: serde_json::from_value(claim_req.signature)
+                                    .expect("signature deserialization"),
+                            },
+                        ),
+                    )
+                })
+                .expect("Failed to claim affiliate rewards for user 1");
+
+            processor
+                .process_block(&mut db_conn, &chain.produce_block())
+                .await
+                .expect("Error processing block");
+        }
+
+        // Asserting affiliate rewards for user 1 after claiming
+        {
+            let affiliate_rewards = user_1
+                .call_api(|token| api.user_affiliate_rewards_list(token, 0))
+                .await;
+            assert_eq!(affiliate_rewards.data.len(), 1);
+            assert_eq!(affiliate_rewards.data[0].currency_amount, 200.into());
+            assert_eq!(
+                affiliate_rewards.data[0].affiliate_commission,
+                Decimal::from_f64(0.05).unwrap()
+            );
+            assert_eq!(affiliate_rewards.data[0].reward_amount, 10.into());
+            // remaining reward amount should be 0 after claiming
+            assert_eq!(
+                affiliate_rewards.data[0].remaining_reward_amount,
+                Some(0.into())
+            );
+            assert_eq!(
+                affiliate_rewards.data[0].affiliate_account_address,
+                user_1.account_address
+            );
+        }
     }
 }
 
@@ -1601,6 +1727,9 @@ pub fn deploy_modules(chain: &mut Chain, chain_admin: &Account) {
     chain_admin
         .transact(|account| chain.deploy_module(account, SftRewardsTestClient::module()))
         .expect("Failed to deploy security p2p trade module");
+    chain_admin
+        .transact(|account| chain.deploy_module(account, OffchainRewardsTestClient::module()))
+        .expect("Failed to deploy offchain rewards module");
 }
 
 #[allow(clippy::too_many_arguments)]

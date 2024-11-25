@@ -308,6 +308,50 @@ diesel::table! {
 }
 
 diesel::table! {
+    offchain_reward_claims (id) {
+        id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
+        contract_address -> Numeric,
+        reward_id -> Bytea,
+        account_address -> Varchar,
+        nonce -> Numeric,
+        reward_amount -> Numeric,
+        reward_token_id -> Numeric,
+        reward_token_contract_address -> Numeric,
+        create_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    offchain_reward_contract_agents (contract_address, agent_address) {
+        contract_address -> Numeric,
+        agent_address -> Varchar,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    offchain_rewardees (contract_address, account_address) {
+        contract_address -> Numeric,
+        account_address -> Varchar,
+        nonce -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    offchain_rewards_contracts (contract_address) {
+        contract_address -> Numeric,
+        treasury_address -> Varchar,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
     platform_updates (id) {
         id -> Uuid,
         title -> Varchar,
@@ -549,6 +593,8 @@ diesel::joinable!(identity_registry_issuers -> listener_contracts (identity_regi
 diesel::joinable!(listener_contract_calls -> listener_contracts (contract_address));
 diesel::joinable!(nft_multi_address_nonces -> nft_multi_rewarded_contracts (contract_address));
 diesel::joinable!(nft_multi_rewarded_contracts -> listener_contracts (contract_address));
+diesel::joinable!(offchain_reward_contract_agents -> offchain_rewards_contracts (contract_address));
+diesel::joinable!(offchain_rewardees -> offchain_rewards_contracts (contract_address));
 diesel::joinable!(security_mint_fund_investment_records -> security_mint_fund_contracts (contract_address));
 diesel::joinable!(security_mint_fund_investors -> security_mint_fund_contracts (contract_address));
 diesel::joinable!(security_p2p_trading_contracts -> listener_contracts (contract_address));
@@ -588,6 +634,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     news_articles,
     nft_multi_address_nonces,
     nft_multi_rewarded_contracts,
+    offchain_reward_claims,
+    offchain_reward_contract_agents,
+    offchain_rewardees,
+    offchain_rewards_contracts,
     platform_updates,
     security_mint_fund_contracts,
     security_mint_fund_investment_records,

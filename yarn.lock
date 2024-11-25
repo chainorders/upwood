@@ -3082,6 +3082,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"concordium-offchain-rewards@workspace:contracts/offchain-rewards":
+  version: 0.0.0-use.local
+  resolution: "concordium-offchain-rewards@workspace:contracts/offchain-rewards"
+  languageName: unknown
+  linkType: soft
+
 "concordium-rwa-compliance@workspace:contracts/compliance":
   version: 0.0.0-use.local
   resolution: "concordium-rwa-compliance@workspace:contracts/compliance"

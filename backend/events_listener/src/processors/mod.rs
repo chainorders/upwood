@@ -14,6 +14,7 @@ use tracing::{debug, info, instrument, trace, warn};
 pub mod cis2_utils;
 mod identity_registry;
 mod nft_multi_rewarded;
+mod offchain_rewards;
 mod security_mint_fund;
 mod security_p2p_trading;
 mod security_sft_rewards;
@@ -62,6 +63,9 @@ pub enum ProcessorError {
         contract:       Decimal,
         token_id:       Decimal,
     },
+
+    #[error("Contract already exists: {0}")]
+    ContractAlreadyExists(ContractAddress),
 }
 
 pub type ProcessorFnType = fn(
@@ -122,6 +126,12 @@ impl Processors {
             security_p2p_trading::contract_name(),
             ProcessorType::SecurityP2PTrading,
             security_p2p_trading::process_events as ProcessorFnType,
+        );
+        processors.insert(
+            offchain_rewards::module_ref(),
+            offchain_rewards::contract_name(),
+            ProcessorType::OffchainRewards,
+            offchain_rewards::process_events as ProcessorFnType,
         );
 
         processors

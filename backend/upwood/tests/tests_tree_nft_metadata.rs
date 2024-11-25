@@ -393,6 +393,7 @@ fn setup_chain(
         identity_registry_contract_index: ir_contract.contract_address.to_decimal(),
         tree_ft_contract_index:           sft.contract_address.to_decimal(),
         tree_nft_contract_index:          nft.contract_address.to_decimal(),
+        offchain_rewards_contract_index:  Decimal::ZERO,
     };
 
     (system_contracts, contract_calls)

@@ -1,6 +1,7 @@
 pub mod cis2_security;
 pub mod identity_registry;
 pub mod nft_multi_rewarded;
+pub mod offchain_rewards;
 pub mod security_mint_fund;
 pub mod security_p2p_trading;
 pub mod security_sft_rewards;

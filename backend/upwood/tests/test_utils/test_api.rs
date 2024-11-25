@@ -11,7 +11,7 @@ use shared::db_app::users::AffiliateReward;
 use upwood::api;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
 use upwood::api::user::{
-    AdminUser, ApiUser, UserRegisterReq, UserRegistrationInvitationSendReq,
+    AdminUser, ApiUser, ClaimRequest, UserRegisterReq, UserRegistrationInvitationSendReq,
     UserUpdateAccountAddressRequest,
 };
 use uuid::Uuid;
@@ -192,6 +192,28 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse list affiliate rewards response")
+    }
+
+    pub async fn user_affiliate_rewards_claim(
+        &mut self,
+        id_token: String,
+        investment_record_id: Uuid,
+    ) -> ClaimRequest {
+        let res = self
+            .client
+            .get(format!(
+                "/user/affiliate/rewards/claim/{}",
+                investment_record_id
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse claim affiliate rewards response")
     }
 }
 

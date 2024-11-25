@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::base::smart_contracts::WasmModule;
 use concordium_smart_contract_testing::{
-    AccountAddress, Amount, ContractAddress, ContractInitError, ContractInvokeError,
-    ContractInvokeSuccess, Duration, Energy, InitContractPayload, ModuleDeployError,
-    ModuleDeploySuccess, Signer, UpdateContractPayload,
+    AccountAccessStructure, AccountAddress, AccountBalance, AccountKeys, Amount, ContractAddress,
+    ContractInitError, ContractInvokeError, ContractInvokeSuccess, Duration, Energy,
+    InitContractPayload, ModuleDeployError, ModuleDeploySuccess, Signer, UpdateContractPayload,
 };
 use events_listener::listener::{ParsedBlock, ParsedTxn};
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
@@ -42,6 +42,22 @@ impl Chain {
         balance: Amount,
     ) -> Account {
         let account = concordium_smart_contract_testing::Account::new(address, balance);
+        let existing = self.chain.create_account(account.clone());
+        assert!(existing.is_none());
+        Account(account)
+    }
+
+    pub fn create_account_with_keys(
+        &mut self,
+        address: concordium_smart_contract_testing::AccountAddress,
+        keys: AccountKeys,
+        balance: Amount,
+    ) -> Account {
+        let account = concordium_smart_contract_testing::Account::new_with_keys(
+            address,
+            AccountBalance::new(balance, Amount::zero(), Amount::zero()).unwrap(),
+            AccountAccessStructure::from(&keys),
+        );
         let existing = self.chain.create_account(account.clone());
         assert!(existing.is_none());
         Account(account)

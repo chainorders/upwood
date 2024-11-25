@@ -74,7 +74,8 @@
 					"security-p2p-trading/Cargo.toml",
 					"security-mint-fund/Cargo.toml",
 					"nft-multi-rewarded/Cargo.toml",
-					"utils/Cargo.toml"
+					"utils/Cargo.toml",
+					"offchain-rewards/Cargo.toml"
 				]
 			},
 			"extensions": [

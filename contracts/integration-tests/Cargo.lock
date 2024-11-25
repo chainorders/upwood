@@ -1392,6 +1392,7 @@ dependencies = [
  "concordium-std",
  "concordium_base",
  "nft-multi-rewarded",
+ "offchain-rewards",
  "security-mint-fund",
  "security-p2p-trading",
  "security-sft-rewards",
@@ -1631,6 +1632,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aedf0a2d09c573ed1d8d85b30c119153926a2b36dce0ab28322c09a117a4683e"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "offchain-rewards"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-protocols",
+ "concordium-rwa-utils",
+ "concordium-std",
+ "hex",
 ]
 
 [[package]]

@@ -186,6 +186,7 @@ impl ListenerError {
                 contract: _,
                 token_id: _,
             }) => false,
+            ListenerError::ProcessorError(ProcessorError::ContractAlreadyExists(_)) => false,
         }
     }
 }
