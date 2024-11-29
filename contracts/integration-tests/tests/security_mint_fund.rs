@@ -362,8 +362,8 @@ fn create_wrapped_token_contract(
 ) -> std::result::Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError>
 {
     security_sft_single_client::init(chain, admin, &security_sft_single::types::InitParam {
-        compliance:        compliance_contract,
-        identity_registry: ir_contract,
+        compliance:        Some(compliance_contract),
+        identity_registry: Some(ir_contract),
         metadata_url:      ContractMetadataUrl {
             hash: None,
             url:  WRAPPED_TOKEN_METADATA_URL.to_string(),

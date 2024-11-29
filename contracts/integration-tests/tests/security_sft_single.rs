@@ -892,8 +892,8 @@ fn create_token_contract(
     ir_contract: ContractAddress,
 ) -> (ContractInitSuccess, ModuleReference, OwnedContractName) {
     security_sft_single_client::init(chain, admin, &InitParam {
-        compliance:        compliance_contract,
-        identity_registry: ir_contract,
+        compliance:        Some(compliance_contract),
+        identity_registry: Some(ir_contract),
         metadata_url:      ContractMetadataUrl {
             hash: None,
             url:  METADATA_URL.to_string(),

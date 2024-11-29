@@ -84,8 +84,8 @@ pub use concordium_cis2_security::RecoverParam;
 
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {
-    pub identity_registry: ContractAddress,
-    pub compliance:        ContractAddress,
+    pub identity_registry: Option<ContractAddress>,
+    pub compliance:        Option<ContractAddress>,
     pub sponsors:          Option<ContractAddress>,
     pub metadata_url:      ContractMetadataUrl,
 }

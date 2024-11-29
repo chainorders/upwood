@@ -58,8 +58,8 @@ impl<S: HasStateApi> AddressState<S> {
 /// Represents the state of the security NFT contract.
 pub struct State<S=StateApi> {
     pub token:             TokenState,
-    pub identity_registry: ContractAddress,
-    pub compliance:        ContractAddress,
+    pub identity_registry: Option<ContractAddress>,
+    pub compliance:        Option<ContractAddress>,
     pub addresses:         StateMap<Address, AddressState<S>, S>,
     pub sponsor:           Option<ContractAddress>,
 }

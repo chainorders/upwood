@@ -32,7 +32,7 @@ pub fn mint(
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
-    let identity_registry_client = state.identity_registry;
+    let identity_registry = state.identity_registry;
 
     for MintParam {
         address: owner,
@@ -41,18 +41,22 @@ pub fn mint(
     {
         let owner = Address::Account(owner);
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        ensure!(
-            identity_registry_client::is_verified(host, &identity_registry_client, &owner)?,
-            Error::UnVerifiedIdentity
-        );
+        if let Some(identity_registry) = identity_registry {
+            ensure!(
+                identity_registry_client::is_verified(host, &identity_registry, &owner)?,
+                Error::UnVerifiedIdentity
+            );
+        }
         let compliance_token = TokenUId::new(params.token_id, self_address);
-        let compliance_can_transfer =
-            compliance_client::can_transfer(host, &compliance, &CanTransferParam {
-                token_id: compliance_token,
-                amount,
-                to: owner,
-            })?;
-        ensure!(compliance_can_transfer, Error::InCompliantTransfer);
+        if let Some(compliance) = compliance {
+            let compliance_can_transfer =
+                compliance_client::can_transfer(host, &compliance, &CanTransferParam {
+                    token_id: compliance_token,
+                    amount,
+                    to: owner,
+                })?;
+            ensure!(compliance_can_transfer, Error::InCompliantTransfer);
+        }
 
         let (state, state_builder) = host.state_and_builder();
         {
@@ -66,11 +70,13 @@ pub fn mint(
             state.token.add_assign_supply(amount)?;
         }
 
-        compliance_client::minted(host, &compliance, &MintedParam {
-            token_id: TokenUId::new(params.token_id, self_address),
-            amount,
-            owner,
-        })?;
+        if let Some(compliance) = compliance {
+            compliance_client::minted(host, &compliance, &MintedParam {
+                token_id: TokenUId::new(params.token_id, self_address),
+                amount,
+                owner,
+            })?;
+        }
 
         logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
             token_id: params.token_id,

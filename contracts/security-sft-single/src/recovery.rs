@@ -29,10 +29,12 @@ pub fn recover(
             .is_some_and(|a| a.has_roles(&[AgentRole::HolderRecovery]))
     });
     ensure!(is_authorized, Error::Unauthorized);
-    ensure!(
-        identity_registry_client::is_verified(host, &state.identity_registry, &new_account)?,
-        Error::UnVerifiedIdentity
-    );
+    if let Some(identity_registry) = state.identity_registry {
+        ensure!(
+            identity_registry_client::is_verified(host, &identity_registry, &new_account)?,
+            Error::UnVerifiedIdentity
+        );
+    }
 
     let (state, state_builder) = host.state_and_builder();
     let lost_holder = state

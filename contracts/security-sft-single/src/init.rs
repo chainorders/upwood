@@ -54,10 +54,14 @@ pub fn init(
         },
     };
 
-    logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
-        state.identity_registry,
-    )))?;
-    logger.log(&Event::ComplianceAdded(ComplianceAdded(state.compliance)))?;
+    if let Some(identity_regitsry) = state.identity_registry {
+        logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
+            identity_regitsry,
+        )))?;
+    }
+    if let Some(compliance) = state.compliance {
+        logger.log(&Event::ComplianceAdded(ComplianceAdded(compliance)))?;
+    }
     logger.log(&Event::AgentAdded(AgentUpdatedEvent {
         agent: owner,
         roles: AgentRole::owner_roles(),
@@ -83,7 +87,7 @@ pub fn init(
 pub fn identity_registry(
     _: &ReceiveContext,
     host: &Host<State>,
-) -> ContractResult<ContractAddress> {
+) -> ContractResult<Option<ContractAddress>> {
     Ok(host.state().identity_registry)
 }
 
@@ -116,7 +120,7 @@ pub fn set_identity_registry(
     ensure!(is_authorized, Error::Unauthorized);
 
     let identity_registry: ContractAddress = ctx.parameter_cursor().get()?;
-    host.state_mut().identity_registry = identity_registry;
+    host.state_mut().identity_registry = Some(identity_registry);
     logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
         identity_registry,
     )))?;
@@ -134,7 +138,10 @@ pub fn set_identity_registry(
     name = "compliance",
     return_value = "ContractAddress"
 )]
-pub fn compliance(_: &ReceiveContext, host: &Host<State>) -> ContractResult<ContractAddress> {
+pub fn compliance(
+    _: &ReceiveContext,
+    host: &Host<State>,
+) -> ContractResult<Option<ContractAddress>> {
     Ok(host.state().compliance)
 }
 
@@ -173,7 +180,7 @@ pub fn set_compliance(
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance: ContractAddress = ctx.parameter_cursor().get()?;
-    host.state_mut().compliance = compliance;
+    host.state_mut().compliance = Some(compliance);
     logger.log(&Event::ComplianceAdded(ComplianceAdded(compliance)))?;
 
     Ok(())

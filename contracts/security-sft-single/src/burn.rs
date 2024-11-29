@@ -35,7 +35,7 @@ pub fn burn(
     let sender = ctx.sender();
     let params: BurnParams = ctx.parameter_cursor().get()?;
     let state = host.state();
-    let compliance: ContractAddress = state.compliance;
+    let compliance = state.compliance;
 
     for Burn {
         token_id,
@@ -56,11 +56,14 @@ pub fn burn(
 
         state.sub_assign_supply(&token_id, amount)?;
 
-        compliance_client::burned(host, &compliance, &BurnedParam {
-            token_id: TokenUId::new(token_id, ctx.self_address()),
-            amount,
-            owner,
-        })?;
+        if let Some(compliance) = compliance {
+            compliance_client::burned(host, &compliance, &BurnedParam {
+                token_id: TokenUId::new(token_id, ctx.self_address()),
+                amount,
+                owner,
+            })?;
+        }
+
         logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
             amount,
             token_id,
@@ -106,7 +109,7 @@ pub fn forced_burn(
     });
     ensure!(is_authorized, Error::Unauthorized);
 
-    let compliance: ContractAddress = state.compliance;
+    let compliance = state.compliance;
 
     for Burn {
         token_id,
@@ -126,11 +129,13 @@ pub fn forced_burn(
 
         state.sub_assign_supply(&token_id, amount)?;
 
-        compliance_client::burned(host, &compliance, &BurnedParam {
-            token_id: TokenUId::new(token_id, ctx.self_address()),
-            amount,
-            owner,
-        })?;
+        if let Some(compliance) = compliance {
+            compliance_client::burned(host, &compliance, &BurnedParam {
+                token_id: TokenUId::new(token_id, ctx.self_address()),
+                amount,
+                owner,
+            })?;
+        }
         logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
             amount,
             token_id,

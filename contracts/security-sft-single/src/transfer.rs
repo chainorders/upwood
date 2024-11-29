@@ -77,19 +77,23 @@ pub fn transfer(
     } in transfers
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        ensure!(
-            identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
-            Error::UnVerifiedIdentity
-        );
-        let compliance_token = TokenUId::new(token_id, self_address);
-        let compliance_can_transfer =
-            compliance_client::can_transfer(host, &compliance, &CanTransferParam {
-                token_id: compliance_token,
-                to: to.address(),
-                amount,
-            })?;
-        ensure!(compliance_can_transfer, Error::InCompliantTransfer);
+        if let Some(identity_registry) = identity_registry {
+            ensure!(
+                identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
+                Error::UnVerifiedIdentity
+            );
+        }
 
+        let compliance_token = TokenUId::new(token_id, self_address);
+        if let Some(compliance) = compliance {
+            let compliance_can_transfer =
+                compliance_client::can_transfer(host, &compliance, &CanTransferParam {
+                    token_id: compliance_token,
+                    to: to.address(),
+                    amount,
+                })?;
+            ensure!(compliance_can_transfer, Error::InCompliantTransfer);
+        }
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
         let is_paused = state.token.paused;
@@ -111,12 +115,14 @@ pub fn transfer(
             to_holder.add_assign_balance(&token_id, amount);
         }
 
-        compliance_client::transferred(host, &compliance, &TransferredParam {
-            token_id: compliance_token,
-            from,
-            to: to.address(),
-            amount,
-        })?;
+        if let Some(compliance) = compliance {
+            compliance_client::transferred(host, &compliance, &TransferredParam {
+                token_id: compliance_token,
+                from,
+                to: to.address(),
+                amount,
+            })?;
+        }
 
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
@@ -195,13 +201,15 @@ pub fn forced_transfer(
         data,
     } in params.0
     {
-        ensure!(
-            identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
-            Error::UnVerifiedIdentity
-        );
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-
         let compliance_token = TokenUId::new(token_id, self_address);
+
+        if let Some(identity_registry) = identity_registry {
+            ensure!(
+                identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
+                Error::UnVerifiedIdentity
+            );
+        }
 
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
@@ -223,12 +231,14 @@ pub fn forced_transfer(
             to_holder.add_assign_balance(&token_id, amount);
         }
 
-        compliance_client::transferred(host, &compliance, &TransferredParam {
-            token_id: compliance_token,
-            from,
-            to: to.address(),
-            amount,
-        })?;
+        if let Some(compliance) = compliance {
+            compliance_client::transferred(host, &compliance, &TransferredParam {
+                token_id: compliance_token,
+                from,
+                to: to.address(),
+                amount,
+            })?;
+        }
 
         if un_frozen_amount.gt(&TokenAmount::zero()) {
             logger.log(&Event::TokenUnFrozen(TokenFrozen {
