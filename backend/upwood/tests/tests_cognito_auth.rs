@@ -72,7 +72,6 @@ async fn cognito_auth_test() {
     let user_update = api
         .user_register(id_token.clone(), &UserRegisterReq {
             desired_investment_amount: 100,
-            affiliate_commission:      Decimal::ZERO,
         })
         .await;
     let user = api.user_self(id_token).await;
@@ -101,7 +100,7 @@ async fn cognito_auth_test() {
     // Enhancement: mock the broswer wallet in order to create identity proofs
     println!("updating account address: {}", user.cognito_user_id);
     let account_address = AccountAddress([1; 32]).to_string();
-    api.admin_user_update_account_address(
+    api.admin_update_account_address(
         id_token,
         user.cognito_user_id.clone(),
         &UserUpdateAccountAddressRequest {

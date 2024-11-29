@@ -4,7 +4,7 @@ create table
         email varchar(255) not null,
         account_address varchar(255),
         desired_investment_amount integer,
-        affiliate_commission Numeric(6, 5),
+        affiliate_commission Numeric(6, 5) not null,
         created_at timestamptz not null default now (),
         updated_at timestamptz not null default now ()
     );

@@ -1178,7 +1178,7 @@ diesel::table! {
 }
 
 #[derive(Queryable, Insertable, Debug, PartialEq, Object, serde::Serialize, Deserialize)]
-#[table_name = "user_transactions_view"]
+#[diesel(table_name = user_transactions_view)]
 pub struct UserTransaction {
     pub cognito_user_id: String,
     pub txn_hash:        String,

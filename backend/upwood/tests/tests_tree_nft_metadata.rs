@@ -341,8 +341,8 @@ fn setup_chain(
 
     let (sft, sft_module_ref, sft_contract_name) =
         security_sft_single_client::init(chain, admin, &security_sft_single::types::InitParam {
-            compliance:        compliance.contract_address,
-            identity_registry: ir_contract.contract_address,
+            compliance:        Some(compliance.contract_address),
+            identity_registry: Some(ir_contract.contract_address),
             sponsors:          None,
             metadata_url:      ContractMetadataUrl {
                 url:  REWARD_SFT_METADATA.to_string(),

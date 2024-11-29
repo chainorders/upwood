@@ -12,10 +12,7 @@ use concordium_protocols::concordium_cis2_security::{Identity, TokenUId};
 use concordium_protocols::rate::Rate;
 use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
 use concordium_rwa_identity_registry::types::IdentityAttribute;
-use concordium_smart_contract_testing::{
-    AccountAccessStructure, AccountAddress, AccountBalance, AccountKeys, Amount, ContractAddress,
-    Energy,
-};
+use concordium_smart_contract_testing::{AccountAddress, Amount, ContractAddress, Energy};
 use diesel::r2d2::ConnectionManager;
 use events_listener::processors::cis2_utils::ContractAddressToDecimal;
 use events_listener::processors::Processors;
@@ -117,8 +114,8 @@ pub async fn test_forest_projects() {
             chain.init(
                 account,
                 SftSingleTestClient::init_payload(&security_sft_single::types::InitParam {
-                    compliance:        compliance_contract.0,
-                    identity_registry: identity_registry.0,
+                    compliance:        None,
+                    identity_registry: None,
                     sponsors:          None,
                     metadata_url:
                         concordium_protocols::concordium_cis2_ext::ContractMetadataUrl {
@@ -135,8 +132,8 @@ pub async fn test_forest_projects() {
             chain.init(
                 account,
                 SftSingleTestClient::init_payload(&security_sft_single::types::InitParam {
-                    compliance:        compliance_contract.0,
-                    identity_registry: identity_registry.0,
+                    compliance:        Some(compliance_contract.0),
+                    identity_registry: Some(identity_registry.0),
                     sponsors:          None,
                     metadata_url:
                         concordium_protocols::concordium_cis2_ext::ContractMetadataUrl {
@@ -174,15 +171,15 @@ pub async fn test_forest_projects() {
         .map(OffchainRewardsTestClient)
         .expect("Failed to init offchain rewards contract");
 
-    // let (db_config, _container) = shared_tests::create_new_database_container().await;
-    // shared::db_setup::run_migrations(&db_config.db_url());
-    let db_config = shared_tests::PostgresTestConfig {
-        postgres_db:       "concordium_rwa_dev".to_string(),
-        postgres_host:     "localhost".to_string(),
-        postgres_password: "concordium_rwa_dev_pswd".to_string(),
-        postgres_port:     5432,
-        postgres_user:     "concordium_rwa_dev_user".to_string(),
-    };
+    let (db_config, _container) = shared_tests::create_new_database_container().await;
+    shared::db_setup::run_migrations(&db_config.db_url());
+    // let db_config = shared_tests::PostgresTestConfig {
+    //     postgres_db:       "concordium_rwa_dev".to_string(),
+    //     postgres_host:     "localhost".to_string(),
+    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
+    //     postgres_port:     5432,
+    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
+    // };
 
     let db_url = db_config.db_url();
     let pool: DbPool = r2d2::Pool::builder()
@@ -195,6 +192,7 @@ pub async fn test_forest_projects() {
         .await
         .expect("Error processing block");
 
+    // Setting up euro contract
     {
         admin
             .transact(|account| {
@@ -210,6 +208,17 @@ pub async fn test_forest_projects() {
                 )
             })
             .expect("Failed to grant euroe roles");
+        admin
+            .transact(|account| {
+                chain.update(
+                    account,
+                    euroe.mint_payload(&integration_tests::euroe::MintParams {
+                        amount: TokenAmountU64(1_000_000_000),
+                        owner:  admin.address().into(),
+                    }),
+                )
+            })
+            .expect("Failed to mint euroe for admin");
         processor
             .process_block(&mut db_conn, &chain.produce_block())
             .await
@@ -246,6 +255,7 @@ pub async fn test_forest_projects() {
         tree_nft_agent_wallet_json_str: AGENT_WALLET_JSON_STR.to_string(),
         offchain_rewards_agent_wallet_json_str: AGENT_WALLET_JSON_STR.to_string(),
         user_challenge_expiry_duration_mins: 0,
+        affiliate_commission: Decimal::from_f64(0.05).unwrap(),
     };
     let offchain_agent_account_address = api_config.offchain_rewards_agent_wallet().address;
     let offchain_agent_account_keys = api_config.offchain_rewards_agent_wallet().keys;
@@ -257,17 +267,7 @@ pub async fn test_forest_projects() {
         api_config.aws_user_pool_id,
         api_config.aws_user_pool_client_id,
     );
-    admin
-        .transact(|account| {
-            chain.update(
-                account,
-                euroe.mint_payload(&integration_tests::euroe::MintParams {
-                    amount: TokenAmountU64(1_000_000_000),
-                    owner:  admin.address().into(),
-                }),
-            )
-        })
-        .expect("Failed to mint euroe for admin");
+
     let admin = create_login_api_admin(
         &mut api,
         &mut cognito,
@@ -282,8 +282,6 @@ pub async fn test_forest_projects() {
         &mut api,
         &mut cognito,
         &admin,
-        &euroe,
-        &identity_registry,
         None,
         Decimal::from_f64(0.05).unwrap(), // charging 5% for user affiliations
         1,
@@ -296,8 +294,6 @@ pub async fn test_forest_projects() {
         &mut api,
         &mut cognito,
         &admin,
-        &euroe,
-        &identity_registry,
         Some(user_1.account_address.clone()),
         0.into(),
         2,
@@ -321,7 +317,7 @@ pub async fn test_forest_projects() {
     .await;
 
     // Adding forest project as a registered holder in Identity Registry
-    // This is needed so that Forest Project Contract can hold Carbon Credits
+    // This is needed so that Forest Project Contract can hold Tree SFT Rewards
     admin
         .transact(|sender| {
             chain.update(
@@ -1386,7 +1382,7 @@ pub async fn test_forest_projects() {
                 .call_api(|token| api.user_affiliate_rewards_list(token, 0))
                 .await;
             assert_eq!(affiliate_rewards.data.len(), 1);
-            assert_eq!(affiliate_rewards.data[0].currency_amount, 200.into());
+            assert_eq!(affiliate_rewards.data[0].currency_amount, 200.into()); // Amount invested by user 2 in euroe
             assert_eq!(
                 affiliate_rewards.data[0].affiliate_commission,
                 Decimal::from_f64(0.05).unwrap()
@@ -1564,8 +1560,8 @@ async fn create_forest_project(
             chain.init(
                 account,
                 SftSingleTestClient::init_payload(&security_sft_single::types::InitParam {
-                    compliance:        compliance_contract.0,
-                    identity_registry: identity_registry.0,
+                    compliance:        Some(compliance_contract.0),
+                    identity_registry: Some(identity_registry.0),
                     sponsors:          None,
                     metadata_url:
                         concordium_protocols::concordium_cis2_ext::ContractMetadataUrl {
@@ -1739,8 +1735,6 @@ pub async fn create_user(
     api: &mut ApiTestClient,
     cognito: &mut CognitoTestClient,
     admin: &UserTestClient,
-    euroe: &EuroETestClient,
-    identity_registry: &IdentityRegistryTestClient,
     affiliate_account_address: Option<String>,
     user_affiliate_fees: Decimal,
     index: u8,
@@ -1756,6 +1750,9 @@ pub async fn create_user(
         user_affiliate_fees,
     )
     .await;
+
+    let contracts_config = admin.call_api(|_| api.system_config()).await;
+    let euroe = EuroETestClient(contracts_config.euro_e());
     admin
         .transact(|account| {
             chain.update(
@@ -1767,6 +1764,8 @@ pub async fn create_user(
             )
         })
         .expect("Failed to mint euroe for user_1");
+
+    let identity_registry = IdentityRegistryTestClient(contracts_config.identity_registry());
     admin
         .transact(|account| {
             chain.update(
@@ -1810,7 +1809,7 @@ pub async fn create_login_api_admin(
     };
     admin
         .call_api(|id_token| {
-            api.admin_user_update_account_address(id_token, user_id.clone(), &update_account_req)
+            api.admin_update_account_address(id_token, user_id.clone(), &update_account_req)
         })
         .await;
 
@@ -1835,9 +1834,10 @@ pub async fn create_login_api_user(
         account_address:      user_account.address_str().clone(),
         affiliate_commission: user_affiliate_fees,
     };
+    // This api call is needed because current its not possible to mock concordium browser wallet
     admin
         .call_api(|id_token| {
-            api.admin_user_update_account_address(id_token, user_id.clone(), &update_account_req)
+            api.admin_update_account_address(id_token, user_id.clone(), &update_account_req)
         })
         .await
         .assert_status_is_ok();
@@ -1876,7 +1876,6 @@ async fn create_api_user(
         .await;
     api.user_register(id_token, &UserRegisterReq {
         desired_investment_amount: 100,
-        affiliate_commission:      Decimal::ZERO,
     })
     .await;
     (user_id, password)

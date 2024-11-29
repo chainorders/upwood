@@ -1,5 +1,4 @@
 use concordium_rust_sdk::id::types::AccountAddress;
-use diesel::dsl::Nullable;
 use diesel::prelude::*;
 use poem_openapi::Object;
 use rust_decimal::Decimal;
@@ -17,7 +16,7 @@ pub struct User {
     pub email:                     String,
     pub account_address:           Option<String>,
     pub desired_investment_amount: Option<i32>,
-    pub affiliate_commission:      Option<Decimal>,
+    pub affiliate_commission:      Decimal,
 }
 
 impl User {

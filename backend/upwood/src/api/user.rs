@@ -18,7 +18,7 @@ use poem_openapi::{Object, OpenApi};
 use serde::Serialize;
 use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
-use shared::db::offchain_rewards::{OffchainRewardClaim, OffchainRewardee};
+use shared::db::offchain_rewards::OffchainRewardee;
 use shared::db_app::forest_project::UserTransaction;
 use shared::db_app::user_challenges::UserChallenge;
 use shared::db_app::users::{AffiliateReward, User, UserAffiliate};
@@ -32,7 +32,6 @@ pub struct UserApi;
 
 #[OpenApi]
 impl UserApi {
-    #[oai(path = "/users", method = "get", tag = "ApiTags::User")]
     /// Retrieves the current user's information based on the provided bearer authorization token.
     ///
     /// This function fetches the user's information from the database using the Cognito user ID
@@ -46,6 +45,7 @@ impl UserApi {
     ///
     /// # Returns
     /// A `JsonResult` containing the user's information.
+    #[oai(path = "/users", method = "get", tag = "ApiTags::User")]
     pub async fn user_self(
         &self,
         Data(db_pool): Data<&DbPool>,
@@ -123,7 +123,6 @@ impl UserApi {
         Ok(Json(user_id.to_owned()))
     }
 
-    #[oai(path = "/users", method = "post", tag = "ApiTags::User")]
     /// Inserts a new user into the database and Cognito user pool.
     ///
     /// If the user's email is not yet verified, this function will set the email as verified.
@@ -141,21 +140,18 @@ impl UserApi {
     ///
     /// # Returns
     /// The newly created or updated user.
+    #[oai(path = "/users", method = "post", tag = "ApiTags::User")]
     pub async fn user_insert(
         &self,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
+        Data(default_affiliate_commission): Data<&AffiliateCommission>,
         Json(req): Json<UserRegisterReq>,
     ) -> JsonResult<ApiUser> {
         if !claims.email_verified() {
             user_pool.set_email_verified(&claims.sub).await?;
-        }
-        if req.affiliate_commission > Decimal::ONE || req.affiliate_commission < Decimal::ZERO {
-            return Err(Error::BadRequest(PlainText(
-                "Affiliate commission must be between 0 and 1".to_string(),
-            )));
         }
 
         let mut conn = db_pool.get()?;
@@ -164,7 +160,7 @@ impl UserApi {
             cognito_user_id:           claims.sub.to_owned(),
             account_address:           None,
             desired_investment_amount: Some(req.desired_investment_amount),
-            affiliate_commission:      Some(req.affiliate_commission),
+            affiliate_commission:      default_affiliate_commission.commission,
         }
         .upsert(&mut conn)?;
         let user = ApiUser::new(
@@ -183,11 +179,6 @@ impl UserApi {
         Ok(Json(user))
     }
 
-    #[oai(
-        path = "/users/account_address/generate_challenge",
-        method = "post",
-        tag = "ApiTags::User"
-    )]
     /// Generates a new challenge for the user to verify their account address.
     ///
     /// This function first checks if the user has an existing valid challenge. If not, it generates a new challenge and stores it in the database.
@@ -202,6 +193,11 @@ impl UserApi {
     ///
     /// # Returns
     /// A `CreateChallengeResponse` containing the challenge and the serialized identity statement.
+    #[oai(
+        path = "/users/account_address/generate_challenge",
+        method = "post",
+        tag = "ApiTags::User"
+    )]
     pub async fn challenge_create(
         &self,
         Data(id_statement): Data<&concordium::identity::IdStatement>,
@@ -238,7 +234,6 @@ impl UserApi {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[oai(path = "/users/account_address", method = "put", tag = "ApiTags::User")]
     /// Updates the account address for the current user.
     ///
     /// # Arguments
@@ -253,6 +248,7 @@ impl UserApi {
     ///
     /// # Returns
     /// A `NoResResult` indicating the success or failure of the operation.
+    #[oai(path = "/users/account_address", method = "put", tag = "ApiTags::User")]
     pub async fn update_account_address(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -297,7 +293,6 @@ impl UserApi {
             let mut user = User::find(conn, &claims.sub)?
                 .ok_or(Error::NotFound(PlainText("User not found".to_string())))?;
             user.account_address = Some(account_address.to_string());
-            user.affiliate_commission = Some(request.affiliate_commission);
             user.upsert(conn)?;
             UserChallenge::delete_by_user_id(conn, &claims.sub)?;
             Ok::<_, Error>(())
@@ -521,7 +516,7 @@ impl UserApi {
             let mut user = User::find(&mut conn, &cognito_user_id)?
                 .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
             user.account_address = Some(account_address.to_string());
-            user.affiliate_commission = Some(request.affiliate_commission);
+            user.affiliate_commission = request.affiliate_commission;
             user.upsert(&mut conn)?;
         }
         Ok(())
@@ -799,7 +794,6 @@ impl UserUpdateAccountAddressRequest {
 #[derive(Serialize, Object)]
 pub struct UserRegisterReq {
     pub desired_investment_amount: i32,
-    pub affiliate_commission:      Decimal,
 }
 
 #[derive(Serialize, Object)]

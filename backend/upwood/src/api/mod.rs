@@ -80,6 +80,8 @@ pub struct Config {
     pub filebase_access_key_id: SecureString,
     pub filebase_secret_access_key: SecureString,
     pub filebase_bucket_name: String,
+    /// Default commission for affiliates
+    pub affiliate_commission: Decimal,
 }
 
 impl Config {
@@ -216,6 +218,13 @@ impl Config {
             ),
         }
     }
+
+    /// Default commission for affiliates
+    pub fn affiliate_commission(&self) -> AffiliateCommission {
+        AffiliateCommission {
+            commission: self.affiliate_commission,
+        }
+    }
 }
 
 pub async fn create_web_app(config: Config) -> Route {
@@ -245,6 +254,7 @@ pub async fn create_web_app(config: Config) -> Route {
         .with(AddData::new(config.user_challenge_config()))
         .with(AddData::new(config.tree_nft_config()))
         .with(AddData::new(config.offchain_rewards_config()))
+        .with(AddData::new(config.affiliate_commission()))
         .with(Cors::new())
         .after(|f| async move {
             match f {
@@ -406,7 +416,7 @@ enum ApiTags {
     Wallet,
 }
 
-#[derive(Clone, Object)]
+#[derive(Clone, Object, serde::Serialize, serde::Deserialize)]
 pub struct SystemContractsConfig {
     pub identity_registry_contract_index: Decimal,
     pub compliance_contract_index:        Decimal,
@@ -447,4 +457,9 @@ impl SystemContractsConfig {
     pub fn offchain_rewards(&self) -> ContractAddress {
         ContractAddress::new(self.offchain_rewards_contract_index.to_u64().unwrap(), 0)
     }
+}
+
+#[derive(Clone, Object)]
+pub struct AffiliateCommission {
+    pub commission: Decimal,
 }

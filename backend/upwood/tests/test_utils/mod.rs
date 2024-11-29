@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use rust_decimal::Decimal;
 use test_api::ApiTestClient;
 use test_cognito::CognitoTestClient;
 use upwood::api::user::{UserRegisterReq, UserRegistrationInvitationSendReq};
@@ -29,7 +28,6 @@ pub async fn create_login_admin_user(
         .await;
     api.user_register(id_token, &UserRegisterReq {
         desired_investment_amount: 100,
-        affiliate_commission:      Decimal::ZERO,
     })
     .await;
     cognito.admin_add_to_admin_group(&user_id).await;

@@ -106,7 +106,7 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn admin_user_update_account_address(
+    pub async fn admin_update_account_address(
         &mut self,
         id_token: String,
         cognito_user_id: String,
@@ -214,6 +214,15 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse claim affiliate rewards response")
+    }
+
+    pub async fn system_config(&self) -> api::SystemContractsConfig {
+        let res = self.client.get("/system/config").send().await.0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse system contracts config response")
     }
 }
 

@@ -564,7 +564,7 @@ diesel::table! {
         #[max_length = 255]
         account_address -> Nullable<Varchar>,
         desired_investment_amount -> Nullable<Int4>,
-        affiliate_commission -> Nullable<Numeric>,
+        affiliate_commission -> Numeric,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
