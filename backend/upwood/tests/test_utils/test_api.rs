@@ -217,7 +217,7 @@ impl ApiTestClient {
     }
 
     pub async fn system_config(&self) -> api::SystemContractsConfig {
-        let res = self.client.get("/system/config").send().await.0;
+        let res = self.client.get("/system_config").send().await.0;
         assert_eq!(res.status(), StatusCode::OK);
         res.into_body()
             .into_json()

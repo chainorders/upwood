@@ -173,6 +173,7 @@ pub async fn test_forest_projects() {
 
     let (db_config, _container) = shared_tests::create_new_database_container().await;
     shared::db_setup::run_migrations(&db_config.db_url());
+    // Uncomment the following lines to run the tests on the local database container
     // let db_config = shared_tests::PostgresTestConfig {
     //     postgres_db:       "concordium_rwa_dev".to_string(),
     //     postgres_host:     "localhost".to_string(),
