@@ -31,7 +31,7 @@ async fn main() -> Result<(), Error> {
         )
         .try_init()?;
 
-    let config = api::Config::from_env();
+    let config = api::Config::load();
     info!("configuration: {:#?}", config);
 
     let web_server_addr = format!("{}:{}", config.api_socket_address, config.api_socket_port);

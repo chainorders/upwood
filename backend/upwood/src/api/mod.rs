@@ -85,7 +85,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_env() -> Self {
+    /// Load configuration from .env files
+    /// The .env file should be in the root of the project
+    pub fn load() -> Self {
         dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
         dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
             .ok();
