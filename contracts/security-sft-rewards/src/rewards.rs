@@ -96,7 +96,7 @@ pub fn receive_add_reward(
 
     let state = host.state_mut();
     let is_authorized = state.address(&Address::Account(invoker)).is_some_and(
-        |a: StateRef<crate::state::AddressState<ExternStateApi>>| {
+        |a: StateRef<crate::state::HolderState<ExternStateApi>>| {
             a.is_agent(&[AgentRole::Rewarder])
         },
     );
@@ -257,8 +257,8 @@ pub fn claim_rewards(
                 .address_mut(&owner_address)
                 .ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.sub_assign_unfrozen_balance(&curr_reward_token_id, claim_amount)?;
-            holder.add_assign_unfrozen_balance(&next_reward_token_id, claim_amount)
+            holder.sub_assign_unfrozen_balance(curr_reward_token_id, claim_amount)?;
+            holder.add_assign_unfrozen_balance(next_reward_token_id, claim_amount)
         };
         if to_burn.gt(&TokenAmount::zero()) {
             logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {

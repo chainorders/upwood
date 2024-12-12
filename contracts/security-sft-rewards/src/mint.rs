@@ -59,10 +59,10 @@ pub fn mint(
         let (state, state_builder) = host.state_and_builder();
         let to_burn = {
             // Mint tokens
-            let mut holder = state.address_or_insert_holder(&owner, state_builder);
-            let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            active_holder.add_assign_unfrozen_balance(&params.token_id, amount);
-            active_holder.add_assign_unfrozen_balance(&max_reward_token_id, amount)
+            let mut holder = state.address_or_insert_holder(owner, state_builder);
+            let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            holder.add_assign_unfrozen_balance(params.token_id, amount);
+            holder.add_assign_unfrozen_balance(max_reward_token_id, amount)
         };
         logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
             token_id: params.token_id,

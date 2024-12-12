@@ -32,7 +32,7 @@ pub fn update_operator(
     let (state, state_builder) = host.state_and_builder();
 
     for UpdateOperator { operator, update } in updates {
-        let mut holder = state.address_or_insert_holder(&sender, state_builder);
+        let mut holder = state.address_or_insert_holder(sender, state_builder);
         let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
 
         match update {

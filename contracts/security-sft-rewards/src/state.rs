@@ -4,8 +4,8 @@ use concordium_protocols::rate::Rate;
 use concordium_std::ops::{Add, AddAssign, Sub, SubAssign};
 use concordium_std::{
     ensure, Address, ContractAddress, Deletable, Deserial, DeserialWithState, HasStateApi,
-    MetadataUrl, Serial, Serialize, StateApi, StateBuilder, StateMap, StateRef, StateRefMut,
-    StateSet,
+    MetadataUrl, OccupiedEntry, Serial, Serialize, StateApi, StateBuilder, StateMap, StateRef,
+    StateRefMut, StateSet,
 };
 
 use super::types::{AgentRole, TokenAmount, TokenId};
@@ -21,43 +21,36 @@ pub struct RewardDeposited<TDeposit: IsTokenId, ADeposit: IsTokenAmount> {
 
 #[derive(Serial, DeserialWithState, Deletable)]
 #[concordium(state_parameter = "S")]
-pub enum AddressState<S> {
-    Holder(HolderState<S>),
+pub enum HolderState<S> {
+    Active(HolderStateActive<S>),
     Recovered(Address),
 }
 
-impl<S: HasStateApi> AddressState<S> {
-    pub fn active(&self) -> Option<&HolderState<S>> {
+impl<S: HasStateApi> HolderState<S> {
+    pub fn active(&self) -> Option<&HolderStateActive<S>> {
         match self {
-            AddressState::Holder(holder) => Some(holder),
+            HolderState::Active(holder) => Some(holder),
             _ => None,
         }
     }
 
-    pub fn active_mut(&mut self) -> Option<&mut HolderState<S>> {
+    pub fn active_mut(&mut self) -> Option<&mut HolderStateActive<S>> {
         match self {
-            AddressState::Holder(holder) => Some(holder),
+            HolderState::Active(holder) => Some(holder),
             _ => None,
         }
     }
 
     pub fn recovered(&self) -> Option<&Address> {
         match self {
-            AddressState::Recovered(address) => Some(address),
+            HolderState::Recovered(address) => Some(address),
             _ => None,
         }
     }
 
     pub fn is_agent(&self, roles: &[AgentRole]) -> bool {
         match self {
-            AddressState::Holder(holder) => holder.has_roles(roles),
-            _ => false,
-        }
-    }
-
-    pub fn has_role(&self, role: AgentRole) -> bool {
-        match self {
-            AddressState::Holder(holder) => holder.agent_roles.contains(&role),
+            HolderState::Active(holder) => holder.has_roles(roles),
             _ => false,
         }
     }
@@ -70,51 +63,41 @@ pub struct State<S=StateApi> {
     pub tokens:            StateMap<TokenId, TokenState, S>,
     pub identity_registry: ContractAddress,
     pub compliance:        ContractAddress,
-    pub addresses:         StateMap<Address, AddressState<S>, S>,
+    pub addresses:         StateMap<Address, HolderState<S>, S>,
     pub rewards_ids_range: (TokenId, TokenId),
     pub sponsor:           Option<ContractAddress>,
 }
 
 impl<S: HasStateApi> State<S> {
     /// All the Addresses in the state. Type of address can be seen from `AddressState`
-    pub fn address(&self, address: &Address) -> Option<StateRef<AddressState<S>>> {
+    pub fn address(&self, address: &Address) -> Option<StateRef<HolderState<S>>> {
         self.addresses.get(address)
     }
 
     pub fn address_or_insert_holder(
         &mut self,
-        address: &Address,
+        address: Address,
         state_builder: &mut StateBuilder<S>,
-    ) -> StateRefMut<AddressState<S>, S> {
+    ) -> OccupiedEntry<'_, Address, HolderState<S>, S> {
         self.addresses
-            .entry(*address)
-            .or_insert(AddressState::Holder(HolderState::new(state_builder)));
-        self.address_mut(address).unwrap()
+            .entry(address)
+            .or_insert_with(|| HolderState::Active(HolderStateActive::new(state_builder)))
     }
 
-    pub fn address_mut(&mut self, address: &Address) -> Option<StateRefMut<AddressState<S>, S>> {
+    pub fn address_mut(&mut self, address: &Address) -> Option<StateRefMut<HolderState<S>, S>> {
         self.addresses.get_mut(address)
     }
 
     pub fn add_address(
         &mut self,
         address: Address,
-        state: AddressState<S>,
-    ) -> Result<StateRefMut<AddressState<S>, S>, Error> {
-        self.addresses
+        state: HolderState<S>,
+    ) -> Result<OccupiedEntry<'_, Address, HolderState<S>, S>, Error> {
+        Ok(self
+            .addresses
             .entry(address)
             .vacant_or(Error::InvalidAddress)?
-            .insert(state);
-        let address = self.address_mut(&address).ok_or(Error::InvalidAddress)?;
-        Ok(address)
-    }
-
-    pub fn remove_and_get_address(&mut self, address: &Address) -> Result<AddressState<S>, Error> {
-        let address = self
-            .addresses
-            .remove_and_get(address)
-            .ok_or(Error::InvalidAddress)?;
-        Ok(address)
+            .insert(state))
     }
 
     pub fn token(&self, token_id: &TokenId) -> Option<StateRef<TokenState>> {
@@ -186,8 +169,6 @@ impl MainTokenState {
         self.supply.add_assign(amount);
         Ok(())
     }
-
-    pub fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
 }
 
 #[derive(Serialize, Clone)]
@@ -204,8 +185,6 @@ impl RewardTokenState {
     }
 
     pub fn add_assign_supply(&mut self, amount: TokenAmount) { self.supply.add_assign(amount); }
-
-    pub fn metadata_url(&self) -> &MetadataUrl { &self.metadata_url }
 
     pub fn attach_reward(
         &mut self,
@@ -254,18 +233,8 @@ impl TokenState {
 
     pub fn metadata_url(&self) -> &MetadataUrl {
         match self {
-            TokenState::Main(main) => main.metadata_url(),
-            TokenState::Reward(reward) => reward.metadata_url(),
-        }
-    }
-
-    pub fn add_assign_supply(&mut self, amount: TokenAmount) -> Result<(), Error> {
-        match self {
-            TokenState::Main(main) => main.add_assign_supply(amount),
-            TokenState::Reward(reward) => {
-                reward.add_assign_supply(amount);
-                Ok(())
-            }
+            TokenState::Main(main) => &main.metadata_url,
+            TokenState::Reward(reward) => &reward.metadata_url,
         }
     }
 }
@@ -386,25 +355,25 @@ impl HolderStateBalance {
 
 #[derive(DeserialWithState, Serial, Deletable)]
 #[concordium(state_parameter = "S")]
-pub struct HolderState<S=StateApi> {
+pub struct HolderStateActive<S=StateApi> {
     pub operators:   StateSet<Address, S>,
     pub balances:    StateMap<TokenId, HolderStateBalance, S>,
     pub agent_roles: StateSet<AgentRole, S>,
 }
 
-impl<S: HasStateApi> HolderState<S> {
+impl<S: HasStateApi> HolderStateActive<S> {
     pub fn new(state_builder: &mut StateBuilder<S>) -> Self {
-        HolderState {
+        HolderStateActive {
             operators:   state_builder.new_set(),
             balances:    state_builder.new_map(),
             agent_roles: state_builder.new_set(),
         }
     }
 
-    pub fn new_with_roles(state_builder: &mut StateBuilder<S>, roles: &[AgentRole]) -> Self {
-        let mut holder = HolderState::new(state_builder);
+    pub fn new_with_roles(state_builder: &mut StateBuilder<S>, roles: Vec<AgentRole>) -> Self {
+        let mut holder = HolderStateActive::new(state_builder);
         for role in roles {
-            holder.agent_roles.insert(*role);
+            holder.agent_roles.insert(role);
         }
         holder
     }
@@ -448,39 +417,39 @@ impl<S: HasStateApi> HolderState<S> {
 
     pub fn sub_assign_unfrozen_balance(
         &mut self,
-        token_id: &TokenId,
+        token_id: TokenId,
         amount: TokenAmount,
     ) -> Result<TokenAmount, Error> {
         self.balances
-            .entry(*token_id)
+            .entry(token_id)
             .occupied_or(Error::InsufficientFunds)?
             .sub_assign_unfrozen(amount)
     }
 
     pub fn add_assign_unfrozen_balance(
         &mut self,
-        token_id: &TokenId,
+        token_id: TokenId,
         amount: TokenAmount,
     ) -> TokenAmountU64 {
         self.balances
-            .entry(*token_id)
+            .entry(token_id)
             .or_insert(HolderStateBalance::default())
             .add_assign_unfrozen(amount)
     }
 
     pub fn sub_assign_unfrozen_balance_signed(
         &mut self,
-        max_reward_token_id: &TokenId,
+        max_reward_token_id: TokenId,
         total_amount: TokenAmount,
     ) -> TokenAmountU64 {
         self.balances
-            .entry(*max_reward_token_id)
+            .entry(max_reward_token_id)
             .or_insert(HolderStateBalance::default())
             .sub_assign_unfrozen_signed(total_amount)
     }
 
     pub fn clone_for_recovery(&self, state_builder: &mut StateBuilder<S>) -> Self {
-        let mut new_holder = HolderState::new(state_builder);
+        let mut new_holder = HolderStateActive::new(state_builder);
         for (token_id, balance) in self.balances.iter() {
             let _ = new_holder.balances.insert(*token_id, balance.clone());
         }

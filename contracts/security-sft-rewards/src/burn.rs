@@ -54,8 +54,8 @@ pub fn burn(
             let is_authorized = owner.eq(&sender) || holder.has_operator(&sender);
             ensure!(is_authorized, Error::Unauthorized);
 
-            holder.sub_assign_unfrozen_balance(&token_id, amount)?;
-            holder.sub_assign_unfrozen_balance_signed(&max_reward_token_id, amount)
+            holder.sub_assign_unfrozen_balance(token_id, amount)?;
+            holder.sub_assign_unfrozen_balance_signed(max_reward_token_id, amount)
         };
 
         if reward_carry.gt(&TokenAmount::zero()) {
@@ -140,9 +140,9 @@ pub fn forced_burn(
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             let un_frozen_amount = holder.un_freeze_balance_to_match(&token_id, amount)?;
-            holder.sub_assign_unfrozen_balance(&token_id, amount)?;
+            holder.sub_assign_unfrozen_balance(token_id, amount)?;
             let reward_carry =
-                holder.sub_assign_unfrozen_balance_signed(&max_reward_token_id, amount);
+                holder.sub_assign_unfrozen_balance_signed(max_reward_token_id, amount);
             (un_frozen_amount, reward_carry)
         };
         state.sub_assign_supply(&token_id, amount)?;

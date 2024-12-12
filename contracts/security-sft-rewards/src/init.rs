@@ -9,7 +9,7 @@ use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
 use crate::state::{
-    AddressState, HolderState, MainTokenState, RewardTokenState, TokenAmountSigned, TokenState,
+    HolderState, HolderStateActive, MainTokenState, RewardTokenState, TokenAmountSigned, TokenState,
 };
 use crate::types::{TokenAmount, MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID};
 /// Initializes the contract with the given parameters.
@@ -39,9 +39,9 @@ pub fn init(
         let mut addresses = state_builder.new_map();
         let _ = addresses.insert(
             owner,
-            AddressState::Holder(HolderState::new_with_roles(
+            HolderState::Active(HolderStateActive::new_with_roles(
                 state_builder,
-                &AgentRole::owner_roles(),
+                AgentRole::owner_roles(),
             )),
         );
         addresses
