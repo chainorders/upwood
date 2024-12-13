@@ -30,10 +30,10 @@ pub fn freeze(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host.state().address(&ctx.sender()).is_some_and(|a| {
-        a.active()
-            .is_some_and(|a| a.has_roles(&[AgentRole::Freeze]))
-    });
+    let state = host.state();
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::Freeze]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let FreezeParams {
@@ -53,10 +53,8 @@ pub fn freeze(
     } in freezes
     {
         ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        owner
-            .balance_mut(&token_id)
-            .ok_or(Error::InsufficientFunds)?
-            .freeze(token_amount)?;
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+        owner.balance.freeze(token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id,
             amount: token_amount,
@@ -90,10 +88,10 @@ pub fn un_freeze(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host.state().address(&ctx.sender()).is_some_and(|a| {
-        a.active()
-            .is_some_and(|a| a.has_roles(&[AgentRole::Freeze]))
-    });
+    let state = host.state();
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::UnFreeze]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let FreezeParams {
@@ -113,10 +111,7 @@ pub fn un_freeze(
     } in freezes
     {
         ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        owner
-            .balance_mut(&token_id)
-            .ok_or(Error::InsufficientFunds)?
-            .un_freeze(token_amount)?;
+        owner.balance.un_freeze(token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,
             amount: token_amount,
@@ -159,10 +154,7 @@ pub fn balance_of_frozen(
                 None => TokenAmount::zero(),
                 Some(address) => match address.active() {
                     None => TokenAmount::zero(),
-                    Some(active) => active
-                        .balance(&query.token_id)
-                        .map(|b| b.frozen)
-                        .unwrap_or(TokenAmount::zero()),
+                    Some(active) => active.balance.frozen,
                 },
             }
         };
@@ -203,10 +195,7 @@ pub fn balance_of_un_frozen(
                 None => TokenAmount::zero(),
                 Some(holder) => match holder.active() {
                     None => TokenAmount::zero(),
-                    Some(active) => active
-                        .balance(&query.token_id)
-                        .map(|b| b.un_frozen)
-                        .unwrap_or(TokenAmount::zero()),
+                    Some(active) => active.balance.un_frozen,
                 },
             }
         };

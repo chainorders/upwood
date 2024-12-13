@@ -77,6 +77,8 @@ pub fn transfer(
     } in transfers
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+
         if let Some(identity_registry) = identity_registry {
             ensure!(
                 identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
@@ -106,13 +108,13 @@ pub fn transfer(
                 from.eq(&sender) || from_holder.has_operator(&sender),
                 Error::Unauthorized
             );
-            from_holder.sub_assign_balance(&token_id, amount)?;
+            from_holder.balance.sub_assign_unfrozen(amount)?;
         };
 
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.add_assign_balance(&token_id, amount);
+            to_holder.balance.add_assign_unfrozen(amount);
         }
 
         if let Some(compliance) = compliance {
@@ -182,10 +184,11 @@ pub fn forced_transfer(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state();
-    let is_authorized = state.address(&ctx.sender()).is_some_and(|a| {
-        a.active()
-            .is_some_and(|a| a.has_roles(&[AgentRole::ForcedTransfer]))
-    });
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::ForcedTransfer]));
+    ensure!(is_authorized, Error::Unauthorized);
+
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -219,8 +222,8 @@ pub fn forced_transfer(
         let un_frozen_amount = {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            let un_frozen_amount = from_holder.un_freeze_balance_to_match(&token_id, amount)?;
-            from_holder.sub_assign_balance(&token_id, amount)?;
+            let un_frozen_amount = from_holder.balance.un_freeze_balance_to_match(amount)?;
+            from_holder.balance.sub_assign_unfrozen(amount)?;
 
             un_frozen_amount
         };
@@ -228,7 +231,7 @@ pub fn forced_transfer(
         {
             let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.add_assign_balance(&token_id, amount);
+            to_holder.balance.add_assign_unfrozen(amount);
         }
 
         if let Some(compliance) = compliance {

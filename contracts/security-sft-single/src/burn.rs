@@ -44,6 +44,7 @@ pub fn burn(
     } in params.0
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
         let state = host.state_mut();
         {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
@@ -51,7 +52,7 @@ pub fn burn(
             let is_authorized = owner.eq(&sender) || holder.has_operator(&sender);
             ensure!(is_authorized, Error::Unauthorized);
 
-            holder.sub_assign_balance(&token_id, amount)?;
+            holder.balance.sub_assign_unfrozen(amount)?;
         };
 
         state.sub_assign_supply(&token_id, amount)?;
@@ -103,10 +104,9 @@ pub fn forced_burn(
 ) -> ContractResult<()> {
     let params: BurnParams = ctx.parameter_cursor().get()?;
     let state = host.state();
-    let is_authorized = state.address(&ctx.sender()).is_some_and(|a| {
-        a.active()
-            .is_some_and(|a| a.has_roles(&[AgentRole::ForcedBurn]))
-    });
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::ForcedBurn]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -118,13 +118,14 @@ pub fn forced_burn(
     } in params.0
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
 
         let state = host.state_mut();
         {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.un_freeze_balance_to_match(&token_id, amount)?;
-            holder.sub_assign_balance(&token_id, amount)?;
+            holder.balance.un_freeze_balance_to_match(amount)?;
+            holder.balance.sub_assign_unfrozen(amount)?;
         };
 
         state.sub_assign_supply(&token_id, amount)?;

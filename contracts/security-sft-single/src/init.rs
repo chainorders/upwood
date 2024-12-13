@@ -7,7 +7,7 @@ use concordium_std::*;
 use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
-use crate::state::{AddressState, HolderState, TokenState};
+use crate::state::{HolderState, HolderStateActive, SecurityTokenState};
 /// Initializes the contract with the given parameters.
 ///
 /// # Returns
@@ -35,7 +35,7 @@ pub fn init(
         let mut addresses = state_builder.new_map();
         let _ = addresses.insert(
             owner,
-            AddressState::Holder(HolderState::new_with_roles(
+            HolderState::Active(HolderStateActive::new_with_roles(
                 state_builder,
                 &AgentRole::owner_roles(),
             )),
@@ -47,7 +47,7 @@ pub fn init(
         compliance: params.compliance,
         sponsor: params.sponsors,
         addresses,
-        token: TokenState {
+        token: SecurityTokenState {
             metadata_url: params.metadata_url.into(),
             supply:       0.into(),
             paused:       false,
@@ -113,10 +113,10 @@ pub fn set_identity_registry(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host.state().address(&ctx.sender()).is_some_and(|a| {
-        a.active()
-            .is_some_and(|a| a.has_roles(&[AgentRole::SetIdentityRegistry]))
-    });
+    let is_authorized = host
+        .state()
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::SetIdentityRegistry]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let identity_registry: ContractAddress = ctx.parameter_cursor().get()?;
@@ -173,10 +173,10 @@ pub fn set_compliance(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host.state().address(&ctx.sender()).is_some_and(|a| {
-        a.active()
-            .is_some_and(|a| a.has_roles(&[AgentRole::SetCompliance]))
-    });
+    let is_authorized = host
+        .state()
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::SetCompliance]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance: ContractAddress = ctx.parameter_cursor().get()?;

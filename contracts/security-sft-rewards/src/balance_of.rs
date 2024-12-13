@@ -27,15 +27,25 @@ pub fn balance_of(
     let mut res: Vec<TokenAmount> = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
         let balance: TokenAmount = match state.address(&query.address) {
             None => TokenAmount::zero(),
             Some(holder) => match holder.active() {
                 None => TokenAmount::zero(),
-                Some(holder_state) => holder_state
-                    .balance(&query.token_id)
-                    .map(|b| b.total())
-                    .unwrap_or(TokenAmount::zero()),
+                Some(holder_state) => {
+                    if TRACKED_TOKEN_ID.eq(&query.token_id) {
+                        holder_state.balance.total()
+                    } else {
+                        ensure!(
+                            state.reward_tokens.get(&query.token_id).is_some(),
+                            Error::InvalidRewardTokenId
+                        );
+                        holder_state
+                            .reward_balances
+                            .get(&query.token_id)
+                            .map(|t| t.total())
+                            .unwrap_or(TokenAmount::zero())
+                    }
+                }
             },
         };
         res.push(balance);

@@ -82,6 +82,8 @@ pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 
+pub const TRACKED_TOKEN_ID: TokenId = TokenIdUnit();
+
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {
     pub identity_registry: Option<ContractAddress>,

@@ -32,7 +32,7 @@ pub fn pause(
     let state = host.state_mut();
     let is_authorized = state
         .address(&ctx.sender())
-        .is_some_and(|a| a.active().is_some_and(|a| a.has_roles(&[AgentRole::Pause])));
+        .is_some_and(|a| a.is_agent(&[AgentRole::Pause]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
@@ -71,7 +71,7 @@ pub fn un_pause(
     let state = host.state_mut();
     let is_authorized = state
         .address(&ctx.sender())
-        .is_some_and(|a| a.active().is_some_and(|a| a.has_roles(&[AgentRole::Pause])));
+        .is_some_and(|a| a.is_agent(&[AgentRole::UnPause]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;

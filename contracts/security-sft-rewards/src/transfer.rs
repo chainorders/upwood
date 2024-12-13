@@ -12,7 +12,6 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
-use crate::state::HolderState;
 
 /// Executes a compliant transfer of token ownership between verified accounts
 ///
@@ -82,6 +81,7 @@ pub fn transfer(
     } in transfers
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
         ensure!(
             identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
@@ -97,13 +97,7 @@ pub fn transfer(
 
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
-        let is_paused = state
-            .token(&token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main()
-            .ok_or(Error::InvalidTokenId)?
-            .paused;
-        ensure!(!is_paused, Error::PausedToken);
+        ensure!(!state.token.paused, Error::PausedToken);
 
         {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
@@ -113,9 +107,12 @@ pub fn transfer(
                 Error::Unauthorized
             );
 
-            from_holder.sub_assign_unfrozen_balance(token_id, amount)?;
-            let reward_carry =
-                from_holder.sub_assign_unfrozen_balance_signed(max_reward_token_id, amount);
+            from_holder.balance.sub_assign_unfrozen(amount)?;
+            let reward_carry = from_holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_default()
+                .sub_assign_unfrozen(amount, true)?;
             if reward_carry.gt(&zero_amount) {
                 // The sender does not have enough rewards to cover the transfer of rewards
                 // We mint the missing rewards
@@ -144,8 +141,12 @@ pub fn transfer(
         {
             let mut to_holder = state.address_or_insert_holder(to.address(), state_builder);
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.add_assign_unfrozen_balance(token_id, amount);
-            let to_burn = to_holder.add_assign_unfrozen_balance(max_reward_token_id, amount);
+            to_holder.balance.add_assign_unfrozen(amount);
+            let to_burn = to_holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_insert_with(Default::default)
+                .add_assign_unfrozen(amount);
             if to_burn.gt(&zero_amount) {
                 logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
                     amount:   to_burn,
@@ -214,12 +215,9 @@ pub fn forced_transfer(
     logger: &mut Logger,
 ) -> ContractResult<()> {
     let state = host.state();
-    let is_authorized =
-        state
-            .address(&ctx.sender())
-            .is_some_and(|a: StateRef<HolderState<ExternStateApi>>| {
-                a.is_agent(&[AgentRole::ForcedTransfer])
-            });
+    let is_authorized = state
+        .address(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::ForcedTransfer]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -238,6 +236,7 @@ pub fn forced_transfer(
     } in params.0
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
         ensure!(
             identity_registry_client::is_verified(host, &identity_registry, &to.address())?,
             Error::UnVerifiedIdentity
@@ -248,22 +247,18 @@ pub fn forced_transfer(
 
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
-        let is_paused = state
-            .token(&token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main()
-            .ok_or(Error::InvalidTokenId)?
-            .paused;
-        ensure!(!is_paused, Error::PausedToken);
+        ensure!(!state.token.paused, Error::PausedToken);
 
         let (un_frozen_amount, rewards_carry) = {
             let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
             let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            let un_frozen_amount = from_holder.un_freeze_balance_to_match(&token_id, amount)?;
-            from_holder.sub_assign_unfrozen_balance(token_id, amount)?;
-            let rewards_carry =
-                from_holder.sub_assign_unfrozen_balance_signed(max_reward_token_id, amount);
-
+            let un_frozen_amount = from_holder.balance.un_freeze_balance_to_match(amount)?;
+            from_holder.balance.sub_assign_unfrozen(amount)?;
+            let rewards_carry = from_holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_default()
+                .sub_assign_unfrozen(amount, true)?;
             (un_frozen_amount, rewards_carry)
         };
 
@@ -301,8 +296,13 @@ pub fn forced_transfer(
         let to_burn = {
             let mut to_holder = state.address_or_insert_holder(to.address(), state_builder);
             let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.add_assign_unfrozen_balance(token_id, amount);
-            to_holder.add_assign_unfrozen_balance(max_reward_token_id, amount)
+            to_holder.balance.add_assign_unfrozen(amount);
+            let to_burn = to_holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_insert_with(Default::default)
+                .add_assign_unfrozen(amount);
+            to_burn
         };
 
         if to_burn.gt(&TokenAmount::zero()) {

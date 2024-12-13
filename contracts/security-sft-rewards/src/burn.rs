@@ -47,6 +47,8 @@ pub fn burn(
     } in params.0
     {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+
         let state = host.state_mut();
         let reward_carry = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
@@ -54,8 +56,13 @@ pub fn burn(
             let is_authorized = owner.eq(&sender) || holder.has_operator(&sender);
             ensure!(is_authorized, Error::Unauthorized);
 
-            holder.sub_assign_unfrozen_balance(token_id, amount)?;
-            holder.sub_assign_unfrozen_balance_signed(max_reward_token_id, amount)
+            let to_burn = holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_default()
+                .sub_assign_unfrozen(amount, true)?;
+            holder.balance.sub_assign_unfrozen(amount)?;
+            to_burn
         };
 
         if reward_carry.gt(&TokenAmount::zero()) {
@@ -66,8 +73,12 @@ pub fn burn(
             })))?;
         }
 
-        state.sub_assign_supply(&token_id, amount)?;
-        state.sub_assign_supply_signed(&max_reward_token_id, amount)?;
+        state.token.sub_assign_supply(amount)?;
+        state
+            .reward_tokens
+            .get_mut(&max_reward_token_id)
+            .ok_or(Error::InvalidRewardTokenId)?
+            .sub_assign_supply_signed(amount);
 
         logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {
             amount,
@@ -135,18 +146,28 @@ pub fn forced_burn(
     } in params.0
     {
         ensure!(amount.gt(&zero_amount), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+
         let state = host.state_mut();
         let (un_frozen_amount, reward_carry) = {
             let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            let un_frozen_amount = holder.un_freeze_balance_to_match(&token_id, amount)?;
-            holder.sub_assign_unfrozen_balance(token_id, amount)?;
-            let reward_carry =
-                holder.sub_assign_unfrozen_balance_signed(max_reward_token_id, amount);
+            let un_frozen_amount = holder.balance.un_freeze_balance_to_match(amount)?;
+            holder.balance.sub_assign_unfrozen(amount)?;
+            let reward_carry = holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_default()
+                .sub_assign_unfrozen(amount, true)?;
             (un_frozen_amount, reward_carry)
         };
-        state.sub_assign_supply(&token_id, amount)?;
-        state.sub_assign_supply_signed(&max_reward_token_id, amount)?;
+
+        state.token.sub_assign_supply(amount)?;
+        state
+            .reward_tokens
+            .get_mut(&max_reward_token_id)
+            .ok_or(Error::InvalidRewardTokenId)?
+            .sub_assign_supply_signed(amount);
 
         if un_frozen_amount.gt(&zero_amount) {
             logger.log(&Event::TokenUnFrozen(TokenFrozen {

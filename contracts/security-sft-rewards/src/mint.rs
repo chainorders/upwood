@@ -42,7 +42,7 @@ pub fn mint(
     {
         let owner = Address::Account(owner);
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        ensure!(params.token_id.eq(&TRACKED_TOKEN_ID), Error::InvalidTokenId);
+        ensure!(TRACKED_TOKEN_ID.eq(&params.token_id), Error::InvalidTokenId);
         ensure!(
             identity_registry_client::is_verified(host, &identity_registry_client, &owner)?,
             Error::UnVerifiedIdentity
@@ -61,8 +61,13 @@ pub fn mint(
             // Mint tokens
             let mut holder = state.address_or_insert_holder(owner, state_builder);
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.add_assign_unfrozen_balance(params.token_id, amount);
-            holder.add_assign_unfrozen_balance(max_reward_token_id, amount)
+            holder.balance.add_assign_unfrozen(amount);
+            let to_burn = holder
+                .reward_balances
+                .entry(max_reward_token_id)
+                .or_default()
+                .add_assign_unfrozen(amount);
+            to_burn
         };
         logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
             token_id: params.token_id,
@@ -84,17 +89,11 @@ pub fn mint(
 
         {
             // Update minted supply
+            state.token.add_assign_supply(amount)?;
             state
-                .token_mut(&params.token_id)
-                .ok_or(Error::InvalidTokenId)?
-                .main_mut()
-                .ok_or(Error::InvalidTokenId)?
-                .add_assign_supply(amount)?;
-            state
-                .token_mut(&max_reward_token_id)
-                .ok_or(Error::InvalidTokenId)?
-                .reward_mut()
-                .ok_or(Error::InvalidTokenId)?
+                .reward_tokens
+                .entry(max_reward_token_id)
+                .occupied_or(Error::InvalidRewardTokenId)?
                 .add_assign_supply(amount);
         }
 

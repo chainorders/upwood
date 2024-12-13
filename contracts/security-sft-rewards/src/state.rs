@@ -50,7 +50,7 @@ impl<S: HasStateApi> HolderState<S> {
 
     pub fn is_agent(&self, roles: &[AgentRole]) -> bool {
         match self {
-            HolderState::Active(holder) => holder.has_roles(roles),
+            HolderState::Active(holder) => roles.iter().all(|r| holder.agent_roles.contains(r)),
             _ => false,
         }
     }
@@ -60,7 +60,8 @@ impl<S: HasStateApi> HolderState<S> {
 #[concordium(state_parameter = "S")]
 /// Represents the state of the security NFT contract.
 pub struct State<S=StateApi> {
-    pub tokens:            StateMap<TokenId, TokenState, S>,
+    pub token:             SecurityTokenState,
+    pub reward_tokens:     StateMap<TokenId, RewardTokenState, S>,
     pub identity_registry: ContractAddress,
     pub compliance:        ContractAddress,
     pub addresses:         StateMap<Address, HolderState<S>, S>,
@@ -99,60 +100,16 @@ impl<S: HasStateApi> State<S> {
             .vacant_or(Error::InvalidAddress)?
             .insert(state))
     }
-
-    pub fn token(&self, token_id: &TokenId) -> Option<StateRef<TokenState>> {
-        self.tokens.get(token_id)
-    }
-
-    pub fn token_mut(&mut self, token_id: &TokenId) -> Option<StateRefMut<TokenState, S>> {
-        self.tokens.get_mut(token_id)
-    }
-
-    pub fn add_token(&mut self, token_id: TokenId, token_state: TokenState) -> Result<(), Error> {
-        self.tokens
-            .entry(token_id)
-            .vacant_or(Error::InvalidTokenId)?
-            .insert(token_state);
-        Ok(())
-    }
-
-    pub fn sub_assign_supply(
-        &mut self,
-        token_id: &TokenId,
-        amount: TokenAmount,
-    ) -> Result<(), Error> {
-        self.token_mut(token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main_mut()
-            .ok_or(Error::InvalidTokenId)?
-            .sub_assign_supply(amount)?;
-        Ok(())
-    }
-
-    pub fn sub_assign_supply_signed(
-        &mut self,
-        token_id: &TokenId,
-        amount: TokenAmount,
-    ) -> Result<TokenAmountSigned, Error> {
-        let supply = self
-            .token_mut(token_id)
-            .ok_or(Error::InvalidRewardTokenId)?
-            .reward_mut()
-            .ok_or(Error::InvalidRewardTokenId)?
-            .sub_assign_supply_signed(amount);
-
-        Ok(supply)
-    }
 }
 
 #[derive(Serialize, Clone)]
-pub struct MainTokenState {
+pub struct SecurityTokenState {
     pub metadata_url: MetadataUrl,
     pub paused:       bool,
     pub supply:       TokenAmount,
 }
 
-impl MainTokenState {
+impl SecurityTokenState {
     pub fn pause(&mut self) { self.paused = true; }
 
     pub fn un_pause(&mut self) { self.paused = false; }
@@ -193,49 +150,6 @@ impl RewardTokenState {
     ) {
         self.reward = Some(reward);
         self.metadata_url = metadata_url;
-    }
-}
-
-#[derive(Serialize, Clone)]
-pub enum TokenState {
-    Main(MainTokenState),
-    Reward(RewardTokenState),
-}
-
-impl TokenState {
-    pub fn main(&self) -> Option<&MainTokenState> {
-        match self {
-            TokenState::Main(main) => Some(main),
-            _ => None,
-        }
-    }
-
-    pub fn main_mut(&mut self) -> Option<&mut MainTokenState> {
-        match self {
-            TokenState::Main(main) => Some(main),
-            _ => None,
-        }
-    }
-
-    pub fn reward(&self) -> Option<&RewardTokenState> {
-        match self {
-            TokenState::Reward(reward) => Some(reward),
-            _ => None,
-        }
-    }
-
-    pub fn reward_mut(&mut self) -> Option<&mut RewardTokenState> {
-        match self {
-            TokenState::Reward(reward) => Some(reward),
-            _ => None,
-        }
-    }
-
-    pub fn metadata_url(&self) -> &MetadataUrl {
-        match self {
-            TokenState::Main(main) => &main.metadata_url,
-            TokenState::Reward(reward) => &reward.metadata_url,
-        }
     }
 }
 
@@ -307,35 +221,31 @@ impl TokenAmountSigned {
     }
 }
 
-#[derive(Deserial, Serial, Clone)]
-pub struct HolderStateBalance {
+#[derive(Deserial, Serial, Clone, Copy)]
+pub struct HolderStateSecurityBalance {
     pub frozen:    TokenAmount,
-    pub un_frozen: TokenAmountSigned,
+    pub un_frozen: TokenAmount,
 }
-impl HolderStateBalance {
+
+impl HolderStateSecurityBalance {
     pub fn default() -> Self {
         Self {
             frozen:    TokenAmount::zero(),
-            un_frozen: TokenAmountSigned::zero(),
+            un_frozen: TokenAmount::zero(),
         }
     }
 
-    pub fn total(&self) -> TokenAmount { self.frozen.add(self.un_frozen.as_amount()) }
+    pub fn total(&self) -> TokenAmount { self.frozen.add(self.un_frozen) }
 
-    pub fn sub_assign_unfrozen(&mut self, amount: TokenAmount) -> Result<TokenAmount, Error> {
+    pub fn add_assign_unfrozen(&mut self, amount: TokenAmount) { self.un_frozen.add_assign(amount) }
+
+    pub fn sub_assign_unfrozen(&mut self, amount: TokenAmount) -> Result<(), Error> {
         ensure!(self.un_frozen.ge(&amount), Error::InsufficientFunds);
-        self.sub_assign_unfrozen_signed(amount);
-        Ok(self.un_frozen.as_amount())
+        self.un_frozen.sub_assign(amount);
+        Ok(())
     }
 
-    pub fn sub_assign_unfrozen_signed(&mut self, amount: TokenAmount) -> TokenAmount {
-        self.un_frozen.sub_assign(amount)
-    }
-
-    pub fn add_assign_unfrozen(&mut self, amount: TokenAmount) -> TokenAmount {
-        self.un_frozen.add_assign(amount)
-    }
-
+    #[inline]
     pub fn freeze(&mut self, amount: TokenAmount) -> Result<(), Error> {
         ensure!(self.un_frozen.ge(&amount), Error::InsufficientFunds);
         self.frozen.add_assign(amount);
@@ -344,6 +254,7 @@ impl HolderStateBalance {
         Ok(())
     }
 
+    #[inline]
     pub fn un_freeze(&mut self, amount: TokenAmount) -> Result<(), Error> {
         ensure!(self.frozen.ge(&amount), Error::InsufficientFunds);
         self.frozen.sub_assign(amount);
@@ -351,22 +262,77 @@ impl HolderStateBalance {
 
         Ok(())
     }
+
+    pub fn un_freeze_balance_to_match(
+        &mut self,
+        amount: TokenAmount,
+    ) -> Result<TokenAmount, Error> {
+        if self.un_frozen.ge(&amount) {
+            return Ok(TokenAmount::zero());
+        }
+
+        let to_un_freeze = amount.sub(self.un_frozen);
+        if to_un_freeze.gt(&self.frozen) {
+            return Err(Error::InsufficientFunds);
+        }
+
+        self.frozen.sub_assign(to_un_freeze);
+        self.un_frozen.add_assign(to_un_freeze);
+        Ok(to_un_freeze)
+    }
+}
+
+#[derive(Deserial, Serial, Clone)]
+pub struct HolderStateRewardBalance {
+    pub frozen:    TokenAmount,
+    pub un_frozen: TokenAmountSigned,
+}
+
+impl Default for HolderStateRewardBalance {
+    fn default() -> Self {
+        Self {
+            frozen:    TokenAmount::zero(),
+            un_frozen: TokenAmountSigned::zero(),
+        }
+    }
+}
+
+impl HolderStateRewardBalance {
+    pub fn total(&self) -> TokenAmount { self.frozen.add(self.un_frozen.as_amount()) }
+
+    pub fn add_assign_unfrozen(&mut self, amount: TokenAmount) -> TokenAmount {
+        self.un_frozen.add_assign(amount)
+    }
+
+    pub fn sub_assign_unfrozen(
+        &mut self,
+        amount: TokenAmount,
+        allow_overflow: bool,
+    ) -> Result<TokenAmount, Error> {
+        if !allow_overflow {
+            ensure!(self.un_frozen.ge(&amount), Error::InsufficientFunds);
+        }
+        self.un_frozen.sub_assign(amount);
+        Ok(self.un_frozen.as_amount())
+    }
 }
 
 #[derive(DeserialWithState, Serial, Deletable)]
 #[concordium(state_parameter = "S")]
 pub struct HolderStateActive<S=StateApi> {
-    pub operators:   StateSet<Address, S>,
-    pub balances:    StateMap<TokenId, HolderStateBalance, S>,
-    pub agent_roles: StateSet<AgentRole, S>,
+    pub operators:       StateSet<Address, S>,
+    pub balance:         HolderStateSecurityBalance,
+    pub reward_balances: StateMap<TokenId, HolderStateRewardBalance, S>,
+    pub agent_roles:     StateSet<AgentRole, S>,
 }
 
 impl<S: HasStateApi> HolderStateActive<S> {
     pub fn new(state_builder: &mut StateBuilder<S>) -> Self {
         HolderStateActive {
-            operators:   state_builder.new_set(),
-            balances:    state_builder.new_map(),
-            agent_roles: state_builder.new_set(),
+            operators:       state_builder.new_set(),
+            balance:         HolderStateSecurityBalance::default(),
+            reward_balances: state_builder.new_map(),
+            agent_roles:     state_builder.new_set(),
         }
     }
 
@@ -378,86 +344,21 @@ impl<S: HasStateApi> HolderStateActive<S> {
         holder
     }
 
-    pub fn balance(&self, token_id: &TokenId) -> Option<StateRef<HolderStateBalance>> {
-        self.balances.get(token_id)
-    }
-
-    pub fn balance_mut(
-        &mut self,
-        token_id: &TokenId,
-    ) -> Option<StateRefMut<HolderStateBalance, S>> {
-        self.balances.get_mut(token_id)
-    }
-
     pub fn has_operator(&self, operator: &Address) -> bool { self.operators.contains(operator) }
 
     pub fn add_operator(&mut self, operator: Address) { self.operators.insert(operator); }
 
     pub fn remove_operator(&mut self, operator: &Address) { self.operators.remove(operator); }
 
-    pub fn un_freeze_balance_to_match(
-        &mut self,
-        token_id: &TokenId,
-        amount: TokenAmount,
-    ) -> Result<TokenAmount, Error> {
-        let mut holder_balance = self.balance_mut(token_id).ok_or(Error::InsufficientFunds)?;
-        if holder_balance.un_frozen.ge(&amount) {
-            return Ok(TokenAmount::zero());
-        }
-
-        let can_be_un_frozen_amount = amount.sub(holder_balance.un_frozen.as_amount());
-        if can_be_un_frozen_amount.gt(&holder_balance.frozen) {
-            return Err(Error::InsufficientFunds);
-        }
-
-        holder_balance.frozen.sub_assign(can_be_un_frozen_amount);
-        holder_balance.un_frozen.add_assign(can_be_un_frozen_amount);
-        Ok(can_be_un_frozen_amount)
-    }
-
-    pub fn sub_assign_unfrozen_balance(
-        &mut self,
-        token_id: TokenId,
-        amount: TokenAmount,
-    ) -> Result<TokenAmount, Error> {
-        self.balances
-            .entry(token_id)
-            .occupied_or(Error::InsufficientFunds)?
-            .sub_assign_unfrozen(amount)
-    }
-
-    pub fn add_assign_unfrozen_balance(
-        &mut self,
-        token_id: TokenId,
-        amount: TokenAmount,
-    ) -> TokenAmountU64 {
-        self.balances
-            .entry(token_id)
-            .or_insert(HolderStateBalance::default())
-            .add_assign_unfrozen(amount)
-    }
-
-    pub fn sub_assign_unfrozen_balance_signed(
-        &mut self,
-        max_reward_token_id: TokenId,
-        total_amount: TokenAmount,
-    ) -> TokenAmountU64 {
-        self.balances
-            .entry(max_reward_token_id)
-            .or_insert(HolderStateBalance::default())
-            .sub_assign_unfrozen_signed(total_amount)
-    }
-
     pub fn clone_for_recovery(&self, state_builder: &mut StateBuilder<S>) -> Self {
         let mut new_holder = HolderStateActive::new(state_builder);
-        for (token_id, balance) in self.balances.iter() {
-            let _ = new_holder.balances.insert(*token_id, balance.clone());
+        new_holder.balance = self.balance;
+        for (token_id, balance) in self.reward_balances.iter() {
+            let _ = new_holder
+                .reward_balances
+                .insert(*token_id, balance.clone());
         }
         new_holder
-    }
-
-    pub fn has_roles(&self, roles: &[AgentRole]) -> bool {
-        roles.iter().all(|r| self.agent_roles.contains(r))
     }
 }
 

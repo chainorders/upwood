@@ -41,15 +41,6 @@ pub fn freeze(
         tokens: freezes,
     }: FreezeParams = ctx.parameter_cursor().get()?;
 
-    let state = host.state();
-    for freeze in &freezes {
-        state
-            .token(&freeze.token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main()
-            .ok_or(Error::InvalidTokenId)?;
-    }
-
     let state = host.state_mut();
     let mut owner = state
         .address_mut(&owner_address)
@@ -62,10 +53,9 @@ pub fn freeze(
     } in freezes
     {
         ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        owner
-            .balance_mut(&token_id)
-            .ok_or(Error::InsufficientFunds)?
-            .freeze(token_amount)?;
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+
+        owner.balance.freeze(token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id,
             amount: token_amount,
@@ -102,22 +92,13 @@ pub fn un_freeze(
     let is_authorized = host
         .state()
         .address(&ctx.sender())
-        .is_some_and(|a| a.is_agent(&[AgentRole::Freeze]));
+        .is_some_and(|a| a.is_agent(&[AgentRole::UnFreeze]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let FreezeParams {
         owner: owner_address,
         tokens: freezes,
     }: FreezeParams = ctx.parameter_cursor().get()?;
-
-    let state = host.state();
-    for freeze in &freezes {
-        state
-            .token(&freeze.token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main()
-            .ok_or(Error::InvalidTokenId)?;
-    }
 
     let state = host.state_mut();
     let mut owner = state
@@ -131,10 +112,9 @@ pub fn un_freeze(
     } in freezes
     {
         ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        owner
-            .balance_mut(&token_id)
-            .ok_or(Error::InsufficientFunds)?
-            .un_freeze(token_amount)?;
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+
+        owner.balance.un_freeze(token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,
             amount: token_amount,
@@ -172,20 +152,17 @@ pub fn balance_of_frozen(
     let mut amounts = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
         let balance = {
             match state.address(&query.address) {
                 None => TokenAmount::zero(),
                 Some(holder) => match holder.active() {
                     None => TokenAmount::zero(),
-                    Some(active) => active
-                        .balance(&query.token_id)
-                        .map(|b| b.frozen)
-                        .unwrap_or(TokenAmount::zero()),
+                    Some(active) => active.balance.frozen,
                 },
             }
         };
         amounts.push(balance);
+        ensure!(TRACKED_TOKEN_ID.eq(&query.token_id), Error::InvalidTokenId);
     }
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
@@ -217,20 +194,17 @@ pub fn balance_of_un_frozen(
     let mut amounts = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
         let balance = {
             match state.address(&query.address) {
                 None => TokenAmount::zero(),
                 Some(holder) => match holder.active() {
                     None => TokenAmount::zero(),
-                    Some(active) => active
-                        .balance(&query.token_id)
-                        .map(|b| b.un_frozen.as_amount())
-                        .unwrap_or(TokenAmount::zero()),
+                    Some(active) => active.balance.un_frozen,
                 },
             }
         };
         amounts.push(balance);
+        ensure!(TRACKED_TOKEN_ID.eq(&query.token_id), Error::InvalidTokenId);
     }
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))

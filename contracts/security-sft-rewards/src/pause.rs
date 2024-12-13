@@ -37,12 +37,8 @@ pub fn pause(
 
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
     for PauseParam { token_id } in tokens {
-        state
-            .token_mut(&token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main_mut()
-            .ok_or(Error::InvalidTokenId)?
-            .pause();
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+        state.token.pause();
         logger.log(&Event::Paused(Paused { token_id }))?;
     }
 
@@ -81,12 +77,8 @@ pub fn un_pause(
 
     let PauseParams { tokens }: PauseParams = ctx.parameter_cursor().get()?;
     for PauseParam { token_id } in tokens {
-        state
-            .token_mut(&token_id)
-            .ok_or(Error::InvalidTokenId)?
-            .main_mut()
-            .ok_or(Error::InvalidTokenId)?
-            .un_pause();
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
+        state.token.un_pause();
         logger.log(&Event::UnPaused(Paused { token_id }))?;
     }
 
@@ -118,11 +110,8 @@ pub fn is_paused(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<IsP
 
     let state = host.state();
     for PauseParam { token_id } in tokens {
-        let is_paused = match state.token(&token_id).ok_or(Error::InvalidTokenId)?.main() {
-            None => false,
-            Some(token) => token.paused,
-        };
-        res.tokens.push(is_paused);
+        res.tokens.push(state.token.paused);
+        ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
     }
 
     Ok(res)

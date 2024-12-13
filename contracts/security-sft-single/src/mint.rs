@@ -28,7 +28,7 @@ pub fn mint(
     let state = host.state();
     let is_authorized = state
         .address(&ctx.sender())
-        .is_some_and(|a| a.active().is_some_and(|a| a.has_roles(&[AgentRole::Mint])));
+        .is_some_and(|a| a.is_agent(&[AgentRole::Mint]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -41,6 +41,8 @@ pub fn mint(
     {
         let owner = Address::Account(owner);
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
+        ensure!(TRACKED_TOKEN_ID.eq(&params.token_id), Error::InvalidTokenId);
+
         if let Some(identity_registry) = identity_registry {
             ensure!(
                 identity_registry_client::is_verified(host, &identity_registry, &owner)?,
@@ -63,7 +65,7 @@ pub fn mint(
             // Mint tokens
             let mut holder = state.address_or_insert_holder(&owner, state_builder);
             let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            active_holder.add_assign_balance(&params.token_id, amount);
+            active_holder.balance.add_assign_unfrozen(amount);
         }
         {
             // Update minted supply

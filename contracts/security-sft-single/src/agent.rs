@@ -4,7 +4,7 @@ use concordium_std::*;
 use super::error::Error;
 use super::state::State;
 use super::types::{Agent, ContractResult, Event};
-use crate::state::{AddressState, HolderState};
+use crate::state::{HolderState, HolderStateActive};
 /// Returns true if the given address is an agent.
 ///
 /// # Returns
@@ -57,7 +57,10 @@ pub fn add_agent(
     let (state, state_builder) = host.state_and_builder();
     state.add_address(
         params.address,
-        AddressState::Holder(HolderState::new_with_roles(state_builder, &params.roles)),
+        HolderState::Active(HolderStateActive::new_with_roles(
+            state_builder,
+            &params.roles,
+        )),
     )?;
     logger.log(&Event::AgentAdded(AgentUpdatedEvent {
         agent: params.address,

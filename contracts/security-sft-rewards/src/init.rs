@@ -9,7 +9,7 @@ use super::error::Error;
 use super::state::State;
 use super::types::{AgentRole, ContractResult, Event, InitParam};
 use crate::state::{
-    HolderState, HolderStateActive, MainTokenState, RewardTokenState, TokenAmountSigned, TokenState,
+    HolderState, HolderStateActive, RewardTokenState, SecurityTokenState, TokenAmountSigned,
 };
 use crate::types::{TokenAmount, MIN_REWARD_TOKEN_ID, TRACKED_TOKEN_ID};
 /// Initializes the contract with the given parameters.
@@ -46,24 +46,13 @@ pub fn init(
         );
         addresses
     };
-    let tokens = {
+    let reward_tokens = {
         let mut tokens = state_builder.new_map();
-        let _ = tokens.insert(
-            TRACKED_TOKEN_ID,
-            TokenState::Main(MainTokenState {
-                metadata_url: params.metadata_url.clone().into(),
-                supply:       TokenAmount::zero(),
-                paused:       false,
-            }),
-        );
-        let _ = tokens.insert(
-            MIN_REWARD_TOKEN_ID,
-            TokenState::Reward(RewardTokenState {
-                metadata_url: params.blank_reward_metadata_url.clone().into(),
-                supply:       TokenAmountSigned::zero(),
-                reward:       None,
-            }),
-        );
+        let _ = tokens.insert(MIN_REWARD_TOKEN_ID, RewardTokenState {
+            metadata_url: params.blank_reward_metadata_url.clone().into(),
+            supply:       TokenAmountSigned::zero(),
+            reward:       None,
+        });
         tokens
     };
     let state = State {
@@ -71,7 +60,12 @@ pub fn init(
         compliance: params.compliance,
         sponsor: params.sponsors,
         addresses,
-        tokens,
+        token: SecurityTokenState {
+            metadata_url: params.metadata_url.clone().into(),
+            supply:       TokenAmount::zero(),
+            paused:       false,
+        },
+        reward_tokens,
         rewards_ids_range: (MIN_REWARD_TOKEN_ID, MIN_REWARD_TOKEN_ID),
     };
 

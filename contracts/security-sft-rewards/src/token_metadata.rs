@@ -4,6 +4,7 @@ use concordium_std::*;
 use super::state::State;
 use super::types::{ContractResult, TokenId};
 use crate::error::Error;
+use crate::types::TRACKED_TOKEN_ID;
 
 /// Retrieves the metadata for a token.
 ///
@@ -33,12 +34,18 @@ pub fn token_metadata(
     let state = host.state();
     let mut res = Vec::with_capacity(queries.len());
     for query in queries {
-        let metadata_url = state
-            .token(&query)
-            .ok_or(Error::InvalidTokenId)?
-            .metadata_url()
-            .clone();
-        res.push(metadata_url);
+        if TRACKED_TOKEN_ID.eq(&query) {
+            res.push(state.token.metadata_url.clone());
+        } else {
+            res.push(
+                state
+                    .reward_tokens
+                    .get(&query)
+                    .ok_or(Error::InvalidTokenId)?
+                    .metadata_url
+                    .clone(),
+            );
+        }
     }
 
     Ok(TokenMetadataQueryResponse(res))

@@ -12,7 +12,7 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
-use crate::state::{RewardDeposited, RewardTokenState, TokenAmountSigned, TokenState};
+use crate::state::{RewardDeposited, RewardTokenState, TokenAmountSigned};
 
 #[derive(Debug, Serialize, Clone, SchemaType)]
 pub struct TransferAddRewardParams {
@@ -37,12 +37,7 @@ pub fn transfer_add_reward(ctx: &ReceiveContext, host: &mut Host<State>) -> Cont
     ensure!(is_authorized, Error::Unauthorized);
 
     let params: TransferAddRewardParams = ctx.parameter_cursor().get()?;
-    let curr_supply = state
-        .token(&TRACKED_TOKEN_ID)
-        .ok_or(Error::InvalidTokenId)?
-        .main()
-        .ok_or(Error::InvalidTokenId)?
-        .supply;
+    let curr_supply = state.token.supply;
     let (rewarded_amount, _) = params.data.rate.convert(&curr_supply.0)?;
     let rewarded_token_amount = TokenAmountU64(rewarded_amount);
     let receive_add_reward_receiver = Receiver::Contract(
@@ -96,9 +91,7 @@ pub fn receive_add_reward(
 
     let state = host.state_mut();
     let is_authorized = state.address(&Address::Account(invoker)).is_some_and(
-        |a: StateRef<crate::state::HolderState<ExternStateApi>>| {
-            a.is_agent(&[AgentRole::Rewarder])
-        },
+        |a: StateRef<crate::state::HolderState<ExternStateApi>>| a.is_agent(&[AgentRole::Rewarder]),
     );
     ensure!(is_authorized, Error::Unauthorized);
     let reward_metadata_url: MetadataUrl = params.data.metadata_url.into();
@@ -106,9 +99,9 @@ pub fn receive_add_reward(
 
     let (next_token_id, next_token_metadata_url) = {
         let mut max_reward_token = state
-            .token_mut(&max_reward_token_id)
-            .ok_or(Error::InvalidTokenId)?;
-        let max_reward_token = max_reward_token.reward_mut().ok_or(Error::InvalidTokenId)?;
+            .reward_tokens
+            .get_mut(&max_reward_token_id)
+            .ok_or(Error::InvalidRewardTokenId)?;
         // Copy the existing metadata url to the new token
         // This metadata url will always be the default metadata url specified at the contract init
         let next_token_metadata_url = max_reward_token.metadata_url.clone();
@@ -130,14 +123,11 @@ pub fn receive_add_reward(
         (max_reward_token_id.plus_one(), next_token_metadata_url)
     };
 
-    state.add_token(
-        next_token_id,
-        TokenState::Reward(RewardTokenState {
-            metadata_url: next_token_metadata_url.clone(),
-            reward:       None,
-            supply:       TokenAmountSigned::zero(),
-        }),
-    )?;
+    let _ = state.reward_tokens.insert(next_token_id, RewardTokenState {
+        metadata_url: next_token_metadata_url.clone(),
+        reward:       None,
+        supply:       TokenAmountSigned::zero(),
+    });
     state.rewards_ids_range = (min_reward_token_id, next_token_id);
     concordium_dbg!("rewards_ids_range: {:?}", state.rewards_ids_range);
 
@@ -189,13 +179,14 @@ pub fn claim_rewards(
         // Calculated the amount of reward token to be burned and amount of rewarded token to be transferred
         let (claim_amount, rewarded) = {
             let curr_reward_token = state
-                .token(&curr_reward_token_id)
-                .ok_or(Error::InvalidTokenId)?;
-            let curr_reward_token = curr_reward_token.reward().ok_or(Error::InvalidTokenId)?;
+                .reward_tokens
+                .get(&curr_reward_token_id)
+                .ok_or(Error::InvalidRewardTokenId)?;
             let holder = state.address(&owner_address).ok_or(Error::InvalidAddress)?;
             let holder = holder.active().ok_or(Error::RecoveredAddress)?;
             let claim_amount = holder
-                .balance(&curr_reward_token_id)
+                .reward_balances
+                .get(&curr_reward_token_id)
                 .map(|h| h.un_frozen.as_amount())
                 .unwrap_or(TokenAmount::zero());
 
@@ -226,11 +217,9 @@ pub fn claim_rewards(
         let state = host.state_mut();
         {
             let mut curr_reward_token = state
-                .token_mut(&curr_reward_token_id)
-                .ok_or(Error::InvalidTokenId)?;
-            let curr_reward_token = curr_reward_token
-                .reward_mut()
-                .ok_or(Error::InvalidTokenId)?;
+                .reward_tokens
+                .get_mut(&curr_reward_token_id)
+                .ok_or(Error::InvalidRewardTokenId)?;
             curr_reward_token.sub_assign_supply_signed(claim_amount);
 
             if let Some((_, rewarded_amount)) = rewarded {
@@ -245,9 +234,8 @@ pub fn claim_rewards(
 
         {
             state
-                .token_mut(&next_reward_token_id)
-                .ok_or(Error::InvalidTokenId)?
-                .reward_mut()
+                .reward_tokens
+                .get_mut(&next_reward_token_id)
                 .ok_or(Error::InvalidTokenId)?
                 .add_assign_supply(claim_amount);
         }
@@ -257,8 +245,17 @@ pub fn claim_rewards(
                 .address_mut(&owner_address)
                 .ok_or(Error::InvalidAddress)?;
             let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.sub_assign_unfrozen_balance(curr_reward_token_id, claim_amount)?;
-            holder.add_assign_unfrozen_balance(next_reward_token_id, claim_amount)
+            holder
+                .reward_balances
+                .entry(curr_reward_token_id)
+                .occupied_or(Error::InsufficientFunds)?
+                .sub_assign_unfrozen(claim_amount, false)?;
+            let to_burn = holder
+                .reward_balances
+                .entry(next_reward_token_id)
+                .or_default()
+                .add_assign_unfrozen(claim_amount);
+            to_burn
         };
         if to_burn.gt(&TokenAmount::zero()) {
             logger.log(&Event::Cis2(Cis2Event::Burn(BurnEvent {

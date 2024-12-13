@@ -8,7 +8,7 @@ use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_std::*;
 pub use concordium_std::{MetadataUrl, Timestamp};
 use error::Error;
-use state::{AddressState, State};
+use state::{HolderState, State};
 use types::*;
 
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =
@@ -48,7 +48,11 @@ pub fn init(
 )]
 pub fn is_agent(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<bool> {
     let agent: Agent = ctx.parameter_cursor().get()?;
-    let is_agent = host.state().address(&agent.address).is_some();
+    let is_agent = host
+        .state()
+        .addresses
+        .get(&agent.address)
+        .is_some_and(|a| a.is_agent);
     Ok(is_agent)
 }
 
@@ -70,8 +74,12 @@ pub fn add_agent(
         ctx.sender().matches_account(&ctx.owner()),
         Error::Unauthorized
     );
-    host.state_mut()
-        .add_address(params.address, AddressState::Agent)?;
+    let (state, state_builder) = host.state_and_builder();
+    state
+        .addresses
+        .entry(params.address)
+        .or_insert_with(|| HolderState::new(state_builder))
+        .modify(|a| a.is_agent = true);
     logger.log(&Event::AgentAdded(params.address))?;
 
     Ok(())
@@ -95,8 +103,13 @@ pub fn remove_agent(
         Error::Unauthorized
     );
     let address: Address = ctx.parameter_cursor().get()?;
-    let state = host.state_mut().remove_and_get_address(&address)?;
-    state.agent().ok_or(Error::InvalidAddress)?;
+    host.state_mut()
+        .addresses
+        .get_mut(&address)
+        .map_or(Err(Error::InvalidAddress), |mut a| {
+            a.is_agent = false;
+            Ok(())
+        })?;
     logger.log(&&Event::AgentRemoved(address))?;
 
     Ok(())
@@ -120,13 +133,15 @@ pub fn update_operator(
     let (state, state_builder) = host.state_and_builder();
 
     for UpdateOperator { operator, update } in updates {
-        let mut holder = state.address_or_insert_holder(&sender, state_builder);
-        let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
+        state
+            .addresses
+            .entry(sender)
+            .or_insert_with(|| HolderState::new(state_builder))
+            .modify(|a| match update {
+                OperatorUpdate::Add => a.operators.insert(operator),
+                OperatorUpdate::Remove => a.operators.remove(&operator),
+            });
 
-        match update {
-            OperatorUpdate::Add => holder.add_operator(operator),
-            OperatorUpdate::Remove => holder.remove_operator(&operator),
-        }
         logger.log(&Event::Cis2(Cis2Event::UpdateOperator(
             UpdateOperatorEvent {
                 operator,
@@ -154,9 +169,10 @@ pub fn operator_of(
     let mut res = Vec::with_capacity(queries.len());
 
     for query in queries {
-        let is_operator = state.address(&query.owner).map_or(false, |h| {
-            h.holder().map_or(false, |h| h.has_operator(&query.address))
-        });
+        let is_operator = state
+            .addresses
+            .get(&query.owner)
+            .map_or(false, |a| a.operators.contains(&query.address));
         res.push(is_operator);
     }
 
@@ -178,13 +194,18 @@ pub fn balance_of(
     let mut res: Vec<TokenAmount> = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
-        let balance: TokenAmount = state
-            .address(&query.address)
-            .and_then(|a| a.holder().map(|h| h.balance(&query.token_id)))
-            .map(|v| if v { 1.into() } else { 0.into() })
-            .unwrap_or(0.into());
+        let balance = state.addresses.get(&query.address).map_or(0.into(), |a| {
+            if a.balances.contains(&query.token_id) {
+                1.into()
+            } else {
+                0.into()
+            }
+        });
         res.push(balance);
+        ensure!(
+            state.tokens.get(&query.token_id).is_some(),
+            Error::InvalidTokenId
+        );
     }
     Ok(concordium_cis2::BalanceOfQueryResponse(res))
 }
@@ -226,7 +247,11 @@ pub fn token_metadata(
     let state = host.state();
     let mut res = Vec::with_capacity(queries.len());
     for query in queries {
-        let metadata_url = state.token(&query).ok_or(Error::InvalidTokenId)?.clone();
+        let metadata_url = state
+            .tokens
+            .get(&query)
+            .ok_or(Error::InvalidTokenId)?
+            .clone();
         res.push(metadata_url);
     }
 
@@ -263,20 +288,25 @@ pub fn transfer(
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
         {
-            let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
+            let mut from_holder = state
+                .addresses
+                .get_mut(&from)
+                .ok_or(Error::InvalidAddress)?;
             ensure!(
-                from.eq(&sender) || from_holder.has_operator(&sender),
+                from.eq(&sender) || from_holder.operators.contains(&sender),
                 Error::Unauthorized
             );
-            from_holder.remove_balance(&token_id);
+            ensure!(
+                from_holder.balances.remove(&token_id),
+                Error::InsufficientFunds
+            );
         };
 
         state
-            .address_or_insert_holder(&to.address(), state_builder)
-            .holder_mut()
-            .ok_or(Error::InvalidAddress)?
-            .add_balance(token_id);
+            .addresses
+            .entry(to.address())
+            .or_insert_with(|| HolderState::new(state_builder))
+            .modify(|a| a.balances.insert(token_id));
 
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
@@ -435,29 +465,32 @@ pub fn mint(
     );
     ensure!(
         state
-            .address(&signer.into())
-            .map(|a| a.agent().is_some())
-            .is_some_and(|v| v),
+            .addresses
+            .get(&signer.into())
+            .is_some_and(|a| a.is_agent),
         Error::UnauthorizedInvalidAgent
-    );
-    ensure!(
-        state
-            .address(&from)
-            .and_then(|a| a.holder().map(|h| h.nonce()))
-            .unwrap_or(0)
-            .eq(&signed_metadata.account_nonce),
-        Error::InvalidNonce
     );
 
     let (state, builder) = host.state_and_builder();
     let curr_token_id = state.curr_token_id;
-    state.add_token(curr_token_id, signed_metadata.metadata_url.clone())?;
-    let nonce = {
-        let mut holder = state.address_or_insert_holder(&from, builder);
-        let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
-        holder.add_balance(curr_token_id);
-        holder.increment_nonce()
-    };
+    state
+        .tokens
+        .entry(curr_token_id)
+        .vacant_or(Error::InvalidTokenId)?
+        .insert(signed_metadata.metadata_url.clone());
+    let nonce = state
+        .addresses
+        .entry(from)
+        .or_insert_with(|| HolderState::new(builder))
+        .try_modify(|holder| {
+            ensure!(
+                holder.nonce.eq(&signed_metadata.account_nonce),
+                Error::InvalidNonce
+            );
+            holder.balances.insert(curr_token_id);
+            holder.nonce += 1;
+            Ok(holder.nonce)
+        })?;
     state.curr_token_id = curr_token_id.plus_one();
 
     // logs
