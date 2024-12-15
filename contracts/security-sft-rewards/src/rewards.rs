@@ -183,9 +183,8 @@ pub fn claim_rewards(
                 .get(&curr_reward_token_id)
                 .ok_or(Error::InvalidRewardTokenId)?;
             let holder = state.address(&owner_address).ok_or(Error::InvalidAddress)?;
-            let holder = holder.active().ok_or(Error::RecoveredAddress)?;
             let claim_amount = holder
-                .reward_balances
+                .reward_balances()?
                 .get(&curr_reward_token_id)
                 .map(|h| h.un_frozen.as_amount())
                 .unwrap_or(TokenAmount::zero());
@@ -242,16 +241,16 @@ pub fn claim_rewards(
 
         let to_burn = {
             let mut holder = state
-                .address_mut(&owner_address)
+                .addresses
+                .get_mut(&owner_address)
                 .ok_or(Error::InvalidAddress)?;
-            let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
             holder
-                .reward_balances
+                .reward_balances_mut()?
                 .entry(curr_reward_token_id)
                 .occupied_or(Error::InsufficientFunds)?
                 .sub_assign_unfrozen(claim_amount, false)?;
             let to_burn = holder
-                .reward_balances
+                .reward_balances_mut()?
                 .entry(next_reward_token_id)
                 .or_default()
                 .add_assign_unfrozen(claim_amount);

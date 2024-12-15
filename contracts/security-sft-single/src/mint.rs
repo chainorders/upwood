@@ -8,6 +8,7 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
+use crate::state::HolderState;
 
 #[receive(
     contract = "security_sft_single",
@@ -27,7 +28,8 @@ pub fn mint(
 
     let state = host.state();
     let is_authorized = state
-        .address(&ctx.sender())
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::Mint]));
     ensure!(is_authorized, Error::Unauthorized);
 
@@ -61,16 +63,14 @@ pub fn mint(
         }
 
         let (state, state_builder) = host.state_and_builder();
-        {
-            // Mint tokens
-            let mut holder = state.address_or_insert_holder(&owner, state_builder);
-            let active_holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            active_holder.balance.add_assign_unfrozen(amount);
-        }
-        {
-            // Update minted supply
-            state.token.add_assign_supply(amount)?;
-        }
+        // Mint tokens
+        state
+            .addresses
+            .entry(owner)
+            .or_insert_with(|| HolderState::new_active(state_builder))
+            .try_modify(|holder| holder.add_assign_unfrozen(amount))?;
+        // Update minted supply
+        state.token.add_assign_supply(amount)?;
 
         if let Some(compliance) = compliance {
             compliance_client::minted(host, &compliance, &MintedParam {

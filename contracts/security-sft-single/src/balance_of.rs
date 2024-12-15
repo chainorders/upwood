@@ -28,13 +28,10 @@ pub fn balance_of(
     let state = host.state();
     for query in queries {
         ensure!(TRACKED_TOKEN_ID.eq(&query.token_id), Error::InvalidTokenId);
-        let balance: TokenAmount = match state.address(&query.address) {
-            None => TokenAmount::zero(),
-            Some(address) => match address.active() {
-                None => TokenAmount::zero(),
-                Some(holder_state) => holder_state.balance.total(),
-            },
-        };
+        let balance: TokenAmount = state
+            .addresses
+            .get(&query.address)
+            .map_or(TokenAmount::zero(), |a| a.balance_total());
         res.push(balance);
     }
     Ok(concordium_cis2::BalanceOfQueryResponse(res))

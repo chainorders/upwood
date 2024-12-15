@@ -31,7 +31,8 @@ pub fn pause(
 ) -> ContractResult<()> {
     let state = host.state_mut();
     let is_authorized = state
-        .address(&ctx.sender())
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::Pause]));
     ensure!(is_authorized, Error::Unauthorized);
 
@@ -70,7 +71,8 @@ pub fn un_pause(
 ) -> ContractResult<()> {
     let state = host.state_mut();
     let is_authorized = state
-        .address(&ctx.sender())
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::UnPause]));
     ensure!(is_authorized, Error::Unauthorized);
 

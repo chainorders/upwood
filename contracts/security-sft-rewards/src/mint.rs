@@ -8,6 +8,7 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
+use crate::state::HolderState;
 
 #[receive(
     contract = "security_sft_rewards",
@@ -59,11 +60,13 @@ pub fn mint(
         let (state, state_builder) = host.state_and_builder();
         let to_burn = {
             // Mint tokens
-            let mut holder = state.address_or_insert_holder(owner, state_builder);
-            let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.balance.add_assign_unfrozen(amount);
+            let mut holder = state
+                .addresses
+                .entry(owner)
+                .or_insert(HolderState::new_active(state_builder));
+            holder.add_assign_unfrozen(amount)?;
             let to_burn = holder
-                .reward_balances
+                .reward_balances_mut()?
                 .entry(max_reward_token_id)
                 .or_default()
                 .add_assign_unfrozen(amount);

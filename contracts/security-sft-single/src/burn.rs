@@ -47,15 +47,16 @@ pub fn burn(
         ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
         let state = host.state_mut();
         {
-            let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
-            let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            let mut holder = state
+                .addresses
+                .get_mut(&owner)
+                .ok_or(Error::InvalidAddress)?;
             let is_authorized = owner.eq(&sender) || holder.has_operator(&sender);
             ensure!(is_authorized, Error::Unauthorized);
-
-            holder.balance.sub_assign_unfrozen(amount)?;
+            holder.sub_assign_unfrozen(amount)?;
         };
 
-        state.sub_assign_supply(&token_id, amount)?;
+        state.token.sub_assign_supply(amount)?;
 
         if let Some(compliance) = compliance {
             compliance_client::burned(host, &compliance, &BurnedParam {
@@ -105,7 +106,8 @@ pub fn forced_burn(
     let params: BurnParams = ctx.parameter_cursor().get()?;
     let state = host.state();
     let is_authorized = state
-        .address(&ctx.sender())
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::ForcedBurn]));
     ensure!(is_authorized, Error::Unauthorized);
 
@@ -121,14 +123,15 @@ pub fn forced_burn(
         ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
 
         let state = host.state_mut();
-        {
-            let mut holder = state.address_mut(&owner).ok_or(Error::InvalidAddress)?;
-            let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            holder.balance.un_freeze_balance_to_match(amount)?;
-            holder.balance.sub_assign_unfrozen(amount)?;
-        };
-
-        state.sub_assign_supply(&token_id, amount)?;
+        state
+            .addresses
+            .entry(owner)
+            .occupied_or(Error::InvalidAddress)?
+            .try_modify(|holder| {
+                holder.sub_assign_unfrozen(amount)?;
+                holder.un_freeze_balance_to_match(amount)
+            })?;
+        state.token.sub_assign_supply(amount)?;
 
         if let Some(compliance) = compliance {
             compliance_client::burned(host, &compliance, &BurnedParam {

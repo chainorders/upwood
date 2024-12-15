@@ -30,8 +30,9 @@ pub fn freeze(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host
-        .state()
+    let state = host.state_mut();
+
+    let is_authorized = state
         .address(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::Freeze]));
     ensure!(is_authorized, Error::Unauthorized);
@@ -41,11 +42,10 @@ pub fn freeze(
         tokens: freezes,
     }: FreezeParams = ctx.parameter_cursor().get()?;
 
-    let state = host.state_mut();
     let mut owner = state
-        .address_mut(&owner_address)
+        .addresses
+        .get_mut(&owner_address)
         .ok_or(Error::InvalidAddress)?;
-    let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
 
     for FreezeParam {
         token_id,
@@ -55,7 +55,7 @@ pub fn freeze(
         ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
 
-        owner.balance.freeze(token_amount)?;
+        owner.freeze(token_amount)?;
         logger.log(&Event::TokenFrozen(TokenFrozen {
             token_id,
             amount: token_amount,
@@ -102,9 +102,9 @@ pub fn un_freeze(
 
     let state = host.state_mut();
     let mut owner = state
-        .address_mut(&owner_address)
+        .addresses
+        .get_mut(&owner_address)
         .ok_or(Error::InvalidAddress)?;
-    let owner = owner.active_mut().ok_or(Error::RecoveredAddress)?;
 
     for FreezeParam {
         token_id,
@@ -114,7 +114,7 @@ pub fn un_freeze(
         ensure!(token_amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         ensure!(TRACKED_TOKEN_ID.eq(&token_id), Error::InvalidTokenId);
 
-        owner.balance.un_freeze(token_amount)?;
+        owner.un_freeze(token_amount)?;
         logger.log(&Event::TokenUnFrozen(TokenFrozen {
             token_id,
             amount: token_amount,
@@ -152,17 +152,20 @@ pub fn balance_of_frozen(
     let mut amounts = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        let balance = {
-            match state.address(&query.address) {
-                None => TokenAmount::zero(),
-                Some(holder) => match holder.active() {
-                    None => TokenAmount::zero(),
-                    Some(active) => active.balance.frozen,
-                },
+        match (
+            TRACKED_TOKEN_ID.eq(&query.token_id),
+            state.addresses.get(&query.address),
+        ) {
+            (true, Some(h)) => amounts.push(h.frozen_balance()),
+            (true, None) => amounts.push(TokenAmount::zero()),
+            (false, _) => {
+                state
+                    .reward_tokens
+                    .get(&query.token_id)
+                    .ok_or(Error::InvalidTokenId)?;
+                amounts.push(TokenAmount::zero());
             }
-        };
-        amounts.push(balance);
-        ensure!(TRACKED_TOKEN_ID.eq(&query.token_id), Error::InvalidTokenId);
+        }
     }
 
     Ok(concordium_cis2::BalanceOfQueryResponse(amounts))
@@ -194,16 +197,38 @@ pub fn balance_of_un_frozen(
     let mut amounts = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        let balance = {
-            match state.address(&query.address) {
-                None => TokenAmount::zero(),
-                Some(holder) => match holder.active() {
-                    None => TokenAmount::zero(),
-                    Some(active) => active.balance.un_frozen,
-                },
+        match (
+            TRACKED_TOKEN_ID.eq(&query.token_id),
+            state.addresses.get(&query.address),
+        ) {
+            (true, Some(h)) => amounts.push(h.un_frozen_balance()),
+            (true, None) => amounts.push(TokenAmount::zero()),
+            (false, Some(h)) => {
+                state
+                    .reward_tokens
+                    .get(&query.token_id)
+                    .ok_or(Error::InvalidTokenId)?;
+                amounts.push(
+                    h.reward_balances()?
+                        .get(&query.token_id)
+                        .map_or(TokenAmount::zero(), |a| a.un_frozen.as_amount()),
+                );
             }
-        };
-        amounts.push(balance);
+            (false, None) => {
+                state
+                    .reward_tokens
+                    .get(&query.token_id)
+                    .ok_or(Error::InvalidTokenId)?;
+                amounts.push(TokenAmount::zero());
+            }
+        }
+
+        amounts.push(
+            state
+                .addresses
+                .get(&query.address)
+                .map_or(TokenAmount::zero(), |a| a.un_frozen_balance()),
+        );
         ensure!(TRACKED_TOKEN_ID.eq(&query.token_id), Error::InvalidTokenId);
     }
 

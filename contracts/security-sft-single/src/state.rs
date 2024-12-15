@@ -2,11 +2,10 @@ use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_std::ops::{Add, AddAssign, Sub, SubAssign};
 use concordium_std::{
     ensure, Address, ContractAddress, Deletable, Deserial, DeserialWithState, HasStateApi,
-    MetadataUrl, OccupiedEntry, Serial, Serialize, StateApi, StateBuilder, StateMap, StateRef,
-    StateRefMut, StateSet,
+    MetadataUrl, Serial, Serialize, StateApi, StateBuilder, StateMap, StateSet,
 };
 
-use super::types::{AgentRole, TokenAmount, TokenId};
+use super::types::{AgentRole, TokenAmount};
 use crate::error::Error;
 
 #[derive(Serial, DeserialWithState, Deletable)]
@@ -17,31 +16,133 @@ pub enum HolderState<S> {
 }
 
 impl<S: HasStateApi> HolderState<S> {
-    pub fn active(&self) -> Option<&HolderStateActive<S>> {
-        match self {
-            HolderState::Active(holder) => Some(holder),
-            _ => None,
-        }
-    }
-
-    pub fn active_mut(&mut self) -> Option<&mut HolderStateActive<S>> {
-        match self {
-            HolderState::Active(holder) => Some(holder),
-            _ => None,
-        }
-    }
-
-    pub fn recovered(&self) -> Option<&Address> {
-        match self {
-            HolderState::Recovered(address) => Some(address),
-            _ => None,
-        }
+    pub fn new_active(state_builder: &mut StateBuilder<S>) -> Self {
+        HolderState::Active(HolderStateActive::new(state_builder))
     }
 
     pub fn is_agent(&self, roles: &[AgentRole]) -> bool {
         match self {
             HolderState::Active(holder) => roles.iter().all(|r| holder.agent_roles.contains(r)),
             _ => false,
+        }
+    }
+
+    pub fn has_operator(&self, operator: &Address) -> bool {
+        match self {
+            HolderState::Active(holder) => holder.operators.contains(operator),
+            _ => false,
+        }
+    }
+
+    pub fn sub_assign_unfrozen(&mut self, amount: TokenAmount) -> Result<TokenAmount, Error> {
+        match self {
+            HolderState::Active(holder) => holder.balance.sub_assign_unfrozen(amount),
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn add_assign_unfrozen(&mut self, amount: TokenAmount) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => {
+                holder.balance.add_assign_unfrozen(amount);
+                Ok(())
+            }
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn add_operator(&mut self, operator: Address) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => {
+                holder.operators.insert(operator);
+                Ok(())
+            }
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn remove_operator(&mut self, operator: &Address) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => {
+                holder.operators.remove(operator);
+                Ok(())
+            }
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn freeze(&mut self, amount: TokenAmount) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => holder.balance.freeze(amount),
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn frozen_balance(&self) -> TokenAmount {
+        match self {
+            HolderState::Active(holder) => holder.balance.frozen,
+            _ => TokenAmount::zero(),
+        }
+    }
+
+    pub fn un_frozen_balance(&self) -> TokenAmount {
+        match self {
+            HolderState::Active(holder) => holder.balance.un_frozen,
+            _ => TokenAmount::zero(),
+        }
+    }
+
+    pub fn clear_agent_roles(&mut self) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => {
+                holder.agent_roles.clear();
+                Ok(())
+            }
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn set_agent_roles(&mut self, roles: &[AgentRole]) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => {
+                holder.agent_roles.clear();
+                for role in roles {
+                    holder.agent_roles.insert(*role);
+                }
+                Ok(())
+            }
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn un_freeze(&mut self, amount: TokenAmount) -> Result<(), Error> {
+        match self {
+            HolderState::Active(holder) => holder.balance.un_freeze(amount),
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn un_freeze_balance_to_match(
+        &mut self,
+        amount: TokenAmount,
+    ) -> Result<TokenAmount, Error> {
+        match self {
+            HolderState::Active(holder) => holder.balance.un_freeze_balance_to_match(amount),
+            _ => Err(Error::RecoveredAddress),
+        }
+    }
+
+    pub fn balance_total(&self) -> TokenAmount {
+        match self {
+            HolderState::Active(holder) => holder.balance.total(),
+            _ => TokenAmount::zero(),
+        }
+    }
+
+    pub fn recovery_address(&self) -> Option<Address> {
+        match self {
+            HolderState::Recovered(address) => Some(*address),
+            _ => None,
         }
     }
 }
@@ -55,44 +156,6 @@ pub struct State<S=StateApi> {
     pub compliance:        Option<ContractAddress>,
     pub addresses:         StateMap<Address, HolderState<S>, S>,
     pub sponsor:           Option<ContractAddress>,
-}
-
-impl<S: HasStateApi> State<S> {
-    pub fn address(&self, address: &Address) -> Option<StateRef<HolderState<S>>> {
-        self.addresses.get(address)
-    }
-
-    pub fn address_or_insert_holder(
-        &mut self,
-        address: &Address,
-        state_builder: &mut StateBuilder<S>,
-    ) -> StateRefMut<HolderState<S>, S> {
-        self.addresses
-            .entry(*address)
-            .or_insert(HolderState::Active(HolderStateActive::new(state_builder)));
-        self.address_mut(address).unwrap()
-    }
-
-    pub fn address_mut(&mut self, address: &Address) -> Option<StateRefMut<HolderState<S>, S>> {
-        self.addresses.get_mut(address)
-    }
-
-    pub fn add_address(
-        &mut self,
-        address: Address,
-        state: HolderState<S>,
-    ) -> Result<OccupiedEntry<'_, Address, HolderState<S>, S>, Error> {
-        Ok(self
-            .addresses
-            .entry(address)
-            .vacant_or(Error::InvalidAddress)?
-            .insert(state))
-    }
-
-    pub fn sub_assign_supply(&mut self, _: &TokenId, amount: TokenAmount) -> Result<(), Error> {
-        self.token.sub_assign_supply(amount)?;
-        Ok(())
-    }
 }
 
 #[derive(Serialize, Clone)]
@@ -209,17 +272,5 @@ impl<S: HasStateApi> HolderStateActive<S> {
             holder.agent_roles.insert(*role);
         }
         holder
-    }
-
-    pub fn has_operator(&self, operator: &Address) -> bool { self.operators.contains(operator) }
-
-    pub fn add_operator(&mut self, operator: Address) { self.operators.insert(operator); }
-
-    pub fn remove_operator(&mut self, operator: &Address) { self.operators.remove(operator); }
-
-    pub fn clone_for_recovery(&self, state_builder: &mut StateBuilder<S>) -> Self {
-        let mut new_holder = HolderStateActive::new(state_builder);
-        new_holder.balance = self.balance;
-        new_holder
     }
 }

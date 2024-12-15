@@ -113,14 +113,15 @@ pub fn set_identity_registry(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host
-        .state()
-        .address(&ctx.sender())
+    let state = host.state_mut();
+    let is_authorized = state
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::SetIdentityRegistry]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let identity_registry: ContractAddress = ctx.parameter_cursor().get()?;
-    host.state_mut().identity_registry = Some(identity_registry);
+    state.identity_registry = Some(identity_registry);
     logger.log(&Event::IdentityRegistryAdded(IdentityRegistryAdded(
         identity_registry,
     )))?;
@@ -173,14 +174,14 @@ pub fn set_compliance(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let is_authorized = host
-        .state()
-        .address(&ctx.sender())
+    let state = host.state_mut();
+    let is_authorized = state
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::SetCompliance]));
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance: ContractAddress = ctx.parameter_cursor().get()?;
-    host.state_mut().compliance = Some(compliance);
     logger.log(&Event::ComplianceAdded(ComplianceAdded(compliance)))?;
 
     Ok(())

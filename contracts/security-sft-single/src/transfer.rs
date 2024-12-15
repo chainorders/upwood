@@ -10,6 +10,7 @@ use concordium_std::*;
 use super::error::*;
 use super::state::State;
 use super::types::*;
+use crate::state::HolderState;
 
 /// Executes a compliant transfer of token ownership between verified accounts
 ///
@@ -102,20 +103,22 @@ pub fn transfer(
         ensure!(!is_paused, Error::PausedToken);
 
         {
-            let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
+            let mut from_holder = state
+                .addresses
+                .get_mut(&from)
+                .ok_or(Error::InvalidAddress)?;
             ensure!(
                 from.eq(&sender) || from_holder.has_operator(&sender),
                 Error::Unauthorized
             );
-            from_holder.balance.sub_assign_unfrozen(amount)?;
-        };
-
-        {
-            let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.balance.add_assign_unfrozen(amount);
+            from_holder.sub_assign_unfrozen(amount)?;
         }
+
+        state
+            .addresses
+            .entry(to.address())
+            .or_insert_with(|| HolderState::new_active(state_builder))
+            .try_modify(|holder| holder.add_assign_unfrozen(amount))?;
 
         if let Some(compliance) = compliance {
             compliance_client::transferred(host, &compliance, &TransferredParam {
@@ -185,10 +188,9 @@ pub fn forced_transfer(
 ) -> ContractResult<()> {
     let state = host.state();
     let is_authorized = state
-        .address(&ctx.sender())
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::ForcedTransfer]));
-    ensure!(is_authorized, Error::Unauthorized);
-
     ensure!(is_authorized, Error::Unauthorized);
 
     let compliance = state.compliance;
@@ -219,20 +221,19 @@ pub fn forced_transfer(
         let is_paused = state.token.paused;
         ensure!(!is_paused, Error::PausedToken);
 
-        let un_frozen_amount = {
-            let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            let un_frozen_amount = from_holder.balance.un_freeze_balance_to_match(amount)?;
-            from_holder.balance.sub_assign_unfrozen(amount)?;
-
-            un_frozen_amount
-        };
-
-        {
-            let mut to_holder = state.address_or_insert_holder(&to.address(), state_builder);
-            let to_holder = to_holder.active_mut().ok_or(Error::RecoveredAddress)?;
-            to_holder.balance.add_assign_unfrozen(amount);
-        }
+        state
+            .addresses
+            .entry(to.address())
+            .or_insert_with(|| HolderState::new_active(state_builder))
+            .try_modify(|holder| holder.add_assign_unfrozen(amount))?;
+        let un_frozen_amount = state
+            .addresses
+            .entry(from)
+            .occupied_or(Error::InvalidAddress)?
+            .try_modify(|holder| {
+                holder.sub_assign_unfrozen(amount)?;
+                holder.un_freeze_balance_to_match(amount)
+            })?;
 
         if let Some(compliance) = compliance {
             compliance_client::transferred(host, &compliance, &TransferredParam {

@@ -25,7 +25,8 @@ pub fn recover(
     }: RecoverParam = ctx.parameter_cursor().get()?;
     let state = host.state();
     let is_authorized = state
-        .address(&ctx.sender())
+        .addresses
+        .get(&ctx.sender())
         .is_some_and(|a| a.is_agent(&[AgentRole::HolderRecovery]));
     ensure!(is_authorized, Error::Unauthorized);
     ensure!(
@@ -33,18 +34,17 @@ pub fn recover(
         Error::UnVerifiedIdentity
     );
 
-    let (state, state_builder) = host.state_and_builder();
+    let state = host.state_mut();
     let lost_holder = state
-        .address(&lost_account)
-        .ok_or(Error::InvalidAddress)?
-        .active()
-        .ok_or(Error::RecoveredAddress)?
-        .clone_for_recovery(state_builder);
-    state.add_address(new_account, HolderState::Active(lost_holder))?;
-    let mut lost_holder = state
-        .address_mut(&lost_account)
-        .ok_or(Error::InvalidAddress)?;
-    *lost_holder = HolderState::Recovered(new_account);
+        .addresses
+        .insert(lost_account, HolderState::Recovered(new_account));
+    let previous_new_account = match lost_holder {
+        Some(HolderState::Active(lost_holder)) => state
+            .addresses
+            .insert(new_account, HolderState::Active(lost_holder)),
+        _ => bail!(Error::InvalidAddress),
+    };
+    ensure!(previous_new_account.is_none(), Error::InvalidAddress);
     logger.log(&Event::Recovered(RecoverEvent {
         lost_account,
         new_account,
@@ -67,7 +67,8 @@ pub fn recovery_address(
     let address: Address = ctx.parameter_cursor().get()?;
     let recovery_address = host
         .state()
-        .address(&address)
-        .and_then(|a| a.recovered().cloned());
+        .addresses
+        .get(&address)
+        .and_then(|holder| holder.recovery_address());
     Ok(recovery_address)
 }

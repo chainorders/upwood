@@ -27,28 +27,31 @@ pub fn balance_of(
     let mut res: Vec<TokenAmount> = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        let balance: TokenAmount = match state.address(&query.address) {
-            None => TokenAmount::zero(),
-            Some(holder) => match holder.active() {
-                None => TokenAmount::zero(),
-                Some(holder_state) => {
-                    if TRACKED_TOKEN_ID.eq(&query.token_id) {
-                        holder_state.balance.total()
-                    } else {
-                        ensure!(
-                            state.reward_tokens.get(&query.token_id).is_some(),
-                            Error::InvalidRewardTokenId
-                        );
-                        holder_state
-                            .reward_balances
-                            .get(&query.token_id)
-                            .map(|t| t.total())
-                            .unwrap_or(TokenAmount::zero())
-                    }
-                }
-            },
-        };
-        res.push(balance);
+        match (
+            TRACKED_TOKEN_ID.eq(&query.token_id),
+            state.addresses.get(&query.address),
+        ) {
+            (true, Some(h)) => res.push(h.balance_total()),
+            (true, None) => res.push(TokenAmount::zero()),
+            (false, Some(h)) => {
+                state
+                    .reward_tokens
+                    .get(&query.token_id)
+                    .ok_or(Error::InvalidTokenId)?;
+                res.push(
+                    h.reward_balances()?
+                        .get(&query.token_id)
+                        .map_or(TokenAmount::zero(), |a| a.un_frozen.as_amount()),
+                );
+            }
+            (false, None) => {
+                state
+                    .reward_tokens
+                    .get(&query.token_id)
+                    .ok_or(Error::InvalidTokenId)?;
+                res.push(TokenAmount::zero());
+            }
+        }
     }
     Ok(concordium_cis2::BalanceOfQueryResponse(res))
 }

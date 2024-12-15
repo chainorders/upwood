@@ -1,9 +1,9 @@
 use concordium_cis2::*;
 use concordium_std::*;
 
-use super::error::Error;
 use super::state::State;
 use super::types::{ContractResult, Event};
+use crate::state::{HolderState, HolderStateActive};
 
 /// Updates the operator status for the sender.
 ///
@@ -32,13 +32,14 @@ pub fn update_operator(
     let (state, state_builder) = host.state_and_builder();
 
     for UpdateOperator { operator, update } in updates {
-        let mut holder = state.address_or_insert_holder(&sender, state_builder);
-        let holder = holder.active_mut().ok_or(Error::RecoveredAddress)?;
-
-        match update {
-            OperatorUpdate::Add => holder.add_operator(operator),
-            OperatorUpdate::Remove => holder.remove_operator(&operator),
-        }
+        state
+            .addresses
+            .entry(sender)
+            .or_insert(HolderState::Active(HolderStateActive::new(state_builder)))
+            .try_modify(|holder| match update {
+                OperatorUpdate::Add => holder.add_operator(operator),
+                OperatorUpdate::Remove => holder.remove_operator(&operator),
+            })?;
         logger.log(&Event::Cis2(Cis2Event::UpdateOperator(
             UpdateOperatorEvent {
                 operator,
@@ -74,9 +75,10 @@ pub fn operator_of(
     let mut res = Vec::with_capacity(queries.len());
 
     for query in queries {
-        let is_operator = state.address(&query.owner).map_or(false, |a| {
-            a.active().map_or(false, |a| a.has_operator(&query.address))
-        });
+        let is_operator = state
+            .addresses
+            .get(&query.owner)
+            .is_some_and(|a| a.has_operator(&query.address));
         res.push(is_operator);
     }
 
