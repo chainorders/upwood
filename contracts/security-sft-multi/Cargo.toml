@@ -1,5 +1,5 @@
 [package]
-name = "nft-multi-rewarded"
+name = "security-sft-multi"
 version = "0.1.0"
 authors = ["Stactrace Solutions <parv@stactrace.com>"]
 edition = "2021"

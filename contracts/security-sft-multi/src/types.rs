@@ -1,4 +1,4 @@
-use concordium_cis2::TokenIdUnit;
+use concordium_cis2::TokenIdU64;
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, Cis2SecurityEvent, SecurityParams};
 use concordium_std::{SchemaType, Serialize};
@@ -6,7 +6,7 @@ use concordium_std::{SchemaType, Serialize};
 use super::error::Error;
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU64;
-pub type TokenId = TokenIdUnit;
+pub type TokenId = TokenIdU64;
 pub type Event = Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>;
 
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq, Clone, Copy)]
@@ -66,6 +66,7 @@ impl AgentRole {
             Self::HolderRecovery,
             Self::Pause,
             Self::UnPause,
+            Self::AddToken,
             Self::Operator,
         ]
     }
@@ -88,7 +89,6 @@ pub use concordium_cis2_security::RecoverParam;
 
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {
-    pub metadata_url: ContractMetadataUrl,
-    pub security:     Option<SecurityParams>,
-    pub agents:       Vec<Agent>,
+    pub security: Option<SecurityParams>,
+    pub agents:   Vec<Agent>,
 }

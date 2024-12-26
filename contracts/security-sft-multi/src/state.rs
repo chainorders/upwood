@@ -37,13 +37,15 @@ impl HolderState {
 
     pub fn sub_assign_unfrozen(
         &mut self,
-        _: TokenId,
+        token_id: TokenId,
         amount: TokenAmount,
         forced: bool,
     ) -> Result<TokenAmount, Error> {
         match self {
             HolderState::Active(holder) => holder
-                .balance
+                .balances
+                .get_mut(&token_id)
+                .ok_or(Error::InsufficientFunds)?
                 .sub_assign_unfrozen(amount, forced)
                 .map_err(Into::into),
             _ => Err(Error::RecoveredAddress),
@@ -52,22 +54,34 @@ impl HolderState {
 
     pub fn add_assign(
         &mut self,
-        _: TokenId,
+        token_id: TokenId,
         amount: TokenAmountSecurity<TokenAmount>,
     ) -> Result<(), Error> {
         match self {
             HolderState::Active(holder) => {
-                holder.balance.add_assign(amount);
+                holder
+                    .balances
+                    .entry(token_id)
+                    .or_insert_with(Default::default)
+                    .add_assign(amount);
                 Ok(())
             }
             _ => Err(Error::RecoveredAddress),
         }
     }
 
-    pub fn add_assign_unfrozen(&mut self, _: TokenId, amount: TokenAmount) -> Result<(), Error> {
+    pub fn add_assign_unfrozen(
+        &mut self,
+        token_id: TokenId,
+        amount: TokenAmount,
+    ) -> Result<(), Error> {
         match self {
             HolderState::Active(holder) => {
-                holder.balance.add_assign_unfrozen(amount);
+                holder
+                    .balances
+                    .entry(token_id)
+                    .or_insert_with(Default::default)
+                    .add_assign_unfrozen(amount);
                 Ok(())
             }
             _ => Err(Error::RecoveredAddress),
@@ -94,23 +108,32 @@ impl HolderState {
         }
     }
 
-    pub fn freeze(&mut self, _: TokenId, amount: TokenAmount) -> Result<(), Error> {
+    pub fn freeze(&mut self, token_id: TokenId, amount: TokenAmount) -> Result<(), Error> {
         match self {
-            HolderState::Active(holder) => holder.balance.freeze(amount).map_err(Into::into),
+            HolderState::Active(holder) => holder.balances.get_mut(&token_id).map_or_else(
+                || Err(Error::InsufficientFunds),
+                |mut balance| balance.freeze(amount).map_err(Into::into),
+            ),
             _ => Err(Error::RecoveredAddress),
         }
     }
 
-    pub fn frozen_balance(&self, _: TokenId) -> TokenAmount {
+    pub fn frozen_balance(&self, token_id: TokenId) -> TokenAmount {
         match self {
-            HolderState::Active(holder) => holder.balance.frozen,
+            HolderState::Active(holder) => holder
+                .balances
+                .get(&token_id)
+                .map_or_else(TokenAmount::zero, |balance| balance.frozen),
             _ => TokenAmount::zero(),
         }
     }
 
-    pub fn un_frozen_balance(&self, _: TokenId) -> TokenAmount {
+    pub fn un_frozen_balance(&self, token_id: TokenId) -> TokenAmount {
         match self {
-            HolderState::Active(holder) => holder.balance.un_frozen,
+            HolderState::Active(holder) => holder
+                .balances
+                .get(&token_id)
+                .map_or_else(TokenAmount::zero, |balance| balance.un_frozen),
             _ => TokenAmount::zero(),
         }
     }
@@ -138,16 +161,22 @@ impl HolderState {
         }
     }
 
-    pub fn un_freeze(&mut self, _: TokenId, amount: TokenAmount) -> Result<(), Error> {
+    pub fn un_freeze(&mut self, token_id: TokenId, amount: TokenAmount) -> Result<(), Error> {
         match self {
-            HolderState::Active(holder) => holder.balance.un_freeze(amount).map_err(Into::into),
+            HolderState::Active(holder) => holder.balances.get_mut(&token_id).map_or_else(
+                || Err(Error::InsufficientFunds),
+                |mut balance| balance.un_freeze(amount).map_err(Into::into),
+            ),
             _ => Err(Error::RecoveredAddress),
         }
     }
 
-    pub fn balance_total(&self, _: TokenId) -> TokenAmount {
+    pub fn balance_total(&self, token_id: TokenId) -> TokenAmount {
         match self {
-            HolderState::Active(holder) => holder.balance.total(),
+            HolderState::Active(holder) => holder
+                .balances
+                .get(&token_id)
+                .map_or_else(TokenAmount::zero, |balance| balance.total()),
             _ => TokenAmount::zero(),
         }
     }
@@ -162,8 +191,9 @@ impl HolderState {
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
+/// Represents the state of the security NFT contract.
 pub struct State<S=StateApi> {
-    pub token:     SecurityTokenState<TokenAmount>,
+    pub tokens:    StateMap<TokenId, SecurityTokenState<TokenAmount>, S>,
     pub security:  Option<SecurityParams>,
     pub addresses: StateMap<Address, HolderState<S>, S>,
 }
@@ -177,7 +207,10 @@ impl Cis2SecurityState<Error, TokenId, TokenAmount> for State {
         amount: TokenAmountSecurity<TokenAmount>,
     ) -> ContractResult<()> {
         ensure!(amount.gt(&0.into()), Error::InvalidAmount);
-        self.token.add_assign_supply(amount.total())?;
+        self.tokens
+            .entry(token_id)
+            .occupied_or(Error::InvalidTokenId)?
+            .add_assign_supply(amount.total())?;
         self.addresses
             .entry(owner)
             .or_insert_with(|| HolderState::new_active(state_builder))
@@ -194,7 +227,10 @@ impl Cis2SecurityState<Error, TokenId, TokenAmount> for State {
         amount: TokenAmount,
         forced: bool,
     ) -> ContractResult<TokenAmount> {
-        ensure!(!self.token.paused, Error::InvalidTokenId);
+        ensure!(
+            self.tokens.get(&token_id).is_some_and(|t| !t.paused),
+            Error::InvalidTokenId
+        );
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
         self.addresses
             .entry(to)
@@ -203,7 +239,7 @@ impl Cis2SecurityState<Error, TokenId, TokenAmount> for State {
         let unfrozen_amount = self
             .addresses
             .entry(from)
-            .occupied_or(Error::InvalidAddress)?
+            .occupied_or(Error::InsufficientFunds)?
             .try_modify(|holder| holder.sub_assign_unfrozen(token_id, amount, forced))?;
         Ok(unfrozen_amount)
     }
@@ -216,7 +252,10 @@ impl Cis2SecurityState<Error, TokenId, TokenAmount> for State {
         forced: bool,
     ) -> ContractResult<TokenAmount> {
         ensure!(amount.gt(&TokenAmount::zero()), Error::InvalidAmount);
-        self.token.sub_assign_supply(amount)?;
+        self.tokens
+            .entry(token_id)
+            .occupied_or(Error::InvalidTokenId)?
+            .modify(|t| t.sub_assign_supply(amount))?;
         let unfrozen_amount = self
             .addresses
             .entry(owner)
@@ -244,7 +283,7 @@ impl Cis2SecurityState<Error, TokenId, TokenAmount> for State {
 #[concordium(state_parameter = "S")]
 pub struct HolderStateActive<S=StateApi> {
     pub operators:   StateSet<Address, S>,
-    pub balance:     TokenAmountSecurity<TokenAmount>,
+    pub balances:    StateMap<TokenId, TokenAmountSecurity<TokenAmount>, S>,
     pub agent_roles: StateSet<AgentRole, S>,
 }
 
@@ -252,7 +291,7 @@ impl HolderStateActive {
     pub fn new(state_builder: &mut StateBuilder<StateApi>) -> Self {
         HolderStateActive {
             operators:   state_builder.new_set(),
-            balance:     TokenAmountSecurity::default(),
+            balances:    state_builder.new_map(),
             agent_roles: state_builder.new_set(),
         }
     }

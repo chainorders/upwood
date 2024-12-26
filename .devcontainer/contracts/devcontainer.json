@@ -69,12 +69,11 @@
 					"concordium-protocols/Cargo.toml",
 					"identity-registry/Cargo.toml",
 					"integration-tests/Cargo.toml",
-					"security-sft-rewards/Cargo.toml",
 					"security-sft-single/Cargo.toml",
 					"security-p2p-trading/Cargo.toml",
 					"security-mint-fund/Cargo.toml",
+					"security-sft-multi/Cargo.toml",
 					"nft-multi-rewarded/Cargo.toml",
-					"utils/Cargo.toml",
 					"offchain-rewards/Cargo.toml"
 				]
 			},
@@ -103,5 +102,8 @@
 				"bpruitt-goddard.mermaid-markdown-syntax-highlighting"
 			]
 		}
-	}
+	},
+	"runArgs": [
+		"--memory=10g"
+	]
 }

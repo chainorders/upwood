@@ -9,8 +9,8 @@ concordium-cis2 = { version = "6.1.0", default-features = false }
 concordium-protocols = { path = "../concordium-protocols" }
 concordium-rwa-identity-registry = { path = "../identity-registry" }
 concordium-rwa-compliance = { path = "../compliance" }
-security-sft-rewards = { path = "../security-sft-rewards" }
 security-sft-single = { path = "../security-sft-single" }
+security-sft-multi = { path = "../security-sft-multi" }
 security-p2p-trading = { path = "../security-p2p-trading" }
 security-mint-fund = { path = "../security-mint-fund" }
 nft-multi-rewarded = { path = "../nft-multi-rewarded" }

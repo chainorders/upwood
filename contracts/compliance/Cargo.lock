@@ -62,16 +62,6 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
- "concordium-std",
-]
-
-[[package]]
-name = "concordium-rwa-utils"
-version = "0.1.0"
-dependencies = [
- "concordium-cis2",
- "concordium-protocols",
  "concordium-std",
 ]
 

@@ -12,74 +12,99 @@ use crate::contract_client::{
 
 pub type ComplianceError = ContractClientError<()>;
 
-#[inline(always)]
-pub fn can_transfer<
-    State: Serial+DeserialWithState<ExternStateApi>,
+pub trait ComplianceClient<T: IsTokenId, A: IsTokenAmount> {
+    fn invoke_compiliance_can_transfer(
+        &self,
+        address: &ContractAddress,
+        params: &CanTransferParam<T, A>,
+    ) -> Result<bool, ContractClientError<()>>;
+
+    fn invoke_compiliance_transferred(
+        &mut self,
+        address: &ContractAddress,
+        params: &TransferredParam<T, A>,
+    ) -> Result<(), ContractClientError<()>>;
+
+    fn invoke_compiliance_burned(
+        &mut self,
+        address: &ContractAddress,
+        params: &BurnedParam<T, A>,
+    ) -> Result<(), ContractClientError<()>>;
+
+    fn invoke_compiliance_minted(
+        &mut self,
+        address: &ContractAddress,
+        params: &MintedParam<T, A>,
+    ) -> Result<(), ContractClientError<()>>;
+
+    fn invoke_supports_rwa_compliance_standard(
+        &self,
+        address: &ContractAddress,
+    ) -> Result<bool, ContractClientError<()>>;
+}
+
+impl<S, T, A> ComplianceClient<T, A> for Host<S>
+where
     T: IsTokenId,
     A: IsTokenAmount,
->(
-    host: &Host<State>,
-    contract: &ContractAddress,
-    params: &CanTransferParam<T, A>,
-) -> Result<bool, ComplianceError> {
-    invoke_contract_read_only(
-        host,
-        contract,
-        EntrypointName::new_unchecked("canTransfer"),
-        params,
-    )
-}
+    S: Serial+DeserialWithState<ExternStateApi>,
+{
+    fn invoke_compiliance_can_transfer(
+        &self,
+        address: &ContractAddress,
+        params: &CanTransferParam<T, A>,
+    ) -> Result<bool, ContractClientError<()>> {
+        invoke_contract_read_only(
+            self,
+            address,
+            EntrypointName::new_unchecked("canTransfer"),
+            params,
+        )
+    }
 
-#[inline(always)]
-pub fn burned<State: Serial+DeserialWithState<ExternStateApi>, T: IsTokenId, A: IsTokenAmount>(
-    host: &mut Host<State>,
-    contract: &ContractAddress,
-    params: &BurnedParam<T, A>,
-) -> Result<(), ComplianceError> {
-    invoke_contract(
-        host,
-        contract,
-        EntrypointName::new_unchecked("burned"),
-        params,
-    )
-}
+    fn invoke_compiliance_transferred(
+        &mut self,
+        address: &ContractAddress,
+        params: &TransferredParam<T, A>,
+    ) -> Result<(), ContractClientError<()>> {
+        invoke_contract(
+            self,
+            address,
+            EntrypointName::new_unchecked("transferred"),
+            params,
+        )
+    }
 
-#[inline(always)]
-pub fn minted<State: Serial+DeserialWithState<ExternStateApi>, T: IsTokenId, A: IsTokenAmount>(
-    host: &mut Host<State>,
-    contract: &ContractAddress,
-    params: &MintedParam<T, A>,
-) -> Result<(), ComplianceError> {
-    invoke_contract(
-        host,
-        contract,
-        EntrypointName::new_unchecked("minted"),
-        params,
-    )
-}
+    fn invoke_compiliance_burned(
+        &mut self,
+        address: &ContractAddress,
+        params: &BurnedParam<T, A>,
+    ) -> Result<(), ContractClientError<()>> {
+        invoke_contract(
+            self,
+            address,
+            EntrypointName::new_unchecked("burned"),
+            params,
+        )
+    }
 
-#[inline(always)]
-pub fn transferred<
-    State: Serial+DeserialWithState<ExternStateApi>,
-    T: IsTokenId,
-    A: IsTokenAmount,
->(
-    host: &mut Host<State>,
-    contract: &ContractAddress,
-    params: &TransferredParam<T, A>,
-) -> Result<(), ComplianceError> {
-    invoke_contract(
-        host,
-        contract,
-        EntrypointName::new_unchecked("transferred"),
-        params,
-    )
-}
+    fn invoke_compiliance_minted(
+        &mut self,
+        address: &ContractAddress,
+        params: &MintedParam<T, A>,
+    ) -> Result<(), ContractClientError<()>> {
+        invoke_contract(
+            self,
+            address,
+            EntrypointName::new_unchecked("minted"),
+            params,
+        )
+    }
 
-#[inline(always)]
-pub fn supports_rwa_compliance_standard<State: Serial+DeserialWithState<ExternStateApi>>(
-    host: &Host<State>,
-    contract: &ContractAddress,
-) -> Result<bool, ComplianceError> {
-    supports(host, contract, COMPLIANCE_STANDARD_IDENTIFIER)
+    fn invoke_supports_rwa_compliance_standard(
+        &self,
+        address: &ContractAddress,
+    ) -> Result<bool, ContractClientError<()>> {
+        supports(self, address, COMPLIANCE_STANDARD_IDENTIFIER)
+    }
 }

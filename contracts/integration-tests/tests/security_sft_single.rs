@@ -1,13 +1,23 @@
 #![cfg(test)]
 
+use cis2_security::{Cis2SecurityTestClient, Cis2TestClient};
 use compliance::init_nationalities;
-use concordium_cis2::{AdditionalData, BalanceOfQuery, TokenAmountU64, TokenIdUnit, Transfer};
-use concordium_protocols::concordium_cis2_security::{
-    AgentWithRoles, BurnParams, FreezeParam, FreezeParams, PauseParams,
+use concordium_cis2::{
+    AdditionalData, BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, TokenAmountU64,
+    TokenIdUnit, Transfer,
 };
+use concordium_protocols::concordium_cis2_security::{
+    AgentWithRoles, BurnParams, FreezeParam, FreezeParams, Identity, PauseParams, SecurityParams,
+    TokenAmountSecurity,
+};
+use concordium_rwa_identity_registry::types::{IdentityAttribute, RegisterIdentityParams};
 use concordium_smart_contract_testing::*;
+use concordium_std::attributes::NATIONALITY;
+use contract_base::{ContractPayloads, ContractTestClient};
+use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_sft_single::types::*;
+use security_sft_single_client::SftSingleTestClient;
 
 const TOKEN_ID: TokenIdUnit = TokenIdUnit();
 const METADATA_URL: &str = "example.com";
@@ -36,77 +46,90 @@ fn mint() {
     let non_agent = Account::new(AccountAddress([98; 32]), DEFAULT_ACC_BALANCE);
     chain.create_account(non_agent.clone());
 
-    let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
-            .0
-            .contract_address;
-    security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
-        address: Address::Account(agent_mint.address),
-        roles:   vec![AgentRole::Mint],
-    })
-    .expect("should add agent");
-    security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
-        address: Address::Account(non_agent_mint.address),
-        roles:   vec![AgentRole::Pause],
-    })
-    .expect("should add agent");
+    let token_contract = create_token_contract(
+        &mut chain,
+        &admin,
+        compliance_contract,
+        ir_contract.contract_address(),
+    );
+
+    token_contract
+        .add_agent(&mut chain, &admin, &AgentWithRoles {
+            address: Address::Account(agent_mint.address),
+            roles:   vec![AgentRole::Mint],
+        })
+        .expect("should add agent");
+    token_contract
+        .add_agent(&mut chain, &admin, &AgentWithRoles {
+            address: Address::Account(non_agent_mint.address),
+            roles:   vec![AgentRole::Pause],
+        })
+        .expect("should add agent");
 
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
-    identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![(
-        Address::Account(holder.address),
-        COMPLIANT_NATIONALITIES[1],
-    )]);
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
     chain.create_account(holder_2.clone());
     // Holder 2 is not registered with the Identity Registry
 
-    security_sft_single_client::mint(&mut chain, &non_agent_mint, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  TokenAmountU64(10),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect_err("non-agent-mint minted");
-    security_sft_single_client::mint(&mut chain, &non_agent, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  TokenAmountU64(10),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect_err("non-agent minted");
-    security_sft_single_client::mint(&mut chain, &agent_mint, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  TokenAmountU64(10),
-            address: holder_2.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect_err("non-compliant holder minted");
-    security_sft_single_client::mint(&mut chain, &agent_mint, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  TokenAmountU64(10),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect("should mint");
+    token_contract
+        .mint(&mut chain, &non_agent_mint, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
+                address: holder.address,
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect_err("non-agent-mint minted");
+    token_contract
+        .mint(&mut chain, &non_agent, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
+                address: holder.address,
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect_err("non-agent minted");
+    token_contract
+        .mint(&mut chain, &agent_mint, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
+                address: holder_2.address,
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect_err("non-compliant holder minted");
+    token_contract
+        .mint(&mut chain, &agent_mint, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
+                address: holder.address,
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect("should mint");
     assert_eq!(
-        security_sft_single_client::balance_of(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  Address::Account(holder.address),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![TokenAmountU64(10)])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![TokenAmountU64(10)])
     );
 }
 
@@ -116,165 +139,175 @@ fn burn() {
     let mut chain = Chain::new();
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
-    let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
-            .0
-            .contract_address;
+    let token_contract = create_token_contract(
+        &mut chain,
+        &admin,
+        compliance_contract,
+        ir_contract.contract_address(),
+    );
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
     chain.create_account(holder_2.clone());
 
-    identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
-        (Address::Account(holder.address), COMPLIANT_NATIONALITIES[1]),
-        (
-            Address::Account(holder_2.address),
-            COMPLIANT_NATIONALITIES[1],
-        ),
-    ]);
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder_2.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
 
-    security_sft_single_client::mint(&mut chain, &admin, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  TokenAmountU64(50),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect("should mint");
-    security_sft_single_client::freeze(&mut chain, &admin, token_contract, &FreezeParams {
-        owner:  Address::Account(holder.address),
-        tokens: vec![FreezeParam {
-            token_id:     TOKEN_ID,
-            token_amount: TokenAmountU64(10),
-        }],
-    })
-    .expect("should freeze");
-    security_sft_single_client::burn_raw(
-        &mut chain,
-        &holder_2,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(5),
-            owner:    Address::Account(holder.address),
+    token_contract
+        .mint(&mut chain, &admin, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
+                address: holder.address,
+            }],
             token_id: TOKEN_ID,
-        }]),
-    )
-    .expect_err("non-owner burned");
-    security_sft_single_client::burn_raw(
-        &mut chain,
-        &holder,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(41),
-            owner:    Address::Account(holder.address),
-            token_id: TOKEN_ID,
-        }]),
-    )
-    .expect_err("burned frozen");
-    security_sft_single_client::burn(
-        &mut chain,
-        &holder,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(5),
-            owner:    Address::Account(holder.address),
-            token_id: TOKEN_ID,
-        }]),
-    )
-    .expect("should burn");
-
-    assert_eq!(
-        security_sft_single_client::balance_of(
+        })
+        .expect("should mint");
+    token_contract
+        .freeze(&mut chain, &admin, &FreezeParams {
+            owner:  Address::Account(holder.address),
+            tokens: vec![FreezeParam {
+                token_id:     TOKEN_ID,
+                token_amount: TokenAmountU64(10),
+            }],
+        })
+        .expect("should freeze");
+    token_contract
+        .burn(
+            &mut chain,
+            &holder_2,
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(5),
+                owner:    Address::Account(holder.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect_err("non-owner burned");
+    token_contract
+        .burn(
             &mut chain,
             &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(41),
+                owner:    Address::Account(holder.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect_err("burned frozen");
+    token_contract
+        .burn(
+            &mut chain,
+            &holder,
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(5),
+                owner:    Address::Account(holder.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect("should burn");
+
+    assert_eq!(
+        token_contract
+            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  Address::Account(holder.address),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![TokenAmountU64(45)])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![TokenAmountU64(45)])
     );
-    security_sft_single_client::burn_raw(
-        &mut chain,
-        &holder,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(46),
-            owner:    Address::Account(holder.address),
-            token_id: TOKEN_ID,
-        }]),
-    )
-    .expect_err("burned more than minted");
-    security_sft_single_client::burn_raw(
-        &mut chain,
-        &holder_2,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(5),
-            owner:    Address::Account(holder_2.address),
-            token_id: TOKEN_ID,
-        }]),
-    )
-    .expect_err("non-existing holder burned");
-    security_sft_single_client::un_freeze(&mut chain, &admin, token_contract, &FreezeParams {
-        owner:  Address::Account(holder.address),
-        tokens: vec![FreezeParam {
-            token_id:     TOKEN_ID,
-            token_amount: TokenAmountU64(9),
-        }],
-    })
-    .expect("should unfreeze");
-    security_sft_single_client::burn(
-        &mut chain,
-        &holder,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(41),
-            owner:    Address::Account(holder.address),
-            token_id: TOKEN_ID,
-        }]),
-    )
-    .expect("should burn");
-    assert_eq!(
-        security_sft_single_client::balance_of(
+    token_contract
+        .burn(
             &mut chain,
             &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(46),
+                owner:    Address::Account(holder.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect_err("burned more than minted");
+    token_contract
+        .burn(
+            &mut chain,
+            &holder_2,
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(5),
+                owner:    Address::Account(holder_2.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect_err("non-existing holder burned");
+    token_contract
+        .un_freeze(&mut chain, &admin, &FreezeParams {
+            owner:  Address::Account(holder.address),
+            tokens: vec![FreezeParam {
+                token_id:     TOKEN_ID,
+                token_amount: TokenAmountU64(9),
+            }],
+        })
+        .expect("should unfreeze");
+    token_contract
+        .burn(
+            &mut chain,
+            &holder,
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(41),
+                owner:    Address::Account(holder.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect("should burn");
+    assert_eq!(
+        token_contract
+            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  Address::Account(holder.address),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![TokenAmountU64(4)])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![TokenAmountU64(4)])
     );
 
-    security_sft_single_client::pause(
-        &mut chain,
-        &admin,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::PauseParams {
+    token_contract
+        .pause(&mut chain, &admin, &PauseParams {
             tokens: vec![PauseParam { token_id: TOKEN_ID }],
-        },
-    )
-    .expect("should pause");
-    security_sft_single_client::burn_raw(
-        &mut chain,
-        &holder,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::BurnParams(vec![Burn {
-            amount:   TokenAmountU64(1),
-            owner:    Address::Account(holder.address),
-            token_id: TOKEN_ID,
-        }]),
-    )
-    .expect_err("burned paused token");
+        })
+        .expect("should pause");
+    token_contract
+        .burn(
+            &mut chain,
+            &holder,
+            &BurnParams(vec![Burn {
+                amount:   TokenAmountU64(1),
+                owner:    Address::Account(holder.address),
+                token_id: TOKEN_ID,
+            }]),
+        )
+        .expect_err("burned paused token");
 }
 
 #[test]
@@ -283,226 +316,218 @@ fn forced_burn() {
     let mut chain = Chain::new();
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
-    let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
-            .0
-            .contract_address;
+    let token_contract = create_token_contract(
+        &mut chain,
+        &admin,
+        compliance_contract,
+        ir_contract.contract_address(),
+    );
 
     let agent_forced_burn = Account::new(AGENT_FORCED_BURN, DEFAULT_ACC_BALANCE);
     chain.create_account(agent_forced_burn.clone());
 
-    security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
-        address: Address::Account(agent_forced_burn.address),
-        roles:   vec![AgentRole::ForcedBurn],
-    })
-    .expect("should add agent");
+    token_contract
+        .add_agent(&mut chain, &admin, &AgentWithRoles {
+            address: Address::Account(agent_forced_burn.address),
+            roles:   vec![AgentRole::ForcedBurn],
+        })
+        .expect("should add agent");
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
     chain.create_account(holder_2.clone());
 
-    identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
-        (Address::Account(holder.address), COMPLIANT_NATIONALITIES[1]),
-        (
-            Address::Account(holder_2.address),
-            COMPLIANT_NATIONALITIES[1],
-        ),
-    ]);
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder_2.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
 
-    security_sft_single_client::mint(&mut chain, &admin, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  TokenAmountU64(50),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect("should mint");
-    security_sft_single_client::freeze(&mut chain, &admin, token_contract, &FreezeParams {
-        owner:  Address::Account(holder.address),
-        tokens: vec![FreezeParam {
-            token_id:     TOKEN_ID,
-            token_amount: 10.into(),
-        }],
-    })
-    .expect("should freeze");
-    assert_eq!(
-        security_sft_single_client::balance_of_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
-                queries: vec![BalanceOfQuery {
-                    address:  holder.address.into(),
-                    token_id: TOKEN_ID,
-                },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![10.into()])
-    );
-    assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
-                queries: vec![BalanceOfQuery {
-                    address:  holder.address.into(),
-                    token_id: TOKEN_ID,
-                },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![40.into()])
-    );
-    security_sft_single_client::forced_burn(
-        &mut chain,
-        &holder,
-        token_contract,
-        &BurnParams(vec![Burn {
+    token_contract
+        .mint(&mut chain, &admin, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
+                address: holder.address,
+            }],
             token_id: TOKEN_ID,
-            amount:   50.into(),
-            owner:    holder.address.into(),
-        }]),
-    )
-    .expect_err("non-agent forced burn");
-    security_sft_single_client::forced_burn(
-        &mut chain,
-        &agent_forced_burn,
-        token_contract,
-        &BurnParams(vec![Burn {
-            token_id: TOKEN_ID,
-            amount:   10.into(),
-            owner:    holder.address.into(),
-        }]),
-    )
-    .expect("should burn");
+        })
+        .expect("should mint");
+    token_contract
+        .freeze(&mut chain, &admin, &FreezeParams {
+            owner:  Address::Account(holder.address),
+            tokens: vec![FreezeParam {
+                token_id:     TOKEN_ID,
+                token_amount: 10.into(),
+            }],
+        })
+        .expect("should freeze");
     assert_eq!(
-        security_sft_single_client::balance_of_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![10.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![10.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![40.into()])
+    );
+    token_contract
+        .burn(
+            &mut chain,
+            &holder,
+            &BurnParams(vec![Burn {
+                token_id: TOKEN_ID,
+                amount:   50.into(),
+                owner:    holder.address.into(),
+            }]),
         )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![30.into()])
+        .expect_err("non-agent forced burn");
+    token_contract
+        .burn(
+            &mut chain,
+            &agent_forced_burn,
+            &BurnParams(vec![Burn {
+                token_id: TOKEN_ID,
+                amount:   10.into(),
+                owner:    holder.address.into(),
+            }]),
+        )
+        .expect("should burn");
+    assert_eq!(
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
+                queries: vec![BalanceOfQuery {
+                    address:  holder.address.into(),
+                    token_id: TOKEN_ID,
+                },],
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![10.into()])
+    );
+    assert_eq!(
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
+                queries: vec![BalanceOfQuery {
+                    address:  holder.address.into(),
+                    token_id: TOKEN_ID,
+                },],
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![30.into()])
     );
 
-    security_sft_single_client::forced_burn(
-        &mut chain,
-        &agent_forced_burn,
-        token_contract,
-        &BurnParams(vec![Burn {
-            token_id: TOKEN_ID,
-            amount:   30.into(),
-            owner:    holder.address.into(),
-        }]),
-    )
-    .expect("should burn");
-    assert_eq!(
-        security_sft_single_client::balance_of_frozen(
+    token_contract
+        .burn(
             &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+            &agent_forced_burn,
+            &BurnParams(vec![Burn {
+                token_id: TOKEN_ID,
+                amount:   30.into(),
+                owner:    holder.address.into(),
+            }]),
+        )
+        .expect("should burn");
+    assert_eq!(
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![10.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![10.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![0.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![0.into()])
     );
-    security_sft_single_client::un_freeze(&mut chain, &admin, token_contract, &FreezeParams {
-        owner:  holder.address.into(),
-        tokens: vec![FreezeParam {
-            token_id:     TOKEN_ID,
-            token_amount: 10.into(),
-        }],
-    })
-    .expect("should unfreeze");
+    token_contract
+        .un_freeze(&mut chain, &admin, &FreezeParams {
+            owner:  holder.address.into(),
+            tokens: vec![FreezeParam {
+                token_id:     TOKEN_ID,
+                token_amount: 10.into(),
+            }],
+        })
+        .expect("should unfreeze");
     assert_eq!(
-        security_sft_single_client::balance_of_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![0.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![0.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![10.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![10.into()])
     );
-    security_sft_single_client::forced_burn(
-        &mut chain,
-        &agent_forced_burn,
-        token_contract,
-        &BurnParams(vec![Burn {
-            token_id: TOKEN_ID,
-            amount:   11.into(),
-            owner:    holder.address.into(),
-        }]),
-    )
-    .expect_err("burned more than minted");
+    token_contract
+        .burn(
+            &mut chain,
+            &agent_forced_burn,
+            &BurnParams(vec![Burn {
+                token_id: TOKEN_ID,
+                amount:   11.into(),
+                owner:    holder.address.into(),
+            }]),
+        )
+        .expect_err("burned more than minted");
 
-    security_sft_single_client::pause(&mut chain, &admin, token_contract, &PauseParams {
-        tokens: vec![PauseParam { token_id: TOKEN_ID }],
-    })
-    .expect("should pause");
+    token_contract
+        .pause(&mut chain, &admin, &PauseParams {
+            tokens: vec![PauseParam { token_id: TOKEN_ID }],
+        })
+        .expect("should pause");
 }
 
 #[test]
@@ -511,10 +536,12 @@ fn transfer() {
     let mut chain = Chain::new();
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
-    let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
-            .0
-            .contract_address;
+    let token_contract = create_token_contract(
+        &mut chain,
+        &admin,
+        compliance_contract,
+        ir_contract.contract_address(),
+    );
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
@@ -522,78 +549,99 @@ fn transfer() {
     let holder_3 = Account::new(HOLDER_3, DEFAULT_ACC_BALANCE);
     chain.create_account(holder_2.clone());
 
-    identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
-        (Address::Account(holder.address), COMPLIANT_NATIONALITIES[1]),
-        (
-            Address::Account(holder_2.address),
-            COMPLIANT_NATIONALITIES[1],
-        ),
-    ]);
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder_2.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
     // holder 3 is not registered with the Identity Registry
 
-    security_sft_single_client::mint(&mut chain, &admin, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  50.into(),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect("should mint");
+    token_contract
+        .mint(&mut chain, &admin, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
+                address: holder.address,
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect("should mint");
 
-    security_sft_single_client::transfer_single(&mut chain, &holder, token_contract, Transfer {
-        token_id: TOKEN_ID,
-        amount:   51.into(),
-        from:     Address::Account(holder.address),
-        to:       holder_2.address.into(),
-        data:     AdditionalData::empty(),
-    })
-    .expect_err("transferred more than minted");
-    security_sft_single_client::transfer_single(&mut chain, &holder, token_contract, Transfer {
-        token_id: TOKEN_ID,
-        amount:   0.into(),
-        from:     Address::Account(holder.address),
-        to:       holder_2.address.into(),
-        data:     AdditionalData::empty(),
-    })
-    .expect_err("transferred 0");
-    security_sft_single_client::freeze(&mut chain, &admin, token_contract, &FreezeParams {
-        owner:  Address::Account(holder.address),
-        tokens: vec![FreezeParam {
-            token_id:     TOKEN_ID,
-            token_amount: 10.into(),
-        }],
-    })
-    .expect("should freeze");
-    security_sft_single_client::transfer_single(&mut chain, &holder, token_contract, Transfer {
-        token_id: TOKEN_ID,
-        amount:   41.into(),
-        from:     Address::Account(holder.address),
-        to:       holder_2.address.into(),
-        data:     AdditionalData::empty(),
-    })
-    .expect_err("transferred frozen");
-    security_sft_single_client::transfer_single(&mut chain, &holder, token_contract, Transfer {
-        token_id: TOKEN_ID,
-        amount:   1.into(),
-        from:     Address::Account(holder.address),
-        to:       holder_3.address.into(),
-        data:     AdditionalData::empty(),
-    })
-    .expect_err("transferred to non-compliant");
-    security_sft_single_client::transfer_single(&mut chain, &holder, token_contract, Transfer {
-        token_id: TOKEN_ID,
-        amount:   30.into(),
-        from:     Address::Account(holder.address),
-        to:       holder_2.address.into(),
-        data:     AdditionalData::empty(),
-    })
-    .expect("should transfer");
+    token_contract
+        .transfer_single(&mut chain, &holder, Transfer {
+            token_id: TOKEN_ID,
+            amount:   51.into(),
+            from:     Address::Account(holder.address),
+            to:       holder_2.address.into(),
+            data:     AdditionalData::empty(),
+        })
+        .expect_err("transferred more than minted");
+    token_contract
+        .transfer_single(&mut chain, &holder, Transfer {
+            token_id: TOKEN_ID,
+            amount:   0.into(),
+            from:     Address::Account(holder.address),
+            to:       holder_2.address.into(),
+            data:     AdditionalData::empty(),
+        })
+        .expect_err("transferred 0");
+    token_contract
+        .freeze(&mut chain, &admin, &FreezeParams {
+            owner:  Address::Account(holder.address),
+            tokens: vec![FreezeParam {
+                token_id:     TOKEN_ID,
+                token_amount: 10.into(),
+            }],
+        })
+        .expect("should freeze");
+    token_contract
+        .transfer_single(&mut chain, &holder, Transfer {
+            token_id: TOKEN_ID,
+            amount:   41.into(),
+            from:     Address::Account(holder.address),
+            to:       holder_2.address.into(),
+            data:     AdditionalData::empty(),
+        })
+        .expect_err("transferred frozen");
+    token_contract
+        .transfer_single(&mut chain, &holder, Transfer {
+            token_id: TOKEN_ID,
+            amount:   1.into(),
+            from:     Address::Account(holder.address),
+            to:       holder_3.address.into(),
+            data:     AdditionalData::empty(),
+        })
+        .expect_err("transferred to non-compliant");
+    token_contract
+        .transfer_single(&mut chain, &holder, Transfer {
+            token_id: TOKEN_ID,
+            amount:   30.into(),
+            from:     Address::Account(holder.address),
+            to:       holder_2.address.into(),
+            data:     AdditionalData::empty(),
+        })
+        .expect("should transfer");
     assert_eq!(
-        security_sft_single_client::balance_of(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  holder.address.into(),
@@ -604,29 +652,25 @@ fn transfer() {
                         token_id: TOKEN_ID,
                     }
                 ],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![20.into(), 30.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![20.into(), 30.into()])
     );
 
-    security_sft_single_client::pause(
-        &mut chain,
-        &admin,
-        token_contract,
-        &concordium_protocols::concordium_cis2_security::PauseParams {
+    token_contract
+        .pause(&mut chain, &admin, &PauseParams {
             tokens: vec![PauseParam { token_id: TOKEN_ID }],
-        },
-    )
-    .expect("should pause");
-    security_sft_single_client::transfer_single(&mut chain, &holder, token_contract, Transfer {
-        token_id: TOKEN_ID,
-        amount:   1.into(),
-        from:     Address::Account(holder.address),
-        to:       holder_2.address.into(),
-        data:     AdditionalData::empty(),
-    })
-    .expect_err("transferred paused token");
+        })
+        .expect("should pause");
+    token_contract
+        .transfer_single(&mut chain, &holder, Transfer {
+            token_id: TOKEN_ID,
+            amount:   1.into(),
+            from:     Address::Account(holder.address),
+            to:       holder_2.address.into(),
+            data:     AdditionalData::empty(),
+        })
+        .expect_err("transferred paused token");
 }
 
 #[test]
@@ -635,18 +679,21 @@ fn forced_transfer() {
     let mut chain = Chain::new();
     let (_, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
-    let token_contract =
-        create_token_contract(&mut chain, &admin, compliance_contract, ir_contract)
-            .0
-            .contract_address;
+    let token_contract = create_token_contract(
+        &mut chain,
+        &admin,
+        compliance_contract,
+        ir_contract.contract_address(),
+    );
     let agent_forced_transfer = Account::new(AGENT_FORCED_TRANSFER, DEFAULT_ACC_BALANCE);
     chain.create_account(agent_forced_transfer.clone());
 
-    security_sft_single_client::add_agent(&mut chain, &admin, token_contract, &AgentWithRoles {
-        address: Address::Account(agent_forced_transfer.address),
-        roles:   vec![AgentRole::ForcedTransfer],
-    })
-    .expect("should add agent");
+    token_contract
+        .add_agent(&mut chain, &admin, &AgentWithRoles {
+            address: Address::Account(agent_forced_transfer.address),
+            roles:   vec![AgentRole::ForcedTransfer],
+        })
+        .expect("should add agent");
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
@@ -654,107 +701,103 @@ fn forced_transfer() {
     let holder_3 = Account::new(HOLDER_3, DEFAULT_ACC_BALANCE);
     chain.create_account(holder_2.clone());
 
-    identity_registry::register_nationalities(&mut chain, &admin, &ir_contract, vec![
-        (Address::Account(holder.address), COMPLIANT_NATIONALITIES[1]),
-        (
-            Address::Account(holder_2.address),
-            COMPLIANT_NATIONALITIES[1],
-        ),
-    ]);
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
+    ir_contract
+        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+            address:  Address::Account(holder_2.address),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
     // holder 3 is not registered with the Identity Registry
 
-    security_sft_single_client::mint(&mut chain, &admin, &token_contract, &MintParams {
-        owners:   vec![MintParam {
-            amount:  50.into(),
-            address: holder.address,
-        }],
-        token_id: TOKEN_ID,
-    })
-    .expect("should mint");
-    security_sft_single_client::freeze(&mut chain, &admin, token_contract, &FreezeParams {
-        owner:  Address::Account(holder.address),
-        tokens: vec![FreezeParam {
-            token_id:     TOKEN_ID,
-            token_amount: 10.into(),
-        }],
-    })
-    .expect("should freeze");
+    token_contract
+        .mint(&mut chain, &admin, &MintParams {
+            owners:   vec![MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
+                address: holder.address,
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect("should mint");
+    token_contract
+        .freeze(&mut chain, &admin, &FreezeParams {
+            owner:  Address::Account(holder.address),
+            tokens: vec![FreezeParam {
+                token_id:     TOKEN_ID,
+                token_amount: 10.into(),
+            }],
+        })
+        .expect("should freeze");
     assert_eq!(
-        security_sft_single_client::balance_of_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![10.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![10.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![40.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![40.into()])
     );
 
-    security_sft_single_client::forced_transfer_single(
-        &mut chain,
-        &agent_forced_transfer,
-        token_contract,
-        Transfer {
+    token_contract
+        .transfer_single(&mut chain, &agent_forced_transfer, Transfer {
             token_id: TOKEN_ID,
             amount:   51.into(),
             from:     holder.address.into(),
             to:       holder_2.address.into(),
             data:     AdditionalData::empty(),
-        },
-    )
-    .expect_err("transferred more than minted");
-    security_sft_single_client::forced_transfer_single(
-        &mut chain,
-        &agent_forced_transfer,
-        token_contract,
-        Transfer {
+        })
+        .expect_err("transferred more than minted");
+    token_contract
+        .transfer_single(&mut chain, &agent_forced_transfer, Transfer {
             token_id: TOKEN_ID,
             amount:   1.into(),
             from:     holder.address.into(),
             to:       holder_3.address.into(),
             data:     AdditionalData::empty(),
-        },
-    )
-    .expect_err("transferred to non-compliant");
-    security_sft_single_client::forced_transfer_single(
-        &mut chain,
-        &agent_forced_transfer,
-        token_contract,
-        Transfer {
+        })
+        .expect_err("transferred to non-compliant");
+    token_contract
+        .transfer_single(&mut chain, &agent_forced_transfer, Transfer {
             token_id: TOKEN_ID,
             amount:   1.into(),
             from:     holder.address.into(),
             to:       holder_2.address.into(),
             data:     AdditionalData::empty(),
-        },
-    )
-    .expect("should transfer");
+        })
+        .expect("should transfer");
     assert_eq!(
-        security_sft_single_client::balance_of(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  holder.address.into(),
@@ -765,91 +808,67 @@ fn forced_transfer() {
                         token_id: TOKEN_ID,
                     }
                 ],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![49.into(), 1.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![49.into(), 1.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![10.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![10.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![39.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![39.into()])
     );
 
-    security_sft_single_client::forced_transfer_single(
-        &mut chain,
-        &agent_forced_transfer,
-        token_contract,
-        Transfer {
+    token_contract
+        .transfer_single(&mut chain, &agent_forced_transfer, Transfer {
             token_id: TOKEN_ID,
             amount:   49.into(),
             from:     holder.address.into(),
             to:       holder_2.address.into(),
             data:     AdditionalData::empty(),
-        },
-    )
-    .expect("should transfer frozen");
+        })
+        .expect("should transfer frozen");
     assert_eq!(
-        security_sft_single_client::balance_of_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![0.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![0.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of_un_frozen(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of_un_frozen(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  holder.address.into(),
                     token_id: TOKEN_ID,
                 },],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![0.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![0.into()])
     );
     assert_eq!(
-        security_sft_single_client::balance_of(
-            &mut chain,
-            &holder,
-            token_contract,
-            &concordium_cis2::BalanceOfQueryParams {
+        token_contract
+            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  holder.address.into(),
@@ -860,29 +879,25 @@ fn forced_transfer() {
                         token_id: TOKEN_ID,
                     }
                 ],
-            }
-        )
-        .unwrap(),
-        concordium_cis2::BalanceOfQueryResponse(vec![0.into(), 50.into()])
+            })
+            .unwrap(),
+        BalanceOfQueryResponse(vec![0.into(), 50.into()])
     );
 
-    security_sft_single_client::pause(&mut chain, &admin, token_contract, &PauseParams {
-        tokens: vec![PauseParam { token_id: TOKEN_ID }],
-    })
-    .expect("should pause");
-    security_sft_single_client::forced_transfer_single(
-        &mut chain,
-        &agent_forced_transfer,
-        token_contract,
-        Transfer {
+    token_contract
+        .pause(&mut chain, &admin, &PauseParams {
+            tokens: vec![PauseParam { token_id: TOKEN_ID }],
+        })
+        .expect("should pause");
+    token_contract
+        .transfer_single(&mut chain, &agent_forced_transfer, Transfer {
             token_id: TOKEN_ID,
             amount:   1.into(),
             from:     holder_2.address.into(),
             to:       holder.address.into(),
             data:     AdditionalData::empty(),
-        },
-    )
-    .expect_err("transferred paused token");
+        })
+        .expect_err("transferred paused token");
 }
 
 fn create_token_contract(
@@ -890,15 +905,17 @@ fn create_token_contract(
     admin: &Account,
     compliance_contract: ContractAddress,
     ir_contract: ContractAddress,
-) -> (ContractInitSuccess, ModuleReference, OwnedContractName) {
-    security_sft_single_client::init(chain, admin, &InitParam {
-        compliance:        Some(compliance_contract),
-        identity_registry: Some(ir_contract),
-        metadata_url:      ContractMetadataUrl {
+) -> SftSingleTestClient {
+    SftSingleTestClient::init(chain, admin, &InitParam {
+        security:     Some(SecurityParams {
+            compliance:        compliance_contract,
+            identity_registry: ir_contract,
+        }),
+        metadata_url: ContractMetadataUrl {
             hash: None,
             url:  METADATA_URL.to_string(),
         },
-        sponsors:          None,
+        agents:       vec![],
     })
     .expect("init token contract")
 }
@@ -907,14 +924,13 @@ fn setup_chain(
     chain: &mut Chain,
     admin: &Account,
     compliant_nationalities: &[&str],
-) -> (ContractAddress, ContractAddress, ContractAddress) {
+) -> (ContractAddress, IdentityRegistryTestClient, ContractAddress) {
     chain.create_account(admin.clone());
 
     euroe::deploy_module(chain, admin);
     identity_registry::deploy_module(chain, admin);
     compliance::deploy_module(chain, admin);
     security_sft_single_client::deploy_module(chain, admin);
-    security_sft_rewards_client::deploy_module(chain, admin);
     security_p2p_trading_client::deploy_module(chain, admin);
     security_mint_fund_client::deploy_module(chain, admin);
 
@@ -922,28 +938,18 @@ fn setup_chain(
         .expect("euroe init")
         .0
         .contract_address;
-    euroe::grant_role(chain, admin, euroe_contract, &euroe::RoleTypes {
-        adminrole: admin.address.into(),
-        blockrole: admin.address.into(),
-        burnrole:  admin.address.into(),
-        mintrole:  admin.address.into(),
-        pauserole: admin.address.into(),
-    })
-    .expect("grant role euroe");
-    let ir_contract = identity_registry::init(chain, admin)
-        .expect("identity registry init")
-        .0
-        .contract_address;
+    let ir_contract =
+        IdentityRegistryTestClient::init(chain, admin, &()).expect("identity registry init");
 
     let (compliance_module, ..) = init_nationalities(
         chain,
         admin,
-        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::init::InitParams {
+        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::types::InitParams {
             nationalities:     compliant_nationalities
                 .iter()
                 .map(|n| n.to_string())
                 .collect(),
-            identity_registry: ir_contract,
+            identity_registry: ir_contract.contract_address(),
         },
     )
     .expect("init nationalities module");

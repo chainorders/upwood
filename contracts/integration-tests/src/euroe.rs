@@ -8,7 +8,8 @@ use concordium_smart_contract_testing::*;
 use concordium_std::{Deserial, SchemaType, Serial, Serialize};
 
 use super::{cis2, MAX_ENERGY};
-use crate::cis2_test_client::Cis2TestClient;
+use crate::cis2_security::{Cis2Payloads, Cis2TestClient};
+use crate::contract_base::{ContractPayloads, ContractTestClient};
 pub const MODULE_BYTES: &[u8] = include_bytes!("../../euroe/dist/module.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_euroe_stablecoin");
 
@@ -27,18 +28,23 @@ pub struct RoleTypes {
     pub adminrole: Address,
 }
 
+#[derive(Clone, Copy)]
 pub struct EuroETestClient(pub ContractAddress);
+impl ContractPayloads<()> for EuroETestClient {
+    fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    fn contract_name() -> OwnedContractName { CONTRACT_NAME.to_owned() }
+
+    fn contract_address(&self) -> ContractAddress { self.0 }
+}
+impl Cis2Payloads<(), TokenIdUnit, TokenAmountU64> for EuroETestClient {}
+impl ContractTestClient<()> for EuroETestClient {
+    fn new(contract_address: ContractAddress) -> Self { Self(contract_address) }
+}
+impl Cis2TestClient<(), TokenIdUnit, TokenAmountU64> for EuroETestClient {}
+
 impl EuroETestClient {
     pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
-
-    pub fn init_payload() -> InitContractPayload {
-        InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: CONTRACT_NAME.to_owned(),
-            mod_ref:   Self::module().get_module_ref(),
-            param:     OwnedParameter::empty(),
-        }
-    }
 
     pub fn grant_role_payload(&self, params: &RoleTypes) -> UpdateContractPayload {
         UpdateContractPayload {
@@ -64,11 +70,34 @@ impl EuroETestClient {
         }
     }
 
-    pub fn cis2(&self) -> Cis2TestClient {
-        Cis2TestClient {
-            address:       self.0,
-            contract_name: CONTRACT_NAME.to_owned(),
-        }
+    pub fn grant_role(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &RoleTypes,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.grant_role_payload(params),
+        )
+    }
+
+    pub fn mint(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &MintParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.mint_payload(params),
+        )
     }
 }
 
@@ -105,100 +134,4 @@ pub fn init(
     )?;
 
     Ok((res, module_ref, contract_name))
-}
-
-pub fn grant_role(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    params: &RoleTypes,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    chain.contract_update(
-        Signer::with_one_key(),
-        sender.address,
-        sender.address.into(),
-        MAX_ENERGY,
-        EuroETestClient(contract).grant_role_payload(params),
-    )
-}
-
-pub fn mint(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    params: &MintParams,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    chain.contract_update(
-        Signer::with_one_key(),
-        sender.address,
-        sender.address.into(),
-        MAX_ENERGY,
-        UpdateContractPayload {
-            address:      contract,
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
-                EntrypointName::new_unchecked("mint"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        },
-    )
-}
-
-pub fn transfer_single(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: concordium_cis2::Transfer<TokenIdUnit, TokenAmountU64>,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    cis2::transfer_single(chain, sender, contract, CONTRACT_NAME, payload)
-}
-
-pub fn balance_of(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: &concordium_cis2::BalanceOfQueryParams<TokenIdUnit>,
-) -> Result<BalanceOfQueryResponse<TokenAmountU64>, ContractInvokeError> {
-    cis2::balance_of(chain, sender, contract, CONTRACT_NAME, payload)
-}
-
-pub fn balance_of_single(
-    chain: &mut Chain,
-    invoker: &Account,
-    contract: ContractAddress,
-    address: Address,
-) -> TokenAmountU64 {
-    cis2::balance_of_single(
-        chain,
-        invoker,
-        contract,
-        TokenIdUnit(),
-        address,
-        CONTRACT_NAME,
-    )
-    .expect("euro balance of single")
-}
-
-pub fn update_operator(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: &UpdateOperatorParams,
-) -> ContractInvokeSuccess {
-    cis2::update_operator(chain, sender, contract, CONTRACT_NAME, payload).expect("update operator")
-}
-
-pub fn update_operator_single(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: UpdateOperator,
-) -> ContractInvokeSuccess {
-    update_operator(
-        chain,
-        sender,
-        contract,
-        &UpdateOperatorParams(vec![payload]),
-    )
 }

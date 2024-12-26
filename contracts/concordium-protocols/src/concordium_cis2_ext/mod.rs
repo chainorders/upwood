@@ -1,16 +1,15 @@
 pub mod cis2_client;
 
 use concordium_cis2::{
-    TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU64, TokenIdU8, TokenIdUnit,
-    TokenIdVec,
+    AdditionalData, TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU64, TokenIdU8, TokenIdUnit, TokenIdVec
 };
+use concordium_std::ops::{Add, AddAssign, Sub};
 use concordium_std::*;
-use ops::{Add, AddAssign, Sub};
 
 /// Trait representing a token amount.
 ///
 /// This trait is used to define the behavior of token amounts.
-pub trait IsTokenAmount: concordium_cis2::IsTokenAmount+PartialOrd+ops::SubAssign+Copy+cmp::Ord+ops::AddAssign+ops::Sub<Output=Self>
+pub trait IsTokenAmount: concordium_cis2::IsTokenAmount+PartialOrd+ops::SubAssign+Copy+cmp::Ord+ops::AddAssign+ops::Sub<Output=Self>+ops::Add<Output=Self>
 {
     /// Returns the zero value of the token amount.
     fn zero() -> Self;
@@ -37,6 +36,7 @@ impl IsTokenId for TokenIdU8 {}
 impl IsTokenId for TokenIdU32 {}
 impl IsTokenId for TokenIdVec {}
 impl IsTokenId for TokenIdUnit {}
+impl IsTokenId for TokenIdU64 {}
 
 /// Represents the metadata URL and hash of a token.
 #[derive(Debug, SchemaType, Serial, Clone, Deserial)]
@@ -84,4 +84,20 @@ impl PlusSubOne<TokenIdU64> for TokenIdU64 {
     fn sub_one(&self) -> Self { TokenIdU64(self.0.sub(1)) }
 
     fn plus_one_assign(&mut self) { self.0.add_assign(1) }
+}
+
+
+pub trait ToAdditionalData {
+    fn to_additional_data(&self) -> Result<AdditionalData, ()>;
+}
+
+impl <S> ToAdditionalData for S
+where
+    S: Serial
+{
+    fn to_additional_data(&self) -> Result<AdditionalData, ()> {
+        let mut bytes = Vec::new();
+        self.serial(&mut bytes)?;
+        Ok(bytes.into())
+    }
 }

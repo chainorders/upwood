@@ -1,8 +1,9 @@
 #![allow(unused)]
 
 use concordium_base::smart_contracts::WasmModule;
-use concordium_rwa_identity_registry::identities::RegisterIdentityParams;
-use concordium_rwa_identity_registry::types::{Identity, IdentityAttribute};
+use concordium_rwa_identity_registry::types::{
+    Identity, IdentityAttribute, RegisterIdentityParams,
+};
 use concordium_smart_contract_testing::{
     module_load_v1, Account, Chain, ContractEvent, ContractInitError, ContractInitSuccess,
     ContractInvokeError, ContractInvokeSuccess, InitContractPayload, ModuleDeploySuccess, Signer,
@@ -14,136 +15,87 @@ use concordium_std::{
 };
 
 use super::MAX_ENERGY;
+const SIGNER: Signer = Signer::with_one_key();
+use crate::contract_base::{ContractPayloads, ContractTestClient};
 
 const MODULE_BYTES: &[u8] = include_bytes!("../../identity-registry/contract.wasm.v1");
 const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_rwa_identity_registry");
 
 const NATIONALITY_ATTRIBUTE_TAG: u8 = 5;
 
-pub struct IdentityRegistryTestClient(pub ContractAddress);
-impl IdentityRegistryTestClient {
-    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
-
-    pub fn init_payload() -> InitContractPayload {
-        InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: CONTRACT_NAME.to_owned(),
-            mod_ref:   Self::module().get_module_ref(),
-            param:     OwnedParameter::empty(),
-        }
-    }
-
-    pub fn register_identity_payload(
-        &self,
-        params: RegisterIdentityParams,
-    ) -> UpdateContractPayload {
+pub trait IdentityRegistryPayloads: ContractPayloads<()> {
+    fn add_agent_payload(&self, agent: Address) -> UpdateContractPayload {
         UpdateContractPayload {
-            address:      self.0,
+            address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("addAgent"),
+            ),
+            message:      OwnedParameter::from_serial(&agent).unwrap(),
+        }
+    }
+    fn register_identity_payload(&self, params: RegisterIdentityParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
                 EntrypointName::new_unchecked("registerIdentity"),
             ),
             message:      OwnedParameter::from_serial(&params).unwrap(),
         }
     }
 }
+#[derive(Clone, Copy)]
+pub struct IdentityRegistryTestClient(pub ContractAddress);
+impl ContractPayloads<()> for IdentityRegistryTestClient {
+    fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    fn contract_name() -> OwnedContractName { CONTRACT_NAME.to_owned() }
+
+    fn contract_address(&self) -> ContractAddress { self.0 }
+}
+impl ContractTestClient<()> for IdentityRegistryTestClient {
+    fn new(contract_address: ContractAddress) -> Self { Self(contract_address) }
+}
+
+impl IdentityRegistryTestClient {
+    pub fn add_agent(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        agent: Address,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            SIGNER,
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.add_agent_payload(agent),
+        )
+    }
+
+    pub fn register_identity(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: RegisterIdentityParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            SIGNER,
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.register_identity_payload(params),
+        )
+    }
+}
+impl IdentityRegistryPayloads for IdentityRegistryTestClient {}
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
     chain
         .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
-}
-
-pub fn init(
-    chain: &mut Chain,
-    sender: &Account,
-) -> Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError> {
-    let module_ref = WasmModule::from_slice(MODULE_BYTES)
-        .unwrap()
-        .get_module_ref();
-    let contract_name = CONTRACT_NAME.to_owned();
-    let init = chain.contract_init(
-        Signer::with_one_key(),
-        sender.address,
-        MAX_ENERGY,
-        InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: CONTRACT_NAME.to_owned(),
-            mod_ref:   module_ref,
-            param:     OwnedParameter::empty(),
-        },
-    )?;
-    Ok((init, module_ref, contract_name))
-}
-
-pub fn registry_identity(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: &ContractAddress,
-    params: &RegisterIdentityParams,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    let call: ContractInvokeSuccess = chain.contract_update(
-        Signer::with_one_key(),
-        sender.address,
-        sender.address.into(),
-        MAX_ENERGY,
-        UpdateContractPayload {
-            address:      *contract,
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
-                EntrypointName::new_unchecked("registerIdentity"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        },
-    )?;
-    Ok(call)
-}
-
-pub fn register_nationalities(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: &ContractAddress,
-    nationalities: Vec<(Address, &str)>,
-) -> Vec<Result<ContractInvokeSuccess, ContractInvokeError>> {
-    nationalities
-        .iter()
-        .map(|(address, nationality)| {
-            registry_identity(chain, sender, contract, &RegisterIdentityParams {
-                address:  *address,
-                identity: Identity {
-                    attributes:  vec![IdentityAttribute {
-                        tag:   NATIONALITY_ATTRIBUTE_TAG,
-                        value: nationality.to_string(),
-                    }],
-                    credentials: vec![],
-                },
-            })
-        })
-        .collect()
-}
-
-pub fn add_agent(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: &ContractAddress,
-    agent_address: &Address,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    chain.contract_update(
-        Signer::with_one_key(),
-        sender.address,
-        sender.address.into(),
-        MAX_ENERGY,
-        UpdateContractPayload {
-            address:      *contract,
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
-                EntrypointName::new_unchecked("addAgent"),
-            ),
-            message:      OwnedParameter::from_serial(agent_address).unwrap(),
-        },
-    )
 }
