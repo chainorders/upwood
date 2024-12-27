@@ -16,16 +16,6 @@ pub enum AgentRole {
     Operator,
 }
 
-pub fn rate_convert_currency_to_security(
-    rate: &Rate,
-    amount: &CurrencyTokenAmount,
-) -> ContractResult<TokenAmount> {
-    let (security_amount, un_converted_currency_amount) = rate.convert(&amount.0)?;
-    ensure_eq!(un_converted_currency_amount, 0, Error::InvalidConversion);
-    ensure!(security_amount > 0, Error::InvalidConversion);
-    Ok(TokenAmountU64(security_amount))
-}
-
 #[derive(Serialize, SchemaType, Debug)]
 pub struct InvestedEvent {
     pub fund_id:         FundId,

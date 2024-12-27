@@ -581,15 +581,16 @@ pub fn exchange(
         .occupied_or(Error::SellPositionMissing)?
         .try_modify(|deposit| {
             ensure!(buy_token_amount.le(&deposit.amount), Error::InvalidAmount);
-            let (pay_amount, un_converted_sell_amount) = deposit
+            let pay_curr_amount = deposit
                 .rate
-                .convert(&buy_token_amount.0)
+                .convert_token_amount(buy_token_amount)
                 .map_err(|_| Error::InvalidConversion)?;
-            ensure_eq!(un_converted_sell_amount, 0, Error::InvalidConversion);
-            let pay_amount = TokenAmountU64(pay_amount);
-            ensure!(pay_amount.eq(&pay_currency_amount), Error::InvalidAmount);
+            ensure!(
+                pay_curr_amount.eq(&pay_currency_amount),
+                Error::InvalidAmount
+            );
             deposit.amount -= buy_token_amount;
-            Ok((pay_amount, buy_token_amount))
+            Ok((pay_curr_amount, buy_token_amount))
         })?;
 
     host.invoke_transfer_single(&market_contract, Transfer {

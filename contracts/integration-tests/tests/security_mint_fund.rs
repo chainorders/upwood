@@ -141,7 +141,7 @@ fn normal_flow() {
                     contract: wrapped_token_contract.contract_address(),
                     id:       to_token_id_vec(wrapped_token_id),
                 },
-                rate:  Rate::new(1, 1000).unwrap(),
+                rate:  Rate::new(1000, 1).unwrap(),
             })
             .expect("add fund");
         let parsed_fund_contract_events: Vec<Event> = add_fund_res

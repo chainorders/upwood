@@ -39,7 +39,7 @@ impl Rate {
     /// is Valid
     pub fn is_valid(&self) -> bool { self.numerator != 0 && self.denominator != 0 }
 
-    pub fn convert(&self, amount: &u64) -> Result<(u64, u64), ExchangeError> {
+    fn convert(&self, amount: &u64) -> Result<(u64, u64), ExchangeError> {
         let numerator = amount
             .checked_mul(self.numerator)
             .ok_or(ExchangeError::InvalidRate)?;
@@ -52,7 +52,7 @@ impl Rate {
         Ok((converted_amount, remainder))
     }
 
-    pub fn convert_inverse(&self, amount: &u64) -> Result<(u64, u64), ExchangeError> {
+    fn convert_inverse(&self, amount: &u64) -> Result<(u64, u64), ExchangeError> {
         let numerator = amount
             .checked_mul(self.denominator)
             .ok_or(ExchangeError::InvalidRate)?;
