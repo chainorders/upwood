@@ -301,7 +301,7 @@ fn transfer_invest(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResu
         data:     params
             .fund_id
             .to_additional_data()
-            .map_err(|_| Error::ParseError)?,
+            .ok_or(Error::ParseError)?,
     })
     .map_err(|_| Error::CurrencyTokenTransfer)?;
 
