@@ -105,7 +105,6 @@ dependencies = [
  "concordium-cis2",
  "concordium-protocols",
  "concordium-std",
- "hex",
 ]
 
 [[package]]
