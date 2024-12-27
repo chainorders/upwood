@@ -86,7 +86,7 @@ pub fn supports<State: Serial+DeserialWithState<ExternStateApi>>(
                 // Reason for returning false here is that the current contract (response of
                 // `contract_address`) does not support the given identifier.
                 // Hence any requests to the current contract will fail.
-                SupportResult::SupportBy(contracts) => Ok(contracts.contains(&contract)),
+                SupportResult::SupportBy(contracts) => Ok(contracts.contains(contract)),
             }
         }
         Err(e) => bail!(e),

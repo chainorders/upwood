@@ -405,7 +405,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         contract: &ContractAddress,
     ) -> Result<Option<ContractAddress>, Cis2ClientError> {
         invoke_contract_read_only(
-            &self,
+            self,
             contract,
             EntrypointName::new_unchecked("compliance"),
             &(),

@@ -23,6 +23,7 @@ impl From<ContractClientError<()>> for Error {
     fn from(_: ContractClientError<()>) -> Self { Error::ContractClientError }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn authorize_and_transfer<
     SE: From<Error>,
     T: IsTokenId+Copy,
@@ -99,20 +100,17 @@ pub fn authorize_and_transfer<
         // The sender is authorized to perform non security simple transfer
         (None, true, ..) | (None, false, true, false) => {
             let (state, state_builder) = host.state_and_builder();
-            state
-                .transfer(state_builder, token_id, from, to_address, amount, false)
-                .map_err(Into::into)
+            state.transfer(state_builder, token_id, from, to_address, amount, false)
         }
         // The sender is authorized to perform non security forced transfer
         (None, false, _, true) => {
             let (state, state_builder) = host.state_and_builder();
-            state
-                .transfer(state_builder, token_id, from, to_address, amount, true)
-                .map_err(Into::into)
+            state.transfer(state_builder, token_id, from, to_address, amount, true)
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn authorize_and_burn<
     SE: From<Error>,
     T: IsTokenId+Copy,
@@ -161,15 +159,11 @@ pub fn authorize_and_burn<
         // The sender is not authorized to perform the burn
         (_, false, false, false) => Err(Error::Unauthorized.into()),
         // The sender is authorized to perform non security simple burn
-        (None, true, ..) | (None, false, true, false) => host
-            .state_mut()
-            .burn(token_id, amount, owner, false)
-            .map_err(Into::into),
+        (None, true, ..) | (None, false, true, false) => {
+            host.state_mut().burn(token_id, amount, owner, false)
+        }
         // The sender is authorized to perform non security forced burn
-        (None, false, _, true) => host
-            .state_mut()
-            .burn(token_id, amount, owner, true)
-            .map_err(Into::into),
+        (None, false, _, true) => host.state_mut().burn(token_id, amount, owner, true),
     }
 }
 

@@ -1,7 +1,8 @@
 pub mod cis2_client;
 
 use concordium_cis2::{
-    AdditionalData, TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU64, TokenIdU8, TokenIdUnit, TokenIdVec
+    AdditionalData, TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU64,
+    TokenIdU8, TokenIdUnit, TokenIdVec,
 };
 use concordium_std::ops::{Add, AddAssign, Sub};
 use concordium_std::*;
@@ -86,18 +87,16 @@ impl PlusSubOne<TokenIdU64> for TokenIdU64 {
     fn plus_one_assign(&mut self) { self.0.add_assign(1) }
 }
 
-
 pub trait ToAdditionalData {
-    fn to_additional_data(&self) -> Result<AdditionalData, ()>;
+    fn to_additional_data(&self) -> Option<AdditionalData>;
 }
 
-impl <S> ToAdditionalData for S
-where
-    S: Serial
+impl<S> ToAdditionalData for S
+where S: Serial
 {
-    fn to_additional_data(&self) -> Result<AdditionalData, ()> {
+    fn to_additional_data(&self) -> Option<AdditionalData> {
         let mut bytes = Vec::new();
-        self.serial(&mut bytes)?;
-        Ok(bytes.into())
+        self.serial(&mut bytes).ok()?;
+        Some(AdditionalData::from(bytes))
     }
 }

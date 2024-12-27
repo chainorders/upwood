@@ -339,18 +339,17 @@ pub struct TransferSellParams {
 )]
 pub fn transfer_sell(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
     let params: TransferSellParams = ctx.parameter_cursor().get()?;
+    let to = Receiver::from_contract(
+        ctx.self_address(),
+        OwnedEntrypointName::new_unchecked("sell".into()),
+    );
+    let data = params.rate.to_additional_data().ok_or(Error::ParseError)?;
     host.invoke_transfer_single(&params.market, Transfer {
-        token_id: params.token_id.clone(),
-        amount:   params.amount,
-        from:     ctx.sender(),
-        to:       Receiver::from_contract(
-            ctx.self_address(),
-            OwnedEntrypointName::new_unchecked("sell".into()),
-        ),
-        data:     params
-            .rate
-            .to_additional_data()
-            .map_err(|_| Error::ParseError)?,
+        token_id: params.token_id,
+        amount: params.amount,
+        from: ctx.sender(),
+        to,
+        data,
     })
     .map_err(|_| Error::TokenTransfer)?;
     Ok(())
@@ -518,10 +517,7 @@ pub fn transfer_exchange(ctx: &ReceiveContext, host: &mut Host<State>) -> Contra
             ctx.self_address(),
             OwnedEntrypointName::new_unchecked("exchange".into()),
         ),
-        data:     params
-            .get
-            .to_additional_data()
-            .map_err(|_| Error::ParseError)?,
+        data:     params.get.to_additional_data().ok_or(Error::ParseError)?,
     })
     .map_err(|_| Error::CurrencyTransfer)?;
     Ok(())
