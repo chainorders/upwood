@@ -81,26 +81,100 @@ fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
+    logger.log(&Event::Initialized(params.currency_token.clone()))?;
     let agents = {
         let mut agents = state_builder.new_map();
         let roles = {
             let mut roles = state_builder.new_set();
-            roles.insert(AgentRole::Operator);
-            roles.insert(AgentRole::UpdateFundState);
-            roles.insert(AgentRole::RemoveFund);
-            roles.insert(AgentRole::AddFund);
+            for role in AgentRole::owner().iter() {
+                roles.insert(*role);
+            }
             roles
         };
         let _ = agents.insert(ctx.init_origin().into(), roles);
+        logger.log(&Event::AgentAdded(AgentWithRoles {
+            address: ctx.init_origin().into(),
+            roles:   AgentRole::owner(),
+        }))?;
+
+        for agent in params.agents.iter() {
+            let roles = {
+                let mut roles = state_builder.new_set();
+                for role in agent.roles.iter() {
+                    roles.insert(*role);
+                }
+                roles
+            };
+            let _ = agents.insert(agent.address, roles);
+            logger.log(&Event::AgentAdded(agent.clone()))?;
+        }
+
         agents
     };
-    logger.log(&Event::Initialized(params.clone()))?;
     Ok(State {
         currency_token: params.currency_token,
         last_fund_id: 0,
         agents,
         funds: state_builder.new_map(),
     })
+}
+
+#[receive(
+    contract = "security_mint_fund",
+    name = "addAgent",
+    mutable,
+    parameter = "AgentWithRoles<AgentRole>",
+    enable_logger
+)]
+fn add_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let agent: AgentWithRoles<AgentRole> = ctx.parameter_cursor().get()?;
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::UnAuthorized
+    );
+
+    let (state, state_builder) = host.state_and_builder();
+    let roles = {
+        let mut roles_state = state_builder.new_set();
+        for role in agent.roles.iter() {
+            roles_state.insert(*role);
+        }
+        roles_state
+    };
+    state
+        .agents
+        .entry(agent.address)
+        .vacant_or(Error::AgentExists)?
+        .insert(roles);
+    logger.log(&Event::AgentAdded(agent))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_mint_fund",
+    name = "removeAgent",
+    mutable,
+    parameter = "Address",
+    enable_logger
+)]
+fn remove_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let agent: Address = ctx.parameter_cursor().get()?;
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::UnAuthorized
+    );
+    let (state, _) = host.state_and_builder();
+    state.agents.remove(&agent);
+    logger.log(&Event::AgentRemoved(agent))?;
+    Ok(())
 }
 
 #[receive(
@@ -225,64 +299,6 @@ fn update_fund_state(
 
 #[receive(
     contract = "security_mint_fund",
-    name = "addAgent",
-    mutable,
-    parameter = "AgentWithRoles<AgentRole>",
-    enable_logger
-)]
-fn add_agent(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let agent: AgentWithRoles<AgentRole> = ctx.parameter_cursor().get()?;
-    ensure!(
-        ctx.sender().matches_account(&ctx.owner()),
-        Error::UnAuthorized
-    );
-
-    let (state, state_builder) = host.state_and_builder();
-    let roles = {
-        let mut roles_state = state_builder.new_set();
-        for role in agent.roles.iter() {
-            roles_state.insert(*role);
-        }
-        roles_state
-    };
-    state
-        .agents
-        .entry(agent.address)
-        .vacant_or(Error::AgentExists)?
-        .insert(roles);
-    logger.log(&Event::AgentAdded(agent))?;
-    Ok(())
-}
-
-#[receive(
-    contract = "security_mint_fund",
-    name = "removeAgent",
-    mutable,
-    parameter = "Address",
-    enable_logger
-)]
-fn remove_agent(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let agent: Address = ctx.parameter_cursor().get()?;
-    ensure!(
-        ctx.sender().matches_account(&ctx.owner()),
-        Error::UnAuthorized
-    );
-    let (state, _) = host.state_and_builder();
-    state.agents.remove(&agent);
-    logger.log(&Event::AgentRemoved(agent))?;
-    Ok(())
-}
-
-#[receive(
-    contract = "security_mint_fund",
     name = "transferInvest",
     mutable,
     parameter = "TransferInvestParams"
@@ -357,7 +373,7 @@ fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> 
     };
 
     host.invoke_mint_single(&wrapped_token.contract, wrapped_token.id, MintParam {
-        address: from,
+        address: from.into(),
         amount:  TokenAmountSecurity::new_un_frozen(wrapped_amount),
     })
     .map_err(|_| Error::TokenMint)?;
@@ -455,7 +471,7 @@ fn claim_investment(
                         &security_token.contract,
                         security_token.id.clone(),
                         MintParam {
-                            address: investment.investor,
+                            address: investment.investor.into(),
                             amount:  TokenAmountSecurity::new_un_frozen(security_amount),
                         },
                     )

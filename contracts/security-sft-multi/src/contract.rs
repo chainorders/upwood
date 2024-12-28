@@ -924,21 +924,35 @@ pub fn mint(
             host,
             security,
             params.token_id,
-            owner.into(),
+            owner.address(),
             amount,
             self_address,
         )?;
 
+        if let Receiver::Contract(contract, entrypoint) = &owner {
+            host.invoke_contract(
+                contract,
+                &OnReceivingCis2Params {
+                    token_id: params.token_id,
+                    amount,
+                    from: ctx.self_address().into(),
+                    data: AdditionalData::empty(),
+                },
+                entrypoint.as_entrypoint_name(),
+                Amount::zero(),
+            )?;
+        }
+
         logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
             token_id: params.token_id,
             amount:   amount.total(),
-            owner:    owner.into(),
+            owner:    owner.address(),
         })))?;
         if amount.frozen.gt(&TokenAmount::zero()) {
             logger.log(&Event::TokenFrozen(TokenFrozen {
                 token_id: params.token_id,
                 amount:   amount.frozen,
-                address:  owner.into(),
+                address:  owner.address(),
             }))?;
         }
     }

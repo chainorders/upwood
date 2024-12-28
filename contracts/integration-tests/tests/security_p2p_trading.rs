@@ -125,7 +125,7 @@ pub fn normal_flow_sft_multi() {
         .mint(&mut chain, &admin, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(50.into()),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })

@@ -16,6 +16,10 @@ pub enum AgentRole {
     Operator,
 }
 
+impl AgentRole {
+    pub fn owner() -> Vec<Self> { vec![Self::AddFund, Self::RemoveFund, Self::UpdateFundState] }
+}
+
 #[derive(Serialize, SchemaType, Debug)]
 pub struct InvestedEvent {
     pub fund_id:         FundId,
@@ -32,15 +36,15 @@ pub struct FundAddedEvent {
 
 #[derive(Serialize, SchemaType, Debug)]
 pub enum Event {
-    Initialized(InitParam),
-    Invested(InvestedEvent),
-    InvestmentCancelled(InvestedEvent),
-    FundStateUpdated(UpdateFundStateParams),
-    InvestmentClaimed(InvestedEvent),
-    FundAdded(FundAddedEvent),
-    FundRemoved(FundId),
+    Initialized(AnyTokenUId),
     AgentAdded(AgentWithRoles<AgentRole>),
     AgentRemoved(Address),
+    FundAdded(FundAddedEvent),
+    FundRemoved(FundId),
+    FundStateUpdated(UpdateFundStateParams),
+    Invested(InvestedEvent),
+    InvestmentClaimed(InvestedEvent),
+    InvestmentCancelled(InvestedEvent),
 }
 
 #[derive(Serialize, SchemaType, Debug, Clone)]

@@ -1,7 +1,5 @@
 use concordium_cis2::{IsTokenId, Receiver};
-use concordium_std::{
-    ensure, AccountAddress, Address, ContractAddress, MetadataUrl, SchemaType, Serialize,
-};
+use concordium_std::{ensure, Address, ContractAddress, MetadataUrl, SchemaType, Serialize};
 
 use crate::concordium_cis2_ext::IsTokenAmount;
 
@@ -110,7 +108,7 @@ impl<A: IsTokenAmount> Default for TokenAmountSecurity<A> {
 
 #[derive(Serialize, SchemaType)]
 pub struct MintParam<A: IsTokenAmount> {
-    pub address: AccountAddress,
+    pub address: concordium_cis2::Receiver,
     pub amount:  TokenAmountSecurity<A>,
 }
 

@@ -88,7 +88,7 @@ fn mint() {
         .mint(&mut chain, &non_agent_mint, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -97,7 +97,7 @@ fn mint() {
         .mint(&mut chain, &non_agent, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -106,7 +106,7 @@ fn mint() {
         .mint(&mut chain, &agent_mint, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
-                address: holder_2.address,
+                address: holder_2.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -115,7 +115,7 @@ fn mint() {
         .mint(&mut chain, &agent_mint, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(10)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -179,7 +179,7 @@ fn burn() {
         .mint(&mut chain, &admin, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -366,7 +366,7 @@ fn forced_burn() {
         .mint(&mut chain, &admin, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -579,7 +579,7 @@ fn transfer() {
         .mint(&mut chain, &admin, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
@@ -731,7 +731,7 @@ fn forced_transfer() {
         .mint(&mut chain, &admin, &MintParams {
             owners:   vec![MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(TokenAmountU64(50)),
-                address: holder.address,
+                address: holder.address.into(),
             }],
             token_id: TOKEN_ID,
         })
