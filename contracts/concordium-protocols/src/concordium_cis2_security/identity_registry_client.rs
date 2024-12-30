@@ -29,6 +29,7 @@ pub trait IdentityRegistryClient {
 impl<S> IdentityRegistryClient for Host<S>
 where S: Serial+DeserialWithState<ExternStateApi>
 {
+    #[inline]
     fn invoke_identity_registry_get_identity(
         &self,
         contract: &ContractAddress,
@@ -42,6 +43,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_identity_registry_is_verified(
         &self,
         contract: &ContractAddress,
@@ -55,6 +57,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_supports_rwa_identity_registry_standard(
         &self,
         contract: &ContractAddress,

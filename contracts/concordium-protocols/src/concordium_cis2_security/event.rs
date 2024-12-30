@@ -1,7 +1,6 @@
 use concordium_cis2::{Cis2Event, IsTokenAmount, IsTokenId, TokenAmountU64, TokenIdVec};
-use concordium_std::{
-    schema::SchemaType, AccountAddress, Address, ContractAddress, Cursor, SchemaType, Serialize,
-};
+use concordium_std::schema::SchemaType;
+use concordium_std::{AccountAddress, Address, ContractAddress, Cursor, SchemaType, Serialize};
 
 use super::TokenUId;
 
@@ -15,7 +14,7 @@ pub struct AgentUpdatedEvent<R> {
 
 /// Represents the event when tokens are frozen / un frozen.
 #[derive(Serialize, SchemaType, Debug)]
-pub struct TokenFrozen<T: IsTokenId + SchemaType, A: IsTokenAmount + SchemaType> {
+pub struct TokenFrozen<T: IsTokenId+SchemaType, A: IsTokenAmount+SchemaType> {
     pub token_id: T,
     pub amount:   A,
     pub address:  Address,
@@ -23,7 +22,7 @@ pub struct TokenFrozen<T: IsTokenId + SchemaType, A: IsTokenAmount + SchemaType>
 
 /// Represents the event when a token is paused / unpaused.
 #[derive(Serialize, SchemaType, Debug)]
-pub struct Paused<T: IsTokenId + SchemaType> {
+pub struct Paused<T: IsTokenId+SchemaType> {
     pub token_id: T,
 }
 
@@ -59,6 +58,10 @@ pub enum Cis2SecurityEvent<T, A, R>
 where
     T: IsTokenId,
     A: IsTokenAmount, {
+    /// Event triggered when token is removed.
+    #[concordium(tag = 241)]
+    TokenRemoved(T),
+
     /// Event triggered when an account is recovered.
     #[concordium(tag = 242)]
     Recovered(RecoverEvent),

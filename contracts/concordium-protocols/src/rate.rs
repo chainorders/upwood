@@ -70,7 +70,7 @@ impl Rate {
     /// If the full conversion is not possible, an error is returned.
     pub fn convert_token_amount(
         &self,
-        security_amount: TokenAmountU64,
+        security_amount: &TokenAmountU64,
     ) -> Result<TokenAmountU64, ExchangeError> {
         let (converted_security_amount, unconverted_security_amount) =
             self.convert(&security_amount.0)?;
@@ -80,12 +80,24 @@ impl Rate {
         Ok(TokenAmountU64(converted_security_amount))
     }
 
+    pub fn convert_token_amount_with_rem(
+        &self,
+        security_amount: &TokenAmountU64,
+    ) -> Result<(TokenAmountU64, TokenAmountU64), ExchangeError> {
+        let (converted_security_amount, unconverted_security_amount) =
+            self.convert(&security_amount.0)?;
+        Ok((
+            TokenAmountU64(converted_security_amount),
+            TokenAmountU64(unconverted_security_amount),
+        ))
+    }
+
     /// Convert the given currency amount to a security amount.
     /// Returns the converted security amount.
     /// If the full conversion is not possible, an error is returned.
     pub fn convert_currency_amount(
         &self,
-        currency_amount: TokenAmountU64,
+        currency_amount: &TokenAmountU64,
     ) -> Result<TokenAmountU64, ExchangeError> {
         let (converted_currency_amount, unconverted_currency_amount) =
             self.convert_inverse(&currency_amount.0)?;
@@ -98,17 +110,19 @@ impl Rate {
 
 #[cfg(test)]
 mod tests {
-    use crate::rate::ExchangeError;
-
     use super::Rate;
+    use crate::rate::ExchangeError;
 
     #[test]
     fn calculate_amounts_rem() {
         let rate = Rate::new(1, 3).expect("valid rate");
         assert_eq!(rate.convert(&2).expect("valid amount"), (0, 2));
         assert_eq!(rate.convert_inverse(&2).expect("valid amount"), (6, 0));
-        assert_eq!(rate.convert_token_amount(2.into()), Err(ExchangeError::InvalidRate));
-        assert_eq!(rate.convert_currency_amount(2.into()), Ok(6.into()));
+        assert_eq!(
+            rate.convert_token_amount(&2.into()),
+            Err(ExchangeError::InvalidRate)
+        );
+        assert_eq!(rate.convert_currency_amount(&2.into()), Ok(6.into()));
     }
 
     #[test]
@@ -116,7 +130,7 @@ mod tests {
         let rate = Rate::new(1, 3).expect("valid rate");
         assert_eq!(rate.convert(&3).expect("valid amount"), (1, 0));
         assert_eq!(rate.convert_inverse(&3).expect("valid amount"), (9, 0));
-        assert_eq!(rate.convert_token_amount(3.into()), Ok(1.into()));
-        assert_eq!(rate.convert_currency_amount(3.into()), Ok(9.into()));
+        assert_eq!(rate.convert_token_amount(&3.into()), Ok(1.into()));
+        assert_eq!(rate.convert_currency_amount(&3.into()), Ok(9.into()));
     }
 }

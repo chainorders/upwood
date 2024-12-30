@@ -2,7 +2,7 @@ use concordium_cis2::IsTokenId;
 use concordium_std::*;
 
 use super::{
-    AddTokenParams, Agent, Burn, BurnParams, FreezeParam, FreezeParams, IsPausedResponse,
+    AddTokenParams, AgentWithRoles, Burn, BurnParams, FreezeParam, FreezeParams, IsPausedResponse,
     MintParam, MintParams, PauseParam, PauseParams, RecoverParam,
 };
 use crate::concordium_cis2_ext::cis2_client::{Cis2Client, Cis2ClientError};
@@ -99,10 +99,10 @@ pub trait Cis2SecurityClient: Cis2Client {
         params: &PauseParams<T>,
     ) -> Result<IsPausedResponse, Cis2ClientError>;
 
-    fn invoke_add_agent(
+    fn invoke_add_agent<R: Serial>(
         &mut self,
         contract: &ContractAddress,
-        params: &Agent,
+        params: &AgentWithRoles<R>,
     ) -> Result<(), Cis2ClientError>;
 
     fn invoke_remove_agent(
@@ -111,10 +111,10 @@ pub trait Cis2SecurityClient: Cis2Client {
         address: &Address,
     ) -> Result<(), Cis2ClientError>;
 
-    fn invoke_is_agent(
+    fn invoke_is_agent<R: Serial>(
         &self,
         contract: &ContractAddress,
-        params: &Agent,
+        params: &AgentWithRoles<R>,
     ) -> Result<bool, Cis2ClientError>;
 
     fn invoke_set_identity_registry(
@@ -155,6 +155,7 @@ pub trait Cis2SecurityClient: Cis2Client {
 impl<S> Cis2SecurityClient for Host<S>
 where S: Serial+DeserialWithState<ExternStateApi>
 {
+    #[inline]
     fn invoke_mint<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -168,6 +169,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_mint_single<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -180,6 +182,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         })
     }
 
+    #[inline]
     fn invoke_freeze<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -193,6 +196,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_freeze_single<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -205,6 +209,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         })
     }
 
+    #[inline]
     fn invoke_un_freeze<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -218,6 +223,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_un_freeze_single<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -230,6 +236,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         })
     }
 
+    #[inline]
     fn invoke_burn<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -243,6 +250,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_burn_single<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -251,6 +259,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         self.invoke_burn(contract, &BurnParams(vec![params]))
     }
 
+    #[inline]
     fn invoke_add_token<T: IsTokenId>(
         &mut self,
         contract: &ContractAddress,
@@ -264,6 +273,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_pause<T: IsTokenId>(
         &mut self,
         contract: &ContractAddress,
@@ -277,6 +287,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_pause_single<T: IsTokenId>(
         &mut self,
         contract: &ContractAddress,
@@ -287,6 +298,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         })
     }
 
+    #[inline]
     fn invoke_un_pause<T: IsTokenId>(
         &mut self,
         contract: &ContractAddress,
@@ -300,6 +312,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_un_pause_single<T: IsTokenId>(
         &mut self,
         contract: &ContractAddress,
@@ -310,6 +323,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         })
     }
 
+    #[inline]
     fn invoke_is_paused<T: IsTokenId>(
         &self,
         contract: &ContractAddress,
@@ -323,10 +337,11 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
-    fn invoke_add_agent(
+    #[inline]
+    fn invoke_add_agent<R: Serial>(
         &mut self,
         contract: &ContractAddress,
-        params: &Agent,
+        params: &AgentWithRoles<R>,
     ) -> Result<(), Cis2ClientError> {
         invoke_contract(
             self,
@@ -336,6 +351,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_remove_agent(
         &mut self,
         contract: &ContractAddress,
@@ -349,10 +365,11 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
-    fn invoke_is_agent(
+    #[inline]
+    fn invoke_is_agent<R: Serial>(
         &self,
         contract: &ContractAddress,
-        params: &Agent,
+        params: &AgentWithRoles<R>,
     ) -> Result<bool, Cis2ClientError> {
         invoke_contract_read_only(
             self,
@@ -362,6 +379,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_set_identity_registry(
         &mut self,
         contract: &ContractAddress,
@@ -375,6 +393,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_identity_registry(
         &self,
         contract: &ContractAddress,
@@ -387,6 +406,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_set_compliance(
         &mut self,
         contract: &ContractAddress,
@@ -400,6 +420,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_compliance(
         &self,
         contract: &ContractAddress,
@@ -412,6 +433,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_recover(
         &mut self,
         contract: &ContractAddress,
@@ -425,6 +447,7 @@ where S: Serial+DeserialWithState<ExternStateApi>
         )
     }
 
+    #[inline]
     fn invoke_recovery_address(
         &self,
         contract: &ContractAddress,

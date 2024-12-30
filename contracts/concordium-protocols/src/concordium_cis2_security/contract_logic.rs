@@ -134,6 +134,7 @@ pub fn authorize_and_burn<
         sender_is_operator_agent,
         sender_is_forced_burn_agent,
     ) {
+        (_, false, false, false) => Err(Error::Unauthorized.into()),
         // The sender is authorized to perform simple security burn
         (Some(security), true, ..) | (Some(security), false, true, false) => {
             let unfrozen_amount = host.state_mut().burn(token_id, amount, owner, false)?;
@@ -157,7 +158,6 @@ pub fn authorize_and_burn<
             Ok(unfrozen_amount)
         }
         // The sender is not authorized to perform the burn
-        (_, false, false, false) => Err(Error::Unauthorized.into()),
         // The sender is authorized to perform non security simple burn
         (None, true, ..) | (None, false, true, false) => {
             host.state_mut().burn(token_id, amount, owner, false)

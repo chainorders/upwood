@@ -893,6 +893,38 @@ pub fn add_token(
 
 #[receive(
     contract = "security_sft_multi",
+    name = "removeToken",
+    enable_logger,
+    mutable,
+    parameter = "TokenId",
+    error = "Error"
+)]
+pub fn remove_token(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let token_id: TokenId = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    let is_authorized = state
+        .addresses
+        .get(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::RemoveToken]));
+    ensure!(is_authorized, Error::Unauthorized);
+
+    state
+        .tokens
+        .remove_and_get(&token_id)
+        .filter(|t| t.supply.is_zero())
+        .ok_or(Error::InvalidTokenId)?;
+
+    logger.log(&Event::TokenRemoved(token_id))?;
+
+    Ok(())
+}
+
+#[receive(
+    contract = "security_sft_multi",
     name = "mint",
     enable_logger,
     mutable,

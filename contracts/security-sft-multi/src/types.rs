@@ -28,6 +28,7 @@ pub enum AgentRole {
     UnPause,
     AddToken,
     Operator,
+    RemoveToken,
 }
 
 impl std::fmt::Display for AgentRole {
@@ -46,6 +47,7 @@ impl std::fmt::Display for AgentRole {
             AgentRole::UnPause => write!(f, "UnPause"),
             AgentRole::AddToken => write!(f, "AddToken"),
             AgentRole::Operator => write!(f, "Operator"),
+            AgentRole::RemoveToken => write!(f, "RemoveToken"),
         }
     }
 }
@@ -68,6 +70,7 @@ impl AgentRole {
             Self::UnPause,
             Self::AddToken,
             Self::Operator,
+            Self::RemoveToken,
         ]
     }
 }

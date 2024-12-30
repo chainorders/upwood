@@ -130,7 +130,7 @@ pub trait Cis2TestClient<I: Serial, T: IsTokenId, A: IsTokenAmount>:
 
     fn balance_of(
         &self,
-        chain: &mut Chain,
+        chain: &Chain,
         sender: &Account,
         payload: &BalanceOfQueryParams<T>,
     ) -> Result<BalanceOfQueryResponse<A>, ContractInvokeErrorOrParseError> {
@@ -148,7 +148,7 @@ pub trait Cis2TestClient<I: Serial, T: IsTokenId, A: IsTokenAmount>:
 
     fn balance_of_single(
         &self,
-        chain: &mut Chain,
+        chain: &Chain,
         sender: &Account,
         token_id: T,
         address: Address,

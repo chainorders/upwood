@@ -583,7 +583,7 @@ pub fn exchange(
             ensure!(buy_token_amount.le(&deposit.amount), Error::InvalidAmount);
             let pay_curr_amount = deposit
                 .rate
-                .convert_token_amount(buy_token_amount)
+                .convert_token_amount(&buy_token_amount)
                 .map_err(|_| Error::InvalidConversion)?;
             ensure!(
                 pay_curr_amount.eq(&pay_currency_amount),

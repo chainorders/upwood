@@ -126,12 +126,17 @@ pub fn invoke_contract_read_only<
 }
 
 #[inline]
-pub fn invoke_contract<State: Serial+DeserialWithState<ExternStateApi>, P: Serial, R: Deserial>(
+pub fn invoke_contract<
+    State: Serial+DeserialWithState<ExternStateApi>,
+    P: Serial,
+    R: Deserial,
+    E: Deserial,
+>(
     host: &mut Host<State>,
     contract: &ContractAddress,
     method: EntrypointName,
     parameter: &P,
-) -> Result<R, ContractClientError<()>> {
+) -> Result<R, ContractClientError<E>> {
     let res = host.invoke_contract(contract, parameter, method, Amount::from_ccd(0));
     let (_, res) = match res {
         Ok(res) => res,

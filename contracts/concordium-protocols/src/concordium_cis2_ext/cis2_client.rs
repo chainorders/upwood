@@ -1,13 +1,13 @@
 use concordium_cis2::{
-    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenAmount, IsTokenId,
-    TokenMetadataQueryParams, TokenMetadataQueryResponse, Transfer, TransferParams,
+    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, Cis2Error, IsTokenAmount,
+    IsTokenId, TokenMetadataQueryParams, TokenMetadataQueryResponse, Transfer, TransferParams,
 };
 use concordium_std::{
     ContractAddress, DeserialWithState, EntrypointName, ExternStateApi, Host, MetadataUrl, Serial,
 };
 
 use crate::contract_client::{invoke_contract, invoke_contract_read_only, ContractClientError};
-pub type Cis2ClientError = ContractClientError<()>;
+pub type Cis2ClientError = ContractClientError<Cis2Error<()>>;
 
 pub trait Cis2Client {
     fn invoke_token_metadata<T: IsTokenId>(
@@ -40,7 +40,7 @@ pub trait Cis2Client {
         params: &BalanceOfQueryParams<T>,
     ) -> Result<BalanceOfQueryResponse<A>, Cis2ClientError>;
 
-    fn invoke_balance_of_single<T: IsTokenId, A: IsTokenAmount + Copy>(
+    fn invoke_balance_of_single<T: IsTokenId, A: IsTokenAmount+Copy>(
         &self,
         contract: &ContractAddress,
         params: BalanceOfQuery<T>,
@@ -48,9 +48,9 @@ pub trait Cis2Client {
 }
 
 impl<S> Cis2Client for Host<S>
-where
-    S: Serial + DeserialWithState<ExternStateApi>,
+where S: Serial+DeserialWithState<ExternStateApi>
 {
+    #[inline]
     fn invoke_token_metadata<T: IsTokenId>(
         &self,
         contract: &ContractAddress,
@@ -64,6 +64,7 @@ where
         )
     }
 
+    #[inline]
     fn invoke_token_metadata_single<T: IsTokenId>(
         &self,
         contract: &ContractAddress,
@@ -77,6 +78,7 @@ where
         Ok(res.clone())
     }
 
+    #[inline]
     fn invoke_transfer<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -90,6 +92,7 @@ where
         )
     }
 
+    #[inline]
     fn invoke_transfer_single<T: IsTokenId, A: IsTokenAmount>(
         &mut self,
         contract: &ContractAddress,
@@ -99,6 +102,7 @@ where
         self.invoke_transfer(contract, &params)
     }
 
+    #[inline]
     fn invoke_balance_of<T: IsTokenId, A: IsTokenAmount>(
         &self,
         contract: &ContractAddress,
@@ -112,14 +116,16 @@ where
         )
     }
 
-    fn invoke_balance_of_single<T: IsTokenId, A: IsTokenAmount + Copy>(
+    #[inline]
+    fn invoke_balance_of_single<T: IsTokenId, A: IsTokenAmount+Copy>(
         &self,
         contract: &ContractAddress,
         params: BalanceOfQuery<T>,
     ) -> Result<A, Cis2ClientError> {
-        let res: BalanceOfQueryResponse<A> = self.invoke_balance_of(contract, &BalanceOfQueryParams {
-            queries: vec![params],
-        })?;
+        let res: BalanceOfQueryResponse<A> =
+            self.invoke_balance_of(contract, &BalanceOfQueryParams {
+                queries: vec![params],
+            })?;
         let res = res.0.first().ok_or(ContractClientError::InvalidResponse)?;
         Ok(*res)
     }

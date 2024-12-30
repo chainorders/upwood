@@ -365,7 +365,7 @@ fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> 
                     .or_insert_with(CurrencyTokenAmount::zero)
                     .modify(|amount| amount.add_assign(curr_amount));
                 // Convert the currency amount to wrapped amount
-                let security_amount = fund.rate.convert_currency_amount(curr_amount)?;
+                let security_amount = fund.rate.convert_currency_amount(&curr_amount)?;
                 (security_amount, fund.token.clone())
             }
             _ => bail!(Error::InvalidFundState),
@@ -421,7 +421,7 @@ fn claim_investment(
                 .remove_and_get(&investment.investor)
                 .ok_or(Error::InvalidInvestor)?;
             // Promised security amount
-            let security_amount = fund.rate.convert_currency_amount(currency_amount)?;
+            let security_amount = fund.rate.convert_currency_amount(&currency_amount)?;
             (
                 fund.token.clone(),
                 currency_token,

@@ -49,6 +49,7 @@ where
     A: IsTokenAmount,
     S: Serial+DeserialWithState<ExternStateApi>,
 {
+    #[inline]
     fn invoke_compiliance_can_transfer(
         &self,
         address: &ContractAddress,
@@ -62,6 +63,7 @@ where
         )
     }
 
+    #[inline]
     fn invoke_compiliance_transferred(
         &mut self,
         address: &ContractAddress,
@@ -75,6 +77,7 @@ where
         )
     }
 
+    #[inline]
     fn invoke_compiliance_burned(
         &mut self,
         address: &ContractAddress,
@@ -88,6 +91,7 @@ where
         )
     }
 
+    #[inline]
     fn invoke_compiliance_minted(
         &mut self,
         address: &ContractAddress,
@@ -101,6 +105,7 @@ where
         )
     }
 
+    #[inline]
     fn invoke_supports_rwa_compliance_standard(
         &self,
         address: &ContractAddress,
