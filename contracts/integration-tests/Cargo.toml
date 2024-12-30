@@ -11,6 +11,7 @@ concordium-rwa-identity-registry = { path = "../identity-registry" }
 concordium-rwa-compliance = { path = "../compliance" }
 security-sft-single = { path = "../security-sft-single" }
 security-sft-multi = { path = "../security-sft-multi" }
+security-sft-multi-yielder = { path = "../security-sft-multi-yielder" }
 security-p2p-trading = { path = "../security-p2p-trading" }
 security-mint-fund = { path = "../security-mint-fund" }
 nft-multi-rewarded = { path = "../nft-multi-rewarded" }

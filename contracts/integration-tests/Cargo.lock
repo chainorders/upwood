@@ -1385,6 +1385,7 @@ dependencies = [
  "security-mint-fund",
  "security-p2p-trading",
  "security-sft-multi",
+ "security-sft-multi-yielder",
  "security-sft-single",
 ]
 
@@ -2040,6 +2041,15 @@ dependencies = [
 
 [[package]]
 name = "security-sft-multi"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-protocols",
+ "concordium-std",
+]
+
+[[package]]
+name = "security-sft-multi-yielder"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",

@@ -16,7 +16,8 @@
     "nft-multi-rewarded",
     "integration-tests",
     "offchain-rewards",
-    "security-sft-multi"
+    "security-sft-multi",
+    "security-sft-multi-yielder"
   ],
   "scripts": {
     "format": "yarn workspaces foreach -Ap --include 'contracts/*' run format",

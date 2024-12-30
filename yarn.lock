@@ -3118,6 +3118,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"concordium-security-sft-multi-yielder@workspace:contracts/security-sft-multi-yielder":
+  version: 0.0.0-use.local
+  resolution: "concordium-security-sft-multi-yielder@workspace:contracts/security-sft-multi-yielder"
+  languageName: unknown
+  linkType: soft
+
 "concordium-security-sft-multi@workspace:contracts/security-sft-multi":
   version: 0.0.0-use.local
   resolution: "concordium-security-sft-multi@workspace:contracts/security-sft-multi"
