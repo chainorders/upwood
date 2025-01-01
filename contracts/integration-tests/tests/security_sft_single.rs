@@ -122,7 +122,7 @@ fn mint() {
         .expect("should mint");
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
+            .balance_of(&chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  Address::Account(holder.address),
                     token_id: TOKEN_ID,
@@ -229,7 +229,7 @@ fn burn() {
 
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
+            .balance_of(&chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  Address::Account(holder.address),
                     token_id: TOKEN_ID,
@@ -282,7 +282,7 @@ fn burn() {
         .expect("should burn");
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
+            .balance_of(&chain, &holder, &BalanceOfQueryParams {
                 queries: vec![BalanceOfQuery {
                     address:  Address::Account(holder.address),
                     token_id: TOKEN_ID,
@@ -641,7 +641,7 @@ fn transfer() {
         .expect("should transfer");
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
+            .balance_of(&chain, &holder, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  holder.address.into(),
@@ -797,7 +797,7 @@ fn forced_transfer() {
         .expect("should transfer");
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
+            .balance_of(&chain, &holder, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  holder.address.into(),
@@ -868,7 +868,7 @@ fn forced_transfer() {
     );
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &holder, &BalanceOfQueryParams {
+            .balance_of(&chain, &holder, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  holder.address.into(),

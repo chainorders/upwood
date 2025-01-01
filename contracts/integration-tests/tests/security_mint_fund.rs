@@ -133,15 +133,31 @@ fn normal_flow() {
         })
         .expect("add agent investment");
 
+    // Adding investment token. This would the final Security Token
+    // which the investors will receive.
+    let investment_token_id = TokenIdU64(1);
+    investment_token_contract
+        .add_token(&mut chain, &admin, &AddTokenParams {
+            token_id:       investment_token_id,
+            token_metadata: concordium_protocols::concordium_cis2_ext::ContractMetadataUrl {
+                url:  "example.com".to_string(),
+                hash: None,
+            },
+        })
+        .expect("add token investment");
     // Adding fund
     let fund_id: FundId = {
         let add_fund_res = fund_contract
             .add_fund(&mut chain, &admin, &AddFundParams {
-                token: TokenUId {
+                token:          TokenUId {
                     contract: wrapped_token_contract.contract_address(),
                     id:       to_token_id_vec(wrapped_token_id),
                 },
-                rate:  Rate::new(1000, 1).unwrap(),
+                rate:           Rate::new(1000, 1).unwrap(),
+                security_token: TokenUId {
+                    contract: investment_token_contract.contract_address(),
+                    id:       to_token_id_vec(investment_token_id),
+                },
             })
             .expect("add fund");
         let parsed_fund_contract_events: Vec<Event> = add_fund_res
@@ -199,7 +215,7 @@ fn normal_flow() {
         .expect("transfer_invest");
     assert_eq!(
         euroe_contract
-            .balance_of(&mut chain, &admin, &BalanceOfQueryParams {
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),
@@ -224,7 +240,7 @@ fn normal_flow() {
     );
     assert_eq!(
         wrapped_token_contract
-            .balance_of(&mut chain, &admin, &BalanceOfQueryParams {
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),
@@ -240,29 +256,12 @@ fn normal_flow() {
         BalanceOfQueryResponse(vec![1.into(), 2.into()])
     );
 
-    // Adding investment token. This would the final Security Token
-    // which the investors will receive.
-    let investment_token_id = TokenIdU64(1);
-    investment_token_contract
-        .add_token(&mut chain, &admin, &AddTokenParams {
-            token_id:       investment_token_id,
-            token_metadata: concordium_protocols::concordium_cis2_ext::ContractMetadataUrl {
-                url:  "example.com".to_string(),
-                hash: None,
-            },
-        })
-        .expect("add token investment");
-
     // Updating fund state to success
     fund_contract
         .update_fund_state(&mut chain, &admin, &UpdateFundStateParams {
             fund_id,
             state: UpdateFundState::Success(UpdateFundStateSuccessParams {
-                receiver:       Receiver::Account(treasury.address),
-                security_token: TokenUId {
-                    contract: investment_token_contract.contract_address(),
-                    id:       to_token_id_vec(investment_token_id),
-                },
+                receiver: Receiver::Account(treasury.address),
             }),
         })
         .expect("update_fund_state");
@@ -270,7 +269,7 @@ fn normal_flow() {
     // Euro e investments is stored in the fund contract
     assert_eq!(
         euroe_contract
-            .balance_of(&mut chain, &admin, &BalanceOfQueryParams {
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),
@@ -313,7 +312,7 @@ fn normal_flow() {
         .expect("claim_investment investor 2");
     assert_eq!(
         wrapped_token_contract
-            .balance_of(&mut chain, &admin, &BalanceOfQueryParams {
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),
@@ -330,7 +329,7 @@ fn normal_flow() {
     );
     assert_eq!(
         investment_token_contract
-            .balance_of(&mut chain, &admin, &BalanceOfQueryParams {
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         address:  investor_1.address.into(),

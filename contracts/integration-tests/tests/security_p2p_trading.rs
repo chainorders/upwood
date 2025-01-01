@@ -132,7 +132,7 @@ pub fn normal_flow_sft_multi() {
         .expect("mint");
     assert_eq!(
         token_contract
-            .balance_of_single(&mut chain, &holder, TOKEN_ID, holder.address.into())
+            .balance_of_single(&chain, &holder, TOKEN_ID, holder.address.into())
             .expect("balance of"),
         TokenAmountU64(50)
     );
@@ -147,7 +147,7 @@ pub fn normal_flow_sft_multi() {
         .expect("transfer sell");
     assert_eq!(
         token_contract
-            .balance_of_single(&mut chain, &admin, TOKEN_ID, holder.address.into())
+            .balance_of_single(&chain, &admin, TOKEN_ID, holder.address.into())
             .expect("balance of"),
         TokenAmountU64(40)
     );
@@ -192,7 +192,7 @@ pub fn normal_flow_sft_multi() {
         .expect("transfer exchange");
     assert_eq!(
         euroe_contract
-            .balance_of_single(&mut chain, &admin, TokenIdUnit(), holder_2.address.into())
+            .balance_of_single(&chain, &admin, TokenIdUnit(), holder_2.address.into())
             .expect("balance of"),
         TokenAmountU64(0)
     );
@@ -212,7 +212,7 @@ pub fn normal_flow_sft_multi() {
     );
     assert_eq!(
         token_contract
-            .balance_of(&mut chain, &admin, &BalanceOfQueryParams {
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         token_id: TOKEN_ID,

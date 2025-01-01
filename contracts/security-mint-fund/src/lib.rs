@@ -38,11 +38,13 @@ use types::*;
 #[derive(Serial, DeserialWithState, Debug)]
 #[concordium(state_parameter = "S")]
 pub struct Fund<S> {
-    pub state:       FundState,
-    pub investments: StateMap<AccountAddress, CurrencyTokenAmount, S>,
-    pub token:       AnyTokenUId,
+    pub state:          FundState,
+    pub investments:    StateMap<AccountAddress, CurrencyTokenAmount, S>,
+    pub token:          AnyTokenUId,
     /// This is the rate  which will be used to convert from `currency_token` token to `security_token` Token.
-    pub rate:        Rate,
+    pub rate:           Rate,
+    /// This is the token which will be minted after successful completion of the fund.
+    pub security_token: AnyTokenUId,
 }
 
 #[derive(Serial, DeserialWithState)]
@@ -198,10 +200,11 @@ fn add_fund(
 
     let fund_id = state.last_fund_id;
     let existing = state.funds.insert(fund_id, Fund {
-        state:       FundState::Open,
-        investments: state_builder.new_map(),
-        token:       params.token.clone(),
-        rate:        params.rate,
+        state:          FundState::Open,
+        investments:    state_builder.new_map(),
+        token:          params.token.clone(),
+        rate:           params.rate,
+        security_token: params.security_token.clone(),
     });
     ensure!(existing.is_none(), Error::InvalidFundId);
     state.last_fund_id = fund_id + 1;
@@ -210,10 +213,18 @@ fn add_fund(
     let _ = host
         .invoke_token_metadata_single(&params.token.contract, params.token.id.clone())
         .map_err(|_| Error::NonExistentToken)?;
+    let _ = host
+        .invoke_token_metadata_single(
+            &params.security_token.contract,
+            params.security_token.id.clone(),
+        )
+        .map_err(|_| Error::NonExistentToken)?;
 
     logger.log(&Event::FundAdded(FundAddedEvent {
         fund_id,
         token: params.token,
+        rate: params.rate,
+        security_token: params.security_token,
     }))?;
     Ok(())
 }
@@ -270,15 +281,8 @@ fn update_fund_state(
     {
         let fund_state = match (&fund.state, &params.state) {
             (FundState::Open, UpdateFundState::Success(params)) => {
-                let _ = host
-                    .invoke_token_metadata_single(
-                        &params.security_token.contract,
-                        params.security_token.id.clone(),
-                    )
-                    .map_err(|_| Error::NonExistentToken)?;
                 FundState::Success(FundSuccessState {
                     funds_receiver: params.receiver.clone(),
-                    security_token: params.security_token.clone(),
                 })
             }
             (FundState::Open, UpdateFundState::Fail) => FundState::Fail,
@@ -402,7 +406,7 @@ fn claim_investment(
     let sender = ctx.sender();
     let params: ClaimInvestmentParams = ctx.parameter_cursor().get()?;
     for investment in params.investments {
-        let (token, currency_token, currency_amount, security_amount, fund_state) = {
+        let (token, currency_token, currency_amount, security_token, security_amount, fund_state) = {
             let state = host.state_mut();
             if !sender.matches_account(&investment.investor) {
                 ensure!(
@@ -426,6 +430,7 @@ fn claim_investment(
                 fund.token.clone(),
                 currency_token,
                 currency_amount,
+                fund.security_token.clone(),
                 security_amount,
                 fund.state.clone(),
             )
@@ -433,10 +438,7 @@ fn claim_investment(
 
         match fund_state {
             FundState::Open => bail!(Error::InvalidFundState),
-            FundState::Success(FundSuccessState {
-                funds_receiver,
-                security_token,
-            }) => {
+            FundState::Success(FundSuccessState { funds_receiver }) => {
                 // Transfer the currency amount to the receiver
                 host.invoke_transfer_single(&currency_token.contract, Transfer {
                     amount:   currency_amount,

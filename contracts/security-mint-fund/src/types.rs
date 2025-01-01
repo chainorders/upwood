@@ -30,8 +30,10 @@ pub struct InvestedEvent {
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct FundAddedEvent {
-    pub fund_id: FundId,
-    pub token:   AnyTokenUId,
+    pub fund_id:        FundId,
+    pub token:          AnyTokenUId,
+    pub rate:           Rate,
+    pub security_token: AnyTokenUId,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -91,9 +93,6 @@ pub enum FundState {
 #[derive(Serialize, Clone, Debug)]
 pub struct FundSuccessState {
     pub funds_receiver: Receiver,
-    // Security Token. This will either be unfrozen Or minted after the end of the fund,
-    // depending on if the fund initial mint token is equal to final mint token or not.
-    pub security_token: AnyTokenUId,
 }
 
 pub type FundId = u32;
@@ -101,8 +100,7 @@ pub type InvestReceiveParams = OnReceivingCis2DataParams<TokenIdVec, CurrencyTok
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct UpdateFundStateSuccessParams {
-    pub receiver:       Receiver,
-    pub security_token: AnyTokenUId,
+    pub receiver: Receiver,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -119,8 +117,9 @@ pub enum UpdateFundState {
 
 #[derive(Serialize, SchemaType)]
 pub struct AddFundParams {
-    pub token: AnyTokenUId,
-    pub rate:  Rate,
+    pub token:          AnyTokenUId,
+    pub rate:           Rate,
+    pub security_token: AnyTokenUId,
 }
 
 #[derive(Serialize, SchemaType)]
