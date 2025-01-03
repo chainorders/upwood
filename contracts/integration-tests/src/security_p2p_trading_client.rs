@@ -5,8 +5,7 @@ use concordium_protocols::concordium_cis2_security::AgentWithRoles;
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use security_p2p_trading::{
-    AgentRole, CancelSellParams, Deposit, ForceCancelSellParams, InitParam, SellPositionOfParams,
-    TransferExchangeParams, TransferSellParams,
+    AddMarketParams, AgentRole, InitParam, SecurityTokenAddress, SellParams,
 };
 
 use super::MAX_ENERGY;
@@ -36,42 +35,6 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
 }
 
 pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
-    fn transfer_sell_payload(&self, params: &TransferSellParams) -> UpdateContractPayload {
-        UpdateContractPayload {
-            address:      self.contract_address(),
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("transferSell"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        }
-    }
-
-    fn cancel_sell_payload(&self, params: &CancelSellParams) -> UpdateContractPayload {
-        UpdateContractPayload {
-            address:      self.contract_address(),
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("cancelSell"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        }
-    }
-
-    fn transfer_exchange_payload(&self, params: &TransferExchangeParams) -> UpdateContractPayload {
-        UpdateContractPayload {
-            address:      self.contract_address(),
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("transferExchange"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        }
-    }
-
     fn add_agent_payload(&self, params: &AgentWithRoles<AgentRole>) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
@@ -96,7 +59,7 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
         }
     }
 
-    fn add_market_payload(&self, params: &ContractAddress) -> UpdateContractPayload {
+    fn add_market_payload(&self, params: &AddMarketParams) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
@@ -108,7 +71,7 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
         }
     }
 
-    fn remove_market_payload(&self, params: &ContractAddress) -> UpdateContractPayload {
+    fn remove_market_payload(&self, params: &SecurityTokenAddress) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
@@ -120,25 +83,25 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
         }
     }
 
-    fn market_in_use_payload(&self, params: &ContractAddress) -> UpdateContractPayload {
+    fn get_market_payload(&self, params: &SecurityTokenAddress) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
                 Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("marketInUse"),
+                EntrypointName::new_unchecked("getMarket"),
             ),
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
     }
 
-    fn sell_position_of_payload(&self, params: &SellPositionOfParams) -> UpdateContractPayload {
+    fn sell_payload(&self, params: &SellParams) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
                 Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("sellPositionOf"),
+                EntrypointName::new_unchecked("sell"),
             ),
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
@@ -146,60 +109,15 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
 }
 
 pub trait P2PTradingClientResponses {
-    fn parse_sell_position_of(&self) -> Deposit;
+    fn parse_get_market(&self) -> SecurityTokenAddress;
 }
 impl P2PTradingClientResponses for ContractInvokeSuccess {
-    fn parse_sell_position_of(&self) -> Deposit {
-        self.parse_return_value().expect("parsing deposit")
+    fn parse_get_market(&self) -> SecurityTokenAddress {
+        self.parse_return_value().expect("parsing market")
     }
 }
 
 impl P2PTradeTestClient {
-    pub fn transfer_sell(
-        &self,
-        chain: &mut Chain,
-        sender: &Account,
-        params: &TransferSellParams,
-    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            self.transfer_sell_payload(params),
-        )
-    }
-
-    pub fn cancel_sell(
-        &self,
-        chain: &mut Chain,
-        sender: &Account,
-        params: &CancelSellParams,
-    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            self.cancel_sell_payload(params),
-        )
-    }
-
-    pub fn transfer_exchange(
-        &self,
-        chain: &mut Chain,
-        sender: &Account,
-        params: &TransferExchangeParams,
-    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            self.transfer_exchange_payload(params),
-        )
-    }
-
     pub fn add_agent(
         &self,
         chain: &mut Chain,
@@ -234,7 +152,7 @@ impl P2PTradeTestClient {
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &ContractAddress,
+        params: &AddMarketParams,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             Signer::with_one_key(),
@@ -249,7 +167,7 @@ impl P2PTradeTestClient {
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &ContractAddress,
+        params: &SecurityTokenAddress,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             Signer::with_one_key(),
@@ -260,33 +178,32 @@ impl P2PTradeTestClient {
         )
     }
 
-    pub fn market_in_use(
+    pub fn get_market(
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &ContractAddress,
+        params: &SecurityTokenAddress,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_update(
-            Signer::with_one_key(),
+        chain.contract_invoke(
             sender.address,
             sender.address.into(),
             MAX_ENERGY,
-            self.market_in_use_payload(params),
+            self.get_market_payload(params),
         )
     }
 
-    pub fn sell_position_of(
+    pub fn sell(
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &SellPositionOfParams,
+        params: &SellParams,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             Signer::with_one_key(),
             sender.address,
             sender.address.into(),
             MAX_ENERGY,
-            self.sell_position_of_payload(params),
+            self.sell_payload(params),
         )
     }
 }

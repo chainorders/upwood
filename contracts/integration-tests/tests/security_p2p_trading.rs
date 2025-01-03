@@ -4,8 +4,8 @@ use cis2_conversions::to_token_id_vec;
 use cis2_security::{Cis2SecurityTestClient, Cis2TestClient};
 use compliance::init_nationalities;
 use concordium_cis2::{
-    BalanceOfQuery, BalanceOfQueryResponse, OperatorUpdate, TokenAmountU64, TokenIdU64,
-    TokenIdUnit, UpdateOperator,
+    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, TokenAmountU64,
+    TokenIdU64, TokenIdUnit, UpdateOperator,
 };
 use concordium_protocols::concordium_cis2_security::{
     AddTokenParams, AgentWithRoles, Identity, SecurityParams, TokenAmountSecurity, TokenUId,
@@ -19,9 +19,7 @@ use contract_base::{ContractPayloads, ContractTestClient};
 use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
-use security_p2p_trading::{
-    Deposit, ExchangeParams, SellPositionOfParams, TransferExchangeParams, TransferSellParams,
-};
+use security_p2p_trading::{AddMarketParams, Market, SellParams};
 use security_p2p_trading_client::{P2PTradeTestClient, P2PTradingClientResponses};
 use security_sft_multi_client::SftMultiTestClient;
 
@@ -36,44 +34,42 @@ const DEFAULT_ACC_BALANCE: Amount = Amount {
 
 #[test]
 pub fn normal_flow_sft_multi() {
-    use security_sft_multi::types::*;
-
     let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
     let mut chain = Chain::new();
-    let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
-    chain.create_account(holder.clone());
-    let holder_2 = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
-    chain.create_account(holder_2.clone());
+    let seller = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
+    chain.create_account(seller.clone());
+    let buyer = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
+    chain.create_account(buyer.clone());
 
     let (euroe_contract, ir_contract, compliance_contract) =
         setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
 
-    let euroe_token_id_vec = to_token_id_vec(TokenIdUnit());
-
+    let euroe_token_id = TokenIdUnit();
     let trading_contract =
         P2PTradeTestClient::init(&mut chain, &admin, &security_p2p_trading::InitParam {
             currency: TokenUId {
-                id:       euroe_token_id_vec,
+                id:       euroe_token_id,
                 contract: euroe_contract.contract_address(),
             },
+            agents:   vec![],
         })
         .expect("init trading contract");
-    ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
-            address:  trading_contract.contract_address().into(),
-            identity: Identity {
-                credentials: vec![],
-                attributes:  vec![IdentityAttribute {
-                    tag:   NATIONALITY.0,
-                    value: COMPLIANT_NATIONALITIES[1].to_string(),
-                }],
-            },
+    euroe_contract
+        .mint(&mut chain, &admin, &euroe::MintParams {
+            owner:  buyer.address.into(),
+            amount: TokenAmountU64(10_000),
         })
-        .expect("register identity");
+        .expect("euroe mint");
+    euroe_contract
+        .update_operator_single(&mut chain, &buyer, &UpdateOperator {
+            update:   OperatorUpdate::Add,
+            operator: trading_contract.contract_address().into(),
+        })
+        .expect("update operator");
 
     ir_contract
         .register_identity(&mut chain, &admin, RegisterIdentityParams {
-            address:  holder.address.into(),
+            address:  seller.address.into(),
             identity: Identity {
                 credentials: vec![],
                 attributes:  vec![IdentityAttribute {
@@ -85,7 +81,7 @@ pub fn normal_flow_sft_multi() {
         .expect("register identity");
     ir_contract
         .register_identity(&mut chain, &admin, RegisterIdentityParams {
-            address:  holder_2.address.into(),
+            address:  buyer.address.into(),
             identity: Identity {
                 credentials: vec![],
                 attributes:  vec![IdentityAttribute {
@@ -97,7 +93,6 @@ pub fn normal_flow_sft_multi() {
         .expect("register identity");
 
     const TOKEN_ID: TokenIdU64 = TokenIdU64(0);
-    let security_token_id_vec = to_token_id_vec(TOKEN_ID);
     let token_contract = create_token_contract_multi(
         &mut chain,
         &admin,
@@ -108,124 +103,81 @@ pub fn normal_flow_sft_multi() {
             roles:   vec![security_sft_multi::types::AgentRole::Operator],
         }],
     );
-    trading_contract
-        .add_market(&mut chain, &admin, &token_contract.contract_address())
-        .expect("add market");
-
     token_contract
         .add_token(&mut chain, &admin, &AddTokenParams {
             token_id:       TOKEN_ID,
-            token_metadata: ContractMetadataUrl {
+            token_metadata: security_sft_multi::types::ContractMetadataUrl {
                 hash: None,
                 url:  METADATA_URL_SFT_REWARDS.to_string(),
             },
         })
         .expect("add token");
+    let rate = Rate::new(1000, 1).unwrap();
+    trading_contract
+        .add_market(&mut chain, &admin, &AddMarketParams {
+            token:  TokenUId {
+                contract: token_contract.contract_address(),
+                id:       TOKEN_ID,
+            },
+            market: Market {
+                buyer: buyer.address,
+                rate,
+            },
+        })
+        .expect("add market");
+
     token_contract
-        .mint(&mut chain, &admin, &MintParams {
-            owners:   vec![MintParam {
+        .mint(&mut chain, &admin, &security_sft_multi::types::MintParams {
+            owners:   vec![security_sft_multi::types::MintParam {
                 amount:  TokenAmountSecurity::new_un_frozen(50.into()),
-                address: holder.address.into(),
+                address: seller.address.into(),
             }],
             token_id: TOKEN_ID,
         })
         .expect("mint");
-    assert_eq!(
-        token_contract
-            .balance_of_single(&chain, &holder, TOKEN_ID, holder.address.into())
-            .expect("balance of"),
-        TokenAmountU64(50)
-    );
-    let rate = Rate::new(1000, 1).unwrap();
     trading_contract
-        .transfer_sell(&mut chain, &holder, &TransferSellParams {
-            market: token_contract.contract_address(),
+        .sell(&mut chain, &seller, &SellParams {
             amount: TokenAmountU64(10),
             rate,
-            token_id: security_token_id_vec.clone(),
-        })
-        .expect("transfer sell");
-    assert_eq!(
-        token_contract
-            .balance_of_single(&chain, &admin, TOKEN_ID, holder.address.into())
-            .expect("balance of"),
-        TokenAmountU64(40)
-    );
-
-    assert_eq!(
-        trading_contract
-            .sell_position_of(&mut chain, &admin, &SellPositionOfParams {
-                market:   token_contract.contract_address(),
-                seller:   holder.address,
-                token_id: security_token_id_vec.clone(),
-            })
-            .expect("sell position of")
-            .parse_sell_position_of(),
-        Deposit {
-            amount: TokenAmountU64(10),
-            rate
-        }
-    );
-
-    euroe_contract
-        .mint(&mut chain, &admin, &euroe::MintParams {
-            owner:  holder_2.address.into(),
-            amount: TokenAmountU64(1000),
-        })
-        .expect("mint");
-    euroe_contract
-        .update_operator_single(&mut chain, &holder_2, &UpdateOperator {
-            update:   OperatorUpdate::Add,
-            operator: trading_contract.contract_address().into(),
-        })
-        .expect("update operator");
-    trading_contract
-        .transfer_exchange(&mut chain, &holder_2, &TransferExchangeParams {
-            pay: TokenAmountU64(1000),
-            get: ExchangeParams {
-                market:   token_contract.contract_address(),
-                from:     holder.address,
-                amount:   TokenAmountU64(1),
-                token_id: security_token_id_vec.clone(),
+            token: TokenUId {
+                contract: token_contract.contract_address(),
+                id:       TOKEN_ID,
             },
         })
-        .expect("transfer exchange");
-    assert_eq!(
-        euroe_contract
-            .balance_of_single(&chain, &admin, TokenIdUnit(), holder_2.address.into())
-            .expect("balance of"),
-        TokenAmountU64(0)
-    );
-    assert_eq!(
-        trading_contract
-            .sell_position_of(&mut chain, &admin, &SellPositionOfParams {
-                market:   token_contract.contract_address(),
-                seller:   holder.address,
-                token_id: security_token_id_vec.clone(),
-            })
-            .expect("sell position of")
-            .parse_sell_position_of(),
-        Deposit {
-            amount: TokenAmountU64(9),
-            rate
-        }
-    );
+        .expect("sell");
     assert_eq!(
         token_contract
             .balance_of(&chain, &admin, &BalanceOfQueryParams {
                 queries: vec![
                     BalanceOfQuery {
                         token_id: TOKEN_ID,
-                        address:  holder.address.into(),
+                        address:  seller.address.into(),
                     },
                     BalanceOfQuery {
                         token_id: TOKEN_ID,
-                        address:  holder_2.address.into(),
+                        address:  buyer.address.into(),
                     }
                 ],
             })
-            .expect("balance of query"),
-        BalanceOfQueryResponse(vec![TokenAmountU64(40), TokenAmountU64(1),])
+            .expect("balance of"),
+        BalanceOfQueryResponse(vec![40.into(), 10.into()])
+    );
+    assert_eq!(
+        euroe_contract
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
+                queries: vec![
+                    BalanceOfQuery {
+                        token_id: euroe_token_id,
+                        address:  seller.address.into(),
+                    },
+                    BalanceOfQuery {
+                        token_id: euroe_token_id,
+                        address:  buyer.address.into(),
+                    }
+                ],
+            })
+            .expect("balance of"),
+        BalanceOfQueryResponse(vec![10_000.into(), 0.into()])
     );
 }
 

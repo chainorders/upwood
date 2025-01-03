@@ -4,8 +4,8 @@ use cis2_conversions::to_token_id_vec;
 use cis2_security::{Cis2SecurityTestClient, Cis2TestClient};
 use compliance::init_nationalities;
 use concordium_cis2::{
-    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, Receiver,
-    TokenIdU64, TokenIdUnit, UpdateOperator,
+    BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, OperatorUpdate, TokenIdU64,
+    TokenIdUnit, UpdateOperator,
 };
 use concordium_protocols::concordium_cis2_security::{
     AddTokenParams, AgentWithRoles, SecurityParams, TokenUId,
@@ -23,7 +23,7 @@ use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_mint_fund::types::{
     AddFundParams, ClaimInvestmentParam, ClaimInvestmentParams, Event, FundId, InitParam,
-    TransferInvestParams, UpdateFundState, UpdateFundStateParams, UpdateFundStateSuccessParams,
+    TransferInvestParams, UpdateFundState, UpdateFundStateParams,
 };
 use security_mint_fund_client::MintFundTestClient;
 use security_sft_multi_client::SftMultiTestClient;
@@ -260,9 +260,7 @@ fn normal_flow() {
     fund_contract
         .update_fund_state(&mut chain, &admin, &UpdateFundStateParams {
             fund_id,
-            state: UpdateFundState::Success(UpdateFundStateSuccessParams {
-                receiver: Receiver::Account(treasury.address),
-            }),
+            state: UpdateFundState::Success(treasury.address.into()),
         })
         .expect("update_fund_state");
 

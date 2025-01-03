@@ -282,7 +282,7 @@ fn update_fund_state(
         let fund_state = match (&fund.state, &params.state) {
             (FundState::Open, UpdateFundState::Success(params)) => {
                 FundState::Success(FundSuccessState {
-                    funds_receiver: params.receiver.clone(),
+                    funds_receiver: params.clone(),
                 })
             }
             (FundState::Open, UpdateFundState::Fail) => FundState::Fail,

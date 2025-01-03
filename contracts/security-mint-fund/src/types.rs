@@ -99,11 +99,6 @@ pub type FundId = u32;
 pub type InvestReceiveParams = OnReceivingCis2DataParams<TokenIdVec, CurrencyTokenAmount, FundId>;
 
 #[derive(Serialize, SchemaType, Debug)]
-pub struct UpdateFundStateSuccessParams {
-    pub receiver: Receiver,
-}
-
-#[derive(Serialize, SchemaType, Debug)]
 pub struct UpdateFundStateParams {
     pub fund_id: FundId,
     pub state:   UpdateFundState,
@@ -111,7 +106,7 @@ pub struct UpdateFundStateParams {
 
 #[derive(Serialize, SchemaType, Debug)]
 pub enum UpdateFundState {
-    Success(UpdateFundStateSuccessParams),
+    Success(Receiver),
     Fail,
 }
 
