@@ -3,7 +3,6 @@ mod state;
 pub mod types;
 
 use concordium_cis2::*;
-use concordium_protocols::concordium_cis2_ext::PlusSubOne;
 use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_std::*;
 pub use concordium_std::{MetadataUrl, Timestamp};
@@ -491,7 +490,7 @@ pub fn mint(
             holder.nonce += 1;
             Ok(holder.nonce)
         })?;
-    state.curr_token_id = curr_token_id.plus_one();
+    state.curr_token_id = TokenIdU64(curr_token_id.0 + 1);
 
     // logs
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {

@@ -35,7 +35,7 @@ pub trait IdentityRegistryPayloads: ContractPayloads<()> {
             message:      OwnedParameter::from_serial(&agent).unwrap(),
         }
     }
-    fn register_identity_payload(&self, params: RegisterIdentityParams) -> UpdateContractPayload {
+    fn register_identity_payload(&self, params: &RegisterIdentityParams) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
@@ -43,7 +43,7 @@ pub trait IdentityRegistryPayloads: ContractPayloads<()> {
                 Self::contract_name().as_contract_name(),
                 EntrypointName::new_unchecked("registerIdentity"),
             ),
-            message:      OwnedParameter::from_serial(&params).unwrap(),
+            message:      OwnedParameter::from_serial(params).unwrap(),
         }
     }
 }
@@ -80,7 +80,7 @@ impl IdentityRegistryTestClient {
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: RegisterIdentityParams,
+        params: &RegisterIdentityParams,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             SIGNER,
@@ -98,4 +98,22 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
     chain
         .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
+}
+
+pub fn init(
+    chain: &mut Chain,
+    sender: &Account,
+) -> Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError> {
+    let module_ref = WasmModule::from_slice(MODULE_BYTES)
+        .unwrap()
+        .get_module_ref();
+    let contract_name = OwnedContractName::new_unchecked(CONTRACT_NAME.to_string());
+    let init = chain.contract_init(
+        Signer::with_one_key(),
+        sender.address,
+        MAX_ENERGY,
+        IdentityRegistryTestClient::init_payload(&()),
+    )?;
+
+    Ok((init, module_ref, contract_name))
 }

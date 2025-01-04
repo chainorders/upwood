@@ -1,6 +1,5 @@
 #![cfg(test)]
 
-use cis2_conversions::to_token_id_vec;
 use cis2_security::{Cis2SecurityTestClient, Cis2TestClient};
 use compliance::init_nationalities;
 use concordium_cis2::{
@@ -20,7 +19,7 @@ use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_p2p_trading::{AddMarketParams, Market, SellParams};
-use security_p2p_trading_client::{P2PTradeTestClient, P2PTradingClientResponses};
+use security_p2p_trading_client::P2PTradeTestClient;
 use security_sft_multi_client::SftMultiTestClient;
 
 const METADATA_URL_SFT_REWARDS: &str = "example2.com";
@@ -68,7 +67,7 @@ pub fn normal_flow_sft_multi() {
         .expect("update operator");
 
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  seller.address.into(),
             identity: Identity {
                 credentials: vec![],
@@ -80,7 +79,7 @@ pub fn normal_flow_sft_multi() {
         })
         .expect("register identity");
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  buyer.address.into(),
             identity: Identity {
                 credentials: vec![],

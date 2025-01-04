@@ -165,28 +165,11 @@ impl ListenerError {
             ListenerError::QueryError(_) => true,
             ListenerError::DatabasePoolError(_) => true,
             ListenerError::GrpcError(_) => true,
-            ListenerError::ProcessorError(ProcessorError::EventsParseError {
-                source: _,
-                backtrace: _,
-            }) => false,
-            ListenerError::ProcessorError(ProcessorError::DatabaseError {
-                source: _,
-                backtrace: _,
-            }) => false,
             ListenerError::ProcessorError(ProcessorError::DatabasePoolError {
                 source: _,
                 backtrace: _,
             }) => true,
-            ListenerError::ProcessorError(ProcessorError::InvestorNotFound {
-                investor: _,
-                contract: _,
-            }) => false,
-            ListenerError::ProcessorError(ProcessorError::TokenHolderNotFound {
-                holder_address: _,
-                contract: _,
-                token_id: _,
-            }) => false,
-            ListenerError::ProcessorError(ProcessorError::ContractAlreadyExists(_)) => false,
+            ListenerError::ProcessorError(_) => false,
         }
     }
 }

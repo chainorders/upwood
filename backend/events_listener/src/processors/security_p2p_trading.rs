@@ -3,16 +3,16 @@ use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
 use rust_decimal::Decimal;
-use security_p2p_trading::Event;
-use shared::db::security_p2p_trading::{
-    P2PTradeContract, Seller, Trade, TradingRecord, TradingRecordType,
-};
+use security_p2p_trading::{AddMarketParams, AgentRole, Event, SellEvent};
+use shared::db::cis2_security::Agent;
+use shared::db::security_p2p_trading::{Market, P2PTradeContract, SellRecord};
 use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
 use uuid::Uuid;
 
 use crate::processors::cis2_utils::{
-    rate_to_decimal, ContractAddressToDecimal, TokenAmountToDecimal, TokenIdToDecimal,
+    rate_to_decimal, ContractAddressToDecimal, RateToDecimal, TokenAmountToDecimal,
+    TokenIdToDecimal,
 };
 use crate::processors::ProcessorError;
 
@@ -46,145 +46,101 @@ pub fn process_events(
         trace!("Event details: {:#?}", event);
 
         match event {
-            Event::Initialized(event) => {
+            Event::Initialized(currency_token) => {
                 P2PTradeContract {
-                    contract_address: contract.to_decimal(),
-                    token_id: event.token.id.to_decimal(),
-                    token_contract_address: event.token.contract.to_decimal(),
-                    currency_token_id: event.currency.id.to_decimal(),
-                    currency_token_contract_address: event.currency.contract.to_decimal(),
-                    token_amount: Decimal::ZERO,
-                    create_time: block_time,
-                    update_time: block_time,
+                    contract_address:                contract.to_decimal(),
+                    currency_token_id:               currency_token.id.to_decimal(),
+                    currency_token_contract_address: currency_token.contract.to_decimal(),
+                    create_time:                     block_time,
+                    total_sell_currency_amount:      0.into(),
                 }
                 .insert(conn)?;
                 info!("initialized");
             }
-            Event::Sell(event) => {
-                let rate = rate_to_decimal(event.rate.numerator, event.rate.denominator);
-                // Only a single deposit / sell position exists per seller
-                let trader = Seller {
+            Event::AgentAdded(agent) => {
+                Agent::new(
+                    agent.address,
+                    block_time,
+                    contract.to_decimal(),
+                    agent.roles.iter().map(agent_role_to_string).collect(),
+                )
+                .insert(conn)?;
+            }
+            Event::AgentRemoved(agent) => {
+                Agent::delete(conn, contract.to_decimal(), &agent)?;
+            }
+            Event::MarketAdded(AddMarketParams { token, market }) => {
+                Market {
                     contract_address: contract.to_decimal(),
-                    rate,
-                    token_amount: event.amount.to_decimal(),
-                    trader_address: event.from.to_string(),
+                    token_contract_address: token.contract.to_decimal(),
+                    token_id: token.id.to_decimal(),
+                    buyer: market.buyer.to_string(),
+                    rate: rate_to_decimal(market.rate.numerator, market.rate.denominator),
+                    total_sell_currency_amount: 0.into(),
+                    total_sell_token_amount: 0.into(),
                     create_time: block_time,
                     update_time: block_time,
                 }
-                .upsert(conn)?;
-                P2PTradeContract::add_amount(
-                    conn,
-                    contract.to_decimal(),
-                    event.amount.to_decimal(),
-                    block_time,
-                )?;
-                TradingRecord {
-                    id: Uuid::new_v4(),
-                    block_height,
-                    txn_index,
-                    contract_address: contract.to_decimal(),
-                    trader_address: event.from.to_string(),
-                    token_amount: event.amount.to_decimal(),
-                    currency_amount: event.amount.to_decimal() * rate,
-                    token_amount_balance: trader.token_amount,
-                    currency_amount_balance: trader.token_amount * rate,
-                    record_type: TradingRecordType::Sell,
-                    create_time: block_time,
-                }
                 .insert(conn)?;
-                info!(
-                    "sell by: {}, amount: {}, rate: {}/{}",
-                    event.from,
-                    event.amount.to_decimal(),
-                    event.rate.numerator,
-                    event.rate.denominator
-                );
             }
-            Event::SellCancelled(event) => {
-                let trader = Seller::sub_amount(
+            Event::MarketRemoved(market) => {
+                Market::delete(
                     conn,
                     contract.to_decimal(),
-                    &event.from,
-                    event.amount.to_decimal(),
-                    block_time,
+                    market.id.to_decimal(),
+                    market.contract.to_decimal(),
                 )?;
-                P2PTradeContract::sub_amount(
-                    conn,
-                    contract.to_decimal(),
-                    event.amount.to_decimal(),
-                    block_time,
-                )?;
-                TradingRecord {
-                    id: Uuid::new_v4(),
-                    block_height,
-                    txn_index,
-                    contract_address: contract.to_decimal(),
-                    trader_address: event.from.to_string(),
-                    token_amount: event.amount.to_decimal(),
-                    currency_amount: event.amount.to_decimal() * trader.rate,
-                    token_amount_balance: trader.token_amount,
-                    currency_amount_balance: trader.token_amount * trader.rate,
-                    record_type: TradingRecordType::SellCancel,
-                    create_time: block_time,
-                }
-                .insert(conn)?;
-                info!(
-                    "sell cancelled by: {}, amount: {}",
-                    event.from,
-                    event.amount.to_decimal()
-                );
             }
-            Event::Exchange(event) => {
-                let trader = Seller::sub_amount(
+            Event::Sell(SellEvent {
+                token_amount,
+                rate,
+                seller,
+                token_contract,
+                token_id,
+                currency_amount,
+            }) => {
+                let _ = Market::find(
                     conn,
                     contract.to_decimal(),
-                    &event.seller,
-                    event.sell_amount.to_decimal(),
-                    block_time,
-                )?;
-                P2PTradeContract::sub_amount(
-                    conn,
-                    contract.to_decimal(),
-                    event.sell_amount.to_decimal(),
-                    block_time,
-                )?;
-                TradingRecord {
+                    token_id.to_decimal(),
+                    token_contract.to_decimal(),
+                )?
+                .map(|mut market| {
+                    market.total_sell_currency_amount += currency_amount.to_decimal();
+                    market.total_sell_token_amount += token_amount.to_decimal();
+                    market.update_time = block_time;
+                })
+                .ok_or(ProcessorError::MarketNotFound {
+                    contract:       contract.to_decimal(),
+                    token_id:       token_id.to_decimal(),
+                    token_contract: token_contract.to_decimal(),
+                })?
+                .update(conn)?;
+                SellRecord {
                     id: Uuid::new_v4(),
                     block_height,
                     txn_index,
                     contract_address: contract.to_decimal(),
-                    trader_address: event.seller.to_string(),
-                    token_amount: event.sell_amount.to_decimal(),
-                    currency_amount: event.sell_amount.to_decimal() * trader.rate,
-                    token_amount_balance: trader.token_amount,
-                    currency_amount_balance: trader.token_amount * trader.rate,
-                    record_type: TradingRecordType::Exchange,
+                    token_id: token_id.to_decimal(),
+                    token_contract_address: token_contract.to_decimal(),
+                    seller: seller.to_string(),
+                    currency_amount: currency_amount.to_decimal(),
+                    token_amount: token_amount.to_decimal(),
                     create_time: block_time,
+                    rate: rate.to_decimal(),
                 }
                 .insert(conn)?;
-                Trade {
-                    id: Uuid::new_v4(),
-                    block_height,
-                    txn_index,
-                    contract_address: contract.to_decimal(),
-                    seller_address: event.seller.to_string(),
-                    buyer_address: event.payer.to_string(),
-                    token_amount: event.sell_amount.to_decimal(),
-                    currency_amount: event.pay_amount.to_decimal(),
-                    rate: trader.rate,
-                    create_time: block_time,
-                }
-                .insert(conn)?;
-                info!(
-                    "exchange by: {}, to: {}, sell amount: {}, pay amount: {}",
-                    event.seller,
-                    event.payer,
-                    event.sell_amount.to_decimal(),
-                    event.pay_amount.to_decimal()
-                );
             }
         }
     }
 
     Ok(())
+}
+
+fn agent_role_to_string(agent_role: &AgentRole) -> String {
+    match agent_role {
+        AgentRole::AddMarket => "AddMarket".to_string(),
+        AgentRole::RemoveMarket => "RemoveMarket".to_string(),
+        AgentRole::Operator => "Operator".to_string(),
+    }
 }

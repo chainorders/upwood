@@ -4,7 +4,6 @@ use concordium_cis2::{
     AdditionalData, TokenAmountU32, TokenAmountU64, TokenAmountU8, TokenIdU32, TokenIdU64,
     TokenIdU8, TokenIdUnit, TokenIdVec,
 };
-use concordium_std::ops::{Add, AddAssign, Sub};
 use concordium_std::*;
 
 /// Trait representing a token amount.
@@ -63,28 +62,6 @@ impl From<ContractMetadataUrl> for MetadataUrl {
             },
         }
     }
-}
-
-pub trait PlusSubOne<T> {
-    fn plus_one(&self) -> T;
-    fn plus_one_assign(&mut self);
-    fn sub_one(&self) -> T;
-}
-
-impl PlusSubOne<TokenIdU32> for TokenIdU32 {
-    fn plus_one(&self) -> Self { TokenIdU32(self.0.add(1)) }
-
-    fn sub_one(&self) -> Self { TokenIdU32(self.0.sub(1)) }
-
-    fn plus_one_assign(&mut self) { self.0.add_assign(1) }
-}
-
-impl PlusSubOne<TokenIdU64> for TokenIdU64 {
-    fn plus_one(&self) -> Self { TokenIdU64(self.0.add(1)) }
-
-    fn sub_one(&self) -> Self { TokenIdU64(self.0.sub(1)) }
-
-    fn plus_one_assign(&mut self) { self.0.add_assign(1) }
 }
 
 pub trait ToAdditionalData {

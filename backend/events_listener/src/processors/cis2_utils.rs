@@ -1,4 +1,5 @@
 use concordium_cis2::{IsTokenAmount, IsTokenId};
+use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::base::contracts_common::{Cursor, Deserial, Read, Serial};
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::types::ContractAddress;
@@ -80,6 +81,18 @@ pub trait ContractAddressToDecimal {
 impl ContractAddressToDecimal for ContractAddress {
     fn to_decimal(&self) -> Decimal {
         Decimal::from_u64(self.index).expect("Failed to convert contract address to Decimal")
+    }
+}
+
+pub trait RateToDecimal {
+    fn to_decimal(&self) -> Decimal;
+}
+
+impl RateToDecimal for Rate {
+    #[inline]
+    fn to_decimal(&self) -> Decimal {
+        Decimal::from_u64(self.numerator).expect("Failed to convert nunmerator to Decimal")
+            / Decimal::from_u64(self.denominator).expect("Failed to convert denominator to Decimal")
     }
 }
 

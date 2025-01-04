@@ -69,7 +69,7 @@ fn mint() {
     let holder = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
     chain.create_account(holder.clone());
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder.address),
             identity: Identity {
                 credentials: vec![],
@@ -151,7 +151,7 @@ fn burn() {
     chain.create_account(holder_2.clone());
 
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder.address),
             identity: Identity {
                 credentials: vec![],
@@ -163,7 +163,7 @@ fn burn() {
         })
         .expect("register identity");
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder_2.address),
             identity: Identity {
                 credentials: vec![],
@@ -338,7 +338,7 @@ fn forced_burn() {
     chain.create_account(holder_2.clone());
 
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder.address),
             identity: Identity {
                 credentials: vec![],
@@ -350,7 +350,7 @@ fn forced_burn() {
         })
         .expect("register identity");
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder_2.address),
             identity: Identity {
                 credentials: vec![],
@@ -550,7 +550,7 @@ fn transfer() {
     chain.create_account(holder_2.clone());
 
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder.address),
             identity: Identity {
                 credentials: vec![],
@@ -562,7 +562,7 @@ fn transfer() {
         })
         .expect("register identity");
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder_2.address),
             identity: Identity {
                 credentials: vec![],
@@ -702,7 +702,7 @@ fn forced_transfer() {
     chain.create_account(holder_2.clone());
 
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder.address),
             identity: Identity {
                 credentials: vec![],
@@ -714,7 +714,7 @@ fn forced_transfer() {
         })
         .expect("register identity");
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  Address::Account(holder_2.address),
             identity: Identity {
                 credentials: vec![],

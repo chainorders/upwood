@@ -1256,22 +1256,11 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
 ]
 
 [[package]]
 name = "concordium-rwa-identity-registry"
-version = "0.1.0"
-dependencies = [
- "concordium-cis2",
- "concordium-protocols",
- "concordium-rwa-utils",
- "concordium-std",
-]
-
-[[package]]
-name = "concordium-rwa-utils"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
@@ -1977,7 +1966,6 @@ dependencies = [
  "concordium-protocols",
  "concordium-rust-sdk",
  "concordium-rwa-identity-registry",
- "concordium-rwa-utils",
  "diesel",
  "diesel-derive-enum",
  "diesel_migrations",
@@ -1994,7 +1982,6 @@ dependencies = [
  "rust_decimal",
  "security-mint-fund",
  "security-p2p-trading",
- "security-sft-rewards",
  "security-sft-single",
  "serde",
  "serde_json",
@@ -2773,7 +2760,8 @@ dependencies = [
  "offchain-rewards",
  "security-mint-fund",
  "security-p2p-trading",
- "security-sft-rewards",
+ "security-sft-multi",
+ "security-sft-multi-yielder",
  "security-sft-single",
 ]
 
@@ -3072,9 +3060,7 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
- "hex",
 ]
 
 [[package]]
@@ -3223,9 +3209,7 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
- "hex",
 ]
 
 [[package]]
@@ -4437,7 +4421,6 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
 ]
 
@@ -4447,19 +4430,25 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
 ]
 
 [[package]]
-name = "security-sft-rewards"
+name = "security-sft-multi"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
- "hex",
+]
+
+[[package]]
+name = "security-sft-multi-yielder"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2",
+ "concordium-protocols",
+ "concordium-std",
 ]
 
 [[package]]
@@ -4468,9 +4457,7 @@ version = "0.1.0"
 dependencies = [
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rwa-utils",
  "concordium-std",
- "hex",
 ]
 
 [[package]]
@@ -5528,7 +5515,6 @@ dependencies = [
  "secure-string",
  "security-mint-fund",
  "security-p2p-trading",
- "security-sft-rewards",
  "security-sft-single",
  "serde",
  "serde_json",

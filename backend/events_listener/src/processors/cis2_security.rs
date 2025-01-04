@@ -47,15 +47,34 @@ where
         }) => {
             let token_id = token_id.to_decimal();
             let amount = amount.to_decimal();
+            Token::find(conn, contract.to_decimal(), token_id)?
+                .ok_or(ProcessorError::TokenNotFound {
+                    contract: contract.to_decimal(),
+                    token_id,
+                })
+                .map(|t| Token {
+                    supply: t.supply + amount,
+                    update_time: block_time,
+                    ..t
+                })?
+                .update(conn)?;
             let holder =
-                TokenHolder::find(conn, contract.to_decimal(), token_id, &owner.to_string())?;
-            let holder = match holder {
-                Some(mut holder) => holder.add_amount(amount, block_time).update(conn)?,
-                None => {
-                    TokenHolder::new(contract.to_decimal(), token_id, &owner, amount, block_time)
-                        .insert(conn)?
-                }
-            };
+                TokenHolder::find(conn, contract.to_decimal(), token_id, &owner.to_string())?
+                    .map(|h| TokenHolder {
+                        un_frozen_balance: h.un_frozen_balance + amount,
+                        update_time: block_time,
+                        ..h
+                    })
+                    .unwrap_or_else(|| TokenHolder {
+                        cis2_address: contract.to_decimal(),
+                        holder_address: owner.to_string(),
+                        token_id,
+                        frozen_balance: Decimal::ZERO,
+                        un_frozen_balance: amount,
+                        update_time: block_time,
+                        create_time: block_time,
+                    })
+                    .upsert(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
                 block_height,
@@ -70,7 +89,6 @@ where
                 create_time: block_time,
             }
             .insert(conn)?;
-            Token::update_supply(conn, contract.to_decimal(), token_id, amount, true)?;
             info!(
                 "Minted {} tokens of token_id {} to {}",
                 amount,
@@ -83,16 +101,24 @@ where
             token_id,
             metadata_url,
         }) => {
-            Token::new(
-                contract.to_decimal(),
-                token_id.to_decimal(),
-                false,
-                metadata_url.url.clone(),
-                metadata_url.hash,
-                Decimal::ZERO,
-                block_time,
-            )
-            .upsert(conn)?;
+            Token::find(conn, contract.to_decimal(), token_id.to_decimal())?
+                .map(|t| Token {
+                    metadata_url: metadata_url.url.clone(),
+                    metadata_hash: metadata_url.hash.map(hex::encode),
+                    update_time: block_time,
+                    ..t
+                })
+                .unwrap_or_else(|| Token {
+                    cis2_address:  contract.to_decimal(),
+                    token_id:      token_id.to_decimal(),
+                    metadata_url:  metadata_url.url.clone(),
+                    metadata_hash: metadata_url.hash.map(hex::encode),
+                    supply:        Decimal::ZERO,
+                    is_paused:     false,
+                    update_time:   block_time,
+                    create_time:   block_time,
+                })
+                .upsert(conn)?;
             info!(
                 "Updated metadata for token {}: {}",
                 token_id.to_decimal(),
@@ -283,6 +309,15 @@ where
     R: Deserial+fmt::Debug+std::string::ToString,
 {
     match parsed_event {
+        Cis2SecurityEvent::TokenRemoved(token_id) => {
+            Token::find(conn, contract.to_decimal(), token_id.to_decimal())?
+                .ok_or(ProcessorError::TokenNotFound {
+                    contract: contract.to_decimal(),
+                    token_id: token_id.to_decimal(),
+                })?
+                .delete(conn)?;
+            info!("Removed token_id {}", token_id.to_decimal());
+        }
         Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent { agent, roles }) => {
             Agent::new(
                 agent,

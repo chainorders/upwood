@@ -4,20 +4,32 @@ use std::sync::Arc;
 
 use chrono::{DateTime, NaiveDateTime};
 use cis2_conversions::to_token_id_vec;
-use compliance::init_nationalities;
+use cis2_security::{Cis2Payloads, Cis2SecurityPayloads, Cis2SecurityTestClient};
+use compliance::{init_nationalities, NationalitiesModuleTestClient};
 use concordium_cis2::{TokenIdUnit, UpdateOperator};
-use concordium_protocols::concordium_cis2_security::TokenUId;
+use concordium_protocols::concordium_cis2_security::{
+    SecurityParams, TokenAmountSecurity, TokenUId,
+};
+use concordium_rust_sdk::base::contracts_common::attributes::NATIONALITY;
 use concordium_rust_sdk::types::WalletAccount;
+use concordium_rwa_identity_registry::types::{
+    Identity, IdentityAttribute, RegisterIdentityParams,
+};
 use concordium_smart_contract_testing::*;
+use contract_base::{ContractPayloads, ContractTestClient};
 use diesel::r2d2::ConnectionManager;
+use euroe::EuroETestClient;
 use events_listener::listener::{ContractCall, ParsedBlock, ParsedTxn};
 use events_listener::processors::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 use events_listener::processors::Processors;
+use identity_registry::{IdentityRegistryPayloads, IdentityRegistryTestClient};
 use integration_tests::*;
 use nft_multi_rewarded::types::{Agent, ContractMetadataUrl};
 use nft_multi_rewarded::{MintData, SignedMetadata};
+use nft_multi_rewarded_client::{NftMultiRewardedClientPayloads, NftMultiRewardedTestClient};
 use poem::web::Data;
 use rust_decimal::Decimal;
+use security_sft_single_client::SftSingleTestClient;
 use shared::db::txn_listener::ListenerBlock;
 use shared::db_setup;
 use shared::db_shared::DbPool;
@@ -109,22 +121,51 @@ async fn signature_tests() {
             .expect("process block");
         contracts
     };
+    let identity_registry_client = IdentityRegistryTestClient::new(contracts.identity_registry());
+    let tree_ft_contract = SftSingleTestClient::new(contracts.tree_ft());
+    let tree_nft_contract = NftMultiRewardedTestClient::new(contracts.tree_nft());
 
     {
         chain.tick_block_time(block_duration).unwrap();
-        let contract_calls = identity_registry::register_nationalities(
-            &mut chain,
-            &admin,
-            &contracts.identity_registry(),
-            vec![
-                (holder.address.into(), COMPLIANT_NATIONALITIES[0]),
-                (contracts.tree_nft().into(), COMPLIANT_NATIONALITIES[0]),
-            ],
-        )
-        .into_iter()
-        .map(|res| res.expect("register_nationalities"))
-        .flat_map(|res| to_contract_call_update(&res))
-        .collect::<Vec<_>>();
+
+        let contract_call_1 = chain
+            .contract_update(
+                Signer::with_one_key(),
+                admin.address,
+                admin.address.into(),
+                30_000.into(),
+                identity_registry_client.register_identity_payload(&RegisterIdentityParams {
+                    address:  holder.address.into(),
+                    identity: Identity {
+                        attributes:  vec![IdentityAttribute {
+                            tag:   NATIONALITY.0,
+                            value: COMPLIANT_NATIONALITIES[0].to_string(),
+                        }],
+                        credentials: vec![],
+                    },
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("register identity holder");
+        let contract_call_2 = chain
+            .contract_update(
+                Signer::with_one_key(),
+                admin.address,
+                admin.address.into(),
+                30_000.into(),
+                identity_registry_client.register_identity_payload(&RegisterIdentityParams {
+                    address:  contracts.tree_nft().into(),
+                    identity: Identity {
+                        attributes:  vec![IdentityAttribute {
+                            tag:   NATIONALITY.0,
+                            value: COMPLIANT_NATIONALITIES[0].to_string(),
+                        }],
+                        credentials: vec![],
+                    },
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("register identity tree nft");
         let block = ParsedBlock {
             block:        ListenerBlock {
                 block_slot_time: to_utc(&chain.block_time()),
@@ -132,10 +173,10 @@ async fn signature_tests() {
                 block_hash:      [2, 32].to_vec(),
             },
             transactions: vec![ParsedTxn {
-                index: 1,
-                hash: [2, 32].to_vec(),
-                sender: admin.address.to_string(),
-                contract_calls,
+                index:          1,
+                hash:           [2, 32].to_vec(),
+                sender:         admin.address.to_string(),
+                contract_calls: [contract_call_1, contract_call_2].concat(),
             }],
         };
         processors
@@ -146,40 +187,46 @@ async fn signature_tests() {
 
     {
         chain.tick_block_time(block_duration).unwrap();
-        let add_agent_res = nft_multi_rewarded_client::add_agent(
-            &mut chain,
-            &admin,
-            contracts.tree_nft(),
-            &Agent {
-                address: NFT_AGENT.into(),
-            },
-        )
-        .expect("add agent");
+        let add_agent_res = chain
+            .contract_update(
+                Signer::with_one_key(),
+                admin.address,
+                admin.address.into(),
+                30_000.into(),
+                tree_nft_contract.add_agent_payload(&Agent {
+                    address: NFT_AGENT.into(),
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("add agent");
 
-        let mint_res = security_sft_single_client::mint(
-            &mut chain,
-            &admin,
-            &contracts.tree_ft(),
-            &security_sft_single::types::MintParams {
-                token_id: TokenIdUnit(),
-                owners:   vec![security_sft_single::types::MintParam {
-                    amount:  1.into(),
-                    address: holder.address,
-                }],
-            },
-        )
-        .expect("sft mint");
-
-        let update_op_res = security_sft_single_client::update_operator_single(
-            &mut chain,
-            &holder,
-            contracts.tree_ft(),
-            UpdateOperator {
-                update:   concordium_cis2::OperatorUpdate::Add,
-                operator: contracts.tree_nft().into(),
-            },
-        )
-        .expect("update operator");
+        let mint_res = tree_ft_contract
+            .mint(
+                &mut chain,
+                &admin,
+                &security_sft_single::types::MintParams {
+                    token_id: TokenIdUnit(),
+                    owners:   vec![security_sft_single::types::MintParam {
+                        amount:  TokenAmountSecurity::new_un_frozen(1.into()),
+                        address: holder.address.into(),
+                    }],
+                },
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("sft mint");
+        let update_op_res = chain
+            .contract_update(
+                Signer::with_one_key(),
+                holder.address,
+                holder.address.into(),
+                30_000.into(),
+                tree_ft_contract.update_operator_single_payload(UpdateOperator {
+                    operator: contracts.tree_nft().into(),
+                    update:   concordium_cis2::OperatorUpdate::Add,
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("update operator");
 
         let block = ParsedBlock {
             block:        ListenerBlock {
@@ -192,19 +239,19 @@ async fn signature_tests() {
                     index:          1,
                     hash:           [3, 32].to_vec(),
                     sender:         admin.address.to_string(),
-                    contract_calls: to_contract_call_update(&add_agent_res),
+                    contract_calls: add_agent_res,
                 },
                 ParsedTxn {
                     index:          2,
                     hash:           [4, 32].to_vec(),
                     sender:         admin.address.to_string(),
-                    contract_calls: to_contract_call_update(&mint_res),
+                    contract_calls: mint_res,
                 },
                 ParsedTxn {
                     index:          3,
                     hash:           [5, 32].to_vec(),
                     sender:         holder.address.to_string(),
-                    contract_calls: to_contract_call_update(&update_op_res),
+                    contract_calls: update_op_res,
                 },
             ],
         };
@@ -240,26 +287,29 @@ async fn signature_tests() {
         .expect("metadata get random");
 
     {
-        let transfer_mint_res = nft_multi_rewarded_client::transfer_mint(
-            &mut chain,
-            &holder,
-            contracts.tree_nft(),
-            &MintData {
-                signed_metadata: SignedMetadata {
-                    account:          holder.address,
-                    account_nonce:    0,
-                    contract_address: contracts.tree_nft(),
-                    metadata_url:     nft_multi_rewarded::MetadataUrl {
-                        url:  random_metadata.signed_metadata.metadata_url.url,
-                        hash: None,
+        let transfer_mint_res = chain
+            .contract_update(
+                Signer::with_one_key(),
+                holder.address,
+                holder.address.into(),
+                30_000.into(),
+                tree_nft_contract.transfer_mint_payload(&MintData {
+                    signed_metadata: SignedMetadata {
+                        account:          holder.address,
+                        account_nonce:    0,
+                        contract_address: contracts.tree_nft(),
+                        metadata_url:     nft_multi_rewarded::MetadataUrl {
+                            url:  random_metadata.signed_metadata.metadata_url.url,
+                            hash: None,
+                        },
                     },
-                },
-                signer:          agent.address,
-                signature:       serde_json::from_value(random_metadata.signature)
-                    .expect("signature deserialization"),
-            },
-        )
-        .expect("mint");
+                    signer:          agent.address,
+                    signature:       serde_json::from_value(random_metadata.signature)
+                        .expect("signature deserialization"),
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("mint");
         let block = ParsedBlock {
             block:        ListenerBlock {
                 block_slot_time: to_utc(&chain.block_time()),
@@ -270,9 +320,10 @@ async fn signature_tests() {
                 index:          1,
                 hash:           [6, 32].to_vec(),
                 sender:         holder.address.to_string(),
-                contract_calls: to_contract_call_update(&transfer_mint_res),
+                contract_calls: transfer_mint_res,
             }],
         };
+
         processors
             .process_block(&mut processor_db_conn, &block)
             .await
@@ -311,55 +362,83 @@ fn setup_chain(
     security_sft_single_client::deploy_module(chain, admin);
     nft_multi_rewarded_client::deploy_module(chain, admin);
 
-    let (ir_contract, ir_module_ref, ir_contract_name) =
-        identity_registry::init(chain, admin).expect("Error initializing identity registry");
-    let ir_contract_call = to_contract_call_init(&ir_contract, ir_module_ref, ir_contract_name);
-
-    let (compliance_module, mod_module_ref, mod_contract_name) = init_nationalities(
+    let (ir_contract_call, ir_contract) = identity_registry::init(chain, admin)
+        .map(|(res, mod_ref, name)| {
+            (
+                to_contract_call_init(&res, mod_ref, name),
+                IdentityRegistryTestClient(res.contract_address),
+            )
+        })
+        .expect("init identity registry");
+    let (compliance_module_call, nationality_module) = init_nationalities(
         chain,
         admin,
-        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::init::InitParams {
+        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::types::InitParams {
             nationalities:     compliant_nationalities
                 .iter()
                 .map(|n| n.to_string())
                 .collect(),
-            identity_registry: ir_contract.contract_address,
+            identity_registry: ir_contract.contract_address(),
         },
     )
+    .map(|(res, mod_ref, name)| {
+        (
+            to_contract_call_init(&res, mod_ref, name),
+            NationalitiesModuleTestClient(res.contract_address),
+        )
+    })
     .expect("init nationalities module");
-    let compliance_module_call =
-        to_contract_call_init(&compliance_module, mod_module_ref, mod_contract_name);
+
     let (compliance, compliance_module_ref, compliance_contract_name) =
-        compliance::init(chain, admin, vec![compliance_module.contract_address])
+        compliance::init(chain, admin, vec![nationality_module.contract_address()])
             .expect("init compliance module");
     let compliance_contract_call =
         to_contract_call_init(&compliance, compliance_module_ref, compliance_contract_name);
 
-    let (euroe, euroe_module_ref, euroe_contract_name) =
-        euroe::init(chain, admin).expect("euroe init");
-    let euroe_contract_call = to_contract_call_init(&euroe, euroe_module_ref, euroe_contract_name);
+    let (euroe_contract_call, euroe_contract) = euroe::init(chain, admin)
+        .map(|(res, mod_ref, name)| {
+            (
+                to_contract_call_init(&res, mod_ref, name),
+                EuroETestClient(res.contract_address),
+            )
+        })
+        .expect("euroe init");
 
-    let (sft, sft_module_ref, sft_contract_name) =
+    let (sft_contract_call, sft) =
         security_sft_single_client::init(chain, admin, &security_sft_single::types::InitParam {
-            compliance:        Some(compliance.contract_address),
-            identity_registry: Some(ir_contract.contract_address),
-            sponsors:          None,
-            metadata_url:      ContractMetadataUrl {
+            security:     Some(SecurityParams {
+                compliance:        compliance.contract_address,
+                identity_registry: ir_contract.contract_address(),
+            }),
+            metadata_url: ContractMetadataUrl {
                 url:  REWARD_SFT_METADATA.to_string(),
                 hash: None,
             },
+            agents:       vec![
+                // todo: add agents
+            ],
+        })
+        .map(|(res, mod_ref, name)| {
+            (
+                to_contract_call_init(&res, mod_ref, name),
+                SftSingleTestClient(res.contract_address),
+            )
         })
         .expect("sft init");
-    let sft_contract_call = to_contract_call_init(&sft, sft_module_ref, sft_contract_name);
-    let (nft, nft_module_ref, nft_contract_name) =
+    let (nft_contract_call, nft) =
         nft_multi_rewarded_client::init(chain, admin, &nft_multi_rewarded::types::InitParam {
             reward_token: TokenUId {
-                contract: sft.contract_address,
+                contract: sft.contract_address(),
                 id:       to_token_id_vec(TokenIdUnit()),
             },
         })
+        .map(|(res, mod_ref, name)| {
+            (
+                to_contract_call_init(&res, mod_ref, name),
+                NftMultiRewardedTestClient(res.contract_address),
+            )
+        })
         .expect("nft init");
-    let nft_contract_call = to_contract_call_init(&nft, nft_module_ref, nft_contract_name);
     let contract_calls = vec![
         ir_contract_call,
         compliance_module_call,
@@ -370,14 +449,15 @@ fn setup_chain(
     ];
 
     let grant_role_calls = to_contract_call_update(
-        &euroe::grant_role(chain, admin, euroe.contract_address, &euroe::RoleTypes {
-            mintrole:  admin.address.into(),
-            burnrole:  admin.address.into(),
-            blockrole: admin.address.into(),
-            pauserole: admin.address.into(),
-            adminrole: admin.address.into(),
-        })
-        .expect("grant role"),
+        &euroe_contract
+            .grant_role(chain, admin, &euroe::RoleTypes {
+                mintrole:  admin.address.into(),
+                burnrole:  admin.address.into(),
+                blockrole: admin.address.into(),
+                pauserole: admin.address.into(),
+                adminrole: admin.address.into(),
+            })
+            .expect("grant role"),
     );
     let contract_calls = contract_calls
         .into_iter()
@@ -388,11 +468,11 @@ fn setup_chain(
         carbon_credit_contract_index:     Decimal::ZERO,
         carbon_credit_token_id:           Decimal::ZERO,
         compliance_contract_index:        compliance.contract_address.to_decimal(),
-        euro_e_contract_index:            euroe.contract_address.to_decimal(),
+        euro_e_contract_index:            euroe_contract.contract_address().to_decimal(),
         euro_e_token_id:                  TokenIdUnit().to_decimal(),
-        identity_registry_contract_index: ir_contract.contract_address.to_decimal(),
-        tree_ft_contract_index:           sft.contract_address.to_decimal(),
-        tree_nft_contract_index:          nft.contract_address.to_decimal(),
+        identity_registry_contract_index: ir_contract.contract_address().to_decimal(),
+        tree_ft_contract_index:           sft.contract_address().to_decimal(),
+        tree_nft_contract_index:          nft.contract_address().to_decimal(),
         offchain_rewards_contract_index:  Decimal::ZERO,
     };
 

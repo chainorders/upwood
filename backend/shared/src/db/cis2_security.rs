@@ -44,12 +44,12 @@ impl Agent {
         skip_all,
         fields(contract = self.cis2_address.to_string(), agent_address = self.agent_address.to_string())
     )]
-    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
-        let updated_rows = diesel::insert_into(cis2_agents::table)
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let agent = diesel::insert_into(cis2_agents::table)
             .values(self)
-            .execute(conn)?;
-        assert_eq!(updated_rows, 1, "error {} rows were updated", updated_rows);
-        Ok(())
+            .returning(Agent::as_returning())
+            .get_result(conn)?;
+        Ok(agent)
     }
 
     #[instrument(
@@ -180,6 +180,21 @@ pub struct TokenHolder {
 }
 
 impl TokenHolder {
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let holder = diesel::insert_into(cis2_token_holders::table)
+            .values(self)
+            .on_conflict((
+                cis2_token_holders::cis2_address,
+                cis2_token_holders::token_id,
+                cis2_token_holders::holder_address,
+            ))
+            .do_update()
+            .set(self)
+            .returning(TokenHolder::as_returning())
+            .get_result(conn)?;
+        Ok(holder)
+    }
+
     pub fn new(
         cis2_address: Decimal,
         token_id: Decimal,
@@ -619,6 +634,19 @@ pub struct Token {
 }
 
 impl Token {
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let token = diesel::update(cis2_tokens::table)
+            .filter(
+                cis2_tokens::cis2_address
+                    .eq(self.cis2_address)
+                    .and(cis2_tokens::token_id.eq(self.token_id)),
+            )
+            .set(self)
+            .returning(Token::as_returning())
+            .get_result(conn)?;
+        Ok(token)
+    }
+
     pub fn new(
         cis2_address: Decimal,
         token_id: Decimal,
@@ -738,6 +766,19 @@ impl Token {
             .first::<Option<Decimal>>(conn)?
             .unwrap_or(Decimal::ZERO);
         Ok(burned)
+    }
+
+    #[instrument(skip_all)]
+    pub fn delete(self, conn: &mut DbConn) -> DbResult<()> {
+        let deleted_rows = diesel::delete(cis2_tokens::table)
+            .filter(
+                cis2_tokens::cis2_address
+                    .eq(self.cis2_address)
+                    .and(cis2_tokens::token_id.eq(self.token_id)),
+            )
+            .execute(conn)?;
+        assert_eq!(deleted_rows, 1, "error {} rows were deleted", deleted_rows);
+        Ok(())
     }
 }
 

@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::types::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
-use concordium_rwa_identity_registry::event::Event;
+use concordium_rwa_identity_registry::types::Event;
 use rust_decimal::Decimal;
 use shared::db::identity_registry::{Agent, Identity, Issuer};
 use shared::db_shared::DbConn;
@@ -99,7 +99,7 @@ mod tests {
     use concordium_rust_sdk::types::{
         Address, ContractAddress, ContractInitializedEvent, InstanceUpdatedEvent,
     };
-    use concordium_rwa_identity_registry::event::{
+    use concordium_rwa_identity_registry::types::{
         AgentUpdatedEvent, Event, IdentityUpdatedEvent, IssuerUpdatedEvent,
     };
     use diesel::r2d2::ConnectionManager;

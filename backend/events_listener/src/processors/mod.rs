@@ -17,7 +17,7 @@ mod nft_multi_rewarded;
 mod offchain_rewards;
 mod security_mint_fund;
 mod security_p2p_trading;
-mod security_sft_rewards;
+mod security_sft_multi;
 
 use std::backtrace::Backtrace;
 use std::collections::{BTreeMap, HashSet};
@@ -66,6 +66,26 @@ pub enum ProcessorError {
 
     #[error("Contract already exists: {0}")]
     ContractAlreadyExists(ContractAddress),
+    #[error("token not found: {contract}, token_id: {token_id}")]
+    TokenNotFound {
+        contract: Decimal,
+        token_id: Decimal,
+    },
+
+    #[error("Fund not found: {fund_id}, contract: {contract}")]
+    FundNotFound {
+        fund_id:  Decimal,
+        contract: Decimal,
+    },
+
+    #[error(
+        "Market not found: {contract}, token_id: {token_id}, token_contract: {token_contract}"
+    )]
+    MarketNotFound {
+        contract:       Decimal,
+        token_id:       Decimal,
+        token_contract: Decimal,
+    },
 }
 
 pub type ProcessorFnType = fn(
@@ -91,12 +111,6 @@ impl Processors {
             admins:           admins.into_iter().collect(),
         };
 
-        processors.insert(
-            security_sft_rewards::module_ref(),
-            security_sft_rewards::contract_name(),
-            ProcessorType::SecuritySftRewards,
-            security_sft_rewards::process_events as ProcessorFnType,
-        );
         processors.insert(
             security_sft_single::module_ref(),
             security_sft_single::contract_name(),

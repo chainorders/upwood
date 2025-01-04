@@ -69,11 +69,13 @@ pub fn init(
         }
         addresses
     };
+
+    let metadata_url: MetadataUrl = params.metadata_url.into();
     let state = State {
         security: params.security,
         addresses,
         token: SecurityTokenState {
-            metadata_url: params.metadata_url.into(),
+            metadata_url: metadata_url.clone(),
             supply:       TokenAmount::zero(),
             paused:       false,
         },
@@ -87,6 +89,11 @@ pub fn init(
             security_params.compliance,
         )))?;
     }
+
+    logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        token_id: TokenIdUnit(),
+        metadata_url,
+    })))?;
 
     Ok(state)
 }

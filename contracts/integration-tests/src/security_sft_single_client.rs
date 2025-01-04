@@ -37,3 +37,21 @@ pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess
         .module_deploy_v1(Signer::with_one_key(), sender.address, module)
         .expect("deploying module")
 }
+
+pub fn init(
+    chain: &mut Chain,
+    sender: &Account,
+    params: &InitParam,
+) -> Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError> {
+    let res = chain.contract_init(
+        Signer::with_one_key(),
+        sender.address,
+        MAX_ENERGY,
+        SftSingleTestClient::init_payload(params),
+    )?;
+    Ok((
+        res,
+        SftSingleTestClient::module().get_module_ref(),
+        SftSingleTestClient::contract_name(),
+    ))
+}

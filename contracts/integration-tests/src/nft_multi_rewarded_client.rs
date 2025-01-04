@@ -5,23 +5,26 @@ use nft_multi_rewarded::types::{Agent, InitParam};
 use nft_multi_rewarded::TransferMintParams;
 
 pub use super::cis2::*;
+use crate::contract_base::{ContractPayloads, ContractTestClient};
 use crate::MAX_ENERGY;
 const MODULE_BYTES: &[u8] = include_bytes!("../../nft-multi-rewarded/contract.wasm.v1");
 pub const CONTRACT_NAME: ContractName = ContractName::new_unchecked("init_nft_multi_rewarded");
 
 pub struct NftMultiRewardedTestClient(pub ContractAddress);
-impl NftMultiRewardedTestClient {
-    pub fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
 
-    pub fn init_payload(init_params: &InitParam) -> InitContractPayload {
-        InitContractPayload {
-            amount:    Amount::zero(),
-            init_name: CONTRACT_NAME.to_owned(),
-            mod_ref:   Self::module().get_module_ref(),
-            param:     OwnedParameter::from_serial(init_params).unwrap(),
-        }
-    }
+impl ContractTestClient<InitParam> for NftMultiRewardedTestClient {
+    fn new(contract_address: ContractAddress) -> Self { Self(contract_address) }
 }
+
+impl ContractPayloads<InitParam> for NftMultiRewardedTestClient {
+    fn module() -> WasmModule { WasmModule::from_slice(MODULE_BYTES).unwrap() }
+
+    fn contract_name() -> OwnedContractName { CONTRACT_NAME.to_owned() }
+
+    fn contract_address(&self) -> ContractAddress { self.0 }
+}
+
+impl NftMultiRewardedClientPayloads for NftMultiRewardedTestClient {}
 
 pub fn deploy_module(chain: &mut Chain, sender: &Account) -> ModuleDeploySuccess {
     let module = WasmModule::from_slice(MODULE_BYTES).unwrap();
@@ -35,69 +38,73 @@ pub fn init(
     sender: &Account,
     params: &InitParam,
 ) -> Result<(ContractInitSuccess, ModuleReference, OwnedContractName), ContractInitError> {
-    let module_ref = WasmModule::from_slice(MODULE_BYTES)
-        .unwrap()
-        .get_module_ref();
-    let contract_name = CONTRACT_NAME.to_owned();
-    let init = chain
-        .contract_init(
-            Signer::with_one_key(),
-            sender.address,
-            MAX_ENERGY,
-            InitContractPayload {
-                amount:    Amount::zero(),
-                init_name: contract_name.clone(),
-                mod_ref:   module_ref,
-                param:     OwnedParameter::from_serial(params).unwrap(),
-            },
-        )
-        .expect("Failed to init nft contract");
-
-    Ok((init, module_ref, contract_name))
-}
-
-pub fn add_agent(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: &Agent,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    chain.contract_update(
+    let res = chain.contract_init(
         Signer::with_one_key(),
         sender.address,
-        sender.address.into(),
         MAX_ENERGY,
+        NftMultiRewardedTestClient::init_payload(params),
+    )?;
+    Ok((
+        res,
+        NftMultiRewardedTestClient::module().get_module_ref(),
+        NftMultiRewardedTestClient::contract_name(),
+    ))
+}
+
+pub trait NftMultiRewardedClientPayloads: ContractPayloads<InitParam> {
+    fn add_agent_payload(&self, params: &Agent) -> UpdateContractPayload {
         UpdateContractPayload {
-            address:      contract,
+            address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
+                Self::contract_name().as_contract_name(),
                 EntrypointName::new_unchecked("addAgent"),
             ),
-            message:      OwnedParameter::from_serial(payload).unwrap(),
-        },
-    )
-}
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
 
-pub fn transfer_mint(
-    chain: &mut Chain,
-    sender: &Account,
-    contract: ContractAddress,
-    payload: &TransferMintParams,
-) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-    chain.contract_update(
-        Signer::with_one_key(),
-        sender.address,
-        sender.address.into(),
-        MAX_ENERGY,
+    fn transfer_mint_payload(&self, params: &TransferMintParams) -> UpdateContractPayload {
         UpdateContractPayload {
-            address:      contract,
+            address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
-                CONTRACT_NAME,
+                Self::contract_name().as_contract_name(),
                 EntrypointName::new_unchecked("transferMint"),
             ),
-            message:      OwnedParameter::from_serial(payload).unwrap(),
-        },
-    )
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+}
+
+impl NftMultiRewardedTestClient {
+    pub fn add_agent(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &Agent,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.add_agent_payload(params),
+        )
+    }
+
+    pub fn transfer_mint(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &TransferMintParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.transfer_mint_payload(params),
+        )
+    }
 }

@@ -92,7 +92,7 @@ fn normal_flow() {
         .expect("mint carbon credits treasury");
 
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  investor_1.address.into(),
             identity: Identity {
                 credentials: vec![],
@@ -104,7 +104,7 @@ fn normal_flow() {
         })
         .expect("register identity investor 1");
     ir_contract
-        .register_identity(&mut chain, &admin, RegisterIdentityParams {
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
             address:  investor_2.address.into(),
             identity: Identity {
                 credentials: vec![],

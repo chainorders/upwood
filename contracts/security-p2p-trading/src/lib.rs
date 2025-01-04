@@ -21,14 +21,12 @@ pub type ContractResult<T> = Result<T, Error>;
 /// This is the event that is emitted when a user deposits tokens to be sold.
 #[derive(Serialize, SchemaType, Debug)]
 pub struct SellEvent {
-    pub market:   ContractAddress,
-    pub token_id: SecurityTokenId,
-    /// The address of the user who deposited the tokens.
-    pub from:     AccountAddress,
-    /// The amount of tokens that were deposited.
-    pub amount:   TokenAmount,
-    /// The rate at which a buyer can convert deposited tokens to currency token.
-    pub rate:     Rate,
+    pub token_contract:  ContractAddress,
+    pub token_id:        SecurityTokenId,
+    pub seller:          AccountAddress,
+    pub token_amount:    TokenAmount,
+    pub rate:            Rate,
+    pub currency_amount: CurrencyTokenAmount,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -339,11 +337,12 @@ pub fn sell(
 
     // Log the sell event.
     logger.log(&Event::Sell(SellEvent {
-        market:   params.token.contract,
+        token_contract: params.token.contract,
         token_id: params.token.id,
-        from:     seller,
-        amount:   params.amount,
-        rate:     params.rate,
+        seller,
+        token_amount: params.amount,
+        rate: params.rate,
+        currency_amount,
     }))?;
     Ok(())
 }

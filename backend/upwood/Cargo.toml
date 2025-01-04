@@ -58,7 +58,6 @@ test-log = { version = "0.2.16", features = ["trace"] }
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }
 concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
-security-sft-rewards = { path = "../../contracts/security-sft-rewards" }
 security-sft-single = { path = "../../contracts/security-sft-single" }
 nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
 security-mint-fund = { path = "../../contracts/security-mint-fund" }
