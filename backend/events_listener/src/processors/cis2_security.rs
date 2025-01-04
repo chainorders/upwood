@@ -52,18 +52,18 @@ where
                     contract: contract.to_decimal(),
                     token_id,
                 })
-                .map(|t| Token {
-                    supply: t.supply + amount,
-                    update_time: block_time,
-                    ..t
+                .map(|mut token| {
+                    token.supply += amount;
+                    token.update_time = block_time;
+                    token
                 })?
                 .update(conn)?;
             let holder =
                 TokenHolder::find(conn, contract.to_decimal(), token_id, &owner.to_string())?
-                    .map(|h| TokenHolder {
-                        un_frozen_balance: h.un_frozen_balance + amount,
-                        update_time: block_time,
-                        ..h
+                    .map(|mut holder| {
+                        holder.un_frozen_balance += amount;
+                        holder.update_time = block_time;
+                        holder
                     })
                     .unwrap_or_else(|| TokenHolder {
                         cis2_address: contract.to_decimal(),
@@ -102,11 +102,11 @@ where
             metadata_url,
         }) => {
             Token::find(conn, contract.to_decimal(), token_id.to_decimal())?
-                .map(|t| Token {
-                    metadata_url: metadata_url.url.clone(),
-                    metadata_hash: metadata_url.hash.map(hex::encode),
-                    update_time: block_time,
-                    ..t
+                .map(|mut token| {
+                    token.metadata_url = metadata_url.url.clone();
+                    token.metadata_hash = metadata_url.hash.map(hex::encode);
+                    token.update_time = block_time;
+                    token
                 })
                 .unwrap_or_else(|| Token {
                     cis2_address:  contract.to_decimal(),
@@ -134,13 +134,25 @@ where
             let contract = contract.to_decimal();
             let token_id = token_id.to_decimal();
             let amount = amount.to_decimal();
+            Token::find(conn, contract, token_id)?
+                .map(|mut token| {
+                    token.supply -= amount;
+                    token.update_time = block_time;
+                    token
+                })
+                .ok_or(ProcessorError::TokenNotFound { contract, token_id })?
+                .update(conn)?;
             let holder = TokenHolder::find(conn, contract, token_id, &owner.to_string())?
+                .map(|mut holder| {
+                    holder.un_frozen_balance -= amount;
+                    holder.update_time = block_time;
+                    holder
+                })
                 .ok_or(ProcessorError::TokenHolderNotFound {
                     contract,
                     token_id,
                     holder_address: owner.to_string(),
                 })?
-                .sub_amount(amount, block_time)
                 .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
@@ -156,7 +168,6 @@ where
                 create_time: block_time,
             }
             .insert(conn)?;
-            Token::update_supply(conn, contract, token_id, amount, false)?;
             info!(
                 "Burned {} tokens of token_id {} from {}",
                 amount,
@@ -175,12 +186,16 @@ where
             let amount = amount.to_decimal();
             let holder_from =
                 TokenHolder::find(conn, contract.to_decimal(), token_id, &from.to_string())?
+                    .map(|mut holder| {
+                        holder.un_frozen_balance -= amount;
+                        holder.update_time = block_time;
+                        holder
+                    })
                     .ok_or(ProcessorError::TokenHolderNotFound {
                         contract: contract.to_decimal(),
                         token_id,
                         holder_address: from.to_string(),
                     })?
-                    .sub_amount(amount, block_time)
                     .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
@@ -197,20 +212,22 @@ where
             }
             .insert(conn)?;
             let holder_to =
-                TokenHolder::find(conn, contract.to_decimal(), token_id, &to.to_string())?;
-            let holder_to = match holder_to {
-                Some(mut holder_to) => holder_to.add_amount(amount, block_time).update(conn)?,
-                None => TokenHolder {
-                    cis2_address: contract.to_decimal(),
-                    holder_address: to.to_string(),
-                    token_id,
-                    frozen_balance: Decimal::ZERO,
-                    un_frozen_balance: amount,
-                    update_time: block_time,
-                    create_time: block_time,
-                }
-                .insert(conn)?,
-            };
+                TokenHolder::find(conn, contract.to_decimal(), token_id, &to.to_string())?
+                    .map(|mut holder| {
+                        holder.un_frozen_balance += amount;
+                        holder.update_time = block_time;
+                        holder
+                    })
+                    .unwrap_or_else(|| TokenHolder {
+                        cis2_address: contract.to_decimal(),
+                        holder_address: to.to_string(),
+                        token_id,
+                        frozen_balance: Decimal::ZERO,
+                        un_frozen_balance: amount,
+                        update_time: block_time,
+                        create_time: block_time,
+                    })
+                    .upsert(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
                 block_height,
