@@ -323,8 +323,6 @@ diesel::table! {
         token_contract_address -> Numeric,
         investment_token_id -> Numeric,
         investment_token_contract_address -> Numeric,
-        currency_token_id -> Numeric,
-        currency_token_contract_address -> Numeric,
         currency_amount -> Numeric,
         token_amount -> Numeric,
         receiver_address -> Nullable<Varchar>,
@@ -341,7 +339,7 @@ diesel::table! {
         currency_token_contract_address -> Numeric,
         currency_token_id -> Numeric,
         total_sell_currency_amount -> Numeric,
-        update_time -> Timestamp,
+        create_time -> Timestamp,
     }
 }
 
@@ -350,6 +348,7 @@ diesel::table! {
         contract_address -> Numeric,
         token_id -> Numeric,
         token_contract_address -> Numeric,
+        buyer -> Varchar,
         rate -> Numeric,
         total_sell_token_amount -> Numeric,
         total_sell_currency_amount -> Numeric,
@@ -371,45 +370,6 @@ diesel::table! {
         token_amount -> Numeric,
         rate -> Numeric,
         create_time -> Timestamp,
-    }
-}
-
-diesel::table! {
-    security_sft_rewards_claimed_reward (id) {
-        id -> Uuid,
-        contract_address -> Numeric,
-        token_id -> Numeric,
-        holder_address -> Varchar,
-        token_amount -> Numeric,
-        rewarded_token_contract -> Numeric,
-        rewarded_token_id -> Numeric,
-        reward_amount -> Numeric,
-        create_time -> Timestamp,
-        update_time -> Timestamp,
-    }
-}
-
-diesel::table! {
-    security_sft_rewards_contract_rewards (contract_address, rewarded_token_contract, rewarded_token_id) {
-        contract_address -> Numeric,
-        rewarded_token_contract -> Numeric,
-        rewarded_token_id -> Numeric,
-        reward_amount -> Numeric,
-        create_time -> Timestamp,
-        update_time -> Timestamp,
-    }
-}
-
-diesel::table! {
-    security_sft_rewards_reward_tokens (contract_address, token_id) {
-        contract_address -> Numeric,
-        token_id -> Numeric,
-        rewarded_token_contract -> Numeric,
-        rewarded_token_id -> Numeric,
-        reward_amount -> Numeric,
-        reward_rate -> Numeric,
-        create_time -> Timestamp,
-        update_time -> Timestamp,
     }
 }
 
@@ -498,9 +458,6 @@ diesel::joinable!(security_p2p_trading_markets -> listener_contracts (token_cont
 diesel::joinable!(security_p2p_trading_markets -> security_p2p_trading_contracts (contract_address));
 diesel::joinable!(security_p2p_trading_sell_records -> listener_contracts (token_contract_address));
 diesel::joinable!(security_p2p_trading_sell_records -> security_p2p_trading_contracts (contract_address));
-diesel::joinable!(security_sft_rewards_claimed_reward -> listener_contracts (contract_address));
-diesel::joinable!(security_sft_rewards_contract_rewards -> listener_contracts (contract_address));
-diesel::joinable!(security_sft_rewards_reward_tokens -> listener_contracts (contract_address));
 diesel::joinable!(support_questions -> users (cognito_user_id));
 diesel::joinable!(user_challenges -> users (cognito_user_id));
 
@@ -537,9 +494,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_p2p_trading_contracts,
     security_p2p_trading_markets,
     security_p2p_trading_sell_records,
-    security_sft_rewards_claimed_reward,
-    security_sft_rewards_contract_rewards,
-    security_sft_rewards_reward_tokens,
     support_questions,
     tree_nft_metadatas,
     user_affiliates,
