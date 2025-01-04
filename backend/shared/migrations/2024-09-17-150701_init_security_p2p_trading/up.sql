@@ -4,7 +4,7 @@ create table
         currency_token_contract_address numeric(20) not null,
         currency_token_id numeric(20) not null,
         total_sell_currency_amount numeric(78) not null default 0,
-        update_time timestamp not null
+        create_time timestamp not null
     );
 
 create table
@@ -12,6 +12,7 @@ create table
         contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
         token_id numeric(20) not null,
         token_contract_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
+        buyer varchar not null,
         rate numeric(40, 20) not null,
         total_sell_token_amount numeric(78) not null default 0,
         total_sell_currency_amount numeric(78) not null default 0,

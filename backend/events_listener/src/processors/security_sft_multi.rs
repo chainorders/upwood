@@ -1,6 +1,5 @@
 use chrono::NaiveDateTime;
-use concordium_rust_sdk::base::hashes::ModuleReference;
-use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
+use concordium_rust_sdk::base::smart_contracts::ContractEvent;
 use concordium_rust_sdk::types::ContractAddress;
 use rust_decimal::Decimal;
 use security_sft_single::types::{AgentRole, TokenAmount, TokenId};

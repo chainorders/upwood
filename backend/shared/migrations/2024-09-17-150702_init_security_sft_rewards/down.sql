@@ -1,9 +1,0 @@
-drop view if exists security_sft_rewards_holder_rewards_by_reward_token_view;
-
-drop view if exists security_sft_rewards_holder_rewards_agg_by_reward_token_view;
-
-drop table if exists security_sft_rewards_claimed_reward;
-
-drop table if exists security_sft_rewards_reward_tokens;
-
-drop table if exists security_sft_rewards_contract_rewards;

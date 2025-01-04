@@ -109,6 +109,7 @@ pub fn process_events(
                     market.total_sell_currency_amount += currency_amount.to_decimal();
                     market.total_sell_token_amount += token_amount.to_decimal();
                     market.update_time = block_time;
+                    market
                 })
                 .ok_or(ProcessorError::MarketNotFound {
                     contract:       contract.to_decimal(),

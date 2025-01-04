@@ -16,8 +16,6 @@ create table
         token_contract_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
         investment_token_id numeric(20) not null,
         investment_token_contract_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
-        currency_token_id numeric(20) not null,
-        currency_token_contract_address numeric(20) not null,
         currency_amount numeric(78) not null default 0,
         token_amount numeric(78) not null default 0,
         receiver_address varchar,

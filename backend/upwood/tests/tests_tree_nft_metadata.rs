@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, NaiveDateTime};
 use cis2_conversions::to_token_id_vec;
-use cis2_security::{Cis2Payloads, Cis2SecurityPayloads, Cis2SecurityTestClient};
+use cis2_security::{Cis2Payloads, Cis2SecurityTestClient};
 use compliance::{init_nationalities, NationalitiesModuleTestClient};
 use concordium_cis2::{TokenIdUnit, UpdateOperator};
 use concordium_protocols::concordium_cis2_security::{
