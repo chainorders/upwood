@@ -1,0 +1,174 @@
+use chrono::NaiveDateTime;
+use diesel::prelude::*;
+use poem_openapi::{Enum, Object};
+use rust_decimal::Decimal;
+use serde::Serialize;
+use tracing::instrument;
+
+use crate::db_shared::{DbConn, DbResult};
+use crate::schema::security_sft_multi_yielder_yields;
+
+#[derive(
+    diesel_derive_enum::DbEnum,
+    Debug,
+    PartialEq,
+    Enum,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::SecuritySftMultiYielderYieldType"]
+
+pub enum YieldType {
+    Quantity,
+    SimpleInterest,
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    PartialEq,
+    Object,
+    Serialize,
+    AsChangeset,
+)]
+#[diesel(table_name = security_sft_multi_yielder_yields)]
+#[diesel(primary_key(
+    contract_address,
+    token_contract_address,
+    token_id,
+    yield_contract_address,
+    yield_token_id
+))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Yield {
+    pub contract_address:       Decimal,
+    pub token_contract_address: Decimal,
+    pub token_id:               Decimal,
+    pub yield_contract_address: Decimal,
+    pub yield_token_id:         Decimal,
+    pub yield_rate_numerator:   Decimal,
+    pub yield_rate_denominator: Decimal,
+    pub yield_type:             YieldType,
+    pub create_time:            NaiveDateTime,
+}
+
+impl Yield {
+    #[instrument(skip_all)]
+    pub fn delete_batch(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_contract_address: Decimal,
+        token_id: Decimal,
+    ) -> DbResult<()> {
+        diesel::delete(security_sft_multi_yielder_yields::table)
+            .filter(security_sft_multi_yielder_yields::contract_address.eq(contract_address))
+            .filter(
+                security_sft_multi_yielder_yields::token_contract_address
+                    .eq(token_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::token_id.eq(token_id))
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn insert_batch(conn: &mut DbConn, yields: &[Self]) -> DbResult<()> {
+        diesel::insert_into(security_sft_multi_yielder_yields::table)
+            .values(yields)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_sft_multi_yielder_yields::table)
+            .values(self)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn find(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_contract_address: Decimal,
+        token_id: Decimal,
+        yield_contract_address: Decimal,
+        yield_token_id: Decimal,
+    ) -> DbResult<Option<Self>> {
+        let yield_record = security_sft_multi_yielder_yields::table
+            .filter(security_sft_multi_yielder_yields::contract_address.eq(contract_address))
+            .filter(
+                security_sft_multi_yielder_yields::token_contract_address
+                    .eq(token_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::token_id.eq(token_id))
+            .filter(
+                security_sft_multi_yielder_yields::yield_contract_address
+                    .eq(yield_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::yield_token_id.eq(yield_token_id))
+            .first(conn)
+            .optional()?;
+        Ok(yield_record)
+    }
+
+    #[instrument(skip_all)]
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let updated_yield = diesel::update(security_sft_multi_yielder_yields::table)
+            .filter(security_sft_multi_yielder_yields::contract_address.eq(self.contract_address))
+            .filter(
+                security_sft_multi_yielder_yields::token_contract_address
+                    .eq(self.token_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::token_id.eq(self.token_id))
+            .filter(
+                security_sft_multi_yielder_yields::yield_contract_address
+                    .eq(self.yield_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::yield_token_id.eq(self.yield_token_id))
+            .set(self)
+            .returning(Self::as_returning())
+            .get_result(conn)?;
+        Ok(updated_yield)
+    }
+
+    #[instrument(skip_all)]
+    pub fn delete(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_contract_address: Decimal,
+        token_id: Decimal,
+        yield_contract_address: Decimal,
+        yield_token_id: Decimal,
+    ) -> DbResult<()> {
+        diesel::delete(security_sft_multi_yielder_yields::table)
+            .filter(security_sft_multi_yielder_yields::contract_address.eq(contract_address))
+            .filter(
+                security_sft_multi_yielder_yields::token_contract_address
+                    .eq(token_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::token_id.eq(token_id))
+            .filter(
+                security_sft_multi_yielder_yields::yield_contract_address
+                    .eq(yield_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::yield_token_id.eq(yield_token_id))
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn list_all(conn: &mut DbConn, limit: i64, offset: i64) -> DbResult<Vec<Self>> {
+        let yields = security_sft_multi_yielder_yields::table
+            .limit(limit)
+            .offset(offset)
+            .load(conn)?;
+        Ok(yields)
+    }
+}

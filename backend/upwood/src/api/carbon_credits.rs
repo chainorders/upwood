@@ -1,7 +1,7 @@
 use poem::web::Data;
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::OpenApi;
-use shared::db::security_sft_single::TokenDetails;
+use shared::db::security_sft_single::SftSingleTkenDetails;
 use shared::db_shared::DbPool;
 
 use super::*;
@@ -31,10 +31,10 @@ impl Api {
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<TokenDetails> {
+    ) -> JsonResult<SftSingleTkenDetails> {
         ensure_is_admin(&claims)?;
         let token =
-            TokenDetails::find(contracts.carbon_credit_contract_index, &mut db_pool.get()?)?
+            SftSingleTkenDetails::find(contracts.carbon_credit_contract_index, &mut db_pool.get()?)?
                 .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
         Ok(Json(token))
     }

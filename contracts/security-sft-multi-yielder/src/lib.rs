@@ -113,18 +113,6 @@ pub enum Event {
     AgentRemoved(Address),
     YieldAdded(UpsertYieldParams),
     YieldRemoved(YieldRemovedEvent),
-    Yielded(YieldedEvent),
-}
-
-#[derive(Serialize, SchemaType, Debug)]
-pub struct YieldedEvent {
-    /// The security token contract address.
-    pub token_contract:       ContractAddress,
-    pub yield_token_contract: ContractAddress,
-    pub yield_token_id:       TokenIdVec,
-    pub yield_amount:         YieldTokenAmount,
-    pub to:                   Address,
-    pub at:                   Timestamp,
 }
 
 #[derive(Serialize, SchemaType, Debug)]

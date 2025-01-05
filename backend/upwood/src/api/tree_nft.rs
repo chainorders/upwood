@@ -7,7 +7,7 @@ use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db::cis2_security::{list_holders_by_token_metadata_url, TokenHolder};
 use shared::db::nft_multi_rewarded::{AddressNonce, NftMultiRewardedDetails};
-use shared::db::security_sft_single::TokenDetails;
+use shared::db::security_sft_single::SftSingleTkenDetails;
 use shared::db_app::tree_nft_metadata::TreeNftMetadata;
 
 use crate::api::*;
@@ -89,9 +89,9 @@ impl Api {
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<TokenDetails> {
+    ) -> JsonResult<SftSingleTkenDetails> {
         ensure_is_admin(&claims)?;
-        let token = TokenDetails::find(contracts.tree_ft_contract_index, &mut db_pool.get()?)?
+        let token = SftSingleTkenDetails::find(contracts.tree_ft_contract_index, &mut db_pool.get()?)?
             .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
         Ok(Json(token))
     }

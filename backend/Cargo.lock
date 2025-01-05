@@ -1982,6 +1982,8 @@ dependencies = [
  "rust_decimal",
  "security-mint-fund",
  "security-p2p-trading",
+ "security-sft-multi",
+ "security-sft-multi-yielder",
  "security-sft-single",
  "serde",
  "serde_json",

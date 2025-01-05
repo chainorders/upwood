@@ -2,7 +2,6 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use poem_openapi::Object;
 use rust_decimal::Decimal;
-// use security_mint_fund::AnyTokenUId;
 use serde::Serialize;
 use tracing::instrument;
 use uuid::Uuid;
@@ -153,10 +152,7 @@ impl Market {
         let updated_market = diesel::update(security_p2p_trading_markets::table)
             .filter(security_p2p_trading_markets::contract_address.eq(self.contract_address))
             .filter(security_p2p_trading_markets::token_id.eq(self.token_id))
-            .filter(
-                security_p2p_trading_markets::token_contract_address
-                    .eq(self.token_contract_address),
-            )
+            .filter(security_p2p_trading_markets::token_contract_address.eq(self.token_contract_address))
             .set(self)
             .returning(Self::as_returning())
             .get_result(conn)?;

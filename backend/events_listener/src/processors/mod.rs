@@ -18,6 +18,7 @@ mod offchain_rewards;
 mod security_mint_fund;
 mod security_p2p_trading;
 mod security_sft_multi;
+mod security_sft_multi_yielder;
 
 use std::backtrace::Backtrace;
 use std::collections::{BTreeMap, HashSet};
@@ -116,6 +117,18 @@ impl Processors {
             security_sft_single::contract_name(),
             ProcessorType::SecuritySftSingle,
             security_sft_single::process_events as ProcessorFnType,
+        );
+        processors.insert(
+            security_sft_multi::module_ref(),
+            security_sft_multi::contract_name(),
+            ProcessorType::SecuritySftMulti,
+            security_sft_multi::process_events as ProcessorFnType,
+        );
+        processors.insert(
+            security_sft_multi_yielder::module_ref(),
+            security_sft_multi_yielder::contract_name(),
+            ProcessorType::SecuritySftMultiYielder,
+            security_sft_multi_yielder::process_events as ProcessorFnType,
         );
         processors.insert(
             identity_registry::module_ref(),
