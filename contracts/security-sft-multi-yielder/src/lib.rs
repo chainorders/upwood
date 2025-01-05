@@ -10,7 +10,6 @@ use concordium_std::collections::BTreeMap;
 use concordium_std::ops::AddAssign;
 use concordium_std::*;
 
-pub type AnyTokenUId = TokenUId<TokenIdVec>;
 pub type YieldTokenAmount = TokenAmountU64;
 pub type ContractResult<T> = Result<T, Error>;
 /// This is the security token Id. This should match `TokenId` Type of `security_sft_multi` contract
@@ -113,6 +112,16 @@ pub enum Event {
     AgentRemoved(Address),
     YieldAdded(UpsertYieldParams),
     YieldRemoved(YieldRemovedEvent),
+    YieldDistributed(YieldDistributedEvent),
+}
+
+#[derive(Serialize, SchemaType, Debug)]
+pub struct YieldDistributedEvent {
+    pub from_token: TokenIdU64,
+    pub to_token:   TokenIdU64,
+    pub contract:   ContractAddress,
+    pub amount:     TokenAmountU64,
+    pub to:         AccountAddress,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -356,9 +365,14 @@ pub struct YieldParam {
     contract = "security_sft_multi_yielder",
     name = "yieldFor",
     mutable,
-    parameter = "YieldParams"
+    parameter = "YieldParams",
+    enable_logger
 )]
-fn yield_for(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
+fn yield_for(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
     let YieldParams {
         owner,
         yields: mut params,
@@ -453,6 +467,13 @@ fn yield_for(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()>
             amount:  TokenAmountSecurity::new_un_frozen(amount),
         })
         .map_err(|_| Error::TokenMint)?;
+        logger.log(&Event::YieldDistributed(YieldDistributedEvent {
+            from_token: token_ver_from,
+            to_token: token_ver_to,
+            contract: token_contract,
+            amount,
+            to: owner,
+        }))?;
     }
 
     Ok(())

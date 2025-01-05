@@ -12,6 +12,10 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "security_mint_fund_state"))]
     pub struct SecurityMintFundState;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "security_sft_multi_yielder_yield_type"))]
+    pub struct SecuritySftMultiYielderYieldType;
 }
 
 diesel::table! {
@@ -374,6 +378,38 @@ diesel::table! {
 }
 
 diesel::table! {
+    security_sft_multi_yielder_yeild_distributions (id) {
+        id -> Uuid,
+        contract_address -> Numeric,
+        token_contract_address -> Numeric,
+        from_token_version -> Numeric,
+        to_token_version -> Numeric,
+        yield_contract_address -> Numeric,
+        yield_token_id -> Numeric,
+        yield_amount -> Numeric,
+        to_address -> Varchar,
+        create_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::SecuritySftMultiYielderYieldType;
+
+    security_sft_multi_yielder_yields (contract_address, token_contract_address, token_id, yield_contract_address, yield_token_id) {
+        contract_address -> Numeric,
+        token_contract_address -> Numeric,
+        token_id -> Numeric,
+        yield_contract_address -> Numeric,
+        yield_token_id -> Numeric,
+        yield_rate_numerator -> Numeric,
+        yield_rate_denominator -> Numeric,
+        yield_type -> SecuritySftMultiYielderYieldType,
+        create_time -> Timestamp,
+    }
+}
+
+diesel::table! {
     support_questions (id) {
         id -> Uuid,
         cognito_user_id -> Varchar,
@@ -494,6 +530,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_p2p_trading_contracts,
     security_p2p_trading_markets,
     security_p2p_trading_sell_records,
+    security_sft_multi_yielder_yeild_distributions,
+    security_sft_multi_yielder_yields,
     support_questions,
     tree_nft_metadatas,
     user_affiliates,

@@ -20,3 +20,17 @@ create table
             yield_token_id
         )
     );
+
+create table
+    security_sft_multi_yielder_yeild_distributions (
+        id uuid primary key,
+        contract_address numeric(20) not null,
+        token_contract_address numeric(20) not null,
+        from_token_version numeric(20) not null,
+        to_token_version numeric(20) not null,
+        yield_contract_address numeric(20) not null,
+        yield_token_id numeric(20) not null,
+        yield_amount numeric(20) not null,
+        to_address Varchar not null,
+        create_time timestamp not null
+    );

@@ -1,18 +1,21 @@
 use chrono::NaiveDateTime;
 use concordium_protocols::concordium_cis2_security::AgentWithRoles;
+use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
+use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use security_sft_multi_yielder::{
-    AgentRole, Event, UpsertYieldParams, YieldCalculation, YieldRemovedEvent,
+    AgentRole, Event, UpsertYieldParams, YieldCalculation, YieldDistributedEvent, YieldRemovedEvent,
 };
 use shared::db::cis2_security::Agent;
-use shared::db::security_sft_multi_yielder::{Yield, YieldType};
+use shared::db::security_sft_multi_yielder::{Yield, YieldDistribution, YieldType};
 use shared::db_shared::DbConn;
 use tracing::instrument;
+use uuid::Uuid;
 
-use super::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
+use super::cis2_utils::{ContractAddressToDecimal, TokenAmountToDecimal, TokenIdToDecimal};
 use super::ProcessorError;
 
 pub fn module_ref() -> ModuleReference {
@@ -93,6 +96,42 @@ pub fn process_events(
                 token_contract.to_decimal(),
                 token_id.to_decimal(),
             )?,
+            Event::YieldDistributed(YieldDistributedEvent {
+                from_token,
+                to_token,
+                contract: token_contract,
+                amount,
+                to,
+            }) => {
+                let yield_distributions = Yield::find_batch(
+                    conn,
+                    contract.to_decimal(),
+                    token_contract.to_decimal(),
+                    from_token.to_decimal(),
+                    to_token.to_decimal(),
+                )?
+                .into_iter()
+                .map(|y| YieldDistribution {
+                    id:                     Uuid::new_v4(),
+                    contract_address:       y.contract_address,
+                    from_token_version:     from_token.to_decimal(),
+                    to_token_version:       to_token.to_decimal(),
+                    token_contract_address: y.token_contract_address,
+                    yield_contract_address: y.yield_contract_address,
+                    yield_token_id:         y.yield_token_id,
+                    to_address:             to.to_string(),
+                    yield_amount:           calculate_yield_amount(
+                        y.yield_type,
+                        y.yield_rate_numerator,
+                        y.yield_rate_denominator,
+                        amount.to_decimal(),
+                        to_token.to_decimal() - from_token.to_decimal(),
+                    ),
+                    create_time:            block_time,
+                })
+                .collect::<Vec<_>>();
+                YieldDistribution::insert_batch(conn, &yield_distributions)?;
+            }
         }
     }
 
@@ -105,4 +144,34 @@ fn role_to_string(r: AgentRole) -> String {
         AgentRole::RemoveYield => "RemoveYield".to_string(),
         AgentRole::Operator => "Operator".to_string(),
     }
+}
+
+fn calculate_yield_amount(
+    yeild_type: YieldType,
+    rate_numerator: Decimal,
+    rate_denominator: Decimal,
+    amount: Decimal,
+    token_version_diff: Decimal,
+) -> Decimal {
+    let rate = Rate {
+        numerator:   rate_numerator
+            .to_u64()
+            .expect("Failed to convert numerator"),
+        denominator: rate_denominator
+            .to_u64()
+            .expect("Failed to convert denominator"),
+    };
+
+    match yeild_type {
+        YieldType::Quantity => YieldCalculation::Quantity(rate),
+        YieldType::SimpleInterest => YieldCalculation::SimpleInterest(rate),
+    }
+    .calculate_amount(
+        &concordium_cis2::TokenAmountU64(amount.to_u64().expect("Failed to convert amount")),
+        token_version_diff
+            .to_u64()
+            .expect("Failed to convert token_version_diff"),
+    )
+    .expect("Failed to calculate yield amount")
+    .to_decimal()
 }
