@@ -1,41 +1,43 @@
-create table
-    security_p2p_trading_contracts (
-        contract_address numeric(20) primary key not null references listener_contracts (contract_address) on delete cascade,
-        currency_token_contract_address numeric(20) not null,
-        currency_token_id numeric(20) not null,
-        total_sell_currency_amount numeric(78) not null default 0,
-        create_time timestamp not null
-    );
+/* plpgsql-language-server:disable validation */
+CREATE TABLE security_p2p_trading_contracts (
+       contract_address NUMERIC(20) PRIMARY KEY NOT NULL REFERENCES listener_contracts (contract_address) ON DELETE cascade,
+       currency_token_contract_address NUMERIC(20) NOT NULL,
+       currency_token_id NUMERIC(20) NOT NULL,
+       total_sell_currency_amount NUMERIC(78) NOT NULL DEFAULT 0,
+       create_time TIMESTAMP NOT NULL
+);
 
-create table
-    security_p2p_trading_markets (
-        contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
-        token_id numeric(20) not null,
-        token_contract_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
-        buyer varchar not null,
-        rate numeric(40, 20) not null,
-        total_sell_token_amount numeric(78) not null default 0,
-        total_sell_currency_amount numeric(78) not null default 0,
-        create_time timestamp not null,
-        update_time timestamp not null,
-        primary key (
-            contract_address,
-            token_id,
-            token_contract_address
-        )
-    );
+CREATE TABLE security_p2p_trading_markets (
+       contract_address NUMERIC(20) NOT NULL REFERENCES security_p2p_trading_contracts (contract_address) ON DELETE cascade,
+       token_id NUMERIC(20) NOT NULL,
+       token_contract_address NUMERIC(20) NOT NULL REFERENCES listener_contracts (contract_address) ON DELETE cascade,
+       liquidity_provider VARCHAR NOT NULL,
+       buy_rate_numerator NUMERIC(78) NOT NULL,
+       buy_rate_denominator NUMERIC(78) NOT NULL,
+       sell_rate_numerator NUMERIC(78) NOT NULL,
+       sell_rate_denominator NUMERIC(78) NOT NULL,
+       total_sell_token_amount NUMERIC(78) NOT NULL DEFAULT 0,
+       total_sell_currency_amount NUMERIC(78) NOT NULL DEFAULT 0,
+       create_time TIMESTAMP NOT NULL,
+       update_time TIMESTAMP NOT NULL,
+       PRIMARY KEY (
+              contract_address,
+              token_id,
+              token_contract_address
+       )
+);
 
-create table
-    security_p2p_trading_sell_records (
-        id uuid primary key not null,
-        block_height numeric(20) not null,
-        txn_index numeric(20) not null,
-        contract_address numeric(20) not null references security_p2p_trading_contracts (contract_address) on delete cascade,
-        token_id numeric(20) not null,
-        token_contract_address numeric(20) not null references listener_contracts (contract_address) on delete cascade,
-        seller varchar not null,
-        currency_amount numeric(78) not null,
-        token_amount numeric(78) not null,
-        rate numeric(40, 20) not null,
-        create_time timestamp not null
-    );
+CREATE TABLE security_p2p_exchange_records (
+       id uuid PRIMARY KEY NOT NULL,
+       block_height NUMERIC(20) NOT NULL,
+       txn_index NUMERIC(20) NOT NULL,
+       contract_address NUMERIC(20) NOT NULL REFERENCES security_p2p_trading_contracts (contract_address) ON DELETE cascade,
+       token_id NUMERIC(20) NOT NULL,
+       token_contract_address NUMERIC(20) NOT NULL REFERENCES listener_contracts (contract_address) ON DELETE cascade,
+       buyer VARCHAR NOT NULL,
+       seller VARCHAR NOT NULL,
+       currency_amount NUMERIC(78) NOT NULL,
+       token_amount NUMERIC(78) NOT NULL,
+       rate NUMERIC(40, 20) NOT NULL,
+       create_time TIMESTAMP NOT NULL
+);

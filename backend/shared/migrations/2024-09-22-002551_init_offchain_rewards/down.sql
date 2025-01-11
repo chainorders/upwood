@@ -1,4 +1,8 @@
-drop table if exists offchain_reward_claims;
-drop table if exists offchain_rewardees;
-drop table if exists offchain_reward_contract_agents;
-drop table if exists offchain_rewards_contracts;
+/* plpgsql-language-server:disable validation */
+     DROP TABLE IF EXISTS offchain_reward_claims;
+
+     DROP TABLE IF EXISTS offchain_rewardees;
+
+     DROP TABLE IF EXISTS offchain_reward_contract_agents;
+
+     DROP TABLE IF EXISTS offchain_rewards_contracts;

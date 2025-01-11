@@ -38,28 +38,26 @@ use types::*;
 #[derive(Serial, DeserialWithState, Debug)]
 #[concordium(state_parameter = "S")]
 pub struct Fund<S> {
-    pub state:          FundState,
-    pub investments:    StateMap<AccountAddress, CurrencyTokenAmount, S>,
-    pub token:          AnyTokenUId,
+    pub state:       FundState,
+    pub investments: StateMap<AccountAddress, CurrencyTokenAmount, S>,
+    /// This is the token which will be minted in locked state after investment. This is the initial token minted by the contract upon investment.
+    pub token:       SecurityTokenUId,
     /// This is the rate  which will be used to convert from `currency_token` token to `security_token` Token.
-    pub rate:           Rate,
-    /// This is the token which will be minted after successful completion of the fund.
-    pub security_token: AnyTokenUId,
+    pub rate:        Rate,
 }
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 pub struct State<S=StateApi> {
-    pub last_fund_id:   FundId,
     /// Agents who can interact with this contract.
     /// Agents are allowed to Start a new fund, Update the fund & force the claim for a user Or force the return of amount to a user.
     pub agents:         StateMap<Address, StateSet<AgentRole, S>, S>,
     /// This is the token which is used to fund this contract.
     /// This will usualle be EuroE Token
-    pub currency_token: AnyTokenUId,
+    pub currency_token: CurrencyTokenUId,
     /// Map of all the funds which are currently in this contract.
     /// Key is the token which will be minted in locked state after investment. This is the initial token minted by the contract upon investment.
-    pub funds:          StateMap<FundId, Fund<S>, S>,
+    pub funds:          StateMap<SecurityTokenUId, Fund<S>, S>,
 }
 
 impl State<StateApi> {
@@ -83,7 +81,7 @@ fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
-    logger.log(&Event::Initialized(params.currency_token.clone()))?;
+    logger.log(&Event::Initialized(params.currency_token))?;
     let agents = {
         let mut agents = state_builder.new_map();
         let roles = {
@@ -115,7 +113,6 @@ fn init(
     };
     Ok(State {
         currency_token: params.currency_token,
-        last_fund_id: 0,
         agents,
         funds: state_builder.new_map(),
     })
@@ -198,32 +195,25 @@ fn add_fund(
         Error::UnAuthorized
     );
 
-    let fund_id = state.last_fund_id;
-    let existing = state.funds.insert(fund_id, Fund {
-        state:          FundState::Open,
-        investments:    state_builder.new_map(),
-        token:          params.token.clone(),
-        rate:           params.rate,
-        security_token: params.security_token.clone(),
+    let existing = state.funds.insert(params.security_token, Fund {
+        state:       FundState::Open,
+        investments: state_builder.new_map(),
+        token:       params.token,
+        rate:        params.rate,
     });
-    ensure!(existing.is_none(), Error::InvalidFundId);
-    state.last_fund_id = fund_id + 1;
+    ensure!(existing.is_none(), Error::FundExists);
 
     // ensure that the token exists
     let _ = host
-        .invoke_token_metadata_single(&params.token.contract, params.token.id.clone())
+        .invoke_token_metadata_single(&params.token.contract, params.token.id)
         .map_err(|_| Error::NonExistentToken)?;
     let _ = host
-        .invoke_token_metadata_single(
-            &params.security_token.contract,
-            params.security_token.id.clone(),
-        )
+        .invoke_token_metadata_single(&params.security_token.contract, params.security_token.id)
         .map_err(|_| Error::NonExistentToken)?;
 
     logger.log(&Event::FundAdded(FundAddedEvent {
-        fund_id,
-        token: params.token,
-        rate: params.rate,
+        token:          params.token,
+        rate:           params.rate,
         security_token: params.security_token,
     }))?;
     Ok(())
@@ -233,7 +223,7 @@ fn add_fund(
     contract = "security_mint_fund",
     name = "removeFund",
     mutable,
-    parameter = "FundId",
+    parameter = "SecurityTokenUId",
     enable_logger
 )]
 fn remove_fund(
@@ -241,7 +231,7 @@ fn remove_fund(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let fund_id: FundId = ctx.parameter_cursor().get()?;
+    let fund_id: SecurityTokenUId = ctx.parameter_cursor().get()?;
     let (state, _) = host.state_and_builder();
     ensure!(
         state.has_agent(ctx.sender(), AgentRole::RemoveFund),
@@ -276,7 +266,7 @@ fn update_fund_state(
     );
     let fund = state
         .funds
-        .get(&params.fund_id)
+        .get(&params.security_token)
         .ok_or(Error::InvalidFundId)?;
     {
         let fund_state = match (&fund.state, &params.state) {
@@ -291,7 +281,7 @@ fn update_fund_state(
         };
         host.state_mut()
             .funds
-            .entry(params.fund_id)
+            .entry(params.security_token)
             .and_modify(|fund| {
                 fund.state = fund_state;
             });
@@ -308,7 +298,7 @@ fn update_fund_state(
     parameter = "TransferInvestParams"
 )]
 fn transfer_invest(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
-    let currency_token = host.state().currency_token.clone();
+    let currency_token = host.state().currency_token;
     let params: TransferInvestParams = ctx.parameter_cursor().get()?;
     host.invoke_transfer_single(&currency_token.contract, Transfer {
         token_id: currency_token.id,
@@ -319,7 +309,7 @@ fn transfer_invest(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResu
         ),
         from:     ctx.sender(),
         data:     params
-            .fund_id
+            .security_token
             .to_additional_data()
             .ok_or(Error::ParseError)?,
     })
@@ -338,7 +328,7 @@ fn transfer_invest(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResu
 fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> ContractResult<()> {
     let InvestReceiveParams {
         amount: curr_amount,
-        data: fund_id,
+        data: security_token,
         token_id,
         from,
     } = ctx.parameter_cursor().get()?;
@@ -356,7 +346,10 @@ fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> 
 
     let (wrapped_amount, wrapped_token) = {
         let state = host.state_mut();
-        let mut fund = state.funds.get_mut(&fund_id).ok_or(Error::InvalidFundId)?;
+        let mut fund = state
+            .funds
+            .get_mut(&security_token)
+            .ok_or(Error::InvalidFundId)?;
         ensure!(
             state.currency_token.eq(&currency_token),
             Error::UnAuthorized
@@ -370,7 +363,7 @@ fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> 
                     .modify(|amount| amount.add_assign(curr_amount));
                 // Convert the currency amount to wrapped amount
                 let security_amount = fund.rate.convert_currency_amount(&curr_amount)?;
-                (security_amount, fund.token.clone())
+                (security_amount, fund.token)
             }
             _ => bail!(Error::InvalidFundState),
         }
@@ -383,7 +376,7 @@ fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> 
     .map_err(|_| Error::TokenMint)?;
 
     logger.log(&Event::Invested(InvestedEvent {
-        fund_id,
+        security_token,
         currency_amount: curr_amount,
         security_amount: wrapped_amount,
         investor: from,
@@ -406,7 +399,9 @@ fn claim_investment(
     let sender = ctx.sender();
     let params: ClaimInvestmentParams = ctx.parameter_cursor().get()?;
     for investment in params.investments {
-        let (token, currency_token, currency_amount, security_token, security_amount, fund_state) = {
+        let security_token = investment.security_token;
+
+        let (token, currency_token, currency_amount, security_amount, fund_state) = {
             let state = host.state_mut();
             if !sender.matches_account(&investment.investor) {
                 ensure!(
@@ -414,10 +409,10 @@ fn claim_investment(
                     Error::UnAuthorized
                 );
             }
-            let currency_token = state.currency_token.clone();
+            let currency_token = state.currency_token;
             let mut fund = state
                 .funds
-                .get_mut(&investment.fund_id)
+                .get_mut(&investment.security_token)
                 .ok_or(Error::InvalidFundId)?;
             // Invested currency amount
             let currency_amount = fund
@@ -427,10 +422,9 @@ fn claim_investment(
             // Promised security amount
             let security_amount = fund.rate.convert_currency_amount(&currency_amount)?;
             (
-                fund.token.clone(),
+                fund.token,
                 currency_token,
                 currency_amount,
-                fund.security_token.clone(),
                 security_amount,
                 fund.state.clone(),
             )
@@ -442,7 +436,7 @@ fn claim_investment(
                 // Transfer the currency amount to the receiver
                 host.invoke_transfer_single(&currency_token.contract, Transfer {
                     amount:   currency_amount,
-                    token_id: currency_token.id.clone(),
+                    token_id: currency_token.id,
                     from:     ctx.self_address().into(),
                     to:       funds_receiver.clone(),
                     data:     AdditionalData::empty(),
@@ -456,14 +450,14 @@ fn claim_investment(
                         investment.investor.into(),
                         FreezeParam {
                             token_amount: security_amount,
-                            token_id:     security_token.id.clone(),
+                            token_id:     security_token.id,
                         },
                     )
                     .map_err(|_| Error::TokenUnFreeze)?;
                 } else {
                     // Burn the initially minted tokens
                     host.invoke_burn_single(&token.contract, Burn {
-                        token_id: token.id.clone(),
+                        token_id: token.id,
                         amount:   security_amount,
                         owner:    investment.investor.into(),
                     })
@@ -471,7 +465,7 @@ fn claim_investment(
                     // Mint the security tokens
                     host.invoke_mint_single(
                         &security_token.contract,
-                        security_token.id.clone(),
+                        security_token.id,
                         MintParam {
                             address: investment.investor.into(),
                             amount:  TokenAmountSecurity::new_un_frozen(security_amount),
@@ -481,7 +475,7 @@ fn claim_investment(
                 }
 
                 logger.log(&Event::InvestmentClaimed(InvestedEvent {
-                    fund_id: investment.fund_id,
+                    security_token: investment.security_token,
                     security_amount,
                     investor: investment.investor,
                     currency_amount,
@@ -491,7 +485,7 @@ fn claim_investment(
                 // Return the Invested currency amount
                 host.invoke_transfer_single(&currency_token.contract, Transfer {
                     amount:   currency_amount,
-                    token_id: currency_token.id.clone(),
+                    token_id: currency_token.id,
                     from:     ctx.self_address().into(),
                     to:       investment.investor.into(),
                     data:     AdditionalData::empty(),
@@ -505,7 +499,7 @@ fn claim_investment(
                 .map_err(|_| Error::TokenBurn)?;
 
                 logger.log(&Event::InvestmentCancelled(InvestedEvent {
-                    fund_id: investment.fund_id,
+                    security_token: investment.security_token,
                     security_amount,
                     investor: investment.investor,
                     currency_amount,

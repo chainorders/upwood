@@ -3,6 +3,7 @@ pub mod db;
 pub mod db_app;
 pub mod db_shared;
 pub mod schema;
+pub mod schema_manual;
 
 pub mod db_setup {
     use diesel::{Connection, PgConnection};

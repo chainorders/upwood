@@ -3,7 +3,7 @@ use concordium_protocols::concordium_cis2_ext::cis2_client::Cis2Client;
 use concordium_protocols::concordium_cis2_ext::IsTokenAmount;
 use concordium_protocols::concordium_cis2_security::cis2_security_client::Cis2SecurityClient;
 use concordium_protocols::concordium_cis2_security::{
-    AgentWithRoles, Burn, MintParam, TokenAmountSecurity, TokenUId,
+    AgentWithRoles, Burn, MintParam, TokenAmountSecurity,
 };
 use concordium_protocols::rate::{ExchangeError, Rate};
 use concordium_std::collections::BTreeMap;

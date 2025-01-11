@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
-    security_p2p_trading_contracts, security_p2p_trading_markets, security_p2p_trading_sell_records,
+    security_p2p_trading_contracts, security_p2p_trading_markets, security_p2p_exchange_records,
 };
 
 /// Represents a contract in the security P2P trading system.
@@ -97,8 +97,11 @@ pub struct Market {
     pub contract_address: Decimal,
     pub token_id: Decimal,
     pub token_contract_address: Decimal,
-    pub buyer: String,
-    pub rate: Decimal,
+    pub liquidity_provider: String,
+    pub buy_rate_numerator: Decimal,
+    pub buy_rate_denominator: Decimal,
+    pub sell_rate_numerator: Decimal,
+    pub sell_rate_denominator: Decimal,
     pub total_sell_token_amount: Decimal,
     pub total_sell_currency_amount: Decimal,
     pub create_time: NaiveDateTime,
@@ -195,10 +198,10 @@ impl Market {
     Serialize,
     AsChangeset,
 )]
-#[diesel(table_name = security_p2p_trading_sell_records)]
+#[diesel(table_name = security_p2p_exchange_records)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct SellRecord {
+pub struct ExchangeRecord {
     pub id:                     Uuid,
     pub block_height:           Decimal,
     pub txn_index:              Decimal,
@@ -206,51 +209,25 @@ pub struct SellRecord {
     pub token_id:               Decimal,
     pub token_contract_address: Decimal,
     pub seller:                 String,
+    pub buyer:                  String,
     pub currency_amount:        Decimal,
     pub token_amount:           Decimal,
     pub rate:                   Decimal,
     pub create_time:            NaiveDateTime,
 }
 
-impl SellRecord {
-    #[instrument(skip_all, fields(seller = %self.seller))]
+impl ExchangeRecord {
+    #[instrument(skip_all)]
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
-        diesel::insert_into(security_p2p_trading_sell_records::table)
+        diesel::insert_into(security_p2p_exchange_records::table)
             .values(self)
             .execute(conn)?;
         Ok(())
     }
 
     #[instrument(skip_all)]
-    pub fn find(conn: &mut DbConn, id: Uuid) -> DbResult<Option<Self>> {
-        let record = security_p2p_trading_sell_records::table
-            .filter(security_p2p_trading_sell_records::id.eq(id))
-            .first(conn)
-            .optional()?;
-        Ok(record)
-    }
-
-    #[instrument(skip_all)]
-    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
-        let updated_record = diesel::update(security_p2p_trading_sell_records::table)
-            .filter(security_p2p_trading_sell_records::id.eq(self.id))
-            .set(self)
-            .returning(Self::as_returning())
-            .get_result(conn)?;
-        Ok(updated_record)
-    }
-
-    #[instrument(skip_all)]
-    pub fn delete(conn: &mut DbConn, id: Uuid) -> DbResult<()> {
-        diesel::delete(security_p2p_trading_sell_records::table)
-            .filter(security_p2p_trading_sell_records::id.eq(id))
-            .execute(conn)?;
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
     pub fn list_all(conn: &mut DbConn, limit: i64, offset: i64) -> DbResult<Vec<Self>> {
-        let records = security_p2p_trading_sell_records::table
+        let records = security_p2p_exchange_records::table
             .limit(limit)
             .offset(offset)
             .load(conn)?;

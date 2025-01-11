@@ -1,16 +1,15 @@
-create table
-    nft_multi_rewarded_contracts (
-        contract_address numeric(20) primary key not null references listener_contracts (contract_address) on delete cascade,
-        reward_token_id numeric(20) not null,
-        reward_token_address numeric(20) not null,
-        create_time timestamp not null,
-        update_time timestamp not null
-    );
+/* plpgsql-language-server:disable validation */
+   CREATE TABLE nft_multi_rewarded_contracts (
+          contract_address NUMERIC(20) PRIMARY KEY NOT NULL REFERENCES listener_contracts (contract_address) ON DELETE cascade,
+          reward_token_id NUMERIC(20) NOT NULL,
+          reward_token_address NUMERIC(20) NOT NULL,
+          create_time TIMESTAMP NOT NULL,
+          update_time TIMESTAMP NOT NULL
+          );
 
-create table
-    nft_multi_address_nonces (
-        contract_address numeric(20) not null references nft_multi_rewarded_contracts (contract_address) on delete cascade,
-        address varchar not null,
-        nonce bigint not null,
-        primary key (contract_address, address)
-    );
+   CREATE TABLE nft_multi_address_nonces (
+          contract_address NUMERIC(20) NOT NULL REFERENCES nft_multi_rewarded_contracts (contract_address) ON DELETE cascade,
+          address VARCHAR NOT NULL,
+          nonce BIGINT NOT NULL,
+          PRIMARY KEY (contract_address, address)
+          );

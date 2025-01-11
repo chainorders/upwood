@@ -1,5 +1,9 @@
-drop table if exists support_questions;
-drop table if exists guides;
-drop table if exists maintenance_messages;
-drop table if exists platform_updates;
-drop table if exists news_articles;
+     DROP TABLE IF EXISTS support_questions;
+
+     DROP TABLE IF EXISTS guides;
+
+     DROP TABLE IF EXISTS maintenance_messages;
+
+     DROP TABLE IF EXISTS platform_updates;
+
+     DROP TABLE IF EXISTS news_articles;

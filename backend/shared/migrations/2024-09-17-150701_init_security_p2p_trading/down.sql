@@ -1,5 +1,6 @@
-drop table if exists security_p2p_trading_sell_records;
+/* plpgsql-language-server:disable validation */
+     DROP TABLE IF EXISTS security_p2p_exchange_records;
 
-drop table if exists security_p2p_trading_markets;
+     DROP TABLE IF EXISTS security_p2p_trading_markets;
 
-drop table if exists security_p2p_trading_contracts;
+     DROP TABLE IF EXISTS security_p2p_trading_contracts;

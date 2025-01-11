@@ -1,1 +1,1 @@
-drop table if exists tree_nft_metadatas;
+     DROP TABLE IF EXISTS tree_nft_metadatas;

@@ -1,11 +1,12 @@
-drop table if exists security_mint_fund_investment_records;
+/* plpgsql-language-server:disable validation */
+     DROP TABLE IF EXISTS security_mint_fund_investment_records;
 
-drop type if exists security_mint_fund_investment_record_type;
+DROP TYPE if EXISTS security_mint_fund_investment_record_type;
 
-drop table if exists security_mint_fund_investors;
+     DROP TABLE IF EXISTS security_mint_fund_investors;
 
-drop table if exists security_mint_funds;
+     DROP TABLE IF EXISTS security_mint_funds;
 
-drop table if exists security_mint_fund_contracts;
+     DROP TABLE IF EXISTS security_mint_fund_contracts;
 
-drop type if exists security_mint_fund_state;
+DROP TYPE if EXISTS security_mint_fund_state;

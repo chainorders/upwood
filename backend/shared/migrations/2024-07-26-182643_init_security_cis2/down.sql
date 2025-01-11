@@ -1,17 +1,18 @@
-drop table if exists cis2_recovery_records;
+/* plpgsql-language-server:disable validation */
+     DROP TABLE IF EXISTS cis2_recovery_records;
 
-drop table if exists cis2_operators;
+     DROP TABLE IF EXISTS cis2_operators;
 
-drop table if exists cis2_agents;
+     DROP TABLE IF EXISTS cis2_agents;
 
-drop table if exists cis2_token_holder_balance_updates;
+     DROP TABLE IF EXISTS cis2_token_holder_balance_updates;
 
-drop type if exists cis2_token_holder_balance_update_type;
+DROP TYPE if EXISTS cis2_token_holder_balance_update_type;
 
-drop table if exists cis2_token_holders;
+     DROP TABLE IF EXISTS cis2_token_holders;
 
-drop table if exists cis2_tokens;
+     DROP TABLE IF EXISTS cis2_tokens;
 
-drop table if exists cis2_identity_registries;
+     DROP TABLE IF EXISTS cis2_identity_registries;
 
-drop table if exists cis2_compliances;
+     DROP TABLE IF EXISTS cis2_compliances;

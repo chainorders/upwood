@@ -5,7 +5,7 @@ use concordium_protocols::concordium_cis2_security::AgentWithRoles;
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use security_p2p_trading::{
-    AddMarketParams, AgentRole, InitParam, SecurityTokenAddress, SellParams,
+    AddMarketParams, AgentRole, ExchangeParams, InitParam, SecurityTokenAddress,
 };
 
 use super::MAX_ENERGY;
@@ -95,13 +95,25 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
         }
     }
 
-    fn sell_payload(&self, params: &SellParams) -> UpdateContractPayload {
+    fn sell_payload(&self, params: &ExchangeParams) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
                 Self::contract_name().as_contract_name(),
                 EntrypointName::new_unchecked("sell"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    fn buy_payload(&self, params: &ExchangeParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("buy"),
             ),
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
@@ -196,7 +208,7 @@ impl P2PTradeTestClient {
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &SellParams,
+        params: &ExchangeParams,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             Signer::with_one_key(),
@@ -204,6 +216,21 @@ impl P2PTradeTestClient {
             sender.address.into(),
             MAX_ENERGY,
             self.sell_payload(params),
+        )
+    }
+
+    pub fn buy(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &ExchangeParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.buy_payload(params),
         )
     }
 }

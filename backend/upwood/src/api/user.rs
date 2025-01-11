@@ -19,9 +19,11 @@ use serde::Serialize;
 use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
 use shared::db::offchain_rewards::OffchainRewardee;
-use shared::db_app::forest_project::UserTransaction;
+use shared::db_app::forest_project_crypto::{
+    ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord,
+};
 use shared::db_app::user_challenges::UserChallenge;
-use shared::db_app::users::{AffiliateReward, User, UserAffiliate};
+use shared::db_app::users::{User, UserAffiliate};
 use tracing::info;
 
 use crate::api::*;
@@ -523,18 +525,25 @@ impl UserApi {
     }
 
     #[oai(
-        path = "/user/txn_history/list/:page",
+        path = "/user/investments/list/:page",
         method = "get",
         tag = "ApiTags::Wallet"
     )]
-    pub async fn txn_history_list(
+    pub async fn investments(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<UserTransaction>> {
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<PagedResponse<ForestProjectFundsInvestmentRecord>> {
         let mut conn = db_pool.get()?;
-        let (users, page_count) = UserTransaction::list(&mut conn, &claims.sub, page, PAGE_SIZE)?;
+        let (users, page_count) = ForestProjectFundsInvestmentRecord::list(
+            &mut conn,
+            contracts.mint_funds_contract_index,
+            &claims.sub,
+            page,
+            PAGE_SIZE,
+        )?;
 
         Ok(Json(PagedResponse {
             data: users,
@@ -553,11 +562,10 @@ impl UserApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<AffiliateReward>> {
-        let account = ensure_account_registered(&claims)?;
+    ) -> JsonResult<PagedResponse<ForestProjectFundsAffiliateRewardRecord>> {
         let mut conn = db_pool.get()?;
         let (users, page_count) =
-            AffiliateReward::list_by_affiliate(&mut conn, &account.to_string(), page, PAGE_SIZE)?;
+            ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, page, PAGE_SIZE)?;
 
         Ok(Json(PagedResponse {
             data: users,
@@ -581,11 +589,10 @@ impl UserApi {
     ) -> JsonResult<ClaimRequest> {
         let account = ensure_account_registered(&claims)?;
         let mut conn = db_pool.get()?;
-        let reward = AffiliateReward::find(&mut conn, &investment_record_id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Reward not found".to_string())))?;
-        let remaining_reward_amount = reward
-            .remaining_reward_amount
-            .unwrap_or(reward.reward_amount);
+        let reward =
+            ForestProjectFundsAffiliateRewardRecord::find(&mut conn, investment_record_id)?
+                .ok_or_else(|| Error::NotFound(PlainText("Reward not found".to_string())))?;
+        let remaining_reward_amount = reward.remaining_reward_amount;
         if remaining_reward_amount.is_zero() {
             return Err(Error::BadRequest(PlainText(
                 "Reward already claimed".to_string(),
@@ -602,7 +609,7 @@ impl UserApi {
             account:               account.to_string(),
             account_nonce:         nonce.to_u64().unwrap(),
             contract_address:      contracts.offchain_rewards_contract_index,
-            reward_id:             reward.investment_record_id.as_bytes().to_vec(),
+            reward_id:             reward.id.as_bytes().to_vec(),
             reward_amount:         remaining_reward_amount,
             reward_token_id:       "".to_string(),
             reward_token_contract: contracts.euro_e_contract_index,

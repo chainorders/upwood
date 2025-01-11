@@ -5,10 +5,13 @@ use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
-use shared::db::security_mint_fund::SecurityMintFundState;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectMedia,
-    ForestProjectPrice, ForestProjectSeller, ForestProjectState, ForestProjectUser, HolderReward,
+    ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
+};
+use shared::db_app::forest_project_crypto::{
+    ActiveForestProjectUser, ForestProjectFundInvestor, ForestProjectOwned,
+    ForestProjectUserYieldsAggregate, ForestProjectUserYieldsForEachOwnedToken,
+    FundedForestProjectUser,
 };
 use tracing::{debug, info};
 
@@ -28,7 +31,7 @@ impl ForestProjectApi {
     /// # Returns
     /// A `PagedResponse` containing the active forest projects and the total number of pages.
     #[oai(
-        path = "/forest_projects/list/active/:page",
+        path = "/forest_projects/list/active",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
@@ -36,32 +39,43 @@ impl ForestProjectApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ForestProjectUser>> {
+    ) -> JsonResult<PagedResponse<ActiveForestProjectUser>> {
         let conn = &mut db_pool.get()?;
-        let res = ForestProjectUser::list(
-            conn,
-            &claims.sub,
-            claims.account(),
-            SecurityMintFundState::Open,
-            page,
-            i64::MAX,
-        );
-        let (projects, page_count) = match res {
-            Ok((projects, page_count)) => (projects, page_count),
-            Err(e) => {
+        let (projects, page_count) = ActiveForestProjectUser::list(conn, &claims.sub, 0, i64::MAX)
+            .map_err(|e| {
                 error!("Failed to list active projects: {}", e);
-                return Err(Error::InternalServer(PlainText(format!(
-                    "Failed to list active projects: {}",
-                    e
-                ))));
-            }
-        };
+                Error::InternalServer(PlainText(format!("Failed to list active projects: {}", e)))
+            })?;
+
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
-            page,
+            page: 0,
         }))
+    }
+
+    #[oai(
+        path = "/forest_projects/active/:project_id",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_get_active(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+    ) -> JsonResult<ActiveForestProjectUser> {
+        let conn = &mut db_pool.get()?;
+        let project =
+            ActiveForestProjectUser::find(conn, project_id, &claims.sub).map_err(|e| {
+                error!("Failed to find active project: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to find active project: {}", e)))
+            })?;
+        let project = project.ok_or(Error::NotFound(PlainText(format!(
+            "Active project not found: {}",
+            project_id
+        ))))?;
+        Ok(Json(project))
     }
 
     /// Lists the funded forest projects, paginated by the provided page number. Funded projects are those in the funded state.
@@ -83,21 +97,42 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ForestProjectUser>> {
+    ) -> JsonResult<PagedResponse<FundedForestProjectUser>> {
         let conn = &mut db_pool.get()?;
-        let (projects, page_count) = ForestProjectUser::list(
-            conn,
-            &claims.sub,
-            claims.account(),
-            SecurityMintFundState::Success,
-            page,
-            i64::MAX,
-        )?;
+        let (projects, page_count) =
+            FundedForestProjectUser::list(conn, &claims.sub, page, i64::MAX).map_err(|e| {
+                error!("Failed to list funded projects: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list funded projects: {}", e)))
+            })?;
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
             page,
         }))
+    }
+
+    #[oai(
+        path = "/forest_projects/funded/:project_id",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_get_funded(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+    ) -> JsonResult<FundedForestProjectUser> {
+        let conn = &mut db_pool.get()?;
+        let project =
+            FundedForestProjectUser::find(conn, project_id, &claims.sub).map_err(|e| {
+                error!("Failed to find funded project: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to find funded project: {}", e)))
+            })?;
+        let project = project.ok_or(Error::NotFound(PlainText(format!(
+            "Funded project not found: {}",
+            project_id
+        ))))?;
+        Ok(Json(project))
     }
 
     /// Lists the forest projects owned by the authenticated user, paginated by the provided page number.
@@ -118,50 +153,27 @@ impl ForestProjectApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<PagedResponse<ForestProjectUser>> {
-        let user_account = ensure_account_registered(&claims)?;
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<PagedResponse<ForestProjectOwned>> {
         let conn = &mut db_pool.get()?;
-        let (projects, _) =
-            ForestProjectUser::list_owned(conn, &claims.sub, user_account, 0, i64::MAX)?;
+        let (projects, _) = ForestProjectOwned::list(
+            conn,
+            &claims.sub,
+            contracts.mint_funds_contract_index,
+            contracts.trading_contract_index,
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list owned projects: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list owned projects: {}", e)))
+        })?;
 
         Ok(Json(PagedResponse {
             data:       projects,
             page_count: 1,
             page:       0,
         }))
-    }
-
-    /// Finds a forest project by its id.
-    ///
-    /// # Arguments
-    /// - `claims`: The claims of the authenticated user.
-    /// - `db_pool`: The database connection pool.
-    /// - `project_id`: The id of the forest project to find.
-    ///
-    /// # Returns
-    /// The forest project with the provided id.
-    #[oai(
-        path = "/forest_projects/:project_id",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn forest_project_find(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectUser> {
-        let project = ForestProjectUser::find(
-            &mut db_pool.get()?,
-            project_id,
-            &claims.sub,
-            claims.account(),
-        )?
-        .ok_or(Error::NotFound(PlainText(format!(
-            "Forest project not found: {}",
-            project_id
-        ))))?;
-        Ok(Json(project))
     }
 
     #[oai(
@@ -208,60 +220,55 @@ impl ForestProjectApi {
     }
 
     #[oai(
-        path = "/forest_projects/rewards/total",
+        path = "/forest_projects/yields/total",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn forest_project_rewards_total(
+    pub async fn forest_project_yields_total(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<Vec<ForestProjectHolderRewardTotal>> {
-        let account = ensure_account_registered(&claims)?;
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<Vec<ForestProjectUserYieldsAggregate>> {
         let conn = &mut db_pool.get()?;
-        let rewards = ForestProjectHolderRewardTotal::list(conn, &account.to_string())?;
-        Ok(Json(rewards))
+        let (yields, _) = ForestProjectUserYieldsAggregate::list(
+            conn,
+            &claims.sub,
+            contracts.yielder_contract_index,
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list yields: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list yields: {}", e)))
+        })?;
+        Ok(Json(yields))
     }
 
     #[oai(
-        path = "/forest_projects/rewards/claimable",
+        path = "/forest_projects/yields/claimable",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn forest_project_rewards_claimable(
+    pub async fn forest_project_yields_claimable(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<Vec<HolderReward>> {
-        let account = ensure_account_registered(&claims)?;
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<Vec<ForestProjectUserYieldsForEachOwnedToken>> {
         let conn = &mut db_pool.get()?;
-        let rewards = HolderReward::list(conn, &account.to_string())?;
-        Ok(Json(rewards))
-    }
-
-    #[oai(
-        path = "/forest_projects/:project_id/p2p-trade/sellers/list/:page",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn forest_project_p2p_trade_sellers_list(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(project_id): Path<uuid::Uuid>,
-        Path(page): Path<i64>,
-        Query(min_token_amount): Query<Option<u64>>,
-    ) -> JsonResult<PagedResponse<ForestProjectSeller>> {
-        ensure_registered(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let min_token_amount = min_token_amount.unwrap_or(0);
-        let (sellers, page_count) =
-            ForestProjectSeller::list(conn, project_id, min_token_amount.into(), page, PAGE_SIZE)?;
-        Ok(Json(PagedResponse {
-            data: sellers,
-            page_count,
-            page,
-        }))
+        let (yields, _) = ForestProjectUserYieldsForEachOwnedToken::list(
+            conn,
+            &claims.sub,
+            contracts.yielder_contract_index,
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list claimable yields: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list claimable yields: {}", e)))
+        })?;
+        Ok(Json(yields))
     }
 }
 
@@ -595,11 +602,11 @@ impl ForestProjectAdminApi {
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ForestProjectInvestor>> {
+    ) -> JsonResult<PagedResponse<ForestProjectFundInvestor>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
         let (investors, page_count) =
-            ForestProjectInvestor::list(conn, project_id, page, PAGE_SIZE)?;
+            ForestProjectFundInvestor::list(conn, project_id, page, PAGE_SIZE)?;
         Ok(Json(PagedResponse {
             data: investors,
             page_count,

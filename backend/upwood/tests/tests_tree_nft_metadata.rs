@@ -474,6 +474,9 @@ fn setup_chain(
         tree_ft_contract_index:           sft.contract_address().to_decimal(),
         tree_nft_contract_index:          nft.contract_address().to_decimal(),
         offchain_rewards_contract_index:  Decimal::ZERO,
+        mint_funds_contract_index:        Decimal::ZERO,
+        trading_contract_index:           Decimal::ZERO,
+        yielder_contract_index:           Decimal::ZERO,
     };
 
     (system_contracts, contract_calls)

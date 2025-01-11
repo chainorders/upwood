@@ -20,10 +20,11 @@ pub type ContractResult<T> = Result<T, Error>;
 /// Represents Sell event.
 /// This is the event that is emitted when a user deposits tokens to be sold.
 #[derive(Serialize, SchemaType, Debug)]
-pub struct SellEvent {
+pub struct ExchangeEvent {
     pub token_contract:  ContractAddress,
     pub token_id:        SecurityTokenId,
     pub seller:          AccountAddress,
+    pub buyer:           AccountAddress,
     pub token_amount:    TokenAmount,
     pub rate:            Rate,
     pub currency_amount: CurrencyTokenAmount,
@@ -35,7 +36,7 @@ pub enum Event {
     AgentAdded(AgentWithRoles<AgentRole>),
     AgentRemoved(Address),
     MarketAdded(AddMarketParams),
-    Sell(SellEvent),
+    Exchanged(ExchangeEvent),
     MarketRemoved(SecurityTokenAddress),
 }
 
@@ -49,7 +50,7 @@ pub enum Error {
     InvalidMarket,
     TokenTransfer,
     CurrencyTransfer,
-    InvalidSellRate,
+    InvalidRate,
 }
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Self { Error::ParseError }
@@ -67,10 +68,10 @@ pub enum AgentRole {
 
 #[derive(Serialize, Debug, SchemaType, Clone, Copy)]
 pub struct Market {
-    /// Buyer
-    pub buyer: AccountAddress,
+    pub liquidity_provider: AccountAddress,
     /// Rate at which the tokens are being bought.
-    pub rate:  Rate,
+    pub buy_rate:           Rate,
+    pub sell_rate:          Rate,
 }
 
 #[derive(Serial, DeserialWithState)]
@@ -279,7 +280,7 @@ fn get_market(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<Market
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct SellParams {
+pub struct ExchangeParams {
     pub token:  SecurityTokenAddress,
     pub amount: SecurityTokenAmount,
     pub rate:   Rate,
@@ -289,7 +290,7 @@ pub struct SellParams {
     contract = "security_p2p_trading",
     name = "sell",
     mutable,
-    parameter = "SellParams",
+    parameter = "ExchangeParams",
     error = "Error",
     enable_logger
 )]
@@ -298,30 +299,34 @@ pub fn sell(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let params: SellParams = ctx.parameter_cursor().get()?;
+    let params: ExchangeParams = ctx.parameter_cursor().get()?;
     let seller = match ctx.sender() {
         Address::Account(a) => a,
         Address::Contract(_) => bail!(Error::Unauthorized),
     };
-    let (currency_token, currency_amount, buyer) = {
+    let (currency_token, currency_amount, liquidity_provider) = {
         let state = host.state_mut();
         let market = state
             .markets
             .get_mut(&params.token)
             .ok_or(Error::InvalidMarket)?;
-        ensure!(market.rate.eq(&params.rate), Error::InvalidSellRate);
+        ensure!(market.buy_rate.eq(&params.rate), Error::InvalidRate);
         let (currency_amount, _) = market
-            .rate
+            .buy_rate
             .convert_token_amount_with_rem(&params.amount)
             .map_err(|_| Error::InvalidConversion)?;
-        (state.currency_token, currency_amount, market.buyer)
+        (
+            state.currency_token,
+            currency_amount,
+            market.liquidity_provider,
+        )
     };
 
     // Transfer the tokens to the buyer and the currency to the seller.
     host.invoke_transfer_single(&currency_token.contract, Transfer {
         amount:   currency_amount,
         token_id: currency_token.id,
-        from:     buyer.into(),
+        from:     liquidity_provider.into(),
         to:       seller.into(),
         data:     AdditionalData::empty(),
     })
@@ -330,16 +335,84 @@ pub fn sell(
         amount:   params.amount,
         token_id: params.token.id,
         from:     seller.into(),
-        to:       buyer.into(),
+        to:       liquidity_provider.into(),
         data:     AdditionalData::empty(),
     })
     .map_err(|_| Error::TokenTransfer)?;
 
     // Log the sell event.
-    logger.log(&Event::Sell(SellEvent {
+    logger.log(&Event::Exchanged(ExchangeEvent {
         token_contract: params.token.contract,
         token_id: params.token.id,
         seller,
+        buyer: liquidity_provider,
+        token_amount: params.amount,
+        rate: params.rate,
+        currency_amount,
+    }))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "buy",
+    mutable,
+    parameter = "ExchangeParams",
+    error = "Error",
+    enable_logger
+)]
+pub fn buy(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: ExchangeParams = ctx.parameter_cursor().get()?;
+    let buyer = match ctx.sender() {
+        Address::Account(a) => a,
+        Address::Contract(_) => bail!(Error::Unauthorized),
+    };
+    let (currency_token, currency_amount, liquidity_provider) = {
+        let state = host.state_mut();
+        let market = state
+            .markets
+            .get_mut(&params.token)
+            .ok_or(Error::InvalidMarket)?;
+        ensure!(market.sell_rate.eq(&params.rate), Error::InvalidRate);
+        let (currency_amount, _) = market
+            .sell_rate
+            .convert_token_amount_with_rem(&params.amount)
+            .map_err(|_| Error::InvalidConversion)?;
+        (
+            state.currency_token,
+            currency_amount,
+            market.liquidity_provider,
+        )
+    };
+
+    // Transfer the tokens to the buyer and the currency to the seller.
+    host.invoke_transfer_single(&currency_token.contract, Transfer {
+        amount:   currency_amount,
+        token_id: currency_token.id,
+        from:     buyer.into(),
+        to:       liquidity_provider.into(),
+        data:     AdditionalData::empty(),
+    })
+    .map_err(|_| Error::CurrencyTransfer)?;
+    host.invoke_transfer_single(&params.token.contract, Transfer {
+        amount:   params.amount,
+        token_id: params.token.id,
+        from:     liquidity_provider.into(),
+        to:       buyer.into(),
+        data:     AdditionalData::empty(),
+    })
+    .map_err(|_| Error::TokenTransfer)?;
+
+    // Log the buy event.
+    logger.log(&Event::Exchanged(ExchangeEvent {
+        token_contract: params.token.contract,
+        token_id: params.token.id,
+        seller: liquidity_provider,
+        buyer,
         token_amount: params.amount,
         rate: params.rate,
         currency_amount,

@@ -3,8 +3,8 @@
 use concordium_base::smart_contracts::WasmModule;
 use concordium_smart_contract_testing::*;
 use security_mint_fund::types::{
-    AddFundParams, ClaimInvestmentParams, FundId, FundState, InitParam, TransferInvestParams,
-    UpdateFundStateParams,
+    AddFundParams, ClaimInvestmentParams, FundState, InitParam, SecurityTokenUId,
+    TransferInvestParams, UpdateFundStateParams,
 };
 
 use super::MAX_ENERGY;
@@ -82,7 +82,7 @@ impl MintFundTestClient {
         }
     }
 
-    pub fn remove_fund_payload(&self, fund_id: FundId) -> UpdateContractPayload {
+    pub fn remove_fund_payload(&self, fund_id: SecurityTokenUId) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.0,
             amount:       Amount::zero(),
@@ -160,7 +160,7 @@ impl MintFundTestClient {
         &self,
         chain: &mut Chain,
         sender: &Account,
-        fund_id: FundId,
+        fund_id: SecurityTokenUId,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             Signer::with_one_key(),

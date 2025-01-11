@@ -73,10 +73,14 @@ pub enum ProcessorError {
         token_id: Decimal,
     },
 
-    #[error("Fund not found: {fund_id}, contract: {contract}")]
+    #[error(
+        "Fund not found: {contract}, security_token_id: {security_token_id}, \
+         security_token_contract_address: {security_token_contract_address}"
+    )]
     FundNotFound {
-        fund_id:  Decimal,
         contract: Decimal,
+        security_token_id: Decimal,
+        security_token_contract_address: Decimal,
     },
 
     #[error(

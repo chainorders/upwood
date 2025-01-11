@@ -6,6 +6,14 @@ pub mod sql_types {
     pub struct Cis2TokenHolderBalanceUpdateType;
 
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "forest_project_security_token_contract_type"))]
+    pub struct ForestProjectSecurityTokenContractType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "forest_project_state"))]
+    pub struct ForestProjectState;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "security_mint_fund_investment_record_type"))]
     pub struct SecurityMintFundInvestmentRecordType;
 
@@ -99,6 +107,97 @@ diesel::table! {
         supply -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    forest_project_legal_contract_user_signatures (project_id, cognito_user_id) {
+        project_id -> Uuid,
+        cognito_user_id -> Varchar,
+        user_account -> Varchar,
+        user_signature -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    forest_project_legal_contracts (project_id) {
+        project_id -> Uuid,
+        text_url -> Varchar,
+        edoc_url -> Varchar,
+        pdf_url -> Varchar,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    forest_project_notifications (id) {
+        id -> Uuid,
+        project_id -> Uuid,
+        cognito_user_id -> Varchar,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    forest_project_prices (project_id, price_at) {
+        project_id -> Uuid,
+        price -> Numeric,
+        price_at -> Timestamp,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    forest_project_property_media (id) {
+        id -> Uuid,
+        project_id -> Uuid,
+        image_url -> Varchar,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ForestProjectSecurityTokenContractType;
+
+    forest_project_token_contracts (contract_address, forest_project_id, contract_type) {
+        contract_address -> Numeric,
+        token_id -> Nullable<Numeric>,
+        forest_project_id -> Uuid,
+        contract_type -> ForestProjectSecurityTokenContractType,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ForestProjectState;
+
+    forest_projects (id) {
+        id -> Uuid,
+        name -> Varchar,
+        label -> Varchar,
+        desc_short -> Text,
+        desc_long -> Text,
+        area -> Varchar,
+        carbon_credits -> Int4,
+        roi_percent -> Float4,
+        state -> ForestProjectState,
+        image_small_url -> Varchar,
+        image_large_url -> Varchar,
+        geo_spatial_url -> Nullable<Varchar>,
+        shares_available -> Int4,
+        offering_doc_link -> Nullable<Varchar>,
+        property_media_header -> Text,
+        property_media_footer -> Text,
+        latest_price -> Numeric,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -293,7 +392,8 @@ diesel::table! {
         block_height -> Numeric,
         txn_index -> Numeric,
         contract_address -> Numeric,
-        fund_id -> Numeric,
+        investment_token_id -> Numeric,
+        investment_token_contract_address -> Numeric,
         investor -> Varchar,
         currency_amount -> Numeric,
         token_amount -> Numeric,
@@ -305,9 +405,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    security_mint_fund_investors (contract_address, fund_id, investor) {
+    security_mint_fund_investors (contract_address, investment_token_id, investment_token_contract_address, investor) {
         contract_address -> Numeric,
-        fund_id -> Numeric,
+        investment_token_id -> Numeric,
+        investment_token_contract_address -> Numeric,
         investor -> Varchar,
         currency_amount -> Numeric,
         token_amount -> Numeric,
@@ -320,20 +421,37 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::SecurityMintFundState;
 
-    security_mint_funds (id) {
-        id -> Numeric,
+    security_mint_funds (contract_address, investment_token_id, investment_token_contract_address) {
         contract_address -> Numeric,
-        token_id -> Numeric,
-        token_contract_address -> Numeric,
         investment_token_id -> Numeric,
         investment_token_contract_address -> Numeric,
+        token_id -> Numeric,
+        token_contract_address -> Numeric,
         currency_amount -> Numeric,
         token_amount -> Numeric,
         receiver_address -> Nullable<Varchar>,
-        rate -> Numeric,
+        rate_numerator -> Numeric,
+        rate_denominator -> Numeric,
         fund_state -> SecurityMintFundState,
         create_time -> Timestamp,
         update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_p2p_exchange_records (id) {
+        id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
+        contract_address -> Numeric,
+        token_id -> Numeric,
+        token_contract_address -> Numeric,
+        buyer -> Varchar,
+        seller -> Varchar,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        rate -> Numeric,
+        create_time -> Timestamp,
     }
 }
 
@@ -352,28 +470,15 @@ diesel::table! {
         contract_address -> Numeric,
         token_id -> Numeric,
         token_contract_address -> Numeric,
-        buyer -> Varchar,
-        rate -> Numeric,
+        liquidity_provider -> Varchar,
+        buy_rate_numerator -> Numeric,
+        buy_rate_denominator -> Numeric,
+        sell_rate_numerator -> Numeric,
+        sell_rate_denominator -> Numeric,
         total_sell_token_amount -> Numeric,
         total_sell_currency_amount -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,
-    }
-}
-
-diesel::table! {
-    security_p2p_trading_sell_records (id) {
-        id -> Uuid,
-        block_height -> Numeric,
-        txn_index -> Numeric,
-        contract_address -> Numeric,
-        token_id -> Numeric,
-        token_contract_address -> Numeric,
-        seller -> Varchar,
-        currency_amount -> Numeric,
-        token_amount -> Numeric,
-        rate -> Numeric,
-        create_time -> Timestamp,
     }
 }
 
@@ -476,6 +581,15 @@ diesel::joinable!(cis2_recovery_records -> listener_contracts (cis2_address));
 diesel::joinable!(cis2_token_holder_balance_updates -> listener_contracts (cis2_address));
 diesel::joinable!(cis2_token_holders -> listener_contracts (cis2_address));
 diesel::joinable!(cis2_tokens -> listener_contracts (cis2_address));
+diesel::joinable!(forest_project_legal_contract_user_signatures -> forest_projects (project_id));
+diesel::joinable!(forest_project_legal_contract_user_signatures -> users (cognito_user_id));
+diesel::joinable!(forest_project_legal_contracts -> forest_projects (project_id));
+diesel::joinable!(forest_project_notifications -> forest_projects (project_id));
+diesel::joinable!(forest_project_notifications -> users (cognito_user_id));
+diesel::joinable!(forest_project_prices -> forest_projects (project_id));
+diesel::joinable!(forest_project_property_media -> forest_projects (project_id));
+diesel::joinable!(forest_project_token_contracts -> forest_projects (forest_project_id));
+diesel::joinable!(forest_project_token_contracts -> listener_contracts (contract_address));
 diesel::joinable!(identity_registry_agents -> listener_contracts (identity_registry_address));
 diesel::joinable!(identity_registry_identities -> listener_contracts (identity_registry_address));
 diesel::joinable!(identity_registry_issuers -> listener_contracts (identity_registry_address));
@@ -485,15 +599,15 @@ diesel::joinable!(nft_multi_rewarded_contracts -> listener_contracts (contract_a
 diesel::joinable!(offchain_reward_contract_agents -> offchain_rewards_contracts (contract_address));
 diesel::joinable!(offchain_rewardees -> offchain_rewards_contracts (contract_address));
 diesel::joinable!(security_mint_fund_contracts -> listener_contracts (contract_address));
+diesel::joinable!(security_mint_fund_investment_records -> listener_contracts (investment_token_contract_address));
 diesel::joinable!(security_mint_fund_investment_records -> security_mint_fund_contracts (contract_address));
-diesel::joinable!(security_mint_fund_investment_records -> security_mint_funds (fund_id));
+diesel::joinable!(security_mint_fund_investors -> listener_contracts (investment_token_contract_address));
 diesel::joinable!(security_mint_fund_investors -> security_mint_fund_contracts (contract_address));
-diesel::joinable!(security_mint_fund_investors -> security_mint_funds (fund_id));
+diesel::joinable!(security_p2p_exchange_records -> listener_contracts (token_contract_address));
+diesel::joinable!(security_p2p_exchange_records -> security_p2p_trading_contracts (contract_address));
 diesel::joinable!(security_p2p_trading_contracts -> listener_contracts (contract_address));
 diesel::joinable!(security_p2p_trading_markets -> listener_contracts (token_contract_address));
 diesel::joinable!(security_p2p_trading_markets -> security_p2p_trading_contracts (contract_address));
-diesel::joinable!(security_p2p_trading_sell_records -> listener_contracts (token_contract_address));
-diesel::joinable!(security_p2p_trading_sell_records -> security_p2p_trading_contracts (contract_address));
 diesel::joinable!(support_questions -> users (cognito_user_id));
 diesel::joinable!(user_challenges -> users (cognito_user_id));
 
@@ -506,6 +620,13 @@ diesel::allow_tables_to_appear_in_same_query!(
     cis2_token_holder_balance_updates,
     cis2_token_holders,
     cis2_tokens,
+    forest_project_legal_contract_user_signatures,
+    forest_project_legal_contracts,
+    forest_project_notifications,
+    forest_project_prices,
+    forest_project_property_media,
+    forest_project_token_contracts,
+    forest_projects,
     guides,
     identity_registry_agents,
     identity_registry_identities,
@@ -527,9 +648,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_mint_fund_investment_records,
     security_mint_fund_investors,
     security_mint_funds,
+    security_p2p_exchange_records,
     security_p2p_trading_contracts,
     security_p2p_trading_markets,
-    security_p2p_trading_sell_records,
     security_sft_multi_yielder_yeild_distributions,
     security_sft_multi_yielder_yields,
     support_questions,

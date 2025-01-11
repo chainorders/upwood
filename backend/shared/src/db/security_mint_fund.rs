@@ -107,19 +107,23 @@ impl SecurityMintFundContract {
     AsChangeset,
 )]
 #[diesel(table_name = security_mint_funds)]
-#[diesel(primary_key(id))]
+#[diesel(primary_key(
+    contract_address,
+    investment_token_id,
+    investment_token_contract_address
+))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SecurityMintFund {
-    pub id: Decimal,
     pub contract_address: Decimal,
-    pub token_id: Decimal,
-    pub token_contract_address: Decimal,
     pub investment_token_id: Decimal,
     pub investment_token_contract_address: Decimal,
+    pub token_id: Decimal,
+    pub token_contract_address: Decimal,
     pub currency_amount: Decimal,
     pub token_amount: Decimal,
     pub receiver_address: Option<String>,
-    pub rate: Decimal,
+    pub rate_numerator: Decimal,
+    pub rate_denominator: Decimal,
     pub fund_state: SecurityMintFundState,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
@@ -130,7 +134,11 @@ impl SecurityMintFund {
     pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
         let fund = diesel::insert_into(security_mint_funds::table)
             .values(self)
-            .on_conflict(security_mint_funds::id)
+            .on_conflict((
+                security_mint_funds::contract_address,
+                security_mint_funds::investment_token_id,
+                security_mint_funds::investment_token_contract_address,
+            ))
             .do_update()
             .set(self)
             .returning(Self::as_returning())
@@ -148,9 +156,19 @@ impl SecurityMintFund {
     }
 
     #[instrument(skip_all)]
-    pub fn find(conn: &mut DbConn, id: Decimal) -> DbResult<Option<Self>> {
+    pub fn find(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        investment_token_id: Decimal,
+        investment_token_contract_address: Decimal,
+    ) -> DbResult<Option<Self>> {
         let fund = security_mint_funds::table
-            .filter(security_mint_funds::id.eq(id))
+            .filter(security_mint_funds::contract_address.eq(contract_address))
+            .filter(security_mint_funds::investment_token_id.eq(investment_token_id))
+            .filter(
+                security_mint_funds::investment_token_contract_address
+                    .eq(investment_token_contract_address),
+            )
             .first(conn)
             .optional()?;
         Ok(fund)
@@ -159,7 +177,12 @@ impl SecurityMintFund {
     #[instrument(skip_all)]
     pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
         let updated_fund = diesel::update(security_mint_funds::table)
-            .filter(security_mint_funds::id.eq(self.id))
+            .filter(security_mint_funds::contract_address.eq(self.contract_address))
+            .filter(security_mint_funds::investment_token_id.eq(self.investment_token_id))
+            .filter(
+                security_mint_funds::investment_token_contract_address
+                    .eq(self.investment_token_contract_address),
+            )
             .set(self)
             .returning(Self::as_returning())
             .get_result(conn)?;
@@ -167,9 +190,19 @@ impl SecurityMintFund {
     }
 
     #[instrument(skip_all)]
-    pub fn delete(conn: &mut DbConn, id: Decimal) -> DbResult<()> {
+    pub fn delete(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        investment_token_id: Decimal,
+        investment_token_contract_address: Decimal,
+    ) -> DbResult<()> {
         diesel::delete(security_mint_funds::table)
-            .filter(security_mint_funds::id.eq(id))
+            .filter(security_mint_funds::contract_address.eq(contract_address))
+            .filter(security_mint_funds::investment_token_id.eq(investment_token_id))
+            .filter(
+                security_mint_funds::investment_token_contract_address
+                    .eq(investment_token_contract_address),
+            )
             .execute(conn)?;
         Ok(())
     }
@@ -196,16 +229,22 @@ impl SecurityMintFund {
     AsChangeset,
 )]
 #[diesel(table_name = security_mint_fund_investors)]
-#[diesel(primary_key(contract_address, fund_id, investor))]
+#[diesel(primary_key(
+    contract_address,
+    investment_token_id,
+    investment_token_contract_address,
+    investor
+))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Investor {
     pub contract_address: Decimal,
-    pub fund_id:          Decimal,
-    pub investor:         String,
-    pub currency_amount:  Decimal,
-    pub token_amount:     Decimal,
-    pub create_time:      NaiveDateTime,
-    pub update_time:      NaiveDateTime,
+    pub investment_token_id: Decimal,
+    pub investment_token_contract_address: Decimal,
+    pub investor: String,
+    pub currency_amount: Decimal,
+    pub token_amount: Decimal,
+    pub create_time: NaiveDateTime,
+    pub update_time: NaiveDateTime,
 }
 
 impl Investor {
@@ -215,7 +254,8 @@ impl Investor {
             .values(self)
             .on_conflict((
                 security_mint_fund_investors::contract_address,
-                security_mint_fund_investors::fund_id,
+                security_mint_fund_investors::investment_token_id,
+                security_mint_fund_investors::investment_token_contract_address,
                 security_mint_fund_investors::investor,
             ))
             .do_update()
@@ -237,12 +277,17 @@ impl Investor {
     pub fn find(
         conn: &mut DbConn,
         contract_address: Decimal,
-        fund_id: Decimal,
+        security_token_id: Decimal,
+        security_token_contract_address: Decimal,
         investor: &str,
     ) -> DbResult<Option<Self>> {
         let investor_record = security_mint_fund_investors::table
             .filter(security_mint_fund_investors::contract_address.eq(contract_address))
-            .filter(security_mint_fund_investors::fund_id.eq(fund_id))
+            .filter(security_mint_fund_investors::investment_token_id.eq(security_token_id))
+            .filter(
+                security_mint_fund_investors::investment_token_contract_address
+                    .eq(security_token_contract_address),
+            )
             .filter(security_mint_fund_investors::investor.eq(investor))
             .first(conn)
             .optional()?;
@@ -253,7 +298,11 @@ impl Investor {
     pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
         let investor = diesel::update(security_mint_fund_investors::table)
             .filter(security_mint_fund_investors::contract_address.eq(self.contract_address))
-            .filter(security_mint_fund_investors::fund_id.eq(self.fund_id))
+            .filter(security_mint_fund_investors::investment_token_id.eq(self.investment_token_id))
+            .filter(
+                security_mint_fund_investors::investment_token_contract_address
+                    .eq(self.investment_token_contract_address),
+            )
             .filter(security_mint_fund_investors::investor.eq(&self.investor))
             .set(self)
             .returning(Self::as_returning())
@@ -265,7 +314,11 @@ impl Investor {
     pub fn delete(&self, conn: &mut DbConn) -> DbResult<()> {
         diesel::delete(security_mint_fund_investors::table)
             .filter(security_mint_fund_investors::contract_address.eq(self.contract_address))
-            .filter(security_mint_fund_investors::fund_id.eq(self.fund_id))
+            .filter(security_mint_fund_investors::investment_token_id.eq(self.investment_token_id))
+            .filter(
+                security_mint_fund_investors::investment_token_contract_address
+                    .eq(self.investment_token_contract_address),
+            )
             .filter(security_mint_fund_investors::investor.eq(&self.investor))
             .execute(conn)?;
         Ok(())
@@ -300,7 +353,8 @@ pub struct InvestmentRecord {
     pub block_height: Decimal,
     pub txn_index: Decimal,
     pub contract_address: Decimal,
-    pub fund_id: Decimal,
+    pub investment_token_id: Decimal,
+    pub investment_token_contract_address: Decimal,
     pub investor: String,
     pub currency_amount: Decimal,
     pub token_amount: Decimal,
@@ -337,7 +391,14 @@ impl InvestmentRecord {
 }
 
 #[derive(
-    diesel_derive_enum::DbEnum, Debug, PartialEq, Enum, serde::Serialize, serde::Deserialize,
+    diesel_derive_enum::DbEnum,
+    Debug,
+    PartialEq,
+    Enum,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
 )]
 #[ExistingTypePath = "crate::schema::sql_types::SecurityMintFundInvestmentRecordType"]
 pub enum InvestmentRecordType {

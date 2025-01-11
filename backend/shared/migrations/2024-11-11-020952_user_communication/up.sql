@@ -1,46 +1,42 @@
-create table
-    news_articles (
-        id uuid primary key,
-        title varchar not null,
-        label varchar not null,
-        content text not null,
-        image_url text not null,
-        article_url text not null,
-        created_at timestamp not null,
-        order_index integer not null
-    );
+/* plpgsql-language-server:disable validation */
+   CREATE TABLE news_articles (
+          id uuid PRIMARY KEY,
+          title VARCHAR NOT NULL,
+          label VARCHAR NOT NULL,
+          content TEXT NOT NULL,
+          image_url TEXT NOT NULL,
+          article_url TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL,
+          order_index INTEGER NOT NULL
+          );
 
-create table
-    platform_updates (
-        id uuid primary key,
-        title varchar not null,
-        label varchar not null,
-        created_at timestamp not null,
-        order_index integer not null
-    );
+   CREATE TABLE platform_updates (
+          id uuid PRIMARY KEY,
+          title VARCHAR NOT NULL,
+          label VARCHAR NOT NULL,
+          created_at TIMESTAMP NOT NULL,
+          order_index INTEGER NOT NULL
+          );
 
-create table
-    maintenance_messages (
-        id uuid primary key,
-        message text not null,
-        created_at timestamp not null,
-        order_index integer not null
-    );
+   CREATE TABLE maintenance_messages (
+          id uuid PRIMARY KEY,
+          message TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL,
+          order_index INTEGER NOT NULL
+          );
 
-create table
-    guides (
-        id uuid primary key,
-        title varchar not null,
-        label varchar not null,
-        created_at timestamp not null,
-        order_index integer not null
-    );
+   CREATE TABLE guides (
+          id uuid PRIMARY KEY,
+          title VARCHAR NOT NULL,
+          label VARCHAR NOT NULL,
+          created_at TIMESTAMP NOT NULL,
+          order_index INTEGER NOT NULL
+          );
 
-create table
-    support_questions (
-        id uuid primary key,
-        cognito_user_id varchar not null references users (cognito_user_id) on delete cascade,
-        user_email varchar not null,
-        message text not null,
-        created_at timestamp not null
-    );
+   CREATE TABLE support_questions (
+          id uuid PRIMARY KEY,
+          cognito_user_id VARCHAR NOT NULL REFERENCES users (cognito_user_id) ON DELETE cascade,
+          user_email VARCHAR NOT NULL,
+          message TEXT NOT NULL,
+          created_at TIMESTAMP NOT NULL
+          );

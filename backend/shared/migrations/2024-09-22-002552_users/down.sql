@@ -1,5 +1,6 @@
-drop table if exists user_affiliates;
+/* plpgsql-language-server:disable validation */
+     DROP TABLE user_affiliates;
 
-drop table if exists user_challenges;
+     DROP TABLE user_challenges;
 
-drop table if exists users;
+     DROP TABLE users;

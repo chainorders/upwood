@@ -1,6 +1,5 @@
 #![cfg(test)]
 
-use cis2_conversions::to_token_id_vec;
 use cis2_security::{Cis2SecurityTestClient, Cis2TestClient};
 use compliance::init_nationalities;
 use concordium_cis2::{
@@ -16,14 +15,13 @@ use concordium_rwa_identity_registry::types::{
 };
 use concordium_smart_contract_testing::*;
 use concordium_std::attributes::NATIONALITY;
-use concordium_std::fail;
 use contract_base::{ContractPayloads, ContractTestClient};
 use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_mint_fund::types::{
-    AddFundParams, ClaimInvestmentParam, ClaimInvestmentParams, Event, FundId, InitParam,
-    TransferInvestParams, UpdateFundState, UpdateFundStateParams,
+    AddFundParams, ClaimInvestmentParam, ClaimInvestmentParams, InitParam, TransferInvestParams,
+    UpdateFundState, UpdateFundStateParams,
 };
 use security_mint_fund_client::MintFundTestClient;
 use security_sft_multi_client::SftMultiTestClient;
@@ -62,7 +60,7 @@ fn normal_flow() {
 
     let fund_contract = MintFundTestClient::init(&mut chain, &admin, &InitParam {
         currency_token: TokenUId {
-            id:       to_token_id_vec(TokenIdUnit()),
+            id:       TokenIdUnit(),
             contract: euroe_contract.contract_address(),
         },
         agents:         vec![],
@@ -145,46 +143,21 @@ fn normal_flow() {
             },
         })
         .expect("add token investment");
-    // Adding fund
-    let fund_id: FundId = {
-        let add_fund_res = fund_contract
-            .add_fund(&mut chain, &admin, &AddFundParams {
-                token:          TokenUId {
-                    contract: wrapped_token_contract.contract_address(),
-                    id:       to_token_id_vec(wrapped_token_id),
-                },
-                rate:           Rate::new(1000, 1).unwrap(),
-                security_token: TokenUId {
-                    contract: investment_token_contract.contract_address(),
-                    id:       to_token_id_vec(investment_token_id),
-                },
-            })
-            .expect("add fund");
-        let parsed_fund_contract_events: Vec<Event> = add_fund_res
-            .events()
-            .filter_map(|e| {
-                if e.0.eq(&fund_contract.contract_address()) {
-                    Some(
-                        e.1.iter()
-                            .map(|e| e.parse::<Event>().expect("parse event"))
-                            .collect::<Vec<Event>>(),
-                    )
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .collect();
-        let parsed_event = parsed_fund_contract_events
-            .iter()
-            .find(|e| matches!(e, Event::FundAdded(_)))
-            .expect("event not found");
-
-        match parsed_event {
-            Event::FundAdded(event) => event.fund_id,
-            _ => fail!("Unexpected event"),
-        }
+    let security_token = TokenUId {
+        contract: investment_token_contract.contract_address(),
+        id:       investment_token_id,
     };
+    // Adding fund
+    fund_contract
+        .add_fund(&mut chain, &admin, &AddFundParams {
+            token: TokenUId {
+                contract: wrapped_token_contract.contract_address(),
+                id:       wrapped_token_id,
+            },
+            rate: Rate::new(1000, 1).unwrap(),
+            security_token,
+        })
+        .expect("add fund");
 
     // First Investment
     euroe_contract
@@ -195,7 +168,7 @@ fn normal_flow() {
         .expect("update operator investor 1");
     fund_contract
         .transfer_invest(&mut chain, &investor_1, &TransferInvestParams {
-            fund_id,
+            security_token,
             amount: 1000.into(),
         })
         .expect("transfer_invest");
@@ -209,7 +182,7 @@ fn normal_flow() {
         .expect("update operator investor 2");
     fund_contract
         .transfer_invest(&mut chain, &investor_2, &TransferInvestParams {
-            fund_id,
+            security_token,
             amount: 2000.into(),
         })
         .expect("transfer_invest");
@@ -259,7 +232,7 @@ fn normal_flow() {
     // Updating fund state to success
     fund_contract
         .update_fund_state(&mut chain, &admin, &UpdateFundStateParams {
-            fund_id,
+            security_token,
             state: UpdateFundState::Success(treasury.address.into()),
         })
         .expect("update_fund_state");
@@ -295,7 +268,7 @@ fn normal_flow() {
     fund_contract
         .claim_investment(&mut chain, &investor_1, &ClaimInvestmentParams {
             investments: vec![ClaimInvestmentParam {
-                fund_id,
+                security_token,
                 investor: investor_1.address,
             }],
         })
@@ -303,7 +276,7 @@ fn normal_flow() {
     fund_contract
         .claim_investment(&mut chain, &investor_2, &ClaimInvestmentParams {
             investments: vec![ClaimInvestmentParam {
-                fund_id,
+                security_token,
                 investor: investor_2.address,
             }],
         })

@@ -1,4 +1,6 @@
-use concordium_cis2::{OnReceivingCis2DataParams, Receiver, TokenAmountU64, TokenIdVec};
+use concordium_cis2::{
+    OnReceivingCis2DataParams, Receiver, TokenAmountU64, TokenIdU64, TokenIdUnit,
+};
 use concordium_protocols::concordium_cis2_security::{AgentWithRoles, TokenUId};
 use concordium_protocols::rate::{ExchangeError, Rate};
 use concordium_std::*;
@@ -6,7 +8,11 @@ use concordium_std::*;
 pub type ContractResult<T> = Result<T, Error>;
 pub type TokenAmount = TokenAmountU64;
 pub type CurrencyTokenAmount = TokenAmountU64;
-pub type AnyTokenUId = TokenUId<TokenIdVec>;
+pub type CurrencyTokenId = TokenIdUnit;
+/// TokenUId for `Currency` token. This token type should match EuroE token type.
+pub type CurrencyTokenUId = TokenUId<CurrencyTokenId>;
+/// TokenUId for `Security` token. This token type should match Security Sft Multi token type.
+pub type SecurityTokenUId = TokenUId<TokenIdU64>;
 
 #[derive(Serialize, SchemaType, Debug, Clone, Copy)]
 pub enum AgentRole {
@@ -22,7 +28,7 @@ impl AgentRole {
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct InvestedEvent {
-    pub fund_id:         FundId,
+    pub security_token:  SecurityTokenUId,
     pub investor:        AccountAddress,
     pub security_amount: TokenAmount,
     pub currency_amount: CurrencyTokenAmount,
@@ -30,19 +36,18 @@ pub struct InvestedEvent {
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct FundAddedEvent {
-    pub fund_id:        FundId,
-    pub token:          AnyTokenUId,
+    pub token:          SecurityTokenUId,
     pub rate:           Rate,
-    pub security_token: AnyTokenUId,
+    pub security_token: SecurityTokenUId,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
 pub enum Event {
-    Initialized(AnyTokenUId),
+    Initialized(CurrencyTokenUId),
     AgentAdded(AgentWithRoles<AgentRole>),
     AgentRemoved(Address),
     FundAdded(FundAddedEvent),
-    FundRemoved(FundId),
+    FundRemoved(SecurityTokenUId),
     FundStateUpdated(UpdateFundStateParams),
     Invested(InvestedEvent),
     InvestmentClaimed(InvestedEvent),
@@ -51,7 +56,7 @@ pub enum Event {
 
 #[derive(Serialize, SchemaType, Debug, Clone)]
 pub struct InitParam {
-    pub currency_token: AnyTokenUId,
+    pub currency_token: CurrencyTokenUId,
     pub agents:         Vec<AgentWithRoles<AgentRole>>,
 }
 
@@ -71,6 +76,7 @@ pub enum Error {
     InvalidInvestor,
     NonExistentToken,
     AgentExists,
+    FundExists,
 }
 
 impl From<ParseError> for Error {
@@ -95,13 +101,13 @@ pub struct FundSuccessState {
     pub funds_receiver: Receiver,
 }
 
-pub type FundId = u32;
-pub type InvestReceiveParams = OnReceivingCis2DataParams<TokenIdVec, CurrencyTokenAmount, FundId>;
+pub type InvestReceiveParams =
+    OnReceivingCis2DataParams<CurrencyTokenId, CurrencyTokenAmount, SecurityTokenUId>;
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct UpdateFundStateParams {
-    pub fund_id: FundId,
-    pub state:   UpdateFundState,
+    pub security_token: SecurityTokenUId,
+    pub state:          UpdateFundState,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -112,15 +118,15 @@ pub enum UpdateFundState {
 
 #[derive(Serialize, SchemaType)]
 pub struct AddFundParams {
-    pub token:          AnyTokenUId,
+    pub token:          SecurityTokenUId,
     pub rate:           Rate,
-    pub security_token: AnyTokenUId,
+    pub security_token: SecurityTokenUId,
 }
 
 #[derive(Serialize, SchemaType)]
 pub struct ClaimInvestmentParam {
-    pub fund_id:  FundId,
-    pub investor: AccountAddress,
+    pub security_token: SecurityTokenUId,
+    pub investor:       AccountAddress,
 }
 
 #[derive(Serialize, SchemaType)]
@@ -133,6 +139,6 @@ pub struct ClaimInvestmentParams {
 #[derive(Serialize, SchemaType)]
 pub struct TransferInvestParams {
     /// Amount of currency token to be invested in current contract's fund.
-    pub amount:  CurrencyTokenAmount,
-    pub fund_id: FundId,
+    pub amount:         CurrencyTokenAmount,
+    pub security_token: SecurityTokenUId,
 }
