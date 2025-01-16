@@ -166,7 +166,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ForestProjectSecurityTokenContractType;
 
-    forest_project_token_contracts (contract_address, forest_project_id, contract_type) {
+    forest_project_token_contracts (forest_project_id, contract_type) {
         contract_address -> Numeric,
         token_id -> Nullable<Numeric>,
         forest_project_id -> Uuid,
@@ -411,7 +411,9 @@ diesel::table! {
         investment_token_contract_address -> Numeric,
         investor -> Varchar,
         currency_amount -> Numeric,
+        currency_amount_total -> Numeric,
         token_amount -> Numeric,
+        token_amount_total -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,
     }
@@ -477,6 +479,21 @@ diesel::table! {
         sell_rate_denominator -> Numeric,
         total_sell_token_amount -> Numeric,
         total_sell_currency_amount -> Numeric,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    security_p2p_trading_traders (contract_address, token_id, token_contract_address, trader) {
+        contract_address -> Numeric,
+        token_id -> Numeric,
+        token_contract_address -> Numeric,
+        trader -> Varchar,
+        token_in_amount -> Numeric,
+        currency_out_amount -> Numeric,
+        token_out_amount -> Numeric,
+        currency_in_amount -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,
     }
@@ -608,6 +625,8 @@ diesel::joinable!(security_p2p_exchange_records -> security_p2p_trading_contract
 diesel::joinable!(security_p2p_trading_contracts -> listener_contracts (contract_address));
 diesel::joinable!(security_p2p_trading_markets -> listener_contracts (token_contract_address));
 diesel::joinable!(security_p2p_trading_markets -> security_p2p_trading_contracts (contract_address));
+diesel::joinable!(security_p2p_trading_traders -> listener_contracts (token_contract_address));
+diesel::joinable!(security_p2p_trading_traders -> security_p2p_trading_contracts (contract_address));
 diesel::joinable!(support_questions -> users (cognito_user_id));
 diesel::joinable!(user_challenges -> users (cognito_user_id));
 
@@ -651,6 +670,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_p2p_exchange_records,
     security_p2p_trading_contracts,
     security_p2p_trading_markets,
+    security_p2p_trading_traders,
     security_sft_multi_yielder_yeild_distributions,
     security_sft_multi_yielder_yields,
     support_questions,

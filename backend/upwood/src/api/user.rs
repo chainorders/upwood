@@ -22,6 +22,7 @@ use shared::db::offchain_rewards::OffchainRewardee;
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord,
 };
+use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::user_challenges::UserChallenge;
 use shared::db_app::users::{User, UserAffiliate};
 use tracing::info;
@@ -609,7 +610,7 @@ impl UserApi {
             account:               account.to_string(),
             account_nonce:         nonce.to_u64().unwrap(),
             contract_address:      contracts.offchain_rewards_contract_index,
-            reward_id:             reward.id.as_bytes().to_vec(),
+            reward_id:             reward.investment_record_id.as_bytes().to_vec(),
             reward_amount:         remaining_reward_amount,
             reward_token_id:       "".to_string(),
             reward_token_contract: contracts.euro_e_contract_index,
@@ -622,6 +623,28 @@ impl UserApi {
             claim,
             signer: config.agent.address().to_string(),
             signature,
+        }))
+    }
+
+    #[oai(
+        path = "/user/transactions/list/:page",
+        method = "get",
+        tag = "ApiTags::Wallet"
+    )]
+    pub async fn user_transactions_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<UserTransaction>> {
+        let mut conn = db_pool.get()?;
+        let (users, page_count) =
+            UserTransaction::list_by_cognito_user_id(&mut conn, &claims.sub, page, PAGE_SIZE)?;
+
+        Ok(Json(PagedResponse {
+            data: users,
+            page,
+            page_count,
         }))
     }
 

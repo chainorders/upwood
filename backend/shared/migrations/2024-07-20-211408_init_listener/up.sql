@@ -1,41 +1,42 @@
-create table listener_blocks (
-    block_height numeric(20) primary key not null,
-    block_hash bytea not null,
-    block_slot_time timestamp not null
+/* plpgsql-language-server:disable validation */
+CREATE TABLE listener_blocks (
+    block_height NUMERIC(20) PRIMARY KEY NOT NULL,
+    block_hash bytea NOT NULL,
+    block_slot_time TIMESTAMP NOT NULL
 );
 
-create unique index listener_blocks_block_height on listener_blocks (block_height desc);
+CREATE UNIQUE index listener_blocks_block_height ON listener_blocks (block_height DESC);
 
-create table listener_contracts (
-    contract_address numeric(20) primary key not null,
-    module_ref varchar not null,
-    contract_name varchar not null,
-    owner varchar not null,
-    processor_type integer not null,
-    created_at timestamp not null
+CREATE TABLE listener_contracts (
+    contract_address NUMERIC(20) PRIMARY KEY NOT NULL,
+    module_ref VARCHAR NOT NULL,
+    contract_name VARCHAR NOT NULL,
+    owner VARCHAR NOT NULL,
+    processor_type INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL
 );
 
-create table listener_transactions (
-    transaction_hash varchar primary key not null,
-    block_hash bytea not null,
+CREATE TABLE listener_transactions (
+    transaction_hash VARCHAR PRIMARY KEY NOT NULL,
+    block_hash bytea NOT NULL,
     -- do not use references listener_blocks (block_hash) because the block may not be in the db yet
-    block_height numeric(20) not null,
+    block_height NUMERIC(20) NOT NULL,
     -- do not use references listener_blocks (block_height) because the block may not be in the db yet
-    block_slot_time timestamp not null,
-    transaction_index numeric(20) not null
+    block_slot_time TIMESTAMP NOT NULL,
+    transaction_index NUMERIC(20) NOT NULL
 );
 
-create table listener_contract_calls (
-    id bigserial primary key,
-    transaction_hash bytea not null,
+CREATE TABLE listener_contract_calls (
+    id bigserial PRIMARY KEY,
+    transaction_hash bytea NOT NULL,
     -- do not use references listener_transactions (transaction_hash) because the transaction may not be in the db yet
-    contract_address numeric(20) not null references listener_contracts (contract_address),
-    entrypoint_name varchar not null,
-    ccd_amount numeric(20) not null,
-    instigator varchar not null,
-    sender varchar not null,
-    events_count int not null,
-    call_type int not null,
-    is_processed boolean not null default false,
-    created_at timestamp not null
+    contract_address NUMERIC(20) NOT NULL REFERENCES listener_contracts (contract_address),
+    entrypoint_name VARCHAR NOT NULL,
+    ccd_amount NUMERIC(20) NOT NULL,
+    instigator VARCHAR NOT NULL,
+    sender VARCHAR NOT NULL,
+    events_count INT NOT NULL,
+    call_type INT NOT NULL,
+    is_processed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL
 );

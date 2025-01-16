@@ -6,7 +6,7 @@ use super::txn_listener::ListenerContract;
 use crate::db_shared::{DbConn, DbResult};
 
 #[derive(serde::Serialize, Object)]
-pub struct SftSingleTkenDetails {
+pub struct SftSingleTokenDetails {
     pub supply:          Decimal,
     pub holder_count:    u64,
     pub token_id:        String,
@@ -14,8 +14,8 @@ pub struct SftSingleTkenDetails {
     pub contract:        ListenerContract,
 }
 
-impl SftSingleTkenDetails {
-    pub fn find(contract: Decimal, db_conn: &mut DbConn) -> DbResult<Option<SftSingleTkenDetails>> {
+impl SftSingleTokenDetails {
+    pub fn find(contract: Decimal, db_conn: &mut DbConn) -> DbResult<Option<SftSingleTokenDetails>> {
         let token_id = Decimal::ZERO;
         let contract = ListenerContract::find(db_conn, contract)?;
         let contract = match contract {
@@ -30,7 +30,7 @@ impl SftSingleTkenDetails {
         let (contract_agents, _) = Agent::list(db_conn, contract.contract_address, i64::MAX, 0)?;
         let holder_count = holders_count_by_token(db_conn, contract.contract_address, token_id)?;
 
-        Ok(Some(SftSingleTkenDetails {
+        Ok(Some(SftSingleTokenDetails {
             supply: token_details.supply,
             holder_count: holder_count as u64,
             token_id: token_id.to_string(),

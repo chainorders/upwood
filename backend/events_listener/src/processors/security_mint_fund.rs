@@ -163,6 +163,8 @@ pub fn process_events(
                 .map(|investor| Investor {
                     currency_amount: investor.currency_amount + currency_amount.to_decimal(),
                     token_amount: investor.token_amount + security_amount.to_decimal(),
+                    currency_amount_total: investor.currency_amount_total
+                        + currency_amount.to_decimal(),
                     update_time: block_time,
                     ..investor
                 })
@@ -173,6 +175,8 @@ pub fn process_events(
                     investor: investor.to_string(),
                     currency_amount: currency_amount.to_decimal(),
                     token_amount: security_amount.to_decimal(),
+                    currency_amount_total: currency_amount.to_decimal(),
+                    token_amount_total: 0.into(),
                     create_time: block_time,
                     update_time: block_time,
                 })
@@ -193,23 +197,23 @@ pub fn process_events(
                     create_time: block_time,
                 }
                 .insert(conn)?;
-                let fund = SecurityMintFund::find(
+                SecurityMintFund::find(
                     conn,
                     contract.to_decimal(),
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
                 )?
+                .map(|mut fund| {
+                    fund.currency_amount += currency_amount.to_decimal();
+                    fund.token_amount += security_amount.to_decimal();
+                    fund.update_time = block_time;
+                    fund
+                })
                 .ok_or(ProcessorError::FundNotFound {
                     contract: contract.to_decimal(),
                     security_token_id: security_token.id.to_decimal(),
                     security_token_contract_address: security_token.contract.to_decimal(),
-                })?;
-                SecurityMintFund {
-                    currency_amount: fund.currency_amount + currency_amount.to_decimal(),
-                    token_amount: fund.token_amount + security_amount.to_decimal(),
-                    update_time: block_time,
-                    ..fund
-                }
+                })?
                 .update(conn)?;
                 info!(
                     "Investment received: fund: {}/{}, from: {}, currency amount: {}, token \
@@ -242,6 +246,7 @@ pub fn process_events(
                 .map(|investor| Investor {
                     currency_amount: investor.currency_amount - currency_amount,
                     token_amount: investor.token_amount - security_amount,
+                    currency_amount_total: investor.currency_amount_total - currency_amount,
                     update_time: block_time,
                     ..investor
                 })
@@ -315,6 +320,7 @@ pub fn process_events(
                 .map(|investor| Investor {
                     currency_amount: investor.currency_amount - currency_amount,
                     token_amount: investor.token_amount - security_amount,
+                    token_amount_total: investor.token_amount_total + security_amount,
                     update_time: block_time,
                     ..investor
                 })

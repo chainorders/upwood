@@ -42,7 +42,7 @@ async fn test_s3_public_files() {
         create_login_admin_user(&mut cognito, &mut api, &email, &password).await;
     println!("test user id: {}", cognito_user_id);
     // create upload url
-    let create_url_res = api.admin_file_upload_url_s3(&id_token).await;
+    let create_url_res = api.admin_file_upload_url_s3(id_token.clone()).await;
     println!("upload url: {}", create_url_res.presigned_url);
     // upload file
     let client = reqwest::Client::new();
@@ -56,10 +56,11 @@ async fn test_s3_public_files() {
     assert_eq!(res.status(), 200);
     println!("file uploaded");
     // clear test data
-    api.admin_delete_file_s3(&id_token, &create_url_res.file_name)
+    api.admin_delete_file_s3(id_token.clone(), create_url_res.file_name)
         .await;
     println!("file deleted");
-    api.admin_user_delete(id_token, cognito_user_id).await;
+    api.admin_user_delete(id_token.clone(), cognito_user_id)
+        .await;
     println!("user deleted");
 }
 
@@ -98,7 +99,7 @@ async fn test_ipfs_public_files() {
         create_login_admin_user(&mut cognito, &mut api, &email, &password).await;
     println!("test user id: {}", cognito_user_id);
     // create upload url
-    let create_url_res = api.admin_file_upload_url_ipfs(&id_token).await;
+    let create_url_res = api.admin_file_upload_url_ipfs(id_token.clone()).await;
     println!("upload url: {}", create_url_res.presigned_url);
     // upload file
     let client = reqwest::Client::new();
@@ -112,7 +113,7 @@ async fn test_ipfs_public_files() {
     assert_eq!(res.status(), 200);
     println!("file uploaded");
     // clear test data
-    api.admin_delete_file_ipfs(&id_token, &create_url_res.file_name)
+    api.admin_delete_file_ipfs(id_token.clone(), create_url_res.file_name)
         .await;
     println!("file deleted");
     api.admin_user_delete(id_token, cognito_user_id).await;

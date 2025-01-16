@@ -390,10 +390,6 @@ fn yield_for(
     let mut yields = BTreeMap::new();
     // Calculate the yields for the user across contracts.
     for param in params.iter_mut() {
-        ensure!(
-            param.token_ver_from.lt(&param.token_ver_to),
-            Error::ParseError
-        );
         let contract_yields = state
             .yields
             .get(&param.token_contract)

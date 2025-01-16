@@ -11,11 +11,7 @@ CREATE TABLE forest_project_token_contracts (
      token_id NUMERIC(20),
      forest_project_id uuid NOT NULL REFERENCES forest_projects (id) ON DELETE cascade,
      contract_type forest_project_security_token_contract_type NOT NULL,
-     PRIMARY KEY (
-          contract_address,
-          forest_project_id,
-          contract_type
-     )
+     PRIMARY KEY (forest_project_id, contract_type)
 );
 
 -- Forest project crypto information
@@ -42,7 +38,7 @@ FROM
      JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
      JOIN cis2_tokens token ON token_contract.contract_address = token.cis2_address;
 
--- All funds for forest projects
+-- All currently active funds for forest projects
 CREATE VIEW forest_project_funds AS
 SELECT
      fund.*,
@@ -54,20 +50,27 @@ FROM
      JOIN forest_project_security_tokens token ON fund.investment_token_contract_address = token.cis2_address
      AND fund.investment_token_id = token.token_id;
 
+-- All investors for all the currently active funds
 CREATE VIEW forest_project_fund_investor AS
 SELECT
      fund.forest_project_id,
      fund.contract_address AS fund_contract_address,
-     holder.holder_address AS investor_account_address,
-     holder.un_frozen_balance + holder.frozen_balance AS investment_token_amount,
+     fund.token_id AS fund_token_id,
+     fund.token_contract_address AS fund_token_contract_address,
+     fund.investment_token_id AS investment_token_id,
+     fund.investment_token_contract_address AS investment_token_contract_address,
+     fund.fund_type,
+     investor.investor AS investor_account_address,
+     investor.token_amount AS investment_token_amount,
+     investor.currency_amount AS investment_currency_amount,
      usr.cognito_user_id AS investor_cognito_user_id,
      usr.email AS investor_email
 FROM
      forest_project_funds fund
-     JOIN cis2_token_holders holder ON fund.token_contract_address = holder.cis2_address
-     AND fund.token_id = holder.token_id
-     AND (holder.un_frozen_balance + holder.frozen_balance) > 0
-     JOIN users usr ON holder.holder_address = usr.account_address;
+     JOIN security_mint_fund_investors investor ON fund.investment_token_contract_address = investor.investment_token_contract_address
+     AND fund.token_id = investor.investment_token_id
+     AND investor.token_amount > 0
+     JOIN users usr ON investor.investor = usr.account_address;
 
 -- All investment records for all the funds
 CREATE VIEW forest_project_funds_investment_records AS
@@ -85,6 +88,8 @@ FROM
 -- All affiliate reward records for forest projects including property and bond funds
 CREATE VIEW forest_project_funds_affiliate_reward_records AS
 SELECT
+     investment_record.id AS investment_record_id,
+     investment_record.contract_address AS fund_contract_address,
      investment_record.investment_token_contract_address,
      investment_record.investment_token_id,
      investment_record.fund_type,
@@ -93,6 +98,7 @@ SELECT
      investment_record.investor_cognito_user_id,
      investment_record.investor AS investor_account_address,
      claims.id AS claim_id,
+     claims.contract_address AS claims_contract_address,
      COALESCE(claims.reward_amount, 0) AS reward_amount,
      investment_record.currency_amount * affiliate.affiliate_commission - COALESCE(claims.reward_amount, 0) AS remaining_reward_amount,
      affiliate.cognito_user_id AS affiliate_cognito_user_id
@@ -264,32 +270,24 @@ SELECT
      END AS yield_amount,
      (
           SELECT
-               MAX(yield.token_id)
-          FROM
-               security_sft_multi_yielder_yields y
-          WHERE
-               y.contract_address = yield.contract_address
-               AND y.token_contract_address = yield.token_contract_address
+               FIRST_VALUE(yield.token_id) OVER (
+                    PARTITION BY
+                         yield.contract_address,
+                         yield.token_contract_address
+                    ORDER BY
+                         yield.token_id DESC
+               )
      ) AS max_token_id
 FROM
      forest_projects project
      JOIN forest_project_token_contracts token_contract ON project.id = token_contract.forest_project_id
-     JOIN cis2_token_holders holder ON token_contract.contract_address = holder.cis2_address
-     JOIN users usr ON holder.holder_address = usr.account_address
-     AND holder.un_frozen_balance > 0
+     JOIN cis2_token_holders holder ON token_contract.contract_address = holder.cis2_address AND holder.un_frozen_balance > 0
      JOIN security_sft_multi_yielder_yields yield ON token_contract.contract_address = yield.token_contract_address
-     AND yield.token_id > holder.token_id
-GROUP BY
-     project.id,
-     holder.token_id,
-     holder.cis2_address,
-     holder.holder_address,
-     usr.cognito_user_id,
-     yield.contract_address,
-     yield.yield_token_id,
-     yield.yield_contract_address,
-     yield.token_id,
-     yield.token_contract_address;
+     AND yield.token_id >= holder.token_id
+     JOIN users usr ON holder.holder_address = usr.account_address
+ORDER BY
+     token_id DESC,
+     token_contract_address DESC;
 
 -- Aggregate yeilds for Forest Project, Token Owner (User)
 CREATE VIEW forest_project_user_yields_aggregate AS
@@ -306,3 +304,6 @@ GROUP BY
      yield.yielder_contract_address,
      yield.yield_token_id,
      yield.yield_contract_address
+ORDER BY
+     yield.yielder_contract_address DESC,
+     yield.yield_token_id DESC;

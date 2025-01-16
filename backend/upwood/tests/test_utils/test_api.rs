@@ -1,15 +1,17 @@
-use chrono::NaiveDateTime;
 use poem::http::{Method, StatusCode};
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
+use poem_openapi::types::ToJSON;
 use shared::api::PagedResponse;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectHolderRewardTotal, ForestProjectInvestor, ForestProjectPrice,
-    ForestProjectSeller, ForestProjectState, ForestProjectUser, HolderReward, UserTransaction,
+    ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
 };
-use shared::db_app::users::AffiliateReward;
+use shared::db_app::forest_project_crypto::{
+    ActiveForestProjectUser, ForestProjectFundInvestor, ForestProjectFundsAffiliateRewardRecord, ForestProjectOwned, ForestProjectTokenContract, ForestProjectUserYieldsAggregate, ForestProjectUserYieldsForEachOwnedToken, FundedForestProjectUser, SecurityTokenContractType
+};
+use shared::db_app::portfolio::UserTransaction;
 use upwood::api;
-use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
+use upwood::api::files::UploadUrlResponse;
 use upwood::api::user::{
     AdminUser, ApiUser, ClaimRequest, UserRegisterReq, UserRegistrationInvitationSendReq,
     UserUpdateAccountAddressRequest,
@@ -20,14 +22,16 @@ pub struct ApiTestClient {
     pub client: TestClient<Route>,
 }
 
-// Users Implmentation
 impl ApiTestClient {
     pub async fn new(config: api::Config) -> Self {
         let api = api::create_web_app(config).await;
         let api = TestClient::new(api);
         Self { client: api }
     }
+}
 
+// Users Implementation
+impl ApiTestClient {
     pub async fn user_send_invitation(
         &mut self,
         req: &UserRegistrationInvitationSendReq,
@@ -156,30 +160,11 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn txn_history_list(
-        &self,
-        id_token: String,
-        page: i64,
-    ) -> PagedResponse<UserTransaction> {
-        let res = self
-            .client
-            .get(format!("/user/txn_history/list/{}", page))
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-            .0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse list txn history response")
-    }
-
     pub async fn user_affiliate_rewards_list(
         &self,
         id_token: String,
         page: i64,
-    ) -> PagedResponse<AffiliateReward> {
+    ) -> PagedResponse<ForestProjectFundsAffiliateRewardRecord> {
         let res = self
             .client
             .get(format!("/user/affiliate/rewards/list/{}", page))
@@ -216,6 +201,25 @@ impl ApiTestClient {
             .expect("Failed to parse claim affiliate rewards response")
     }
 
+    pub async fn user_transactions_list(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<UserTransaction> {
+        let res = self
+            .client
+            .get(format!("/user/transactions/list/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list user transactions response")
+    }
+
     pub async fn system_config(&self) -> api::SystemContractsConfig {
         let res = self.client.get("/system_config").send().await.0;
         assert_eq!(res.status(), StatusCode::OK);
@@ -228,7 +232,7 @@ impl ApiTestClient {
 
 // Files Implementation
 impl ApiTestClient {
-    pub async fn admin_file_upload_url_s3(&self, id_token: &str) -> api::files::UploadUrlResponse {
+    pub async fn admin_file_upload_url_s3(&self, id_token: String) -> UploadUrlResponse {
         let mut res = self
             .client
             .post("/admin/files/s3/upload_url")
@@ -239,7 +243,7 @@ impl ApiTestClient {
 
         match res.status() {
             StatusCode::OK => {
-                let res: api::files::UploadUrlResponse = res
+                let res: UploadUrlResponse = res
                     .into_body()
                     .into_json()
                     .await
@@ -257,7 +261,7 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn admin_delete_file_s3(&mut self, id_token: &str, file_name: &Uuid) {
+    pub async fn admin_delete_file_s3(&mut self, id_token: String, file_name: Uuid) {
         let res = self
             .client
             .delete(format!("/admin/files/s3/{}", file_name))
@@ -268,10 +272,7 @@ impl ApiTestClient {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    pub async fn admin_file_upload_url_ipfs(
-        &self,
-        id_token: &str,
-    ) -> api::files::UploadUrlResponse {
+    pub async fn admin_file_upload_url_ipfs(&self, id_token: String) -> UploadUrlResponse {
         let mut res = self
             .client
             .post("/admin/files/ipfs/upload_url")
@@ -282,11 +283,11 @@ impl ApiTestClient {
 
         match res.status() {
             StatusCode::OK => {
-                let res: api::files::UploadUrlResponse = res
+                let res: UploadUrlResponse = res
                     .into_body()
                     .into_json()
                     .await
-                    .expect("Failed to parse s3 upload url response");
+                    .expect("Failed to parse ipfs upload url response");
                 res
             }
             status_code => {
@@ -294,13 +295,13 @@ impl ApiTestClient {
                     .take_body()
                     .into_string()
                     .await
-                    .expect("Failed to parse s3 upload url response");
-                panic!("Failed to get s3 upload url: {} {}", status_code, res);
+                    .expect("Failed to parse ipfs upload url response");
+                panic!("Failed to get ipfs upload url: {} {}", status_code, res);
             }
         }
     }
 
-    pub async fn admin_delete_file_ipfs(&mut self, id_token: &str, file_name: &Uuid) {
+    pub async fn admin_delete_file_ipfs(&mut self, id_token: String, file_name: Uuid) {
         let res = self
             .client
             .delete(format!("/admin/files/ipfs/{}", file_name))
@@ -312,8 +313,184 @@ impl ApiTestClient {
     }
 }
 
-// Forest Projects Admin Implementation
+// Forest Projects Implementation
 impl ApiTestClient {
+    pub async fn forest_project_list_active(
+        &self,
+        id_token: String,
+    ) -> PagedResponse<ActiveForestProjectUser> {
+        let res = self
+            .client
+            .get("/forest_projects/list/active")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list active forest projects response")
+    }
+
+    pub async fn forest_project_get_active(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+    ) -> ActiveForestProjectUser {
+        let res = self
+            .client
+            .get(format!("/forest_projects/active/{}", project_id))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse get active forest project response")
+    }
+
+    pub async fn forest_project_list_funded(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<FundedForestProjectUser> {
+        let res = self
+            .client
+            .get(format!("/forest_projects/list/funded/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list funded forest projects response")
+    }
+
+    pub async fn forest_project_get_funded(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+    ) -> FundedForestProjectUser {
+        let res = self
+            .client
+            .get(format!("/forest_projects/funded/{}", project_id))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse get funded forest project response")
+    }
+
+    pub async fn forest_project_list_owned(
+        &self,
+        id_token: String,
+    ) -> PagedResponse<ForestProjectOwned> {
+        let res = self
+            .client
+            .get("/forest_projects/list/owned")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list owned forest projects response")
+    }
+
+    pub async fn forest_project_list_media(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        page: i64,
+    ) -> PagedResponse<ForestProjectMedia> {
+        let res = self
+            .client
+            .get(format!(
+                "/forest_projects/{}/media/list/{}",
+                project_id, page
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list forest project media response")
+    }
+
+    pub async fn forest_project_find_media(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        media_id: Uuid,
+    ) -> ForestProjectMedia {
+        let res = self
+            .client
+            .get(format!(
+                "/forest_projects/{}/media/{}",
+                project_id, media_id
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse find forest project media response")
+    }
+
+    pub async fn forest_project_yields_total(
+        &self,
+        id_token: String,
+    ) -> Vec<ForestProjectUserYieldsAggregate> {
+        let res = self
+            .client
+            .get("/forest_projects/yields/total")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list forest project yields total response")
+    }
+
+    pub async fn forest_project_yields_claimable(
+        &self,
+        id_token: String,
+    ) -> Vec<ForestProjectUserYieldsForEachOwnedToken> {
+        let res = self
+            .client
+            .get("/forest_projects/yields/claimable")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list forest project yields claimable response")
+    }
+
+    // ForestProjectAdminApi Implementation
     pub async fn admin_find_forest_project(
         &self,
         id_token: String,
@@ -324,36 +501,16 @@ impl ApiTestClient {
             .get(format!("/admin/forest_projects/{}", project_id))
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
             .expect("Failed to parse find forest project response")
     }
 
-    pub async fn admin_create_forest_project(
-        &mut self,
-        id_token: String,
-        req: ForestProject,
-    ) -> ForestProject {
-        let res = self
-            .client
-            .post("/admin/forest_projects")
-            .body_json(&req)
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse create forest project response")
-    }
-
-    pub async fn admin_forest_projects_list(
+    pub async fn admin_list_forest_projects(
         &self,
         id_token: String,
         page: i64,
@@ -362,36 +519,146 @@ impl ApiTestClient {
         let res = self
             .client
             .get(format!("/admin/forest_projects/list/{}", page))
-            .query("state", &state)
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("state", &state)
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
             .expect("Failed to parse list forest projects response")
     }
 
-    pub async fn admin_update_forest_project(
-        &mut self,
+    pub async fn admin_create_forest_project(
+        &self,
         id_token: String,
-        req: ForestProject,
+        project: &ForestProject,
+    ) -> ForestProject {
+        let res = self
+            .client
+            .post("/admin/forest_projects")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(project)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse create forest project response")
+    }
+
+    pub async fn admin_update_forest_project(
+        &self,
+        id_token: String,
+        project: &ForestProject,
     ) -> ForestProject {
         let res = self
             .client
             .put("/admin/forest_projects")
-            .body_json(&req)
             .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(project)
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
             .expect("Failed to parse update forest project response")
+    }
+
+    pub async fn admin_create_forest_project_media(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        media: &ForestProjectMedia,
+    ) -> ForestProjectMedia {
+        let res = self
+            .client
+            .post(format!("/admin/forest_projects/{}/media", project_id))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(media)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse create forest project media response")
+    }
+
+    pub async fn admin_delete_forest_project_media(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        media_id: Uuid,
+    ) -> ForestProjectMedia {
+        let res = self
+            .client
+            .delete(format!(
+                "/admin/forest_projects/{}/media/{}",
+                project_id, media_id
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse delete forest project media response")
+    }
+
+    pub async fn admin_find_forest_project_price(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        price_at: chrono::NaiveDateTime,
+    ) -> ForestProjectPrice {
+        let res = self
+            .client
+            .get(format!(
+                "/admin/forest_projects/{}/price/{}",
+                project_id, price_at
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse find forest project price response")
+    }
+
+    pub async fn admin_list_forest_project_prices(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        page: i64,
+    ) -> PagedResponse<ForestProjectPrice> {
+        let res = self
+            .client
+            .get(format!(
+                "/admin/forest_projects/{}/price/list/{}",
+                project_id, page
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list forest project prices response")
     }
 
     pub async fn admin_forest_project_create_price(
@@ -403,16 +670,32 @@ impl ApiTestClient {
         let res = self
             .client
             .post(format!("/admin/forest_projects/{}/price", project_id))
-            .body_json(price)
             .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(price)
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
             .expect("Failed to parse create forest project price response")
+    }
+
+    pub async fn admin_forest_project_delete_price(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+        price_at: chrono::NaiveDateTime,
+    ) -> TestResponse {
+        self.client
+            .delete(format!(
+                "/admin/forest_projects/{}/price/{}",
+                project_id, price_at
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
     }
 
     pub async fn admin_forest_project_investor_list(
@@ -420,7 +703,7 @@ impl ApiTestClient {
         id_token: String,
         project_id: Uuid,
         page: i64,
-    ) -> PagedResponse<ForestProjectInvestor> {
+    ) -> PagedResponse<ForestProjectFundInvestor> {
         let res = self
             .client
             .get(format!(
@@ -429,150 +712,71 @@ impl ApiTestClient {
             ))
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
             .expect("Failed to parse list forest project investors response")
     }
-}
 
-// Forest Projects User Implementation
-impl ApiTestClient {
-    pub async fn forest_project_list_active(
+    pub async fn forest_project_token_contract_create(
         &self,
         id_token: String,
-        page: i64,
-    ) -> PagedResponse<ForestProjectUser> {
+        contract: &ForestProjectTokenContract,
+    ) -> ForestProjectTokenContract {
         let res = self
             .client
-            .get(format!("/forest_projects/list/active/{}", page))
+            .post("/admin/forest_projects/token_contract")
             .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(contract)
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
-            .expect("Failed to parse list active forest projects response")
+            .expect("Failed to parse create forest project token contract response")
     }
 
-    pub async fn forest_project_list_owned(
+    pub async fn forest_project_token_contract_update(
         &self,
         id_token: String,
-    ) -> PagedResponse<ForestProjectUser> {
+        contract: &ForestProjectTokenContract,
+    ) -> ForestProjectTokenContract {
         let res = self
             .client
-            .get("/forest_projects/list/owned")
+            .put("/admin/forest_projects/token_contract")
             .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(contract)
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
             .into_json()
             .await
-            .expect("Failed to parse list owned forest projects response")
+            .expect("Failed to parse update forest project token contract response")
     }
 
-    pub async fn forest_project_find(
-        &self,
-        id_token: String,
-        project_id: Uuid,
-    ) -> ForestProjectUser {
-        let res = self
-            .client
-            .get(format!("/forest_projects/{}", project_id))
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse find forest project response")
-    }
-
-    pub async fn forest_project_rewards_total(
-        &self,
-        id_token: String,
-    ) -> Vec<ForestProjectHolderRewardTotal> {
-        let res = self
-            .client
-            .get("/forest_projects/rewards/total")
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse forest project rewards total response")
-    }
-
-    pub async fn forest_project_rewards_claimable(&self, id_token: String) -> Vec<HolderReward> {
-        let res = self
-            .client
-            .get("/forest_projects/rewards/claimable")
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse forest project rewards claimable response")
-    }
-
-    pub async fn forest_project_p2p_trade_sellers_list(
+    pub async fn forest_project_token_contract_delete(
         &self,
         id_token: String,
         project_id: Uuid,
-        page: i64,
-    ) -> PagedResponse<ForestProjectSeller> {
+        contract_type: SecurityTokenContractType,
+    ) {
         let res = self
             .client
-            .get(format!(
-                "/forest_projects/{}/p2p-trade/sellers/list/{}",
-                project_id, page
+            .delete(format!(
+                "/admin/forest_projects/{}/token_contract/{}",
+                project_id, contract_type.to_json_string()
             ))
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
-            .into_json()
             .await
-            .expect("Failed to parse list p2p trade sellers response")
-    }
-}
-
-// User Portfolio Implementation
-impl ApiTestClient {
-    pub async fn portfolio_aggreagte(
-        &self,
-        id_token: String,
-        now: Option<NaiveDateTime>,
-    ) -> InvestmentPortfolioUserAggregate {
-        let res = self
-            .client
-            .get("/portfolio/aggregate")
-            .header("Authorization", format!("Bearer {}", id_token))
-            .query("now", &now)
-            .send()
-            .await;
-        assert_eq!(res.0.status(), StatusCode::OK);
-        res.0
-            .into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse list portfolio response")
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
     }
 }

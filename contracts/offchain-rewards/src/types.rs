@@ -36,7 +36,7 @@ pub struct ClaimedEvent {
     pub reward_amount:         RewardTokenAmount,
 }
 
-#[derive(Serialize, SchemaType)]
+#[derive(Serialize, SchemaType, Debug)]
 pub struct ClaimRequest {
     pub claim:     ClaimInfo,
     pub signer:    AccountAddress,

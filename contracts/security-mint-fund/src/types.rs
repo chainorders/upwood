@@ -23,7 +23,14 @@ pub enum AgentRole {
 }
 
 impl AgentRole {
-    pub fn owner() -> Vec<Self> { vec![Self::AddFund, Self::RemoveFund, Self::UpdateFundState] }
+    pub fn owner() -> Vec<Self> {
+        vec![
+            Self::AddFund,
+            Self::RemoveFund,
+            Self::UpdateFundState,
+            Self::Operator,
+        ]
+    }
 }
 
 #[derive(Serialize, SchemaType, Debug)]

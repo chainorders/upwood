@@ -151,6 +151,7 @@ impl ForestProject {
     Insertable,
     Associations,
     Serialize,
+    Deserialize,
 )]
 #[diesel(table_name = crate::schema::forest_project_property_media)]
 #[diesel(belongs_to(ForestProject, foreign_key = project_id))]

@@ -242,7 +242,9 @@ pub struct Investor {
     pub investment_token_contract_address: Decimal,
     pub investor: String,
     pub currency_amount: Decimal,
+    pub currency_amount_total: Decimal,
     pub token_amount: Decimal,
+    pub token_amount_total: Decimal,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
 }

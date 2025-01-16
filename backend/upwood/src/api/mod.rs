@@ -73,6 +73,9 @@ pub struct Config {
     pub tree_ft_contract_index: Decimal,
     pub tree_nft_contract_index: Decimal,
     pub offchain_rewards_contract_index: Decimal,
+    pub mint_funds_contract_index: Decimal,
+    pub trading_contract_index: Decimal,
+    pub yielder_contract_index: Decimal,
     pub offchain_rewards_agent_wallet_json_str: String,
     pub files_bucket_name: String,
     pub files_presigned_url_expiry_secs: u64,
@@ -210,6 +213,9 @@ impl Config {
             tree_ft_contract_index:           self.tree_ft_contract_index,
             tree_nft_contract_index:          self.tree_nft_contract_index,
             offchain_rewards_contract_index:  self.offchain_rewards_contract_index,
+            mint_funds_contract_index:        self.mint_funds_contract_index,
+            trading_contract_index:           self.trading_contract_index,
+            yielder_contract_index:           self.yielder_contract_index,
         }
     }
 
@@ -429,6 +435,9 @@ pub struct SystemContractsConfig {
     pub tree_ft_contract_index:           Decimal,
     pub tree_nft_contract_index:          Decimal,
     pub offchain_rewards_contract_index:  Decimal,
+    pub mint_funds_contract_index:        Decimal,
+    pub trading_contract_index:           Decimal,
+    pub yielder_contract_index:           Decimal,
 }
 
 impl SystemContractsConfig {
@@ -458,6 +467,18 @@ impl SystemContractsConfig {
 
     pub fn offchain_rewards(&self) -> ContractAddress {
         ContractAddress::new(self.offchain_rewards_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn mint_funds(&self) -> ContractAddress {
+        ContractAddress::new(self.mint_funds_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn trading(&self) -> ContractAddress {
+        ContractAddress::new(self.trading_contract_index.to_u64().unwrap(), 0)
+    }
+
+    pub fn yielder(&self) -> ContractAddress {
+        ContractAddress::new(self.yielder_contract_index.to_u64().unwrap(), 0)
     }
 }
 

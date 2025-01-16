@@ -61,25 +61,21 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_funds_affiliate_reward_records (id) {
-        id -> Uuid,
-        block_height -> Numeric,
-        txn_index -> Numeric,
-        contract_address -> Numeric,
-        investment_token_id -> Numeric,
+    forest_project_funds_affiliate_reward_records (investment_record_id) {
+        investment_record_id -> Uuid,
+        fund_contract_address -> Numeric,
         investment_token_contract_address -> Numeric,
-        investor -> Varchar,
-        currency_amount -> Numeric,
-        token_amount -> Numeric,
-        investment_time -> Timestamp,
-        forest_project_id -> Uuid,
-        mint_fund_type -> Varchar,
-        claim_id -> Nullable<Uuid>,
+        investment_token_id -> Numeric,
+        fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
+        forest_project_id -> Numeric,
+        is_default -> Bool,
+        investor_cognito_user_id -> Varchar,
+        investor_account_address -> Varchar,
+        claim_id -> Uuid,
+        claims_contract_address -> Numeric,
         reward_amount -> Numeric,
         remaining_reward_amount -> Numeric,
         affiliate_cognito_user_id -> Varchar,
-        investor_cognito_user_id -> Varchar,
-        investor_account_address -> Varchar,
     }
 }
 
@@ -104,16 +100,14 @@ diesel::table! {
         latest_price -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
-        investment_token_contract_address -> Nullable<Numeric>,
+        contract_address -> Nullable<Numeric>,
+        token_id -> Nullable<Numeric>,
         total_supply -> Numeric,
         fund_contract_address -> Nullable<Numeric>,
-        fund_token_id -> Nullable<Numeric>,
-        fund_token_contract_address -> Nullable<Numeric>,
-        fund_investment_token_id -> Nullable<Numeric>,
-        fund_rate_numerator -> Nullable<Numeric>,
-        fund_rate_denominator -> Nullable<Numeric>,
         pre_sale_token_contract_address -> Nullable<Numeric>,
         pre_sale_token_id -> Nullable<Numeric>,
+        fund_rate_numerator -> Nullable<Numeric>,
+        fund_rate_denominator -> Nullable<Numeric>,
     }
 }
 
@@ -138,15 +132,11 @@ diesel::table! {
         latest_price -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
-        investment_token_contract_address -> Nullable<Numeric>,
-        total_supply -> Numeric,
-        market_contract_address -> Nullable<Numeric>,
-        market_token_id -> Nullable<Numeric>,
-        market_liquidity_provider -> Nullable<Varchar>,
-        market_buy_rate_numerator -> Nullable<Numeric>,
-        market_buy_rate_denominator -> Nullable<Numeric>,
         token_contract_address -> Nullable<Numeric>,
         token_id -> Nullable<Numeric>,
+        total_supply -> Numeric,
+        market_contract_address -> Nullable<Numeric>,
+        market_liquidity_provider -> Nullable<Varchar>,
         market_sell_rate_numerator -> Nullable<Numeric>,
         market_sell_rate_denominator -> Nullable<Numeric>,
     }
@@ -173,12 +163,12 @@ diesel::table! {
         latest_price -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
-        investment_token_contract_address -> Nullable<Numeric>,
+        contract_address -> Nullable<Numeric>,
+        token_id -> Nullable<Numeric>,
         total_supply -> Numeric,
         fund_contract_address -> Nullable<Numeric>,
-        fund_token_id -> Nullable<Numeric>,
-        fund_token_contract_address -> Nullable<Numeric>,
-        fund_investment_token_id -> Nullable<Numeric>,
+        pre_sale_token_contract_address -> Nullable<Numeric>,
+        pre_sale_token_id -> Nullable<Numeric>,
         fund_rate_numerator -> Nullable<Numeric>,
         fund_rate_denominator -> Nullable<Numeric>,
         notification_id -> Nullable<Uuid>,
@@ -208,13 +198,13 @@ diesel::table! {
         latest_price -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
-        investment_token_contract_address -> Nullable<Numeric>,
+        token_contract_address -> Nullable<Numeric>,
+        token_id -> Nullable<Numeric>,
         total_supply -> Numeric,
         market_contract_address -> Nullable<Numeric>,
-        market_token_id -> Nullable<Numeric>,
         market_liquidity_provider -> Nullable<Varchar>,
-        market_buy_rate_numerator -> Nullable<Numeric>,
-        market_buy_rate_denominator -> Nullable<Numeric>,
+        market_sell_rate_numerator -> Nullable<Numeric>,
+        market_sell_rate_denominator -> Nullable<Numeric>,
         notification_id -> Nullable<Uuid>,
         cognito_user_id -> Nullable<Varchar>,
         has_signed_contract -> Bool,
@@ -242,7 +232,9 @@ diesel::table! {
         latest_price -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
-        total_supply -> Numeric,
+        cognito_user_id -> Varchar,
+        account_address -> Varchar,
+        total_balance -> Numeric,
         property_contract_address -> Nullable<Numeric>,
         property_token_id -> Nullable<Numeric>,
         market_contract_address -> Nullable<Numeric>,
@@ -254,9 +246,6 @@ diesel::table! {
         bond_fund_contract_address -> Nullable<Numeric>,
         bond_fund_rate_numerator -> Nullable<Numeric>,
         bond_fund_rate_denominator -> Nullable<Numeric>,
-        cognito_user_id -> Varchar,
-        account_address -> Varchar,
-        total_balance -> Numeric,
     }
 }
 
@@ -287,15 +276,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_token_contracts (contract_address, forest_project_id, contract_type) {
-        contract_address -> Numeric,
-        token_id -> Nullable<Numeric>,
-        forest_project_id -> Uuid,
-        contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-    }
-}
-
-diesel::table! {
     forest_project_supply (forest_project_id) {
         forest_project_id -> Uuid,
         supply -> Nullable<Numeric>,
@@ -322,8 +302,14 @@ diesel::table! {
     forest_project_fund_investor (fund_contract_address, investor_cognito_user_id) {
         forest_project_id -> Uuid,
         fund_contract_address -> Numeric,
+        fund_token_id -> Numeric,
+        fund_token_contract_address -> Numeric,
+        investment_token_id -> Numeric,
+        investment_token_contract_address -> Numeric,
+        fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
         investor_account_address -> Varchar,
         investment_token_amount -> Numeric,
+        investment_currency_amount -> Numeric,
         investor_cognito_user_id -> Varchar,
         investor_email -> Varchar,
     }
@@ -350,3 +336,60 @@ diesel::table! {
         investor_cognito_user_id -> Varchar,
     }
 }
+
+diesel::table! {
+    forest_project_investor (cognito_user_id) {
+        cognito_user_id -> Varchar,
+        total_currency_amount_locked -> Numeric,
+        total_currency_amount_invested -> Numeric,
+    }
+}
+
+diesel::table! {
+    forest_project_trader (cognito_user_id) {
+        cognito_user_id -> Varchar,
+        total_currency_in_amount -> Numeric,
+        total_currency_out_amount -> Numeric,
+    }
+}
+
+diesel::table! {
+    forest_project_user_investment_amounts(cognito_user_id) {
+        cognito_user_id -> Varchar,
+        total_currency_amount_locked -> Numeric,
+        total_currency_amount_invested -> Numeric,
+    }
+}
+
+diesel::table! {
+    user_transactions (transaction_hash) {
+        transaction_hash -> Varchar,
+        forest_project_id -> Uuid,
+        currency_amount -> Numeric,
+        cognito_user_id -> Varchar,
+        transaction_type -> Varchar,
+    }
+}
+
+diesel::define_sql_function!(
+    fn user_currency_value_for_forest_project_owned_tokens_at(
+        cognito_user_id: diesel::sql_types::Text,
+        time_at: diesel::sql_types::Timestamp
+    ) -> Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_exchange_profits(
+        cognito_user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp
+    ) -> Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_fund_profits(
+        cognito_user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp
+    ) -> Numeric
+);

@@ -70,6 +70,7 @@ pub mod cognito {
             key_set.prefetch_jwks().await.map_err(Error::CognitoJWKS)?;
             let verifier = key_set
                 .new_id_token_verifier(&[&user_pool_client_id])
+                .ignore_iat()
                 .build()
                 .map_err(Error::JsonToken)?;
             Ok(Self {

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Months, NaiveDateTime, Utc};
 use concordium_rust_sdk::id::types::AccountAddress;
-use diesel::sql_types::{Nullable, Numeric, Timestamp, VarChar};
-use diesel::{sql_query, QueryResult};
+use diesel::dsl::select;
+use diesel::QueryResult;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
@@ -9,9 +9,12 @@ use poem_openapi::{Object, OpenApi};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use shared::db::cis2_security::Token;
-use shared::db_app::forest_project::ForestProjectState;
+use shared::db_app::portfolio::ForestProjectUserInvestmentAmount;
 use shared::db_shared::{DbConn, DbPool};
-use shared::schema;
+use shared::schema_manual::{
+    user_currency_value_for_forest_project_owned_tokens_at, user_exchange_profits,
+    user_fund_profits,
+};
 use tracing::error;
 
 use super::{ensure_account_registered, BearerAuthorization, JsonResult, SystemContractsConfig};
@@ -38,9 +41,8 @@ impl Api {
         let now = now.unwrap_or(Utc::now().naive_utc());
         let ret = InvestmentPortfolioUserAggregate::generate(
             conn,
+            &claims.sub,
             &account,
-            contracts.euro_e_contract_index,
-            contracts.euro_e_token_id,
             contracts.carbon_credit_contract_index,
             contracts.carbon_credit_token_id,
             now,
@@ -72,16 +74,18 @@ impl Api {
         Path(months): Path<u32>,
         Query(now): Query<Option<NaiveDateTime>>,
     ) -> JsonResult<Vec<PortfolioValue>> {
-        let account = ensure_account_registered(&claims)?;
         let conn = &mut db_pool.get()?;
         let now = now.unwrap_or(Utc::now().naive_utc());
         let mut ret = Vec::new();
         for i in 0..months {
             let time = now.checked_sub_months(Months::new(i)).unwrap();
-            let value =
-                InvestmentPortfolioUserAggregate::calculate_portfolio_value(conn, &account, time)?;
+            let value = InvestmentPortfolioUserAggregate::calculate_portfolio_value(
+                conn,
+                &claims.sub,
+                time,
+            )?;
             ret.push(PortfolioValue {
-                portfolio_value: value.currency.unwrap_or(Decimal::ZERO),
+                portfolio_value: value,
                 at:              time,
             });
         }
@@ -111,9 +115,8 @@ use diesel::prelude::*;
 impl InvestmentPortfolioUserAggregate {
     pub fn generate(
         conn: &mut DbConn,
+        cognito_user_id: &str,
         account: &AccountAddress,
-        euro_e_contract_index: Decimal,
-        euro_e_token_id: Decimal,
         carbon_credit_contract_index: Decimal,
         carbon_credit_token_id: Decimal,
         now: NaiveDateTime,
@@ -121,117 +124,71 @@ impl InvestmentPortfolioUserAggregate {
         let start_of_year = now.checked_sub_months(Months::new(12)).unwrap();
         let start_of_month = now.checked_sub_months(Months::new(1)).unwrap();
 
-        let locked_mint_fund_euro_e_amount = Self::calculate_mint_fund_locked_euro_e_amounts(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
-            now,
-        )?
-        .currency
-        .unwrap_or(Decimal::ZERO);
-        let current_portfolio_value = Self::calculate_portfolio_value(conn, account, now)?
-            .currency
-            .unwrap_or(Decimal::ZERO);
+        let invested_amounts =
+            ForestProjectUserInvestmentAmount::find_by_cognito_user_id(conn, cognito_user_id)?;
+        let current_portfolio_value = Self::calculate_portfolio_value(conn, cognito_user_id, now)?;
 
         // yearly calculations
         let portfolio_value_at_start_of_year =
-            Self::calculate_portfolio_value(conn, account, start_of_year)?
-                .currency
-                .unwrap_or(Decimal::ZERO);
-        let amount_received_for_outgoing_tokens_year =
-            Self::calculate_outgoing_amount(conn, account, start_of_year, now)?;
-        let amount_paid_for_incoming_tokens_year =
-            Self::calculate_incoming_amount(conn, account, start_of_year, now)?;
-        let amount_invested_mint_fund_year = Self::calculate_euro_e_invested_amount_mint_funds(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
+            Self::calculate_portfolio_value(conn, cognito_user_id, start_of_year)?;
+        let exchange_profit_year = select(user_exchange_profits(
+            cognito_user_id.to_string(),
             start_of_year,
             now,
-        )?;
-        let amount_withdrawn_mint_fund_year = Self::calculate_euro_e_withdrawn_amount_mint_funds(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
+        ))
+        .get_result::<Decimal>(conn)?;
+        let fund_profit_year = select(user_fund_profits(
+            cognito_user_id.to_string(),
             start_of_year,
             now,
-        )?;
+        ))
+        .get_result::<Decimal>(conn)?;
         let yearly_return = current_portfolio_value - portfolio_value_at_start_of_year
-            + amount_received_for_outgoing_tokens_year
-            - amount_paid_for_incoming_tokens_year
-            - amount_invested_mint_fund_year
-            + amount_withdrawn_mint_fund_year;
+            + exchange_profit_year
+            + fund_profit_year;
 
         // monthly calculations
         let portfolio_value_at_start_of_month =
-            Self::calculate_portfolio_value(conn, account, start_of_month)?
-                .currency
-                .unwrap_or(Decimal::ZERO);
-        let amount_received_for_outgoing_tokens_month =
-            Self::calculate_outgoing_amount(conn, account, start_of_month, now)?;
-        let amount_paid_for_incoming_tokens_month =
-            Self::calculate_incoming_amount(conn, account, start_of_month, now)?;
-        let amount_invested_mint_fund_month = Self::calculate_euro_e_invested_amount_mint_funds(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
+            Self::calculate_portfolio_value(conn, cognito_user_id, start_of_month)?;
+        let exchange_profit_month = select(user_exchange_profits(
+            cognito_user_id.to_string(),
             start_of_month,
             now,
-        )?;
-        let amount_withdrawn_mint_fund_month = Self::calculate_euro_e_withdrawn_amount_mint_funds(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
+        ))
+        .get_result::<Decimal>(conn)?;
+        let fund_profit_month = select(user_fund_profits(
+            cognito_user_id.to_string(),
             start_of_month,
             now,
-        )?;
+        ))
+        .get_result::<Decimal>(conn)?;
         let monthly_return = current_portfolio_value - portfolio_value_at_start_of_month
-            + amount_received_for_outgoing_tokens_month
-            - amount_paid_for_incoming_tokens_month
-            - amount_invested_mint_fund_month
-            + amount_withdrawn_mint_fund_month;
+            + exchange_profit_month
+            + fund_profit_month;
 
-        let invested_amount_mint_fund_total = Self::calculate_euro_e_invested_amount_mint_funds(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
+        let locked_invested_value = invested_amounts
+            .clone()
+            .map(|a| a.total_currency_amount_locked)
+            .unwrap_or(Decimal::ZERO);
+        let invested_value = invested_amounts
+            .map(|a| a.total_currency_amount_invested)
+            .unwrap_or(Decimal::ZERO);
+        let exchange_profits_total = select(user_exchange_profits(
+            cognito_user_id.to_string(),
             DateTime::UNIX_EPOCH.naive_utc(),
             now,
-        )?;
-        let p2p_trade_buy_amount_total = Self::calculate_p2p_trade_buy_amount(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
-            now,
-        )?
-        .currency
-        .unwrap_or(Decimal::ZERO);
-        let amount_received_for_outgoing_tokens_total =
-            Self::calculate_outgoing_amount(conn, account, DateTime::UNIX_EPOCH.naive_utc(), now)?;
-        let amount_paid_for_incoming_tokens_total =
-            Self::calculate_incoming_amount(conn, account, DateTime::UNIX_EPOCH.naive_utc(), now)?;
-        let amount_withdrawn_mint_fund_total = Self::calculate_euro_e_withdrawn_amount_mint_funds(
-            conn,
-            account,
-            euro_e_contract_index,
-            euro_e_token_id,
+        ))
+        .get_result::<Decimal>(conn)?;
+        let fund_profits_total = select(user_fund_profits(
+            cognito_user_id.to_string(),
             DateTime::UNIX_EPOCH.naive_utc(),
             now,
-        )?;
-        let invested_value = invested_amount_mint_fund_total + p2p_trade_buy_amount_total;
+        ))
+        .get_result::<Decimal>(conn)?;
         let return_on_investment = if invested_value.is_zero() {
             Decimal::ZERO
         } else {
-            ((current_portfolio_value + amount_received_for_outgoing_tokens_total
-                - amount_paid_for_incoming_tokens_total
-                + amount_withdrawn_mint_fund_total
+            ((current_portfolio_value + exchange_profits_total + fund_profits_total
                 - invested_value)
                 / invested_value)
                 * Decimal::from(100)
@@ -246,7 +203,7 @@ impl InvestmentPortfolioUserAggregate {
         )?;
 
         Ok(InvestmentPortfolioUserAggregate {
-            locked_mint_fund_euro_e_amount,
+            locked_mint_fund_euro_e_amount: locked_invested_value,
             current_portfolio_value,
             yearly_return,
             monthly_return,
@@ -258,411 +215,15 @@ impl InvestmentPortfolioUserAggregate {
 
     fn calculate_portfolio_value(
         conn: &mut DbConn,
-        account: &AccountAddress,
+        cognito_user_id: &str,
         now: NaiveDateTime,
-    ) -> QueryResult<CurrencyAmount> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query("
-        select
-            sum(currency) as currency
-        from
-            (
-                select distinct
-                    on (project_id) project_id,
-                    first_value(balance * price) over w as currency
-                from
-                    (
-                        select
-                            forest_projects.id as project_id,
-                            bu.create_time as update_time,
-                            bu.un_frozen_balance + bu.frozen_balance as balance,
-                            fpp.price,
-                            fpp.price_at as price_time
-                        from
-                            forest_projects
-                            join cis2_token_holder_balance_updates as bu on forest_projects.contract_address = bu.cis2_address
-                            and bu.token_id = 0
-                            and bu.holder_address = $1
-                            and bu.create_time > $2
-                            and bu.create_time <= $3
-                            join forest_project_prices as fpp on forest_projects.id = fpp.project_id
-                            and fpp.price_at <= $3
-                        where
-                            forest_projects.state = $4
-                    ) as t
-                window
-                    w as (
-                        partition by
-                            project_id
-                        order by
-                            update_time desc,
-                            price_time desc
-                    )
-            ) t2
-        ");
-
-        let amounts = amounts
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<Timestamp, _>(now)
-            .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts)
-    }
-
-    fn calculate_mint_fund_locked_euro_e_amounts(
-        conn: &mut DbConn,
-        account: &AccountAddress,
-        euro_e_contract_index: Decimal,
-        euro_e_token_id: Decimal,
-        now: NaiveDateTime,
-    ) -> QueryResult<CurrencyAmount> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query(
-            "select
-                sum(currency_amount_balance) as currency
-            from
-                (
-                    select distinct
-                        on (project_id) project_id,
-                        first_value(currency_amount_balance) over w as currency_amount_balance
-                    from
-                        (
-                            select
-                                forest_projects.id as project_id,
-                                security_mint_fund_investment_records.token_amount_balance,
-                                security_mint_fund_investment_records.currency_amount_balance,
-                                security_mint_fund_investment_records.create_time
-                            from
-                                forest_projects
-                                join security_mint_fund_contracts on forest_projects.mint_fund_contract_address = security_mint_fund_contracts.contract_address
-                                join security_mint_fund_investment_records on security_mint_fund_contracts.contract_address = security_mint_fund_investment_records.contract_address
-                            where
-                                forest_projects.state = $1
-                                and security_mint_fund_investment_records.investor = $2
-                                and security_mint_fund_investment_records.create_time <= $3
-                                and security_mint_fund_investment_records.create_time > $4
-                                and security_mint_fund_contracts.currency_token_contract_address = $5
-                                and security_mint_fund_contracts.currency_token_id = $6
-                        ) as t
-                    window
-                        w as (
-                            partition by
-                                project_id
-                            order by
-                                create_time desc
-                        )
-                ) as t2"
-        );
-
-        let amounts = amounts
-            .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(now)
-            .bind::<Timestamp, _>(chrono::DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<Numeric, _>(euro_e_contract_index)
-            .bind::<Numeric, _>(euro_e_token_id)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts)
-    }
-
-    fn calculate_euro_e_invested_amount_mint_funds(
-        conn: &mut DbConn,
-        account: &AccountAddress,
-        euro_e_contract_index: Decimal,
-        euro_e_token_id: Decimal,
-        start: NaiveDateTime,
-        end: NaiveDateTime,
     ) -> QueryResult<Decimal> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query("
-        select
-            sum(currency) as currency
-        from
-            (
-                select distinct
-                    on (project_id) project_id,
-                    first_value(currency_amount) over w as currency
-                from
-                    (
-                        select
-                            forest_projects.id as project_id,
-                            ir.create_time,
-                            ir.currency_amount
-                        from
-                            forest_projects
-                            join security_mint_fund_contracts as funds on forest_projects.mint_fund_contract_address = funds.contract_address
-                            and funds.currency_token_contract_address = $1
-                            and funds.currency_token_id = $2
-                            join security_mint_fund_investment_records as ir on funds.contract_address = ir.contract_address
-                            and ir.investor = $3
-                            and ir.create_time > $4
-                            and ir.create_time <= $5
-                            and ir.investment_record_type = 'invested'
-                        where
-                            forest_projects.state = 'listed'
-                    ) as t
-                window
-                    w as (
-                        partition by
-                            project_id
-                        order by
-                            create_time desc
-                    )
-            ) t2;"
-        );
-        let amounts = amounts
-            .bind::<Numeric, _>(euro_e_contract_index)
-            .bind::<Numeric, _>(euro_e_token_id)
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(start)
-            .bind::<Timestamp, _>(end)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts.currency.unwrap_or(Decimal::ZERO))
+        select(user_currency_value_for_forest_project_owned_tokens_at(
+            cognito_user_id.to_string(),
+            now,
+        ))
+        .get_result::<Decimal>(conn)
     }
-
-    fn calculate_euro_e_withdrawn_amount_mint_funds(
-        conn: &mut DbConn,
-        account: &AccountAddress,
-        euro_e_contract_index: Decimal,
-        euro_e_token_id: Decimal,
-        start: NaiveDateTime,
-        end: NaiveDateTime,
-    ) -> QueryResult<Decimal> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query("
-        select
-            sum(currency) as currency
-        from
-            (
-                select distinct
-                    on (project_id, investor, investment_record_id) project_id,
-                    investor,
-                    investment_record_id,
-                    investment_record_type,
-                    token_amount,
-                    (first_value(price) over w * token_amount) as currency
-                from
-                    (
-                        select
-                            forest_projects.id as project_id,
-                            ir.investor,
-                            ir.id as investment_record_id,
-                            ir.investment_record_type,
-                            ir.token_amount,
-                            prices.price,
-                            prices.price_at
-                        from
-                            forest_projects
-                            join security_mint_fund_contracts as funds on forest_projects.mint_fund_contract_address = funds.contract_address
-                            and funds.currency_token_contract_address = $1
-                            and funds.currency_token_id = $2
-                            join security_mint_fund_investment_records as ir on funds.contract_address = ir.contract_address
-                            and ir.investor = $3
-                            and ir.create_time > $4
-                            and ir.create_time <= $5
-                            and (
-                                ir.investment_record_type = 'cancelled'
-                                or ir.investment_record_type = 'claimed'
-                            )
-                            join forest_project_prices as prices on forest_projects.id = prices.project_id
-                            and prices.price_at <= ir.create_time
-                        where
-                            forest_projects.state = 'listed'
-                    ) as t
-                window
-                    w as (
-                        partition by
-                            project_id,
-                            investor,
-                            investment_record_id
-                        order by
-                            price_at desc
-                    )
-            ) as t2;
-        ");
-        let amounts = amounts
-            .bind::<Numeric, _>(euro_e_contract_index)
-            .bind::<Numeric, _>(euro_e_token_id)
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(start)
-            .bind::<Timestamp, _>(end)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts.currency.unwrap_or(Decimal::ZERO))
-    }
-
-    fn calculate_p2p_trade_buy_amount(
-        conn: &mut DbConn,
-        account: &AccountAddress,
-        euro_e_contract_index: Decimal,
-        euro_e_token_id: Decimal,
-        now: NaiveDateTime,
-    ) -> QueryResult<CurrencyAmount> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query("
-        select
-            sum(security_p2p_trading_trades.currency_amount) as currency
-        from
-            forest_projects
-            join security_p2p_trading_contracts on forest_projects.p2p_trade_contract_address = security_p2p_trading_contracts.contract_address
-            and security_p2p_trading_contracts.currency_token_contract_address = $1
-            and security_p2p_trading_contracts.currency_token_id = $2
-            join security_p2p_trading_trades on security_p2p_trading_contracts.contract_address = security_p2p_trading_trades.contract_address
-            and security_p2p_trading_trades.buyer_address = $3
-            and security_p2p_trading_trades.create_time > $4
-            and security_p2p_trading_trades.create_time <= $5
-        where
-            forest_projects.state = $6"
-        );
-        let amounts = amounts
-            .bind::<Numeric, _>(euro_e_contract_index)
-            .bind::<Numeric, _>(euro_e_token_id)
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(DateTime::UNIX_EPOCH.naive_utc())
-            .bind::<Timestamp, _>(now)
-            .bind::<schema::sql_types::ForestProjectState, _>(ForestProjectState::Listed)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts)
-    }
-
-    pub fn calculate_outgoing_amount(
-        conn: &mut DbConn,
-        account: &AccountAddress,
-        start: NaiveDateTime,
-        end: NaiveDateTime,
-    ) -> QueryResult<Decimal> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query("
-        select
-            sum(currency) as currency
-        from
-            (
-                select distinct
-                on (project_id, update_time) project_id,
-                update_time,
-                first_value(amount) over w as amount,
-                first_value(price) over w as price,
-                first_value(price_time) over w as price_time,
-                first_value(price) over w * first_value(amount) over w as currency
-            from
-                (
-                    select
-                        projects.id as project_id,
-                        bu.amount,
-                        bu.create_time as update_time,
-                        prices.price,
-                        prices.price_at as price_time
-                    from
-                        forest_projects as projects
-                        join cis2_token_holder_balance_updates as bu on projects.contract_address = bu.cis2_address
-                        and bu.token_id = 0
-                        and (
-                            bu.update_type = 'transfer_out'
-                            or bu.update_type = 'burn'
-                        )
-                        and bu.holder_address = $1
-                        and bu.create_time > $2
-                        and bu.create_time <= $3
-                        join forest_project_prices as prices on projects.id = prices.project_id
-                        and prices.price_at <= bu.create_time
-                    where
-                        projects.state = 'listed'
-                ) as t
-            window
-                w as (
-                    partition by
-                        project_id,
-                        update_time
-                    order by
-                        update_time desc,
-                        price_time desc
-                )
-            ) as t2
-        "
-        );
-        let amounts = amounts
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(start)
-            .bind::<Timestamp, _>(end)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts.currency.unwrap_or(Decimal::ZERO))
-    }
-
-    pub fn calculate_incoming_amount(
-        conn: &mut DbConn,
-        account: &AccountAddress,
-        start: NaiveDateTime,
-        end: NaiveDateTime,
-    ) -> QueryResult<Decimal> {
-        let account = account.to_string();
-        #[rustfmt::skip]
-        let amounts = sql_query("
-        select
-            sum(currency) as currency
-        from
-            (
-                select distinct
-                on (project_id, update_time) project_id,
-                update_time,
-                first_value(amount) over w as amount,
-                first_value(price) over w as price,
-                first_value(price_time) over w as price_time,
-                first_value(price) over w * first_value(amount) over w as currency
-            from
-                (
-                    select
-                        projects.id as project_id,
-                        bu.amount,
-                        bu.create_time as update_time,
-                        prices.price,
-                        prices.price_at as price_time
-                    from
-                        forest_projects as projects
-                        join cis2_token_holder_balance_updates as bu on projects.contract_address = bu.cis2_address
-                        and bu.token_id = 0
-                        and (
-                            bu.update_type = 'transfer_in'
-                            or bu.update_type = 'mint'
-                        )
-                        and bu.holder_address = $1
-                        and bu.create_time > $2
-                        and bu.create_time <= $3
-                        join forest_project_prices as prices on projects.id = prices.project_id
-                        and prices.price_at <= bu.create_time
-                    where
-                        projects.state = 'listed'
-                ) as t
-            window
-                w as (
-                    partition by
-                        project_id,
-                        update_time
-                    order by
-                        update_time desc,
-                        price_time desc
-                )
-            ) as t2
-        "
-        );
-        let amounts = amounts
-            .bind::<VarChar, _>(account)
-            .bind::<Timestamp, _>(start)
-            .bind::<Timestamp, _>(end)
-            .get_result::<CurrencyAmount>(conn)?;
-        Ok(amounts.currency.unwrap_or(Decimal::ZERO))
-    }
-}
-
-#[derive(QueryableByName)]
-pub struct CurrencyAmount {
-    #[diesel(sql_type = Nullable<Numeric>)]
-    currency: Option<Decimal>,
 }
 
 #[derive(serde::Serialize, Object)]

@@ -10,8 +10,8 @@ use shared::db_app::forest_project::{
 };
 use shared::db_app::forest_project_crypto::{
     ActiveForestProjectUser, ForestProjectFundInvestor, ForestProjectOwned,
-    ForestProjectUserYieldsAggregate, ForestProjectUserYieldsForEachOwnedToken,
-    FundedForestProjectUser,
+    ForestProjectTokenContract, ForestProjectUserYieldsAggregate,
+    ForestProjectUserYieldsForEachOwnedToken, FundedForestProjectUser, SecurityTokenContractType,
 };
 use tracing::{debug, info};
 
@@ -217,6 +217,22 @@ impl ForestProjectApi {
             ),
         )))?;
         Ok(Json(media))
+    }
+
+    #[oai(
+        path = "/forest_projects/:project_id/token_contract/list",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_list_token_contracts(
+        &self,
+        BearerAuthorization(_claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+    ) -> JsonResult<Vec<ForestProjectTokenContract>> {
+        let conn = &mut db_pool.get()?;
+        let (contracts, _) = ForestProjectTokenContract::list(conn, project_id, 0, i64::MAX)?;
+        Ok(Json(contracts))
     }
 
     #[oai(
@@ -600,17 +616,78 @@ impl ForestProjectAdminApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
         Path(project_id): Path<uuid::Uuid>,
         Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<ForestProjectFundInvestor>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let (investors, page_count) =
-            ForestProjectFundInvestor::list(conn, project_id, page, PAGE_SIZE)?;
+        let (investors, page_count) = ForestProjectFundInvestor::list(
+            conn,
+            contracts.mint_funds_contract_index,
+            project_id,
+            page,
+            PAGE_SIZE,
+        )?;
         Ok(Json(PagedResponse {
             data: investors,
             page_count,
             page,
         }))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/token_contract",
+        method = "post",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_token_contract_create(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(contract): Json<ForestProjectTokenContract>,
+    ) -> JsonResult<ForestProjectTokenContract> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let contract = contract.insert(conn)?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/token_contract",
+        method = "put",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_token_contract_update(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(contract): Json<ForestProjectTokenContract>,
+    ) -> JsonResult<ForestProjectTokenContract> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let contract = contract.update(conn)?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/:project_id/token_contract/:contract_type",
+        method = "delete",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_token_contract_delete(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+        Path(contract_type): Path<SecurityTokenContractType>,
+    ) -> NoResResult {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        conn.transaction(|conn| {
+            ForestProjectTokenContract::delete(conn, project_id, contract_type)?;
+            NoResResult::Ok(())
+        })?;
+        Ok(())
     }
 }

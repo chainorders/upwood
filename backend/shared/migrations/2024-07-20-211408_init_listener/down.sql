@@ -1,7 +1,8 @@
-drop table if exists listener_contract_calls;
+/* plpgsql-language-server:disable validation */
+DROP TABLE IF EXISTS listener_contract_calls;
 
-drop table if exists listener_transactions;
+DROP TABLE IF EXISTS listener_transactions;
 
-drop table if exists listener_contracts;
+DROP TABLE IF EXISTS listener_contracts;
 
-drop table if exists listener_blocks;
+DROP TABLE IF EXISTS listener_blocks;

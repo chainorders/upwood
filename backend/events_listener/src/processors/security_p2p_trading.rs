@@ -5,7 +5,7 @@ use concordium_rust_sdk::types::ContractAddress;
 use rust_decimal::Decimal;
 use security_p2p_trading::{AddMarketParams, AgentRole, Event, ExchangeEvent};
 use shared::db::cis2_security::Agent;
-use shared::db::security_p2p_trading::{ExchangeRecord, Market, P2PTradeContract};
+use shared::db::security_p2p_trading::{ExchangeRecord, Market, P2PTradeContract, Trader};
 use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
 use uuid::Uuid;
@@ -120,6 +120,58 @@ pub fn process_events(
                     token_contract: token_contract.to_decimal(),
                 })?
                 .update(conn)?;
+                Trader::find(
+                    conn,
+                    contract.to_decimal(),
+                    token_id.to_decimal(),
+                    token_contract.to_decimal(),
+                    seller.to_string(),
+                )?
+                .map(|mut seller| {
+                    seller.token_out_amount += token_amount.to_decimal();
+                    seller.currency_in_amount += currency_amount.to_decimal();
+                    seller.update_time = block_time;
+                    seller
+                })
+                .unwrap_or_else(|| Trader {
+                    contract_address:       contract.to_decimal(),
+                    token_contract_address: token_contract.to_decimal(),
+                    token_id:               token_id.to_decimal(),
+                    trader:                 seller.to_string(),
+                    token_in_amount:        0.into(),
+                    token_out_amount:       token_amount.to_decimal(),
+                    currency_in_amount:     currency_amount.to_decimal(),
+                    currency_out_amount:    0.into(),
+                    create_time:            block_time,
+                    update_time:            block_time,
+                })
+                .upsert(conn)?;
+                Trader::find(
+                    conn,
+                    contract.to_decimal(),
+                    token_id.to_decimal(),
+                    token_contract.to_decimal(),
+                    buyer.to_string(),
+                )?
+                .map(|mut buyer| {
+                    buyer.token_in_amount += token_amount.to_decimal();
+                    buyer.currency_out_amount += currency_amount.to_decimal();
+                    buyer.update_time = block_time;
+                    buyer
+                })
+                .unwrap_or_else(|| Trader {
+                    contract_address:       contract.to_decimal(),
+                    token_contract_address: token_contract.to_decimal(),
+                    token_id:               token_id.to_decimal(),
+                    trader:                 buyer.to_string(),
+                    token_in_amount:        token_amount.to_decimal(),
+                    token_out_amount:       0.into(),
+                    currency_in_amount:     0.into(),
+                    currency_out_amount:    currency_amount.to_decimal(),
+                    create_time:            block_time,
+                    update_time:            block_time,
+                })
+                .upsert(conn)?;
                 ExchangeRecord {
                     id: Uuid::new_v4(),
                     block_height,

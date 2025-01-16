@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
-    security_p2p_trading_contracts, security_p2p_trading_markets, security_p2p_exchange_records,
+    security_p2p_exchange_records, security_p2p_trading_contracts, security_p2p_trading_markets,
 };
 
 /// Represents a contract in the security P2P trading system.
@@ -94,18 +94,18 @@ impl P2PTradeContract {
 #[diesel(primary_key(contract_address, token_id, token_contract_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Market {
-    pub contract_address: Decimal,
-    pub token_id: Decimal,
-    pub token_contract_address: Decimal,
-    pub liquidity_provider: String,
-    pub buy_rate_numerator: Decimal,
-    pub buy_rate_denominator: Decimal,
-    pub sell_rate_numerator: Decimal,
-    pub sell_rate_denominator: Decimal,
-    pub total_sell_token_amount: Decimal,
+    pub contract_address:           Decimal,
+    pub token_id:                   Decimal,
+    pub token_contract_address:     Decimal,
+    pub liquidity_provider:         String,
+    pub buy_rate_numerator:         Decimal,
+    pub buy_rate_denominator:       Decimal,
+    pub sell_rate_numerator:        Decimal,
+    pub sell_rate_denominator:      Decimal,
+    pub total_sell_token_amount:    Decimal,
     pub total_sell_currency_amount: Decimal,
-    pub create_time: NaiveDateTime,
-    pub update_time: NaiveDateTime,
+    pub create_time:                NaiveDateTime,
+    pub update_time:                NaiveDateTime,
 }
 
 impl Market {
@@ -155,7 +155,10 @@ impl Market {
         let updated_market = diesel::update(security_p2p_trading_markets::table)
             .filter(security_p2p_trading_markets::contract_address.eq(self.contract_address))
             .filter(security_p2p_trading_markets::token_id.eq(self.token_id))
-            .filter(security_p2p_trading_markets::token_contract_address.eq(self.token_contract_address))
+            .filter(
+                security_p2p_trading_markets::token_contract_address
+                    .eq(self.token_contract_address),
+            )
             .set(self)
             .returning(Self::as_returning())
             .get_result(conn)?;
@@ -184,6 +187,101 @@ impl Market {
             .offset(offset)
             .load(conn)?;
         Ok(markets)
+    }
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    PartialEq,
+    Object,
+    Serialize,
+    AsChangeset,
+)]
+#[diesel(table_name = crate::schema::security_p2p_trading_traders)]
+#[diesel(primary_key(contract_address, token_id, token_contract_address, trader))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Trader {
+    pub contract_address:       Decimal,
+    pub token_id:               Decimal,
+    pub token_contract_address: Decimal,
+    pub trader:                 String,
+    pub token_in_amount:        Decimal,
+    pub token_out_amount:       Decimal,
+    pub currency_in_amount:     Decimal,
+    pub currency_out_amount:    Decimal,
+    pub create_time:            NaiveDateTime,
+    pub update_time:            NaiveDateTime,
+}
+
+impl Trader {
+    #[instrument(skip_all)]
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(crate::schema::security_p2p_trading_traders::table)
+            .values(self)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn find(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_id: Decimal,
+        token_contract_address: Decimal,
+        trader: String,
+    ) -> DbResult<Option<Self>> {
+        let trader = crate::schema::security_p2p_trading_traders::table
+            .filter(
+                crate::schema::security_p2p_trading_traders::contract_address.eq(contract_address),
+            )
+            .filter(crate::schema::security_p2p_trading_traders::token_id.eq(token_id))
+            .filter(
+                crate::schema::security_p2p_trading_traders::token_contract_address
+                    .eq(token_contract_address),
+            )
+            .filter(crate::schema::security_p2p_trading_traders::trader.eq(trader))
+            .first(conn)
+            .optional()?;
+        Ok(trader)
+    }
+
+    #[instrument(skip_all)]
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::update(crate::schema::security_p2p_trading_traders::table)
+            .filter(
+                crate::schema::security_p2p_trading_traders::contract_address
+                    .eq(self.contract_address),
+            )
+            .filter(crate::schema::security_p2p_trading_traders::token_id.eq(self.token_id))
+            .filter(
+                crate::schema::security_p2p_trading_traders::token_contract_address
+                    .eq(self.token_contract_address),
+            )
+            .filter(crate::schema::security_p2p_trading_traders::trader.eq(&self.trader))
+            .set(self)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let trader = diesel::insert_into(crate::schema::security_p2p_trading_traders::table)
+            .values(self)
+            .on_conflict((
+                crate::schema::security_p2p_trading_traders::contract_address,
+                crate::schema::security_p2p_trading_traders::token_id,
+                crate::schema::security_p2p_trading_traders::token_contract_address,
+                crate::schema::security_p2p_trading_traders::trader,
+            ))
+            .do_update()
+            .set(self)
+            .returning(Self::as_returning())
+            .get_result(conn)?;
+        Ok(trader)
     }
 }
 
