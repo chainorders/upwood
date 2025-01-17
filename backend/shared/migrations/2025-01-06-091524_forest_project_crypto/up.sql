@@ -101,7 +101,8 @@ SELECT
      claims.contract_address AS claims_contract_address,
      COALESCE(claims.reward_amount, 0) AS reward_amount,
      investment_record.currency_amount * affiliate.affiliate_commission - COALESCE(claims.reward_amount, 0) AS remaining_reward_amount,
-     affiliate.cognito_user_id AS affiliate_cognito_user_id
+     affiliate.cognito_user_id AS affiliate_cognito_user_id,
+     affiliate.affiliate_commission
 FROM
      forest_project_funds_investment_records investment_record
      JOIN user_affiliates AS user_affiliate ON investor_cognito_user_id = user_affiliate.cognito_user_id
@@ -281,7 +282,8 @@ SELECT
 FROM
      forest_projects project
      JOIN forest_project_token_contracts token_contract ON project.id = token_contract.forest_project_id
-     JOIN cis2_token_holders holder ON token_contract.contract_address = holder.cis2_address AND holder.un_frozen_balance > 0
+     JOIN cis2_token_holders holder ON token_contract.contract_address = holder.cis2_address
+     AND holder.un_frozen_balance > 0
      JOIN security_sft_multi_yielder_yields yield ON token_contract.contract_address = yield.token_contract_address
      AND yield.token_id >= holder.token_id
      JOIN users usr ON holder.holder_address = usr.account_address

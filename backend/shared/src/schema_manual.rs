@@ -67,15 +67,16 @@ diesel::table! {
         investment_token_contract_address -> Numeric,
         investment_token_id -> Numeric,
         fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        forest_project_id -> Numeric,
-        is_default -> Bool,
+        forest_project_id -> Uuid,
+        is_default -> Nullable<Bool>,
         investor_cognito_user_id -> Varchar,
         investor_account_address -> Varchar,
-        claim_id -> Uuid,
-        claims_contract_address -> Numeric,
+        claim_id -> Nullable<Uuid>,
+        claims_contract_address -> Nullable<Numeric>,
         reward_amount -> Numeric,
         remaining_reward_amount -> Numeric,
         affiliate_cognito_user_id -> Varchar,
+        affiliate_commission -> Numeric,
     }
 }
 

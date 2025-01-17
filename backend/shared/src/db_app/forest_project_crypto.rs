@@ -23,15 +23,16 @@ pub struct ForestProjectFundsAffiliateRewardRecord {
     pub investment_token_contract_address: Decimal,
     pub investment_token_id: Decimal,
     pub fund_type: SecurityTokenContractType,
-    pub forest_project_id: Decimal,
-    pub is_default: bool,
+    pub forest_project_id: Uuid,
+    pub is_default: Option<bool>,
     pub investor_cognito_user_id: String,
     pub investor_account_address: String,
-    pub claim_id: Uuid,
-    pub claims_contract_address: Decimal,
+    pub claim_id: Option<Uuid>,
+    pub claims_contract_address: Option<Decimal>,
     pub reward_amount: Decimal,
     pub remaining_reward_amount: Decimal,
     pub affiliate_cognito_user_id: String,
+    pub affiliate_commission: Decimal,
 }
 
 impl ForestProjectFundsAffiliateRewardRecord {

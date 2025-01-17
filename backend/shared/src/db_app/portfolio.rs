@@ -92,11 +92,10 @@ impl UserTransaction {
         page_size: i64,
     ) -> QueryResult<(Vec<UserTransaction>, i64)> {
         use crate::schema_manual::user_transactions::dsl::*;
-        let offset = (page - 1) * page_size;
         let transactions = user_transactions
             .filter(cognito_user_id.eq(user_id))
             .limit(page_size)
-            .offset(offset)
+            .offset(page_size * page)
             .load::<UserTransaction>(conn)?;
         let count = user_transactions
             .filter(cognito_user_id.eq(user_id))

@@ -566,7 +566,11 @@ impl UserApi {
     ) -> JsonResult<PagedResponse<ForestProjectFundsAffiliateRewardRecord>> {
         let mut conn = db_pool.get()?;
         let (users, page_count) =
-            ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, page, PAGE_SIZE)?;
+            ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, page, PAGE_SIZE)
+                .map_err(|e| {
+                    error!("Error listing user affiliate rewards: {:?}", e);
+                    e
+                })?;
 
         Ok(Json(PagedResponse {
             data: users,
@@ -639,7 +643,11 @@ impl UserApi {
     ) -> JsonResult<PagedResponse<UserTransaction>> {
         let mut conn = db_pool.get()?;
         let (users, page_count) =
-            UserTransaction::list_by_cognito_user_id(&mut conn, &claims.sub, page, PAGE_SIZE)?;
+            UserTransaction::list_by_cognito_user_id(&mut conn, &claims.sub, page, PAGE_SIZE)
+                .map_err(|e| {
+                    error!("Error listing user transactions: {:?}", e);
+                    e
+                })?;
 
         Ok(Json(PagedResponse {
             data: users,
