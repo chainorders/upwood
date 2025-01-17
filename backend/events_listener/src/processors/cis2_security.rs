@@ -77,6 +77,7 @@ where
                     .upsert(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                id_serial: None,
                 block_height,
                 txn_index,
                 cis2_address: contract.to_decimal(),
@@ -156,6 +157,7 @@ where
                 .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                id_serial: None,
                 block_height,
                 txn_index,
                 cis2_address: contract,
@@ -199,6 +201,7 @@ where
                     .update(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                id_serial: None,
                 block_height,
                 txn_index,
                 cis2_address: contract.to_decimal(),
@@ -230,6 +233,7 @@ where
                     .upsert(conn)?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                id_serial: None,
                 block_height,
                 txn_index,
                 cis2_address: contract.to_decimal(),
@@ -412,6 +416,7 @@ where
             )?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                id_serial: None,
                 block_height,
                 txn_index,
                 cis2_address: contract.to_decimal(),
@@ -446,6 +451,7 @@ where
             )?;
             TokenHolderBalanceUpdate {
                 id: Uuid::new_v4(),
+                id_serial: None,
                 block_height,
                 txn_index,
                 cis2_address: contract.to_decimal(),

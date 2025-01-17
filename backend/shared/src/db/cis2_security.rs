@@ -396,6 +396,8 @@ impl TokenHolder {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct TokenHolderBalanceUpdate {
     pub id:                uuid::Uuid,
+    #[diesel(deserialize_as = i64)]
+    pub id_serial:         Option<i64>,
     pub block_height:      Decimal,
     pub txn_index:         Decimal,
     pub cis2_address:      Decimal,

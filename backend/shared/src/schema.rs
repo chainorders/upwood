@@ -72,6 +72,7 @@ diesel::table! {
 
     cis2_token_holder_balance_updates (id) {
         id -> Uuid,
+        id_serial -> Int8,
         block_height -> Numeric,
         txn_index -> Numeric,
         cis2_address -> Numeric,

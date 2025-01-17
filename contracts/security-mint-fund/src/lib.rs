@@ -371,7 +371,7 @@ fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> 
 
     host.invoke_mint_single(&wrapped_token.contract, wrapped_token.id, MintParam {
         address: from.into(),
-        amount:  TokenAmountSecurity::new_un_frozen(wrapped_amount),
+        amount:  TokenAmountSecurity::new_frozen(wrapped_amount),
     })
     .map_err(|_| Error::TokenMint)?;
 

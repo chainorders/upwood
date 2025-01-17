@@ -7,11 +7,14 @@ use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
 };
 use shared::db_app::forest_project_crypto::{
-    ActiveForestProjectUser, ForestProjectFundInvestor, ForestProjectFundsAffiliateRewardRecord, ForestProjectOwned, ForestProjectTokenContract, ForestProjectUserYieldsAggregate, ForestProjectUserYieldsForEachOwnedToken, FundedForestProjectUser, SecurityTokenContractType
+    ActiveForestProjectUser, ForestProjectFundInvestor, ForestProjectFundsAffiliateRewardRecord,
+    ForestProjectOwned, ForestProjectTokenContract, ForestProjectUserYieldsAggregate,
+    ForestProjectUserYieldsForEachOwnedToken, FundedForestProjectUser, SecurityTokenContractType,
 };
 use shared::db_app::portfolio::UserTransaction;
 use upwood::api;
 use upwood::api::files::UploadUrlResponse;
+use upwood::api::investment_portfolio::{InvestmentPortfolioUserAggregate, PortfolioValue};
 use upwood::api::user::{
     AdminUser, ApiUser, ClaimRequest, UserRegisterReq, UserRegistrationInvitationSendReq,
     UserUpdateAccountAddressRequest,
@@ -771,12 +774,57 @@ impl ApiTestClient {
             .client
             .delete(format!(
                 "/admin/forest_projects/{}/token_contract/{}",
-                project_id, contract_type.to_json_string()
+                project_id,
+                contract_type.to_json_string()
             ))
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await
             .0;
         assert_eq!(res.status(), StatusCode::OK);
+    }
+}
+
+// Investment Portfolio Implementation
+impl ApiTestClient {
+    pub async fn portfolio_aggregate(
+        &self,
+        id_token: String,
+        now: Option<chrono::NaiveDateTime>,
+    ) -> InvestmentPortfolioUserAggregate {
+        let res = self
+            .client
+            .get("/portfolio/aggregate")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .query("now", &now)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse portfolio aggregate response")
+    }
+
+    pub async fn portfolio_value_last_n_months(
+        &self,
+        id_token: String,
+        months: u32,
+        now: Option<chrono::NaiveDateTime>,
+    ) -> Vec<PortfolioValue> {
+        let res = self
+            .client
+            .get(format!("/portfolio/value_last_n_months/{}", months))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .query("now", &now)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse portfolio value last n months response")
     }
 }

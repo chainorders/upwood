@@ -33,9 +33,11 @@ impl Api {
         Data(contracts): Data<&SystemContractsConfig>,
     ) -> JsonResult<SftSingleTokenDetails> {
         ensure_is_admin(&claims)?;
-        let token =
-            SftSingleTokenDetails::find(contracts.carbon_credit_contract_index, &mut db_pool.get()?)?
-                .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
+        let token = SftSingleTokenDetails::find(
+            contracts.carbon_credit_contract_index,
+            &mut db_pool.get()?,
+        )?
+        .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
         Ok(Json(token))
     }
 }

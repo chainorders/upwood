@@ -12,10 +12,10 @@ use shared::db::cis2_security::Token;
 use shared::db_app::portfolio::ForestProjectUserInvestmentAmount;
 use shared::db_shared::{DbConn, DbPool};
 use shared::schema_manual::{
-    user_currency_value_for_forest_project_owned_tokens_at, user_exchange_profits,
-    user_fund_profits,
+    user_currency_value_for_forest_project_owned_tokens_at, user_exchange_input_amount,
+    user_exchange_profits, user_fund_investment_amount, user_fund_profits,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 use super::{ensure_account_registered, BearerAuthorization, JsonResult, SystemContractsConfig};
 use crate::api::{ApiTags, Error};
@@ -29,7 +29,7 @@ impl Api {
         method = "get",
         tag = "ApiTags::InvestmentPortfolio"
     )]
-    async fn portfolio_aggreagte(
+    async fn portfolio_aggregate(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
@@ -121,50 +121,30 @@ impl InvestmentPortfolioUserAggregate {
         carbon_credit_token_id: Decimal,
         now: NaiveDateTime,
     ) -> QueryResult<Self> {
+        debug!(
+            "Generating investment portfolio user aggregate for user {} at {}",
+            cognito_user_id, now
+        );
         let start_of_year = now.checked_sub_months(Months::new(12)).unwrap();
         let start_of_month = now.checked_sub_months(Months::new(1)).unwrap();
 
         let invested_amounts =
-            ForestProjectUserInvestmentAmount::find_by_cognito_user_id(conn, cognito_user_id)?;
-        let current_portfolio_value = Self::calculate_portfolio_value(conn, cognito_user_id, now)?;
-
-        // yearly calculations
-        let portfolio_value_at_start_of_year =
-            Self::calculate_portfolio_value(conn, cognito_user_id, start_of_year)?;
-        let exchange_profit_year = select(user_exchange_profits(
-            cognito_user_id.to_string(),
-            start_of_year,
-            now,
-        ))
-        .get_result::<Decimal>(conn)?;
-        let fund_profit_year = select(user_fund_profits(
-            cognito_user_id.to_string(),
-            start_of_year,
-            now,
-        ))
-        .get_result::<Decimal>(conn)?;
-        let yearly_return = current_portfolio_value - portfolio_value_at_start_of_year
-            + exchange_profit_year
-            + fund_profit_year;
-
-        // monthly calculations
-        let portfolio_value_at_start_of_month =
-            Self::calculate_portfolio_value(conn, cognito_user_id, start_of_month)?;
-        let exchange_profit_month = select(user_exchange_profits(
-            cognito_user_id.to_string(),
-            start_of_month,
-            now,
-        ))
-        .get_result::<Decimal>(conn)?;
-        let fund_profit_month = select(user_fund_profits(
-            cognito_user_id.to_string(),
-            start_of_month,
-            now,
-        ))
-        .get_result::<Decimal>(conn)?;
-        let monthly_return = current_portfolio_value - portfolio_value_at_start_of_month
-            + exchange_profit_month
-            + fund_profit_month;
+            ForestProjectUserInvestmentAmount::find_by_cognito_user_id(conn, cognito_user_id)
+                .map_err(|e| {
+                    error!(
+                        "Error while fetching invested amounts for user {}: {:?}",
+                        cognito_user_id, e
+                    );
+                    e
+                })?;
+        let current_portfolio_value = Self::calculate_portfolio_value(conn, cognito_user_id, now)
+            .map_err(|e| {
+            error!(
+                "Error while calculating current portfolio value for user {} at {}: {:?}",
+                cognito_user_id, now, e
+            );
+            e
+        })?;
 
         let locked_invested_value = invested_amounts
             .clone()
@@ -178,21 +158,54 @@ impl InvestmentPortfolioUserAggregate {
             DateTime::UNIX_EPOCH.naive_utc(),
             now,
         ))
-        .get_result::<Decimal>(conn)?;
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating exchange profits total for user {} between {} and {}: \
+                 {:?}",
+                cognito_user_id,
+                DateTime::UNIX_EPOCH.naive_utc(),
+                now,
+                e
+            );
+            e
+        })?;
         let fund_profits_total = select(user_fund_profits(
             cognito_user_id.to_string(),
             DateTime::UNIX_EPOCH.naive_utc(),
             now,
         ))
-        .get_result::<Decimal>(conn)?;
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating fund profits total for user {} between {} and {}: {:?}",
+                cognito_user_id,
+                DateTime::UNIX_EPOCH.naive_utc(),
+                now,
+                e
+            );
+            e
+        })?;
         let return_on_investment = if invested_value.is_zero() {
             Decimal::ZERO
         } else {
-            ((current_portfolio_value + exchange_profits_total + fund_profits_total
-                - invested_value)
-                / invested_value)
+            ((current_portfolio_value + exchange_profits_total - invested_value) / invested_value)
                 * Decimal::from(100)
         };
+        debug!(
+            "
+            exchange profits total: {},
+            fund profits total: {},
+            invested value: {}
+            portfolio value: {},
+            return on investment: {},
+            ",
+            exchange_profits_total,
+            fund_profits_total,
+            invested_value,
+            current_portfolio_value,
+            return_on_investment,
+        );
 
         let carbon_tons_offset = Token::total_burned(
             conn,
@@ -205,12 +218,124 @@ impl InvestmentPortfolioUserAggregate {
         Ok(InvestmentPortfolioUserAggregate {
             locked_mint_fund_euro_e_amount: locked_invested_value,
             current_portfolio_value,
-            yearly_return,
-            monthly_return,
+            yearly_return: Self::calculate_currency_returns(
+                conn,
+                cognito_user_id,
+                start_of_year,
+                now,
+            )?,
+            monthly_return: Self::calculate_currency_returns(
+                conn,
+                cognito_user_id,
+                start_of_month,
+                now,
+            )?,
             invested_value,
             return_on_investment,
             carbon_tons_offset,
         })
+    }
+
+    fn calculate_currency_returns(
+        conn: &mut DbConn,
+        cognito_user_id: &str,
+        start: NaiveDateTime,
+        end: NaiveDateTime,
+    ) -> QueryResult<Decimal> {
+        // yearly calculations
+        let portfolio_value_start = Self::calculate_portfolio_value(conn, cognito_user_id, start)
+            .map_err(|e| {
+            error!(
+                "Error while calculating portfolio value at for user {} at {}: {:?}",
+                cognito_user_id, start, e
+            );
+            e
+        })?;
+        let portfolio_value_end = Self::calculate_portfolio_value(conn, cognito_user_id, end)
+            .map_err(|e| {
+                error!(
+                    "Error while calculating current portfolio value for user {} at {}: {:?}",
+                    cognito_user_id, end, e
+                );
+                e
+            })?;
+        let exchange_profit_year = select(user_exchange_profits(
+            cognito_user_id.to_string(),
+            start,
+            end,
+        ))
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating exchange profit for user {} between {} and {}: {:?}",
+                cognito_user_id, start, end, e
+            );
+            e
+        })?;
+        let exchange_input_amount_year = select(user_exchange_input_amount(
+            cognito_user_id.to_string(),
+            start,
+            end,
+        ))
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating exchange input amount for user {} between {} and {}: {:?}",
+                cognito_user_id, start, end, e
+            );
+            e
+        })?;
+        let fund_profit_year = select(user_fund_profits(cognito_user_id.to_string(), start, end))
+            .get_result::<Decimal>(conn)
+            .map_err(|e| {
+                error!(
+                    "Error while calculating fund profit for user {} between {} and {}: {:?}",
+                    cognito_user_id, start, end, e
+                );
+                e
+            })?;
+        let fund_invested_amount_year = select(user_fund_investment_amount(
+            cognito_user_id.to_string(),
+            start,
+            end,
+        ))
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating fund invested amount for user {} between {} and {}: {:?}",
+                cognito_user_id, start, end, e
+            );
+            e
+        })?;
+        let yearly_return = portfolio_value_end - portfolio_value_start
+            + exchange_profit_year
+            // + fund_profit_year
+            - fund_invested_amount_year
+            - exchange_input_amount_year;
+
+        debug!(
+            "
+            from: {},
+            to: {},
+            portfolio value start: {},
+            portfolio value end: {},
+            exchange profit year: {},
+            fund profit year: {},
+            fund invested amount year: {},
+            exchange input amount year: {}
+            yearly return: {}
+            ",
+            start,
+            end,
+            portfolio_value_start,
+            portfolio_value_end,
+            exchange_profit_year,
+            fund_profit_year,
+            fund_invested_amount_year,
+            exchange_input_amount_year,
+            yearly_return
+        );
+        Ok(yearly_return)
     }
 
     fn calculate_portfolio_value(
@@ -222,11 +347,19 @@ impl InvestmentPortfolioUserAggregate {
             cognito_user_id.to_string(),
             now,
         ))
-        .get_result::<Decimal>(conn)
+        .get_result::<Option<Decimal>>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating portfolio value for user {} at {}: {:?}",
+                cognito_user_id, now, e
+            );
+            e
+        })
+        .map(|v| v.unwrap_or(Decimal::ZERO))
     }
 }
 
-#[derive(serde::Serialize, Object)]
+#[derive(serde::Serialize, serde::Deserialize, Object)]
 pub struct PortfolioValue {
     pub portfolio_value: Decimal,
     pub at:              NaiveDateTime,

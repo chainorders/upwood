@@ -374,14 +374,14 @@ diesel::table! {
 
 diesel::define_sql_function!(
     fn user_currency_value_for_forest_project_owned_tokens_at(
-        cognito_user_id: diesel::sql_types::Text,
+        user_id: diesel::sql_types::Text,
         time_at: diesel::sql_types::Timestamp
-    ) -> Numeric
+    ) -> Nullable<Numeric>
 );
 
 diesel::define_sql_function!(
     fn user_exchange_profits(
-        cognito_user_id: diesel::sql_types::Text,
+        user_id: diesel::sql_types::Text,
         from_time: diesel::sql_types::Timestamp,
         to_time: diesel::sql_types::Timestamp
     ) -> Numeric
@@ -389,7 +389,31 @@ diesel::define_sql_function!(
 
 diesel::define_sql_function!(
     fn user_fund_profits(
-        cognito_user_id: diesel::sql_types::Text,
+        user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp
+    ) -> Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_exchange_input_amount(
+        user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp
+    ) -> Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_exchange_output_amount(
+        user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp
+    ) -> Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_fund_investment_amount(
+        user_id: diesel::sql_types::Text,
         from_time: diesel::sql_types::Timestamp,
         to_time: diesel::sql_types::Timestamp
     ) -> Numeric

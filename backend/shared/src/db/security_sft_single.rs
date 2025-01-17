@@ -15,7 +15,10 @@ pub struct SftSingleTokenDetails {
 }
 
 impl SftSingleTokenDetails {
-    pub fn find(contract: Decimal, db_conn: &mut DbConn) -> DbResult<Option<SftSingleTokenDetails>> {
+    pub fn find(
+        contract: Decimal,
+        db_conn: &mut DbConn,
+    ) -> DbResult<Option<SftSingleTokenDetails>> {
         let token_id = Decimal::ZERO;
         let contract = ListenerContract::find(db_conn, contract)?;
         let contract = match contract {
