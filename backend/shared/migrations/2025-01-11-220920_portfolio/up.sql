@@ -32,7 +32,7 @@ CREATE VIEW forest_project_user_investment_amounts AS
 SELECT
     usr.cognito_user_id,
     COALESCE(investor.total_currency_amount_locked, 0) AS total_currency_amount_locked,
-    COALESCE(investor.total_currency_amount_invested, 0) + COALESCE(trader.total_currency_in_amount, 0) - COALESCE(trader.total_currency_out_amount, 0) AS total_currency_amount_invested
+    COALESCE(investor.total_currency_amount_invested, 0) - COALESCE(trader.total_currency_in_amount, 0) + COALESCE(trader.total_currency_out_amount, 0) AS total_currency_amount_invested
 FROM
     users usr
     LEFT JOIN forest_project_investor investor ON usr.cognito_user_id = investor.cognito_user_id
@@ -227,6 +227,126 @@ CREATE FUNCTION user_fund_profits (
         INTO claimed_currency_amount;
 
         return COALESCE(claimed_currency_amount, 0) - user_fund_investment_amount(user_id, from_time, to_time);
+    END;
+$$;
+
+-- Function: user token manual transfers out currency amounts
+CREATE FUNCTION user_token_manual_transfer_profits (
+    user_id TEXT,
+    from_time TIMESTAMP,
+    to_time TIMESTAMP
+) RETURNS NUMERIC LANGUAGE plpgsql AS $$
+    DECLARE
+        transferred_out_currency_amount NUMERIC;
+        transferred_in_currency_amount NUMERIC;
+        profit NUMERIC;
+    BEGIN
+        SELECT
+            SUM(currency_amount) AS currency_amount
+        FROM
+            (
+                SELECT DISTINCT
+                    ON (
+                        project.id,
+                        token_contracts.contract_address,
+                        balance_updates.token_id,
+                        balance_updates.id_serial,
+                        usr.cognito_user_id
+                    ) project.id AS forest_project_id,
+                    token_contracts.contract_address,
+                    balance_updates.token_id,
+                    usr.cognito_user_id,
+                    balance_updates.id_serial,
+                    balance_updates.amount AS token_amount,
+                    balance_updates.create_time AS update_time,
+                    balance_updates.update_type,
+                    FIRST_VALUE(price.price) OVER w AS price,
+                    FIRST_VALUE(price.price_at) OVER w AS price_time,
+                    balance_updates.amount * FIRST_VALUE(price.price) OVER w AS currency_amount
+                FROM
+                    forest_projects project
+                    JOIN forest_project_token_contracts token_contracts ON project.id = token_contracts.forest_project_id
+                    JOIN cis2_token_holder_balance_updates balance_updates ON token_contracts.contract_address = balance_updates.cis2_address
+                    AND balance_updates.create_time >= from_time
+                    AND balance_updates.create_time < to_time
+                    AND balance_updates.txn_sender = balance_updates.holder_address
+                    JOIN forest_project_prices price ON project.id = price.project_id
+                    AND price.price_at <= balance_updates.create_time
+                    JOIN users usr ON balance_updates.holder_address = usr.account_address
+                WINDOW
+                    w AS (
+                        PARTITION BY
+                            project.id,
+                            token_contracts.contract_address,
+                            balance_updates.token_id,
+                            usr.cognito_user_id,
+                            balance_updates.id_serial
+                        ORDER BY
+                            price.price_at DESC
+                    )
+            ) t1
+        GROUP BY
+            cognito_user_id,
+            update_type
+        HAVING
+            cognito_user_id = user_id
+            AND update_type = 'transfer_out'::cis2_token_holder_balance_update_type
+        INTO transferred_out_currency_amount;
+
+        SELECT
+            SUM(currency_amount) AS currency_amount
+        FROM
+            (
+                SELECT DISTINCT
+                    ON (
+                        project.id,
+                        token_contracts.contract_address,
+                        balance_updates.token_id,
+                        balance_updates.id_serial,
+                        usr.cognito_user_id
+                    ) project.id AS forest_project_id,
+                    token_contracts.contract_address,
+                    balance_updates.token_id,
+                    usr.cognito_user_id,
+                    balance_updates.id_serial,
+                    balance_updates.amount AS token_amount,
+                    balance_updates.create_time AS update_time,
+                    balance_updates.update_type,
+                    FIRST_VALUE(price.price) OVER w AS price,
+                    FIRST_VALUE(price.price_at) OVER w AS price_time,
+                    balance_updates.amount * FIRST_VALUE(price.price) OVER w AS currency_amount
+                FROM
+                    forest_projects project
+                    JOIN forest_project_token_contracts token_contracts ON project.id = token_contracts.forest_project_id
+                    JOIN cis2_token_holder_balance_updates balance_updates ON token_contracts.contract_address = balance_updates.cis2_address
+                    AND balance_updates.create_time >= from_time
+                    AND balance_updates.create_time < to_time
+                    AND balance_updates.txn_sender = balance_updates.holder_address
+                    JOIN forest_project_prices price ON project.id = price.project_id
+                    AND price.price_at <= balance_updates.create_time
+                    JOIN users usr ON balance_updates.holder_address = usr.account_address
+                WINDOW
+                    w AS (
+                        PARTITION BY
+                            project.id,
+                            token_contracts.contract_address,
+                            balance_updates.token_id,
+                            usr.cognito_user_id,
+                            balance_updates.id_serial
+                        ORDER BY
+                            price.price_at DESC
+                    )
+            ) t1
+        GROUP BY
+            cognito_user_id,
+            update_type
+        HAVING
+            cognito_user_id = user_id
+            AND update_type = 'transfer_in'::cis2_token_holder_balance_update_type
+        INTO transferred_in_currency_amount;
+
+        profit := COALESCE(transferred_out_currency_amount, 0) - COALESCE(transferred_in_currency_amount, 0);
+        RETURN  profit;
     END;
 $$;
 

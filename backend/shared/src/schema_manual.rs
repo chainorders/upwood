@@ -418,3 +418,11 @@ diesel::define_sql_function!(
         to_time: diesel::sql_types::Timestamp
     ) -> Numeric
 );
+
+diesel::define_sql_function!(
+    fn user_token_manual_transfer_profits(
+        user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp
+    ) -> Numeric
+);

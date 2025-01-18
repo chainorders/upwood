@@ -23,6 +23,7 @@ use crate::processors::ProcessorError;
 /// # Returns
 ///
 /// * A `Result` indicating the success or failure of the operation.
+#[allow(clippy::too_many_arguments)]
 #[instrument(
     name="identity_registry",
     skip_all,
@@ -33,6 +34,8 @@ pub fn process_events(
     _block_height: Decimal,
     block_time: NaiveDateTime,
     _txn_index: Decimal,
+    _txn_sender: &str,
+    _txn_instigator: &str,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {

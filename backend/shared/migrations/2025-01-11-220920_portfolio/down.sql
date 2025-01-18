@@ -11,6 +11,8 @@ DROP FUNCTION user_exchange_output_amount;
 
 DROP FUNCTION user_fund_investment_amount;
 
+DROP FUNCTION user_token_manual_transfer_profits;
+
 DROP VIEW forest_project_user_investment_amounts;
 
 DROP VIEW forest_project_trader;

@@ -14,6 +14,7 @@ use shared::db_shared::{DbConn, DbPool};
 use shared::schema_manual::{
     user_currency_value_for_forest_project_owned_tokens_at, user_exchange_input_amount,
     user_exchange_profits, user_fund_investment_amount, user_fund_profits,
+    user_token_manual_transfer_profits,
 };
 use tracing::{debug, error};
 
@@ -153,7 +154,7 @@ impl InvestmentPortfolioUserAggregate {
         let invested_value = invested_amounts
             .map(|a| a.total_currency_amount_invested)
             .unwrap_or(Decimal::ZERO);
-        let exchange_profits_total = select(user_exchange_profits(
+        let exchange_profits = select(user_exchange_profits(
             cognito_user_id.to_string(),
             DateTime::UNIX_EPOCH.naive_utc(),
             now,
@@ -186,22 +187,43 @@ impl InvestmentPortfolioUserAggregate {
             );
             e
         })?;
+        let manual_transfer_profits = select(user_token_manual_transfer_profits(
+            cognito_user_id.to_string(),
+            DateTime::UNIX_EPOCH.naive_utc(),
+            now,
+        ))
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating manual transfer profits total for user {} between {} and \
+                 {}: {:?}",
+                cognito_user_id,
+                DateTime::UNIX_EPOCH.naive_utc(),
+                now,
+                e
+            );
+            e
+        })?;
         let return_on_investment = if invested_value.is_zero() {
             Decimal::ZERO
         } else {
-            ((current_portfolio_value + exchange_profits_total - invested_value) / invested_value)
+            ((current_portfolio_value + exchange_profits - invested_value
+                + manual_transfer_profits)
+                / invested_value)
                 * Decimal::from(100)
-        };
+        }.round_dp(6);
         debug!(
             "
-            exchange profits total: {},
-            fund profits total: {},
+            exchange profits: {},
+            fund profits: {},
+            manual transfer profits: {},
             invested value: {}
             portfolio value: {},
             return on investment: {},
             ",
-            exchange_profits_total,
+            exchange_profits,
             fund_profits_total,
+            manual_transfer_profits,
             invested_value,
             current_portfolio_value,
             return_on_investment,
@@ -259,7 +281,7 @@ impl InvestmentPortfolioUserAggregate {
                 );
                 e
             })?;
-        let exchange_profit_year = select(user_exchange_profits(
+        let exchange_profits = select(user_exchange_profits(
             cognito_user_id.to_string(),
             start,
             end,
@@ -272,7 +294,7 @@ impl InvestmentPortfolioUserAggregate {
             );
             e
         })?;
-        let exchange_input_amount_year = select(user_exchange_input_amount(
+        let exchange_input_amount = select(user_exchange_input_amount(
             cognito_user_id.to_string(),
             start,
             end,
@@ -285,7 +307,7 @@ impl InvestmentPortfolioUserAggregate {
             );
             e
         })?;
-        let fund_profit_year = select(user_fund_profits(cognito_user_id.to_string(), start, end))
+        let fund_profit = select(user_fund_profits(cognito_user_id.to_string(), start, end))
             .get_result::<Decimal>(conn)
             .map_err(|e| {
                 error!(
@@ -294,7 +316,7 @@ impl InvestmentPortfolioUserAggregate {
                 );
                 e
             })?;
-        let fund_invested_amount_year = select(user_fund_investment_amount(
+        let fund_invested_amount = select(user_fund_investment_amount(
             cognito_user_id.to_string(),
             start,
             end,
@@ -307,35 +329,55 @@ impl InvestmentPortfolioUserAggregate {
             );
             e
         })?;
-        let yearly_return = portfolio_value_end - portfolio_value_start
-            + exchange_profit_year
+        let manual_transfer_profits = select(user_token_manual_transfer_profits(
+            cognito_user_id.to_string(),
+            start,
+            end,
+        ))
+        .get_result::<Decimal>(conn)
+        .map_err(|e| {
+            error!(
+                "Error while calculating manual transfer profits for user {} between {} and {}: \
+                 {:?}",
+                cognito_user_id, start, end, e
+            );
+            e
+        })?;
+        let returns = portfolio_value_end - portfolio_value_start
+            + exchange_profits
+            + manual_transfer_profits
             // + fund_profit_year
-            - fund_invested_amount_year
-            - exchange_input_amount_year;
+            - fund_invested_amount
+            - exchange_input_amount;
 
         debug!(
             "
             from: {},
             to: {},
+            days: {},
             portfolio value start: {},
             portfolio value end: {},
-            exchange profit year: {},
-            fund profit year: {},
-            fund invested amount year: {},
-            exchange input amount year: {}
-            yearly return: {}
+            exchange profit: {},
+            fund profit: {},
+            manual transfer profits: {},
+            fund invested amount: {},
+            exchange input amount: {}
+            return: {}
             ",
             start,
             end,
+            (end - start).num_days(),
             portfolio_value_start,
             portfolio_value_end,
-            exchange_profit_year,
-            fund_profit_year,
-            fund_invested_amount_year,
-            exchange_input_amount_year,
-            yearly_return
+            exchange_profits,
+            fund_profit,
+            manual_transfer_profits,
+            fund_invested_amount,
+            exchange_input_amount,
+            returns
         );
-        Ok(yearly_return)
+
+        Ok(returns)
     }
 
     fn calculate_portfolio_value(

@@ -22,6 +22,7 @@ pub fn contract_name() -> OwnedContractName {
     OwnedContractName::new_unchecked("init_security_sft_single".to_string())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[instrument(
     name="sft_single",
     skip_all,
@@ -32,6 +33,8 @@ pub fn process_events(
     block_height: Decimal,
     block_time: NaiveDateTime,
     txn_index: Decimal,
+    txn_sender: &str,
+    txn_instigator: &str,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
@@ -40,6 +43,8 @@ pub fn process_events(
         block_height,
         block_time,
         txn_index,
+        txn_sender,
+        txn_instigator,
         contract,
         events,
     )

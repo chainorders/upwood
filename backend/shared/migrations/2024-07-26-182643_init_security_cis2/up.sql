@@ -59,6 +59,8 @@ CREATE TABLE cis2_token_holder_balance_updates (
        amount NUMERIC(78) NOT NULL,
        frozen_balance NUMERIC(78) NOT NULL,
        un_frozen_balance NUMERIC(78) NOT NULL,
+       txn_sender VARCHAR NOT NULL,
+       txn_instigator VARCHAR NOT NULL,
        update_type cis2_token_holder_balance_update_type NOT NULL,
        create_time TIMESTAMP NOT NULL,
        FOREIGN KEY (cis2_address, token_id, holder_address) REFERENCES cis2_token_holders (cis2_address, token_id, holder_address) ON DELETE CASCADE

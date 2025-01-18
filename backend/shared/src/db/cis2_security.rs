@@ -406,6 +406,8 @@ pub struct TokenHolderBalanceUpdate {
     pub amount:            Decimal,
     pub frozen_balance:    Decimal,
     pub un_frozen_balance: Decimal,
+    pub txn_sender:        String,
+    pub txn_instigator:    String,
     pub update_type:       TokenHolderBalanceUpdateType,
     pub create_time:       NaiveDateTime,
 }

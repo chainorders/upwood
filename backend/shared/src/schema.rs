@@ -81,6 +81,8 @@ diesel::table! {
         amount -> Numeric,
         frozen_balance -> Numeric,
         un_frozen_balance -> Numeric,
+        txn_sender -> Varchar,
+        txn_instigator -> Varchar,
         update_type -> Cis2TokenHolderBalanceUpdateType,
         create_time -> Timestamp,
     }

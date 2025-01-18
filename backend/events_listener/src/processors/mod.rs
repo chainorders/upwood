@@ -98,6 +98,8 @@ pub type ProcessorFnType = fn(
     block_height: Decimal,
     block_time: NaiveDateTime,
     txn_index: Decimal,
+    txn_sender: &str,
+    txn_instigator: &str,
     &ContractAddress,
     &[ContractEvent],
 ) -> Result<(), ProcessorError>;
@@ -375,6 +377,8 @@ impl Processors {
                                     block_height,
                                     block_slot_time,
                                     txn.index.into(),
+                                    contract_call.sender.as_str(),
+                                    contract_call.instigator.as_str(),
                                     &contract.contract_address(),
                                     events,
                                 )?;

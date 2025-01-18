@@ -32,6 +32,7 @@ pub fn contract_name() -> OwnedContractName {
     OwnedContractName::new_unchecked("init_security_mint_fund".to_string())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[instrument(
     name="mint_fund",
     skip_all,
@@ -42,6 +43,8 @@ pub fn process_events(
     block_height: Decimal,
     block_time: NaiveDateTime,
     txn_index: Decimal,
+    _txn_sender: &str,
+    _txn_instigator: &str,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {

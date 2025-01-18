@@ -22,6 +22,7 @@ use uuid::Uuid;
 use crate::processors::cis2_utils::*;
 use crate::processors::ProcessorError;
 
+#[allow(clippy::too_many_arguments)]
 #[instrument(
     name="cis2",
     skip_all,
@@ -32,6 +33,8 @@ pub fn process_events_cis2<T, A>(
     block_height: Decimal,
     block_time: NaiveDateTime,
     txn_index: Decimal,
+    txn_sender: &str,
+    txn_instigator: &str,
     contract: &ContractAddress,
     event: Cis2Event<T, A>,
 ) -> Result<(), ProcessorError>
@@ -86,6 +89,8 @@ where
                 amount,
                 frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
+                txn_sender: txn_sender.to_string(),
+                txn_instigator: txn_instigator.to_string(),
                 update_type: TokenHolderBalanceUpdateType::Mint,
                 create_time: block_time,
             }
@@ -166,6 +171,8 @@ where
                 amount,
                 frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
+                txn_sender: txn_sender.to_string(),
+                txn_instigator: txn_instigator.to_string(),
                 update_type: TokenHolderBalanceUpdateType::Burn,
                 create_time: block_time,
             }
@@ -210,6 +217,8 @@ where
                 amount,
                 frozen_balance: holder_from.frozen_balance,
                 un_frozen_balance: holder_from.un_frozen_balance,
+                txn_sender: txn_sender.to_string(),
+                txn_instigator: txn_instigator.to_string(),
                 update_type: TokenHolderBalanceUpdateType::TransferOut,
                 create_time: block_time,
             }
@@ -242,6 +251,8 @@ where
                 amount,
                 frozen_balance: holder_to.frozen_balance,
                 un_frozen_balance: holder_to.un_frozen_balance,
+                txn_sender: txn_sender.to_string(),
+                txn_instigator: txn_instigator.to_string(),
                 update_type: TokenHolderBalanceUpdateType::TransferIn,
                 create_time: block_time,
             }
@@ -284,11 +295,14 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn process_events<T, A, R>(
     conn: &mut DbConn,
     block_height: Decimal,
     block_time: NaiveDateTime,
     txn_index: Decimal,
+    txn_sender: &str,
+    txn_instigator: &str,
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError>
@@ -310,12 +324,15 @@ where
             block_time,
             block_height,
             txn_index,
+            txn_sender,
+            txn_instigator,
         )?;
     }
 
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn process_parsed_event<T, A, R>(
     conn: &mut r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
     contract: &ContractAddress,
@@ -323,6 +340,8 @@ pub fn process_parsed_event<T, A, R>(
     block_time: NaiveDateTime,
     block_height: Decimal,
     txn_index: Decimal,
+    txn_sender: &str,
+    txn_instigator: &str,
 ) -> Result<(), ProcessorError>
 where
     T: IsTokenId+fmt::Debug,
@@ -425,6 +444,8 @@ where
                 amount: amount.to_decimal(),
                 frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
+                txn_sender: txn_sender.to_string(),
+                txn_instigator: txn_instigator.to_string(),
                 update_type: TokenHolderBalanceUpdateType::Freeze,
                 create_time: block_time,
             }
@@ -460,6 +481,8 @@ where
                 amount: amount.to_decimal(),
                 frozen_balance: holder.frozen_balance,
                 un_frozen_balance: holder.un_frozen_balance,
+                txn_sender: txn_sender.to_string(),
+                txn_instigator: txn_instigator.to_string(),
                 update_type: TokenHolderBalanceUpdateType::UnFreeze,
                 create_time: block_time,
             }
@@ -471,9 +494,16 @@ where
                 address.to_string()
             );
         }
-        Cis2SecurityEvent::Cis2(e) => {
-            process_events_cis2(conn, block_height, block_time, txn_index, contract, e)?
-        }
+        Cis2SecurityEvent::Cis2(e) => process_events_cis2(
+            conn,
+            block_height,
+            block_time,
+            txn_index,
+            txn_sender,
+            txn_instigator,
+            contract,
+            e,
+        )?,
     };
     Ok(())
 }
