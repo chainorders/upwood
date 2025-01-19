@@ -74,7 +74,7 @@ impl ForestProject {
             .optional()
     }
 
-    pub fn list(
+    pub fn list_by_state_optional(
         conn: &mut DbConn,
         state: Option<ForestProjectState>,
         page: i64,
@@ -101,6 +101,39 @@ impl ForestProject {
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((projects, page_count))
+    }
+
+    pub fn list_by_state(
+        conn: &mut DbConn,
+        forest_project_state: ForestProjectState,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        let projects = schema::forest_projects::table
+            .filter(schema::forest_projects::state.eq(forest_project_state))
+            .select(ForestProject::as_select())
+            .order(schema::forest_projects::created_at.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+
+        let total_count = schema::forest_projects::table
+            .filter(schema::forest_projects::state.eq(forest_project_state))
+            .count()
+            .get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((projects, page_count))
+    }
+
+    pub fn list_by_ids(conn: &mut DbConn, project_ids: &[Uuid]) -> DbResult<Vec<Self>> {
+        let projects = schema::forest_projects::table
+            .filter(schema::forest_projects::id.eq_any(project_ids))
+            .select(ForestProject::as_select())
+            .order(schema::forest_projects::created_at.desc())
+            .get_results(conn)?;
+
+        Ok(projects)
     }
 
     pub fn user_notification_exists(
@@ -225,11 +258,23 @@ impl ForestProjectMedia {
     Copy,
 )]
 #[ExistingTypePath = "crate::schema::sql_types::ForestProjectState"]
+#[DbValueStyle = "snake_case"]
 pub enum ForestProjectState {
     Draft,
     Active,
     Funded,
     Archived,
+}
+
+impl std::fmt::Display for ForestProjectState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ForestProjectState::Draft => write!(f, "Draft"),
+            ForestProjectState::Active => write!(f, "Active"),
+            ForestProjectState::Funded => write!(f, "Funded"),
+            ForestProjectState::Archived => write!(f, "Archived"),
+        }
+    }
 }
 
 #[derive(

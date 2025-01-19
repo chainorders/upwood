@@ -171,9 +171,12 @@ diesel::table! {
 
     forest_project_token_contracts (forest_project_id, contract_type) {
         contract_address -> Numeric,
-        token_id -> Nullable<Numeric>,
         forest_project_id -> Uuid,
         contract_type -> ForestProjectSecurityTokenContractType,
+        fund_token_id -> Nullable<Numeric>,
+        market_token_id -> Nullable<Numeric>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 

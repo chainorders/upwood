@@ -8,47 +8,25 @@ CREATE TYPE forest_project_security_token_contract_type AS ENUM(
 
 CREATE TABLE forest_project_token_contracts (
      contract_address NUMERIC(20) NOT NULL REFERENCES listener_contracts (contract_address) ON DELETE cascade,
-     token_id NUMERIC(20),
      forest_project_id uuid NOT NULL REFERENCES forest_projects (id) ON DELETE cascade,
      contract_type forest_project_security_token_contract_type NOT NULL,
+     fund_token_id NUMERIC(20),
+     market_token_id NUMERIC(20),
+     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
      PRIMARY KEY (forest_project_id, contract_type)
 );
-
--- Forest project crypto information
-CREATE VIEW forest_project_supply AS
-SELECT
-     forest_projects.id AS forest_project_id,
-     SUM(token.supply) AS supply
-FROM
-     forest_projects
-     JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
-     JOIN cis2_tokens token ON token_contract.contract_address = token.cis2_address
-GROUP BY
-     forest_projects.id;
-
--- All the security tokens for all the contracts
-CREATE VIEW forest_project_security_tokens AS
-SELECT
-     token.*,
-     forest_projects.id AS forest_project_id,
-     token_contract.contract_type,
-     token.token_id = token_contract.token_id AS is_default
-FROM
-     forest_projects
-     JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
-     JOIN cis2_tokens token ON token_contract.contract_address = token.cis2_address;
 
 -- All currently active funds for forest projects
 CREATE VIEW forest_project_funds AS
 SELECT
      fund.*,
-     token.forest_project_id,
-     token.contract_type AS fund_type,
-     token.is_default
+     token_contract.forest_project_id,
+     token_contract.contract_type AS fund_type
 FROM
      security_mint_funds fund
-     JOIN forest_project_security_tokens token ON fund.investment_token_contract_address = token.cis2_address
-     AND fund.investment_token_id = token.token_id;
+     JOIN forest_project_token_contracts token_contract ON fund.investment_token_contract_address = token_contract.contract_address
+     AND fund.investment_token_id = token_contract.fund_token_id;
 
 -- All investors for all the currently active funds
 CREATE VIEW forest_project_fund_investor AS
@@ -79,7 +57,7 @@ SELECT
      token_contract.contract_type AS fund_type,
      token_contract.forest_project_id AS forest_project_id,
      usr.cognito_user_id AS investor_cognito_user_id,
-     investment_record.investment_token_id = token_contract.token_id AS is_default
+     investment_record.investment_token_id = token_contract.fund_token_id AS is_default
 FROM
      security_mint_fund_investment_records investment_record
      JOIN forest_project_token_contracts token_contract ON investment_record.investment_token_contract_address = token_contract.contract_address
@@ -113,144 +91,6 @@ FROM
      )
 WHERE
      investment_record.investment_record_type = 'claimed';
-
--- Active forest projects
-CREATE VIEW active_forest_projects AS
-SELECT
-     forest_projects.*,
-     token_contracts.contract_address,
-     token_contracts.token_id,
-     COALESCE(supply.supply, 0) AS total_supply,
-     fund.contract_address AS fund_contract_address,
-     fund.token_contract_address AS pre_sale_token_contract_address,
-     fund.token_id AS pre_sale_token_id,
-     fund.rate_numerator AS fund_rate_numerator,
-     fund.rate_denominator AS fund_rate_denominator
-FROM
-     forest_projects
-     LEFT JOIN forest_project_supply supply ON supply.forest_project_id = forest_projects.id
-     LEFT JOIN forest_project_token_contracts token_contracts ON forest_projects.id = token_contracts.forest_project_id
-     AND token_contracts.contract_type = 'property'
-     AND token_contracts.token_id IS NOT NULL
-     LEFT JOIN security_mint_funds fund ON token_contracts.contract_address = fund.investment_token_contract_address
-     AND token_contracts.token_id = fund.investment_token_id
-WHERE
-     forest_projects.state = 'active'
-ORDER BY
-     forest_projects.created_at DESC;
-
--- Active forest project user
-CREATE VIEW active_forest_project_users AS
-SELECT
-     project.*,
-     notification.id AS notification_id,
-     notification.cognito_user_id AS cognito_user_id,
-     signature IS NOT NULL AS has_signed_contract
-FROM
-     active_forest_projects project
-     LEFT JOIN forest_project_notifications notification ON project.id = notification.project_id
-     LEFT JOIN forest_project_legal_contract_user_signatures signature ON project.id = signature.project_id
-WHERE
-     signature.cognito_user_id = notification.cognito_user_id
-     OR notification.cognito_user_id IS NULL
-ORDER BY
-     project.created_at DESC;
-
--- Funded forest projects
-CREATE VIEW funded_forest_projects AS
-SELECT
-     forest_projects.*,
-     token_contract.contract_address AS token_contract_address,
-     token_contract.token_id AS token_id,
-     COALESCE(supply.supply, 0) AS total_supply,
-     market.contract_address AS market_contract_address,
-     market.liquidity_provider AS market_liquidity_provider,
-     market.sell_rate_numerator AS market_sell_rate_numerator,
-     market.sell_rate_denominator AS market_sell_rate_denominator
-FROM
-     forest_projects
-     LEFT JOIN forest_project_supply supply ON supply.forest_project_id = forest_projects.id
-     LEFT JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
-     AND token_contract.contract_type = 'property'
-     LEFT JOIN security_p2p_trading_markets market ON token_contract.contract_address = market.token_contract_address
-WHERE
-     forest_projects.state = 'funded'
-ORDER BY
-     forest_projects.created_at DESC;
-
--- Funded forest project user
-CREATE VIEW funded_forest_project_users AS
-SELECT
-     project.*,
-     notification.id AS notification_id,
-     notification.cognito_user_id AS cognito_user_id,
-     signature IS NOT NULL AS has_signed_contract
-FROM
-     funded_forest_projects project
-     LEFT JOIN forest_project_notifications notification ON project.id = notification.project_id
-     LEFT JOIN forest_project_legal_contract_user_signatures signature ON project.id = signature.project_id
-WHERE
-     signature.cognito_user_id = notification.cognito_user_id
-     OR notification.cognito_user_id IS NULL
-ORDER BY
-     project.created_at DESC;
-
--- Forest projects owned by user
-CREATE VIEW forest_projects_owned_by_user AS
-SELECT
-     project.*,
-     usr.cognito_user_id,
-     usr.account_address,
-     SUM(holder.un_frozen_balance + holder.frozen_balance) AS total_balance,
-     property_token_contract.contract_address AS property_contract_address,
-     property_token_contract.token_id AS property_token_id,
-     property_market.contract_address AS market_contract_address,
-     property_market.liquidity_provider AS market_liquidity_provider,
-     property_market.buy_rate_numerator AS market_buy_rate_numerator,
-     property_market.buy_rate_denominator AS market_buy_rate_denominator,
-     bond_token_contract.contract_address AS bond_contract_address,
-     bond_token_contract.token_id AS bond_token_id,
-     bond_fund.contract_address AS bond_fund_contract_address,
-     bond_fund.rate_numerator AS bond_fund_rate_numerator,
-     bond_fund.rate_denominator AS bond_fund_rate_denominator
-FROM
-     forest_projects project
-     JOIN forest_project_token_contracts token_contract ON project.id = token_contract.forest_project_id
-     -- user information
-     JOIN cis2_token_holders holder ON token_contract.contract_address = holder.cis2_address
-     JOIN users usr ON holder.holder_address = usr.account_address
-     -- sell information
-     LEFT JOIN forest_project_token_contracts property_token_contract ON project.id = property_token_contract.forest_project_id
-     AND property_token_contract.contract_type = 'property'
-     AND property_token_contract.contract_address = token_contract.contract_address
-     LEFT JOIN security_p2p_trading_markets property_market ON property_token_contract.contract_address = property_market.token_contract_address
-     AND property_market.token_id = property_token_contract.token_id
-     -- bond fund information
-     LEFT JOIN forest_project_token_contracts bond_token_contract ON project.id = bond_token_contract.forest_project_id
-     AND bond_token_contract.contract_type = 'bond'
-     AND bond_token_contract.contract_address = token_contract.contract_address
-     LEFT JOIN security_mint_funds bond_fund ON bond_token_contract.contract_address = bond_fund.investment_token_contract_address
-     AND bond_fund.investment_token_id = bond_token_contract.token_id
-     AND bond_fund.fund_state = 'open'
-WHERE
-     holder.un_frozen_balance + holder.frozen_balance > 0
-GROUP BY
-     project.id,
-     usr.cognito_user_id,
-     usr.account_address,
-     property_token_contract.contract_address,
-     property_token_contract.token_id,
-     property_market.contract_address,
-     property_market.liquidity_provider,
-     property_market.buy_rate_numerator,
-     property_market.buy_rate_denominator,
-     bond_token_contract.contract_address,
-     bond_token_contract.token_id,
-     bond_fund.contract_address,
-     bond_fund.rate_numerator,
-     bond_fund.rate_denominator
-ORDER BY
-     project.created_at DESC;
 
 -- Yeilds for Forest Project, Tokens, Token Owner (User)
 CREATE VIEW forest_project_user_yields_for_each_owned_token AS
@@ -309,3 +149,60 @@ GROUP BY
 ORDER BY
      yield.yielder_contract_address DESC,
      yield.yield_token_id DESC;
+
+-- Forest Project Aggregate Supply across all tokens
+CREATE VIEW forest_project_supply AS
+SELECT
+     forest_projects.id AS forest_project_id,
+     forest_projects.state AS forest_project_state,
+     SUM(token.supply) AS supply
+FROM
+     forest_projects
+     JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
+     JOIN cis2_tokens token ON token_contract.contract_address = token.cis2_address
+GROUP BY
+     forest_projects.id;
+
+CREATE VIEW forest_project_current_token_fund_markets AS
+SELECT
+     forest_projects.id AS forest_project_id,
+     forest_projects.state AS forest_project_state,
+     token_contract.contract_address AS token_contract_address,
+     token_contract.fund_token_id AS token_id,
+     token_contract.contract_type AS token_contract_type,
+     token_contract.market_token_id AS market_token_id,
+     fund.contract_address AS fund_contract_address,
+     fund.rate_numerator AS fund_rate_numerator,
+     fund.rate_denominator AS fund_rate_denominator,
+     fund.fund_state,
+     fund.token_contract_address AS fund_token_contract_address,
+     fund.token_id AS fund_token_id,
+     market.contract_address AS market_contract_address,
+     market.sell_rate_numerator AS market_sell_rate_numerator,
+     market.sell_rate_denominator AS market_sell_rate_denominator,
+     market.buy_rate_numerator AS market_buy_rate_numerator,
+     market.buy_rate_denominator AS market_buy_rate_denominator,
+     market.liquidity_provider AS market_liquidity_provider
+FROM
+     forest_projects
+     JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
+     LEFT JOIN security_mint_funds fund ON fund.investment_token_contract_address = token_contract.contract_address
+     AND fund.investment_token_id = token_contract.fund_token_id
+     LEFT JOIN security_p2p_trading_markets market ON market.token_contract_address = token_contract.contract_address
+     AND market.token_id = token_contract.market_token_id
+ORDER BY
+     token_contract.created_at DESC;
+
+CREATE VIEW forest_project_user_agg_balances AS
+SELECT
+     usr.cognito_user_id,
+     forest_projects.id AS forest_project_id,
+     SUM(holder.un_frozen_balance + holder.frozen_balance) AS total_balance
+FROM
+     forest_projects
+     JOIN forest_project_token_contracts token_contract ON forest_projects.id = token_contract.forest_project_id
+     JOIN cis2_token_holders holder ON token_contract.contract_address = holder.cis2_address
+     JOIN users usr ON holder.holder_address = usr.account_address
+GROUP BY
+     forest_projects.id,
+     usr.cognito_user_id
