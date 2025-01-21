@@ -8,7 +8,8 @@
 		"contracts",
 		"frontend-dapp",
 		"backend",
-		"cdk-deployment"
+		"cdk-deployment",
+		"frontend-app"
 	],
-	"packageManager": "yarn@4.5.3"
+	"packageManager": "yarn@4.6.0"
 }

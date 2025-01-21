@@ -14,7 +14,8 @@
 		}
 	},
 	"forwardPorts": [
-		5432
+		5432,
+		3000
 	],
 	"postCreateCommand": "/bootstrap.sh",
 	"postStartCommand": "yarn run",
