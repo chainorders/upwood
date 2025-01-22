@@ -4,7 +4,7 @@ import AuthTextSlider from "../components/AuthTextSlider";
 import Button from "../components/Button";
 import logo from '../assets/logo.svg';
 import Vector from '../assets/Vector.svg';
-import SuccessImage from '../assets/Group-1000003068.svg';
+import greenTickIcon from "../assets/green-tick.svg";
 export default function ForgotPassword() {
     const [forgotSuccess, setforgotSuccess] = useState(false);
   const whenconfirmbuttonhit = () => {
@@ -43,7 +43,7 @@ export default function ForgotPassword() {
         <div>
           <div className="image">
           <img
-                src={SuccessImage}
+                src={greenTickIcon}
                 alt=""
             />
           </div>

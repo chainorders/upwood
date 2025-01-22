@@ -58,9 +58,6 @@ export default function AuthLogin(props: { setUser: (user: ApiUser) => void }) {
                         <div className="image">
                             <img
                                 src={greenTIckIcon}
-                                //   layout="responsive"
-                                width={100}
-                                height={100}
                             />
                         </div>
                         <div className="center-text biger bold">Success</div>

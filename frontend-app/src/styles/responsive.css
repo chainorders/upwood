@@ -115,7 +115,7 @@ body.menuopen .menuclose-bar{
     white-space: nowrap;
 }
 .field .checkbox label span{
-    background: url(/checkbox-plain.svg) top 3px left no-repeat;
+    background: url(./../assets/checkbox-plain.svg) top 3px left no-repeat;
 }
 .tabular li{
     margin-right: 40px;

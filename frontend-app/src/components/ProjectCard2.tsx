@@ -16,9 +16,6 @@ export default function ProjectCard2({ item }: ItemProps) {
                                 <img
                                     src={item.forest_project.image_small_url}
                                     alt="Description of the image"
-                                    // layout="responsive"
-                                    width={100}
-                                    height={100}
                                 />
                                 <div className="caption">{item.forest_project.label}</div>
                             </div>

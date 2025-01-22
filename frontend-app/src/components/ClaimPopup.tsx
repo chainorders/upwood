@@ -47,7 +47,6 @@ export default function ClaimPopup({ config, close }: ClaimPopupProps) {
                     <img
                         src={closeIcon}
                         alt="Close icon"
-                        // layout="intrinsic"
                         width={32}
                         height={32}
                         className="close"
@@ -57,9 +56,6 @@ export default function ClaimPopup({ config, close }: ClaimPopupProps) {
                     <div className="message">
                         <img
                             src={greenTickIcon}
-                            //   layout="intrinsic"
-                            width={100}
-                            height={100}
                         />
                         You have successfully invested in <span>5 shares</span> of the &quot;Oaktree House&quot; forest plantation.
                     </div>
@@ -77,7 +73,6 @@ export default function ClaimPopup({ config, close }: ClaimPopupProps) {
                     <img
                         src={closeIcon}
                         alt="Close icon"
-                        // layout="intrinsic"
                         width={32}
                         height={32}
                         className="close"

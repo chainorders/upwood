@@ -5,7 +5,7 @@ export default function PageHeader(props: { parts: { name: string, link?: string
         <div className="container">
             <div className="container-in">
                 <div className="col-12">
-                    <h1>
+                    <h1 className="breadcrumb">
                         {
                             props.parts.map((part, index) => {
                                 return <span>

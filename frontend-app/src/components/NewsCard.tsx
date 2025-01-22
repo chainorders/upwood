@@ -21,9 +21,6 @@ export default function NewsCard({item} : ItemProps) {
             <div className="image">
                 <img
                   src={item.image}
-                //   layout="responsive"
-                  width={100}
-                  height={100}
                 />
               <div className="caption">{item.image_label}</div>
             </div>

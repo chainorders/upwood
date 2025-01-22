@@ -41,7 +41,7 @@ export default function PortfolioValueChart(props: { values: PortfolioValue[] })
     plugins: {
       tooltip: {
         callbacks: {
-          label: (tooltipItem: TooltipItem<"line">) => `€${tooltipItem.raw}`, // Custom tooltip content
+          label: (props:{raw: unknown}) => `€${props.raw}`, // Custom tooltip content
         },
       },
       legend: {

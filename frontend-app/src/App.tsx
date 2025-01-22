@@ -10,6 +10,8 @@ import Wallet from './pages/Wallet.tsx';
 import News from './pages/News.tsx';
 import NewsDetails from './pages/NewsDetails.tsx';
 import ForgotPassword from './pages/ForgotPassword.tsx';
+import Register from './pages/Register.tsx';
+import Support from './pages/Support.tsx';
 
 export default function App() {
     const [user, setUser] = useState<ApiUser>();
@@ -18,6 +20,7 @@ export default function App() {
         <Routes>
             <Route path="/login" element={<AuthLogin setUser={setUser} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/" element={<AuthLayout user={user} logout={() => {
                 console.log('logout');
                 setUser(undefined);
@@ -28,6 +31,7 @@ export default function App() {
                 <Route index path='wallet' element={<Wallet />} />
                 <Route index path='news' element={<News />} />
                 <Route index path='news/:id' element={<NewsDetails />} />
+                <Route index path='support' element={<Support />} />
             </Route>
         </Routes>
     </BrowserRouter>

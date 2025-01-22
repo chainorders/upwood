@@ -4,7 +4,7 @@ import PageHeader from "../components/PageHeader";
 import { useOutletContext } from "react-router";
 import ProjectCard2 from "../components/ProjectCard2";
 import ClaimPopup from "../components/ClaimPopup";
-
+import { Link } from "react-router";
 export default function Wallet() {
     const { user } = useOutletContext<{ user: ApiUser }>();
     const carbon_credits = {
@@ -212,20 +212,20 @@ export default function Wallet() {
                                 <div className="heading">Balance</div>
                             </div>
                             <div className="col-4 text-align-right fr hideonmobile">
-                                <span
+                                <Link type="text" to="/"
                                     className="guides"
                                     style={{ cursor: "pointer" }}
                                 >
                                     WALLET MANAGEMENT GUIDES
-                                </span>
+                                </Link>
                             </div>
                             <div className="col-4 text-align-right fr showonmobile">
-                                <span
+                                <Link type="text" to="/"
                                     className="guides"
                                     style={{ cursor: "pointer" }}
                                 >
                                     GUIDES
-                                </span>
+                                </Link>
                             </div>
 
                             <div className="clr"></div>
@@ -244,17 +244,17 @@ export default function Wallet() {
                             <div className='col-20-percent fl walletclms col-m-full col-mr-bottom-30'>
                                 <div className="tag">Carbon credits</div>
                                 <div className="value">{carbon_credits.emissions} = {carbon_credits.value}€</div>
-                                <span onClick={() => setCarbonCreditsPopup(true)}>Claim</span>
+                                <button onClick={() => setCarbonCreditsPopup(true)}>Claim</button>
                             </div>
                             <div className='col-20-percent fl walletclms col-m-full col-mr-bottom-30'>
                                 <div className="tag">Dividends</div>
                                 <div className="value">{dividends_details}</div>
-                                <span onClick={() => setDividendsPopup(true)}>Claim</span>
+                                <button onClick={() => setDividendsPopup(true)}>Claim</button>
                             </div>
                             <div className='col-20-percent fl walletclms col-m-full'>
                                 <div className="tag">E-trees</div>
                                 <div className="value">{etree_details}</div>
-                                <span onClick={() => setEtreesPopup(true)}>Claim</span>
+                                <button onClick={() => setEtreesPopup(true)}>Claim</button>
                             </div>
                             <div className="clr"></div>
                         </div>
@@ -269,12 +269,12 @@ export default function Wallet() {
                                 <div className="heading">Token list</div>
                             </div>
                             <div className="col-6 text-align-right fr hideonmobile">
-                                <span className="guides" style={{ cursor: "pointer" }}>
+                            <Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
                                     Export transaction history
-                                </span>
-                                <span className="guides margin" style={{ cursor: "pointer" }}>
+                                </Link>
+                                <Link type="text" to="/" className="guides margin" style={{ cursor: "pointer" }}>
                                     Export token list
-                                </span>
+                                </Link>
                             </div>
                             <div className="clr"></div>
                         </div>
@@ -324,12 +324,12 @@ export default function Wallet() {
                                 <div className="space-30"></div>
                             </div>
                             <div className='col-12 showonmobile text-align-center'>
-                                <span className="guides" style={{ cursor: "pointer" }}>
+                                <Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
                                     Export transaction history
-                                </span>
-                                <span className="guides margin" style={{ cursor: "pointer" }}>
+                                </Link>
+                                <Link type="text" to="/" className="guides margin" style={{ cursor: "pointer" }}>
                                     Export token list
-                                </span>
+                                </Link>
                             </div>
                             <div className="space-20 showonmobile"></div>
                         </div>

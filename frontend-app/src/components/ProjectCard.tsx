@@ -32,9 +32,6 @@ export default function ProjectCard({ item }: ItemProps) {
                             <div className="image">
                                 <img
                                     src={item.forest_project.image_small_url}
-                                    // layout="responsive"
-                                    width={100}
-                                    height={100}
                                 />
                                 <div className="caption">{comingSoon ? 'coming soon' : item.forest_project.label}</div>
                             </div>
