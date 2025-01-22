@@ -18,7 +18,9 @@ export default function AuthLogin(props: { setUser: (user: ApiUser) => void }) {
         navigate(location.state?.from ? location.state.from : '/projects/active');
     }
 
-    const whenRequestInvitationButtonHit = () => { }
+    const whenRequestInvitationButtonHit = () => { 
+        setinviteSuccess(true)
+    }
     const backToLoginButtonHit = () => {
         setinviteSuccess(false)
     }

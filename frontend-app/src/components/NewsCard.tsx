@@ -36,7 +36,7 @@ export default function NewsCard({item} : ItemProps) {
       </div>
       <div className="container-in text-align-right">
         <div className="col-12">
-          <Link to={`/news-details/#${item.id}`} className="read">READ FULL ARTICLE</Link>
+          <Link to={`/news/${item.id}`} className="read">READ FULL ARTICLE</Link>
         </div>
       </div>
       </div>
