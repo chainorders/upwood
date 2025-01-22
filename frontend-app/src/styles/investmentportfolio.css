@@ -1,0 +1,27 @@
+.investmentportfolio{
+    padding: 0 15px;
+}
+.investmentportfolio .outerboxshadow{
+    padding: 20px 20px 0 20px;
+    box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
+}
+.investmentportfolio .heading{
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+.investmentportfolio .investmentms{
+    text-align: center;
+    padding-top: 20px;
+}
+.investmentportfolio .tag{
+    text-transform: uppercase;
+    color: rgba(107, 107, 107, 1);
+    font-size: 12px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+.investmentportfolio .value{
+    font-size: 32px;
+    font-weight: 500;
+}

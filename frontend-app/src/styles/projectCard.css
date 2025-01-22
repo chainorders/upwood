@@ -1,0 +1,56 @@
+.projects{
+    padding: 0 15px;
+}
+.project-card{
+    box-shadow: 2px 4px 16px -4px rgba(71, 102, 68, 0.15);
+    padding: 10px;
+    margin-bottom: 20px;
+}
+.project-card .disable-overlay:after{
+    content:"";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.7);
+}
+.project-card .colb{
+    color: rgba(107, 107, 107, 1);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 8px;
+}
+.project-card .colc{
+    font-size: 20px;
+    color: rgba(51, 51, 51, 1);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 20px;
+}
+.project-card .project-name{
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+.project-card .project-description{
+    margin-bottom: 25px;
+}
+.project-card .image{
+    margin: -10px -10px 20px -10px;
+    position: relative;
+}
+.project-card .image .caption{
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background: rgba(255,255,255,0.7);
+    padding: 5px 0 8px;
+}
+.project-card .image img{
+    width: 100%;
+    height: auto;
+    border-radius: 15px 15px 0 0;
+}

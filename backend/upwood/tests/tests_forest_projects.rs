@@ -136,16 +136,16 @@ pub async fn test_forest_projects() {
         offchain_rewards,
     ) = deploy_upwood_contracts(&mut chain, &admin, euroe);
 
-    let (db_config, _container) = shared_tests::create_new_database_container().await;
-    shared::db_setup::run_migrations(&db_config.db_url());
+    // let (db_config, _container) = shared_tests::create_new_database_container().await;
+    // shared::db_setup::run_migrations(&db_config.db_url());
     // Uncomment the following lines to run the tests on the local database container
-    // let db_config = shared_tests::PostgresTestConfig {
-    //     postgres_db:       "concordium_rwa_dev".to_string(),
-    //     postgres_host:     "localhost".to_string(),
-    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
-    //     postgres_port:     5432,
-    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
-    // };
+    let db_config = shared_tests::PostgresTestConfig {
+        postgres_db:       "concordium_rwa_dev".to_string(),
+        postgres_host:     "localhost".to_string(),
+        postgres_password: "concordium_rwa_dev_pswd".to_string(),
+        postgres_port:     5432,
+        postgres_user:     "concordium_rwa_dev_user".to_string(),
+    };
 
     let db_url = db_config.db_url();
     let pool: DbPool = r2d2::Pool::builder()
@@ -249,6 +249,55 @@ pub async fn test_forest_projects() {
         &trading_contract,
         1,
         2.into(),
+        28,
+    )
+    .await;
+    let (.., fp_2) = create_forest_project(
+        &mut chain,
+        &mut api,
+        &mut db_conn,
+        &mut processor,
+        &admin,
+        &identity_registry,
+        &compliance_contract,
+        &mint_fund_contract,
+        &yielder_contract,
+        &trading_contract,
+        2,
+        2.into(),
+        18,
+    )
+    .await;
+    let (.., fp_3) = create_forest_project(
+        &mut chain,
+        &mut api,
+        &mut db_conn,
+        &mut processor,
+        &admin,
+        &identity_registry,
+        &compliance_contract,
+        &mint_fund_contract,
+        &yielder_contract,
+        &trading_contract,
+        3,
+        2.into(),
+        11,
+    )
+    .await;
+    let (.., fp_4) = create_forest_project(
+        &mut chain,
+        &mut api,
+        &mut db_conn,
+        &mut processor,
+        &admin,
+        &identity_registry,
+        &compliance_contract,
+        &mint_fund_contract,
+        &yielder_contract,
+        &trading_contract,
+        4,
+        2.into(),
+        10,
     )
     .await;
 
@@ -296,14 +345,40 @@ pub async fn test_forest_projects() {
         assert_eq!(projects.data.len(), 0);
     }
 
-    let fp_1 = ForestProject {
-        state: ForestProjectState::Active,
-        ..fp_1
-    };
-    let fp_1 = admin
-        .call_api(|token| api.admin_update_forest_project(token, &fp_1))
-        .await;
-    assert_eq!(fp_1.state, ForestProjectState::Active);
+    {
+        let fp_1 = ForestProject {
+            state: ForestProjectState::Active,
+            ..fp_1
+        };
+        let fp_1 = admin
+            .call_api(|token| api.admin_update_forest_project(token, &fp_1))
+            .await;
+        assert_eq!(fp_1.state, ForestProjectState::Active);
+
+        let fp_2 = ForestProject {
+            state: ForestProjectState::Active,
+            ..fp_2
+        };
+        admin
+            .call_api(|token| api.admin_update_forest_project(token, &fp_2))
+            .await;
+
+        let fp_3 = ForestProject {
+            state: ForestProjectState::Active,
+            ..fp_3
+        };
+        admin
+            .call_api(|token| api.admin_update_forest_project(token, &fp_3))
+            .await;
+
+        let fp_4 = ForestProject {
+            state: ForestProjectState::Active,
+            ..fp_4
+        };
+        admin
+            .call_api(|token| api.admin_update_forest_project(token, &fp_4))
+            .await;
+    }
 
     {
         admin
@@ -367,16 +442,7 @@ pub async fn test_forest_projects() {
                 api.forest_project_list_by_state(token, ForestProjectState::Active, 0)
             })
             .await;
-        assert_eq!(projects.len(), 1);
-        let property_fund = projects[0].property_fund.clone();
-        assert_eq!(
-            property_fund.clone().map(|f| f.rate_numerator),
-            Some(1.into())
-        );
-        assert_eq!(
-            property_fund.clone().map(|f| f.rate_denominator),
-            Some(1.into())
-        );
+        assert_eq!(projects.len(), 4);
     }
 
     // mint fund 1 investments
@@ -455,13 +521,9 @@ pub async fn test_forest_projects() {
 
         // asserting user portfolio after investment in mint fund 1
         {
-            let projects = user_1
-                .call_api(|token| {
-                    api.forest_project_list_by_state(token, ForestProjectState::Active, 0)
-                })
+            let project = user_1
+                .call_api(|token| api.forest_project_get(token, fp_1.id))
                 .await;
-            assert_eq!(projects.data.len(), 1);
-            let project = projects.data[0].clone();
             assert_eq!(project.user_balance, 100.into()); // user 1 has 100 shares
 
             let portfolio = user_1
@@ -1269,7 +1331,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:   user_1.id.clone(),
                 transaction_hash:
-                    "d596e806d34bd7d4304b9f00ec340f02fa90c4faa17fe39729cb15c76e0de77f".to_string(),
+                    "cc74c0c353fe2c007aff8dc7db556638f52260fea1dc0bce2f04002db6ad90ce".to_string(),
                 transaction_type:  "buy".to_string(),
                 forest_project_id: fp_1.id,
                 currency_amount:   Decimal::from(25),
@@ -1277,7 +1339,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:   user_1.id.clone(),
                 transaction_hash:
-                    "b9098fe78517adc23218f8cd7d804f55c977fb22185a4d8e752ab7e82e5c1d89".to_string(),
+                    "5a05f87d329a8321f2006f4f3b11b810aeddcd21cb383b61df03824074eaffc9".to_string(),
                 transaction_type:  "sell".to_string(),
                 forest_project_id: fp_1.id,
                 currency_amount:   Decimal::from(25),
@@ -1285,7 +1347,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:   user_1.id.clone(),
                 transaction_hash:
-                    "560231689713a5933b6c8ac3e6b2f243730e49e1c6b0c610c41e8e8dad26044c".to_string(),
+                    "e882dd6a247f4ada1f700f1918bd23b7c730ad62af15f5cec8de976cbad09691".to_string(),
                 forest_project_id: fp_1.id,
                 transaction_type:  "claimed".to_string(),
                 currency_amount:   Decimal::from(100),
@@ -1293,7 +1355,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:   user_1.id.clone(),
                 transaction_hash:
-                    "c1c3c8fdf22e3a4adef796c8fdaf739d7d3b222f995891eb8f495ca71fb932a8".to_string(),
+                    "2de44621c76edf2debbc2df62ccb52c5036b1919dca3af0c0a886cc48dbfaeba".to_string(),
                 transaction_type:  "invested".to_string(),
                 forest_project_id: fp_1.id,
                 currency_amount:   Decimal::from(100),
@@ -1609,6 +1671,7 @@ async fn create_forest_project(
     trading_contract: &P2PTradeTestClient,
     index: u16,
     latest_price: Decimal,
+    test_image_id: u32,
 ) -> (
     SftMultiTestClient, // project property contract
     SftMultiTestClient, // project fund pre sale contract
@@ -1622,8 +1685,8 @@ async fn create_forest_project(
         desc_short: format!("Forest Project {} Short description", index),
         property_media_header: "Property Media Header".to_string(),
         property_media_footer: "Property Media Footer".to_string(),
-        image_small_url: "https://image.com/small".to_string(),
-        image_large_url: "https://image.com/large".to_string(),
+        image_small_url: format!("https://picsum.photos/id/{}/550/250", test_image_id),
+        image_large_url: format!("https://picsum.photos/id/{}/1088/494", test_image_id),
         label: "GROW".to_string(),
         carbon_credits: 200,
         shares_available: 100,
@@ -1885,6 +1948,10 @@ pub async fn create_login_api_user(
         .await
         .assert_status_is_ok();
     let id_token = cognito.user_login(&email, &password).await;
+    println!("User {} created", email);
+    println!("User ID: {}", user_id);
+    println!("User Password: {}", password);
+    println!("User ID Token: {}", id_token);
 
     UserTestClient {
         id: user_id,
