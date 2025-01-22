@@ -13,54 +13,54 @@ import {
 } from 'chart.js';
 import { PortfolioValue } from '../apiClient';
 
-// Register necessary chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
 export default function PortfolioValueChart(props: { values: PortfolioValue[] }) {
-  // Define data type
+  const chartLabels = props.values.map((value) => new Date(value.at).toLocaleDateString('en-US', { month: 'short' }));
+  const chartData = props.values.map((value) => value.portfolio_value);
+
   const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], // Months
+    labels: chartLabels,
     datasets: [
       {
         label: 'Portfolio Value',
-        data: [300, 400, 350, 500, 450, 550], // Sample data points
-        borderColor: '#28a745', // Line color
-        backgroundColor: 'rgba(40, 167, 69, 0.2)', // Fill color
+        data: chartData,
+        borderColor: '#28a745',
+        backgroundColor: 'rgba(40, 167, 69, 0.2)',
         pointRadius: 8,
         pointBackgroundColor: '#28a745',
         pointBorderColor: '#fff',
-        tension: 0.4, // Smooth curve
+        tension: 0.4,
         fill: false,
       },
     ],
   };
 
-  // Define options type for Chart.js
   const options: ChartOptions<'line'> = {
     responsive: true,
     plugins: {
       tooltip: {
         callbacks: {
-          label: (props:{raw: unknown}) => `€${props.raw}`, // Custom tooltip content
+          label: (props: TooltipItem<"line">) => `€${props.raw}`,
         },
       },
       legend: {
-        display: false, // Hide legend
+        display: false,
       },
     },
     scales: {
       y: {
         grid: {
-          display: true, // Hide grid lines on x-axis
+          display: true,
         },
         beginAtZero: true,
         ticks: {
-          callback: (value: string | number) => `€${value}`, // Prefix y-axis values with €
+          callback: (value: string | number) => `€${value}`,
         },
       },
       x: {
         grid: {
-          display: true, // Hide grid lines on x-axis
+          display: true,
         },
       },
     },

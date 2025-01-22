@@ -18,7 +18,6 @@ export default function Wallet() {
     const [etrees_popup, setEtreesPopup] = useState(false);
     const [projects, setProjects] = useState<ForestProjectAggApiModel[]>([]);
 
-    useEffect(() => { });
     useEffect(() => {
         setProjects([
             {

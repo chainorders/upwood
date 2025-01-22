@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ApiUser, ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
+import { ApiUser, ForestProjectAggApiModel, ForestProjectState, PortfolioValue } from "../apiClient";
 import PageHeader from "../components/PageHeader";
 import ProjectCard2 from "../components/ProjectCard2";
 import PortfolioValueChart from "../components/PortfolioValueChart";
@@ -7,60 +7,70 @@ import { useOutletContext } from "react-router";
 
 export default function InvestmentPortfolio() {
     const { user } = useOutletContext<{ user: ApiUser }>();
-    const [projects, setData] = useState<ForestProjectAggApiModel[]>([
-        {
-            forest_project: {
-                area: "100",
-                carbon_credits: 100,
-                created_at: "2021-09-07T12:00:00Z",
-                desc_long: "This is a long description",
-                desc_short: "This is a short description",
-                id: "forest_project_id_1",
-                image_small_url: "https://picsum.photos/id/237/400/200",
-                image_large_url: "https://picsum.photos/id/237/800/600",
-                label: "Grow",
-                latest_price: "100",
-                name: "Project Name",
-                property_media_footer: "Property Media Footer",
-                property_media_header: "Property Media Header",
-                roi_percent: 100,
-                shares_available: 100,
-                state: ForestProjectState.ACTIVE,
-                updated_at: "2021-09-07T12:00:00Z",
-                geo_spatial_url: "https://via.placeholder.com/150",
-                offering_doc_link: "https://via.placeholder.com/150",
-            },
-            supply: "100",
-            user_balance: "100",
-        },
-        {
-            forest_project: {
-                area: "100",
-                carbon_credits: 100,
-                created_at: "2021-09-07T12:00:00Z",
-                desc_long: "This is a long description",
-                desc_short: "This is a short description",
-                id: "forest_project_id_2",
-                image_small_url: "https://picsum.photos/id/237/400/200",
-                image_large_url: "https://picsum.photos/id/237/800/600",
-                label: "Grow",
-                latest_price: "100",
-                name: "Project Name 2",
-                property_media_footer: "Property Media Footer",
-                property_media_header: "Property Media Header",
-                roi_percent: 100,
-                shares_available: 100,
-                state: ForestProjectState.ACTIVE,
-                updated_at: "2021-09-07T12:00:00Z",
-                geo_spatial_url: "https://via.placeholder.com/150",
-                offering_doc_link: "https://via.placeholder.com/150",
-            },
-            supply: "100",
-            user_balance: "100",
-        }
-    ]);
+    const [projects, setData] = useState<ForestProjectAggApiModel[]>([]);
+    const [portfolioValues, setPortfolioValues] = useState<PortfolioValue[]>([]);
     useEffect(() => {
-     //   setData()
+        setData([
+            {
+                forest_project: {
+                    area: "100",
+                    carbon_credits: 100,
+                    created_at: "2021-09-07T12:00:00Z",
+                    desc_long: "This is a long description",
+                    desc_short: "This is a short description",
+                    id: "forest_project_id_1",
+                    image_small_url: "https://picsum.photos/id/237/400/200",
+                    image_large_url: "https://picsum.photos/id/237/800/600",
+                    label: "Grow",
+                    latest_price: "100",
+                    name: "Project Name",
+                    property_media_footer: "Property Media Footer",
+                    property_media_header: "Property Media Header",
+                    roi_percent: 100,
+                    shares_available: 100,
+                    state: ForestProjectState.ACTIVE,
+                    updated_at: "2021-09-07T12:00:00Z",
+                    geo_spatial_url: "https://via.placeholder.com/150",
+                    offering_doc_link: "https://via.placeholder.com/150",
+                },
+                supply: "100",
+                user_balance: "100",
+            },
+            {
+                forest_project: {
+                    area: "100",
+                    carbon_credits: 100,
+                    created_at: "2021-09-07T12:00:00Z",
+                    desc_long: "This is a long description",
+                    desc_short: "This is a short description",
+                    id: "forest_project_id_2",
+                    image_small_url: "https://picsum.photos/id/237/400/200",
+                    image_large_url: "https://picsum.photos/id/237/800/600",
+                    label: "Grow",
+                    latest_price: "100",
+                    name: "Project Name 2",
+                    property_media_footer: "Property Media Footer",
+                    property_media_header: "Property Media Header",
+                    roi_percent: 100,
+                    shares_available: 100,
+                    state: ForestProjectState.ACTIVE,
+                    updated_at: "2021-09-07T12:00:00Z",
+                    geo_spatial_url: "https://via.placeholder.com/150",
+                    offering_doc_link: "https://via.placeholder.com/150",
+                },
+                supply: "100",
+                user_balance: "100",
+            }
+        ])
+        setPortfolioValues([
+            { portfolio_value: "100", at: "2021-09-07T12:00:00Z" },
+            { portfolio_value: "150", at: "2021-10-07T12:00:00Z" },
+            { portfolio_value: "200", at: "2021-11-07T12:00:00Z" },
+            { portfolio_value: "250", at: "2021-12-07T12:00:00Z" },
+            { portfolio_value: "300", at: "2022-01-07T12:00:00Z" },
+            { portfolio_value: "350", at: "2022-02-07T12:00:00Z" },
+            { portfolio_value: "400", at: "2022-03-07T12:00:00Z" }
+        ]);
     }, []);
 
     const topvalues = {
@@ -122,7 +132,7 @@ export default function InvestmentPortfolio() {
                             <div className="col-12">
                                 <div className="chart">
                                     <div className="chart-in">
-                                        {/* <PortfolioValueChart values={[]} /> */}
+                                        <PortfolioValueChart values={portfolioValues} />
                                     </div>
                                 </div>
                             </div>
