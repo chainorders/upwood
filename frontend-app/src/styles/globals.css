@@ -118,6 +118,7 @@ body{
   color: initial;
   text-decoration: none;
   color: initial;
+  background: transparent;
 }
 .button.disabled{
   cursor: not-allowed;
@@ -174,6 +175,7 @@ body{
   position: fixed;
   bottom: 0;
   left: 0;
+  cursor: pointer;
 }
 .header .logout .icon{
   position: absolute;

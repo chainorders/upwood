@@ -9,6 +9,7 @@ import { useState } from 'react';
 import Wallet from './pages/Wallet.tsx';
 import News from './pages/News.tsx';
 import NewsDetails from './pages/NewsDetails.tsx';
+import ForgotPassword from './pages/ForgotPassword.tsx';
 
 export default function App() {
     const [user, setUser] = useState<ApiUser>();
@@ -16,6 +17,7 @@ export default function App() {
     return <BrowserRouter>
         <Routes>
             <Route path="/login" element={<AuthLogin setUser={setUser} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/" element={<AuthLayout user={user} logout={() => {
                 console.log('logout');
                 setUser(undefined);

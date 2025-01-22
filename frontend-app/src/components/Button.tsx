@@ -13,20 +13,20 @@ export default function Button({ text, link, active, style, disabled, icon, call
     return (
         <>
             {link === '' ?
-                <span className={`button ${style} ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`} onClick={call}>{icon && icon !== '' ?
+                <button className={`button ${style} ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`} onClick={call}>{icon && icon !== '' ?
                     <img
                         src={icon}
-                        width={14}
-                        height={14}
+                        width="14"
+                        height="14"
                     />
-                    : null}{text}</span>
+                    : null}{text}</button>
                 :
                 <Link to={link} className={`button ${style} ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`}>
                     {icon && icon !== '' ?
                         <img
                             src={icon}
-                            width={14}
-                            height={14}
+                            width="14"
+                            height="14"
                         /> : <></>
                     }
                     {text}
