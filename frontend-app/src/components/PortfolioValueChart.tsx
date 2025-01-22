@@ -9,6 +9,7 @@ import {
   Tooltip,
   Filler,
   ChartOptions,
+  TooltipItem,
 } from 'chart.js';
 import { PortfolioValue } from '../apiClient';
 
@@ -40,7 +41,7 @@ export default function PortfolioValueChart(props: { values: PortfolioValue[] })
     plugins: {
       tooltip: {
         callbacks: {
-          label: (tooltipItem: { raw: string }) => `€${tooltipItem.raw}`, // Custom tooltip content
+          label: (tooltipItem: TooltipItem<"line">) => `€${tooltipItem.raw}`, // Custom tooltip content
         },
       },
       legend: {
@@ -54,7 +55,7 @@ export default function PortfolioValueChart(props: { values: PortfolioValue[] })
         },
         beginAtZero: true,
         ticks: {
-          callback: (value: string) => `€${value}`, // Prefix y-axis values with €
+          callback: (value: string | number) => `€${value}`, // Prefix y-axis values with €
         },
       },
       x: {

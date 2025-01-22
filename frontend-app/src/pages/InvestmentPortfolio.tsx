@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
+import { ApiUser, ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
 import PageHeader from "../components/PageHeader";
 import ProjectCard2 from "../components/ProjectCard2";
 import PortfolioValueChart from "../components/PortfolioValueChart";
+import { useOutletContext } from "react-router";
 
 export default function InvestmentPortfolio() {
+    const { user } = useOutletContext<{ user: ApiUser }>();
     const [projects, setData] = useState<ForestProjectAggApiModel[]>([]);
     useEffect(() => {
         setData([
@@ -72,7 +74,7 @@ export default function InvestmentPortfolio() {
         <>
             <div className="clr"></div>
             <div className="investmentportfolio">
-                <PageHeader userFullName="John Carter" initials="JC" parts={[{ name: "Investment Portfolio" }]} />
+                <PageHeader userFullName={user.fullName} initials={user.initials} parts={[{ name: "Investment Portfolio" }]} />
                 <div className="outerboxshadow">
                     <div className="container">
                         <div className="container-in">

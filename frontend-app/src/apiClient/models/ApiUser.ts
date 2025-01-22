@@ -35,5 +35,8 @@ export type ApiUser = {
      * If the user's account_address is not set, then the user has not completed the KYC process
      */
     kyc_verified: boolean;
+
+    fullName: string;
+    initials: string;
 };
 

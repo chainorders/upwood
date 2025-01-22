@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { ForestProjectAggApiModel } from "../apiClient/models/ForestProjectAggApiModel";
-import { ForestProjectState } from "../apiClient";
+import { ApiUser, ForestProjectState } from "../apiClient";
 import ProjectCard from "../components/ProjectCard";
 import PageHeader from "../components/PageHeader";
+import { useOutletContext } from "react-router";
 
 export default function ActiveForestProjectsList() {
-    const [projects, setData] = useState<ForestProjectAggApiModel[]>([]);
+    const { user } = useOutletContext<{ user: ApiUser }>();
+    const [projects, setProjects] = useState<ForestProjectAggApiModel[]>([]);
     useEffect(() => {
-        setData([
+        setProjects([
             {
                 forest_project: {
                     area: "100",
@@ -65,7 +67,7 @@ export default function ActiveForestProjectsList() {
         <>
             <div className="clr"></div>
             <div className="projects">
-                <PageHeader userFullName="John Carter" initials="JC" parts={[
+                <PageHeader userFullName={user.fullName} initials={user.initials} parts={[
                     { name: "Active Projects" },
                 ]} />
                 <div className="container">

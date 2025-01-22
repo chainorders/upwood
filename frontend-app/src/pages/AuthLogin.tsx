@@ -5,15 +5,16 @@ import AuthTextSlider from "../components/AuthTextSlider";
 import logo from '../assets/logo.svg';
 import { useTitle } from "../components/useTitle";
 import { ApiUser } from "../apiClient";
+import greenTIckIcon from "../assets/green-tick.svg";
 
-export default function Login(props: { setUser: (user: ApiUser) => void }) {
+export default function AuthLogin(props: { setUser: (user: ApiUser) => void }) {
     useTitle("Login");
     const navigate = useNavigate();
     const location = useLocation();
     const [inviteSuccess, setinviteSuccess] = useState(false);
     const whenLoginButtonHit = () => {
         // todo: remove this line
-        props.setUser({ cognito_user_id: '123' } as ApiUser);
+        props.setUser({ cognito_user_id: '123', fullName: "John Carter", initials: "JC" } as ApiUser);
         navigate(location.state?.from ? location.state.from : '/projects/active');
     }
 
@@ -56,8 +57,7 @@ export default function Login(props: { setUser: (user: ApiUser) => void }) {
                     <div>
                         <div className="image">
                             <img
-                                src="/Group-1000003068.svg"
-                                alt="Description of the image"
+                                src={greenTIckIcon}
                                 //   layout="responsive"
                                 width={100}
                                 height={100}

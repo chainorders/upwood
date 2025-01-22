@@ -10,7 +10,7 @@ export default function PageHeader(props: { parts: { name: string, link?: string
                             props.parts.map((part, index) => {
                                 return <span>
                                     {part.link ?
-                                        <Link type="text" to={part.link}>{part.name}</Link>
+                                        <Link type="text" to={part.link} key={index}>{part.name}</Link>
                                         :
                                         <span>{part.name}</span>
                                     }
@@ -18,7 +18,7 @@ export default function PageHeader(props: { parts: { name: string, link?: string
                                 </span>
                             })
                         }
-                        <div className="username fr" style={{marginTop: '-0.5em'}}>
+                        <div className="username fr" style={{ marginTop: '-0.5em' }}>
                             <span>{props.initials}</span>
                             {props.userFullName}
                         </div>

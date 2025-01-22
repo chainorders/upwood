@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "../components/Button";
 import BuyShare, { BuyShareConfig } from "../components/BuyShare";
-import { ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
-import { useParams } from "react-router";
+import { ApiUser, ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
+import { useOutletContext, useParams } from "react-router";
 import MultiImageLayout from "../components/MultiImageLayout";
 import SingleImageLayout from "../components/SingleImageLayout";
 import PageHeader from "../components/PageHeader";
@@ -10,6 +10,7 @@ import { useTitle } from "../components/useTitle";
 
 export default function ActiveForestProjectDetails() {
     const { id } = useParams<{ id: string }>();
+    const { user } = useOutletContext<{ user: ApiUser }>();
     const [project, setProject] = useState<ForestProjectAggApiModel>();
     const [buyShareConfig, setBuyShareConfig] = useState<BuyShareConfig>();
     const [comingSoon, setComingSoon] = useState(false);
@@ -113,7 +114,7 @@ export default function ActiveForestProjectDetails() {
     return (
         <>
             <div className="project-detail">
-                <PageHeader userFullName="John Carter" initials="JC" parts={[
+                <PageHeader userFullName={user.fullName} initials={user.initials} parts={[
                     { name: "Active Projects", link: "/projects/active" },
                     { name: project?.forest_project.name || "", link: "" }
                 ]} />
