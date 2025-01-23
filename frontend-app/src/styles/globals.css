@@ -139,10 +139,25 @@ body{
   border:1px solid rgba(15, 180, 4, 1);
   box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
 }
+.button.style4{
+  border: 0;
+  box-shadow: none;
+}
+.button.style5{
+  border: 0;
+  box-shadow: none;
+  color: rgba(15, 180, 4, 1);
+}
+.button.text-align-left-on-mob{
+  text-align: left;
+}
 .button img{
   margin-right: 10px;
   position: relative;
   top: 2px;
+}
+.space-15{
+  height: 15px;
 }
 .space-20{
   height: 20px;

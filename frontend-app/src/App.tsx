@@ -12,6 +12,9 @@ import NewsDetails from './pages/NewsDetails.tsx';
 import ForgotPassword from './pages/ForgotPassword.tsx';
 import Register from './pages/Register.tsx';
 import Support from './pages/Support.tsx';
+import Settings from './pages/Settings.tsx';
+import FundedForestProjectsList from './pages/FundedForestProjectsList.tsx';
+import FundedForestProjectDetails from './pages/FundedForestProjectDetails.tsx';
 
 export default function App() {
     const [user, setUser] = useState<ApiUser>();
@@ -26,12 +29,15 @@ export default function App() {
                 setUser(undefined);
             }} />}>
                 <Route index path='projects/active' element={<ActiveForestProjectsList />} />
+                <Route index path='projects/funded' element={<FundedForestProjectsList />} />
                 <Route index path='projects/active/:id' element={<ActiveForestProjectDetails />} />
+                <Route index path='projects/funded/:id' element={<FundedForestProjectDetails />} />
                 <Route index path='portfolio' element={<InvestmentPortfolio />} />
                 <Route index path='wallet' element={<Wallet />} />
                 <Route index path='news' element={<News />} />
                 <Route index path='news/:id' element={<NewsDetails />} />
                 <Route index path='support' element={<Support />} />
+                <Route index path='settings' element={<Settings />} />
             </Route>
         </Routes>
     </BrowserRouter>
