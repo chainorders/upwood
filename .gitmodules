@@ -1,6 +1,3 @@
 [submodule "contracts/euroe"]
 	path = contracts/euroe
 	url = git@github.com:membranefi/euroe-stablecoin-concordium.git
-[submodule "frontend"]
-	path = frontend
-	url = git@github.com:ronnybaba/upwood.git
