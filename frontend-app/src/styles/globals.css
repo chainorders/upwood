@@ -451,3 +451,20 @@ body{
 .cels.last{
   padding-right: 30px;
 }
+.Successful{
+  color: rgba(15, 180, 4, 1);
+}
+.Pending{
+  color: var(--Orange, rgba(255, 138, 0, 1));
+}
+.Failed{
+  color: rgba(255, 0, 0, 1);
+}
+.genp{
+  color: initial;
+  line-height: 24px;
+}
+.genp a{
+  color: rgba(15, 180, 4, 1);
+  text-decoration: none;
+}

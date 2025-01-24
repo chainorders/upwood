@@ -1,0 +1,75 @@
+.settings{
+    padding: 0 15px;
+}
+.settings .outerboxshadow{
+    padding: 20px 20px 0 20px;
+    box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
+}
+.settings .guides{
+    display: inline-block;
+    padding-top: 10px;
+    font-weight: 500;
+    color: rgba(15, 180, 4, 1);
+    text-transform: uppercase;
+    text-decoration: none;
+}
+.settings .guides.margin{
+    margin-left: 60px;
+}
+.settings .heading{
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+.setting-block{
+    padding: 30px;
+}
+.setting-block .heading{
+    font-size: 20px;
+}
+.setting-block .name{
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(51, 51, 51, .8);
+    margin-bottom: 10px;
+}
+.setting-block .email{
+    color: rgba(51, 51, 51, .8);
+    margin-bottom: 10px;
+}
+.setting-block .email.mr{
+    margin-bottom: 47px;
+}
+.setting-block .reg{
+    color: rgba(51, 51, 51, .8);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+.setting-block .action{
+    padding: 0 20%;
+}
+.setting-block .st{
+    padding-top: 20px;
+}
+.setting-block .st span{
+    padding-top: 10px;
+    display: inline-block;
+}
+.setting-block .st span img{
+    position: relative;
+    margin-right: 10px;
+    top: 2px;
+}
+.setting-block .letter{
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(172, 221, 180, 1);
+    font-weight: 500;
+    text-align: center;
+    font-size: 22px;
+    line-height: 60px;
+    color: rgba(107, 107, 107, .7);
+    margin: auto;
+    margin-bottom: 20px;
+}
