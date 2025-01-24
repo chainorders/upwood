@@ -32,7 +32,6 @@ use integration_tests::security_sft_multi_client::SftMultiTestClient;
 use integration_tests::security_sft_multi_yielder_client::SftMultiYielderTestClient;
 use integration_tests::security_sft_single_client::SftSingleTestClient;
 use nft_multi_rewarded::types::ContractMetadataUrl;
-use passwords::PasswordGenerator;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
 use security_mint_fund::types::{
@@ -53,35 +52,25 @@ use shared::db_shared::{DbConn, DbPool};
 use test_log::test;
 use test_utils::test_api::ApiTestClient;
 use test_utils::test_chain::{Account, Chain};
-use test_utils::test_cognito::CognitoTestClient;
 use test_utils::test_user::UserTestClient;
+use test_utils::{create_login_admin_user, create_login_user, PASS_GENERATOR};
 use upwood::api;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
-use upwood::api::user::{
-    UserRegisterReq, UserRegistrationInvitationSendReq, UserUpdateAccountAddressRequest,
-};
+use upwood::utils::aws::cognito::UserPool;
 use uuid::Uuid;
 
-const PASS_GENERATOR: PasswordGenerator = PasswordGenerator::new()
-    .length(10)
-    .numbers(true)
-    .lowercase_letters(true)
-    .uppercase_letters(true)
-    .symbols(true)
-    .spaces(false)
-    .strict(true);
 pub const CHAIN_ADMIN: AccountAddress = AccountAddress([0u8; 32]);
 pub const APP_ADMIN: AccountAddress = AccountAddress([1u8; 32]);
 pub const DEFAULT_ACCOUNT_BALANCE: Amount = Amount::from_ccd(1_000);
 const COMPLIANT_NATIONALITIES: [&str; 3] = ["IN", "US", "GB"];
 const CARBON_CREDITS_METADATA_URL: &str = "https://metadata.com/carbon_credits";
 const TREE_SFT_METADATA_URL: &str = "https://metadata.com/tree_sft";
-const COGNITO_POOL_ID: &str = "eu-west-2_5JdhiSJOg";
-const COGNITO_CLIENT_ID: &str = "b3c0pbkt8hnut1ggl9evluhs2";
-const AGENT_WALLET_JSON_STR: &str = "{\"type\":\"concordium-browser-wallet-account\",\"v\":0,\"environment\":\"testnet\",\"value\":{\"accountKeys\":{\"keys\":{\"0\":{\"keys\":{\"0\":{\"signKey\":\"ab3f1fa2303811f2d68581a212c12c9388fd9d530b9daa892ae1415c5154ea21\",\"verifyKey\":\"2d501e8dd06a4a4e37f4676a6e12f947c53f7ae5f35f372eb2bf023dd3fca2e7\"}},\"threshold\":1}},\"threshold\":1},\"credentials\":{\"0\":\"902429b5b471ebe0cbbb60a901ff2c885b8398abf738d52137133e890b2e84a95448fd136fe5ee3e7ee3c5a104169cd3\"},\"address\":\"4fWTMJSAymJoFeTbohJzwejT6Wzh1dAa2BtnbDicgjQrc94TgW\"}}";
 
 #[test(tokio::test)]
 pub async fn test_forest_projects() {
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+        .ok();
     let test_id = format!("fpsu_{}", uuid::Uuid::new_v4());
     let start_time = DateTime::parse_from_rfc3339("2021-01-01T00:00:00Z")
         .expect("Failed to parse start time")
@@ -136,16 +125,16 @@ pub async fn test_forest_projects() {
         offchain_rewards,
     ) = deploy_upwood_contracts(&mut chain, &admin, euroe);
 
-    // let (db_config, _container) = shared_tests::create_new_database_container().await;
-    // shared::db_setup::run_migrations(&db_config.db_url());
+    let (db_config, _container) = shared_tests::create_new_database_container().await;
+    shared::db_setup::run_migrations(&db_config.db_url());
     // Uncomment the following lines to run the tests on the local database container
-    let db_config = shared_tests::PostgresTestConfig {
-        postgres_db:       "concordium_rwa_dev".to_string(),
-        postgres_host:     "localhost".to_string(),
-        postgres_password: "concordium_rwa_dev_pswd".to_string(),
-        postgres_port:     5432,
-        postgres_user:     "concordium_rwa_dev_user".to_string(),
-    };
+    // let db_config = shared_tests::PostgresTestConfig {
+    //     postgres_db:       "concordium_rwa_dev".to_string(),
+    //     postgres_host:     "localhost".to_string(),
+    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
+    //     postgres_port:     5432,
+    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
+    // };
 
     let db_url = db_config.db_url();
     let pool: DbPool = r2d2::Pool::builder()
@@ -158,23 +147,18 @@ pub async fn test_forest_projects() {
         .await
         .expect("Error processing block");
 
+    let api_config: api::Config = config::Config::builder()
+        .add_source(config::Environment::default())
+        .build()
+        .expect("Failed to build config")
+        .try_deserialize()
+        .expect("Failed to deserialize config");
     let api_config = api::Config {
-        api_socket_address: "localhost".to_string(),
-        api_socket_port: 8080,
-        db_pool_max_size: 10,
-        aws_user_pool_id: COGNITO_POOL_ID.to_string(),
-        aws_user_pool_client_id: COGNITO_CLIENT_ID.to_string(),
-        aws_user_pool_region: "eu-west-2".to_string(),
-        concordium_network: "testnet".to_string(),
-        concordium_node_uri: "http://node.testnet.concordium.com:20000".to_string(),
-        filebase_bucket_name: "".to_string(),
-        filebase_s3_endpoint_url: "".to_string(),
-        files_bucket_name: "upwood-dev-files-bucket".to_string(),
         postgres_db: db_config.postgres_db,
         postgres_host: db_config.postgres_host,
-        postgres_user: db_config.postgres_user,
         postgres_password: db_config.postgres_password.into(),
-        postgres_port: db_config.postgres_port.to_u32().unwrap(),
+        postgres_port: db_config.postgres_port,
+        postgres_user: db_config.postgres_user,
         carbon_credit_contract_index: carbon_credits.0.to_decimal(),
         compliance_contract_index: compliance_contract.0.to_decimal(),
         euro_e_contract_index: euroe.0.to_decimal(),
@@ -182,41 +166,50 @@ pub async fn test_forest_projects() {
         tree_ft_contract_index: tree_sft.0.to_decimal(),
         tree_nft_contract_index: tree_nft.0.to_decimal(),
         offchain_rewards_contract_index: offchain_rewards.0.to_decimal(),
-        filebase_access_key_id: "".into(),
-        filebase_secret_access_key: "".into(),
-        files_presigned_url_expiry_secs: 0,
-        tree_nft_agent_wallet_json_str: AGENT_WALLET_JSON_STR.to_string(),
-        offchain_rewards_agent_wallet_json_str: AGENT_WALLET_JSON_STR.to_string(),
-        user_challenge_expiry_duration_mins: 0,
-        affiliate_commission: Decimal::from_f64(0.05).unwrap(),
         mint_funds_contract_index: mint_fund_contract.0.to_decimal(),
         trading_contract_index: trading_contract.0.to_decimal(),
         yielder_contract_index: yielder_contract.0.to_decimal(),
+        ..api_config
     };
+    let mut api = ApiTestClient::new(api_config.clone()).await;
+    let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+    let mut user_pool = UserPool::new(
+        &sdk_config,
+        api_config.aws_user_pool_id.to_string(),
+        api_config.aws_user_pool_client_id.to_string(),
+        api_config.aws_user_pool_region.to_string(),
+    )
+    .await
+    .expect("Failed to create user pool");
+
     let offchain_agent_account_address = api_config.offchain_rewards_agent_wallet().address;
     let offchain_agent_account_keys = api_config.offchain_rewards_agent_wallet().keys;
-
-    let mut api = ApiTestClient::new(api_config.clone()).await;
-    let aws_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let mut cognito = CognitoTestClient::new(
-        &aws_config,
-        api_config.aws_user_pool_id,
-        api_config.aws_user_pool_client_id,
-    );
-
-    let admin = create_login_api_admin(
-        &mut api,
-        &mut cognito,
-        format!("admin_{}@yopmail.com", test_id),
-        admin,
+    let admin_password = PASS_GENERATOR.generate_one().unwrap();
+    let admin = create_login_admin_user(
+        &mut user_pool,
+        &api,
+        format!("admin_{}@yopmail.com", test_id).as_str(),
+        admin_password.as_str(),
+        admin.address_str().as_str(),
     )
     .await;
+    let admin = UserTestClient {
+        account_address: admin
+            .user
+            .user
+            .account_address
+            .parse()
+            .expect("Failed to parse account address"),
+        email:           admin.user.user.email,
+        id_token:        admin.id_token,
+        id:              admin.user.user.cognito_user_id,
+        password:        admin_password,
+    };
 
     let user_1 = create_user(
         &test_id,
         &mut chain,
         &mut api,
-        &mut cognito,
         &admin,
         None,
         Decimal::from_f64(0.05).unwrap(), // charging 5% for user affiliations
@@ -228,7 +221,6 @@ pub async fn test_forest_projects() {
         &test_id,
         &mut chain,
         &mut api,
-        &mut cognito,
         &admin,
         Some(user_1.account_address.clone()),
         0.into(),
@@ -1839,23 +1831,30 @@ pub async fn create_user(
     test_id: &str,
     chain: &mut Chain,
     api: &mut ApiTestClient,
-    cognito: &mut CognitoTestClient,
     admin: &UserTestClient,
     affiliate_account_address: Option<String>,
     user_affiliate_fees: Decimal,
     index: u8,
 ) -> UserTestClient {
-    let user = chain.create_account(AccountAddress([100 + index; 32]), DEFAULT_ACCOUNT_BALANCE);
-    let user = create_login_api_user(
+    let user_account = chain.create_account(AccountAddress([100 + index; 32]), DEFAULT_ACCOUNT_BALANCE);
+    let pass = PASS_GENERATOR.generate_one().unwrap();
+    let user = create_login_user(
         api,
-        cognito,
-        admin,
-        format!("user_{}_{}@yopmail.com", index, test_id),
-        user,
+        &admin.id_token,
+        format!("user_{}_{}@yopmail.com", index, test_id).as_str(),
+        pass.as_str(),
+        user_account.address_str().as_str(),
         affiliate_account_address,
-        user_affiliate_fees,
+        Some(user_affiliate_fees),
     )
     .await;
+    let user = UserTestClient {
+        account_address: user.user.user.account_address.parse().unwrap(),
+        email:           user.user.user.email,
+        id:              user.user.user.cognito_user_id,
+        id_token:        user.id_token,
+        password:        pass.to_string(),
+    };
 
     let contracts_config = admin.call_api(|_| api.system_config()).await;
     let euroe = EuroETestClient(contracts_config.euro_e());
@@ -1890,103 +1889,4 @@ pub async fn create_user(
         })
         .expect("Failed to add user_1 identity to identity registry");
     user
-}
-
-pub async fn create_login_api_admin(
-    api: &mut ApiTestClient,
-    cognito: &mut CognitoTestClient,
-    email: String,
-    account: Account,
-) -> UserTestClient {
-    let (user_id, password) = create_api_user(api, cognito, &email, None).await;
-    cognito.admin_add_to_admin_group(&user_id).await;
-    let id_token = cognito.user_login(&email, &password).await;
-    let admin = UserTestClient {
-        id: user_id.clone(),
-        email,
-        password,
-        id_token,
-        account_address: "".to_string(),
-    };
-
-    let update_account_req = UserUpdateAccountAddressRequest {
-        account_address:      account.address_str().clone(),
-        affiliate_commission: Decimal::ZERO,
-    };
-    admin
-        .call_api(|id_token| {
-            api.admin_update_account_address(id_token, user_id.clone(), &update_account_req)
-        })
-        .await;
-
-    UserTestClient {
-        account_address: account.address_str(),
-        ..admin
-    }
-}
-
-pub async fn create_login_api_user(
-    api: &mut ApiTestClient,
-    cognito: &mut CognitoTestClient,
-    admin: &UserTestClient,
-    email: String,
-    user_account: Account,
-    affiliate_account_address: Option<String>,
-    user_affiliate_fees: Decimal,
-) -> UserTestClient {
-    let (user_id, password) =
-        create_api_user(api, cognito, &email, affiliate_account_address).await;
-    let update_account_req = UserUpdateAccountAddressRequest {
-        account_address:      user_account.address_str().clone(),
-        affiliate_commission: user_affiliate_fees,
-    };
-    // This api call is needed because current its not possible to mock concordium browser wallet
-    admin
-        .call_api(|id_token| {
-            api.admin_update_account_address(id_token, user_id.clone(), &update_account_req)
-        })
-        .await
-        .assert_status_is_ok();
-    let id_token = cognito.user_login(&email, &password).await;
-    println!("User {} created", email);
-    println!("User ID: {}", user_id);
-    println!("User Password: {}", password);
-    println!("User ID Token: {}", id_token);
-
-    UserTestClient {
-        id: user_id,
-        email,
-        password,
-        id_token,
-        account_address: user_account.address_str(),
-    }
-}
-
-async fn create_api_user(
-    api: &mut ApiTestClient,
-    cognito: &mut CognitoTestClient,
-    email: &str,
-    affiliate_account_address: Option<String>,
-) -> (String, String) {
-    let user_id = api
-        .user_send_invitation(&UserRegistrationInvitationSendReq {
-            email: email.to_string(),
-            affiliate_account_address,
-        })
-        .await;
-    let temp_password = PASS_GENERATOR.generate_one().unwrap();
-    // This is needed just to ensure that temp passwords match
-    // API call sets random passwords for Cognito users (It it set by Cognito)
-    cognito
-        .admin_set_user_password(&user_id, &temp_password)
-        .await;
-    let password = PASS_GENERATOR.generate_one().unwrap();
-    let id_token = cognito
-        .user_change_password(email, &temp_password, &password)
-        .await;
-    api.user_register(id_token, &UserRegisterReq {
-        desired_investment_amount: 100,
-    })
-    .await;
-    (user_id, password)
 }

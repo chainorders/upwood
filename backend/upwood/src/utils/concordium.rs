@@ -8,6 +8,8 @@ pub mod identity {
         Web3IdAttribute,
     };
     use concordium_rust_sdk::{cis4, constants, v2};
+    use poem_openapi::Object;
+    use serde::{Deserialize, Serialize};
     use sha2::Digest;
 
     pub type Presentation = concordium_rust_sdk::web3id::Presentation<ArCurve, Web3IdAttribute>;
@@ -26,6 +28,9 @@ pub mod identity {
         InActiveCredential,
         PresentationVerification,
         InvalidChallenge,
+        FirstNameNotProvided,
+        LastNameNotProvided,
+        NationalityNotProvided,
     }
     impl From<CredentialLookupError> for VerifyPresentationError {
         fn from(_: CredentialLookupError) -> Self { VerifyPresentationError::CredentialLookup }
@@ -36,8 +41,11 @@ pub mod identity {
         }
     }
 
+    #[derive(Object, Serialize, Deserialize)]
     pub struct VerifyPresentationResponse {
-        pub revealed_attributes: Vec<(AttributeTag, Web3IdAttribute)>,
+        pub first_name:  String,
+        pub last_name:   String,
+        pub nationality: String,
     }
 
     /// # Verifies that
@@ -72,8 +80,55 @@ pub mod identity {
             return Err(VerifyPresentationError::InvalidChallenge);
         }
         let revealed_id_attributes = get_revealed_id_attributes(presentation);
+        let first_name = {
+            revealed_id_attributes
+                .iter()
+                .find_map(|(tag, attr)| {
+                    if "firstName".parse::<AttributeTag>().unwrap().eq(tag) {
+                        match attr {
+                            Web3IdAttribute::String(s) => Some(s.0.clone()),
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .ok_or(VerifyPresentationError::FirstNameNotProvided)?
+        };
+        let last_name = {
+            revealed_id_attributes
+                .iter()
+                .find_map(|(tag, attr)| {
+                    if "lastName".parse::<AttributeTag>().unwrap().eq(tag) {
+                        match attr {
+                            Web3IdAttribute::String(s) => Some(s.0.clone()),
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .ok_or(VerifyPresentationError::LastNameNotProvided)?
+        };
+        let nationality = {
+            revealed_id_attributes
+                .iter()
+                .find_map(|(tag, attr)| {
+                    if "nationality".parse::<AttributeTag>().unwrap().eq(tag) {
+                        match attr {
+                            Web3IdAttribute::String(s) => Some(s.0.clone()),
+                            _ => None,
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .ok_or(VerifyPresentationError::NationalityNotProvided)?
+        };
         Ok(VerifyPresentationResponse {
-            revealed_attributes: revealed_id_attributes,
+            first_name,
+            last_name,
+            nationality,
         })
     }
 

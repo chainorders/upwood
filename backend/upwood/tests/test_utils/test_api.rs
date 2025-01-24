@@ -1,4 +1,4 @@
-use poem::http::{Method, StatusCode};
+use poem::http::StatusCode;
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
 use poem_openapi::types::ToJSON;
@@ -12,13 +12,14 @@ use shared::db_app::forest_project_crypto::{
     SecurityTokenContractType,
 };
 use shared::db_app::portfolio::UserTransaction;
+use shared::db_app::users::UserRegistrationRequest;
 use upwood::api;
 use upwood::api::files::UploadUrlResponse;
 use upwood::api::forest_project::ForestProjectAggApiModel;
 use upwood::api::investment_portfolio::{InvestmentPortfolioUserAggregate, PortfolioValue};
 use upwood::api::user::{
-    AdminUser, ApiUser, ClaimRequest, UserRegisterReq, UserRegistrationInvitationSendReq,
-    UserUpdateAccountAddressRequest,
+    ApiUser, ClaimRequest, LoginReq, LoginRes, UserCreatePostReq, UserCreatePostReqAdmin,
+    UserRegisterGetRes, UserRegistrationRequestApi,
 };
 use uuid::Uuid;
 
@@ -36,57 +37,9 @@ impl ApiTestClient {
 
 // Users Implementation
 impl ApiTestClient {
-    pub async fn user_send_invitation(
-        &mut self,
-        req: &UserRegistrationInvitationSendReq,
-    ) -> String {
-        let mut invitation_res = self
-            .client
-            .post("/users/invitation")
-            .body_json(req)
-            .send()
-            .await
-            .0;
-        match invitation_res.status() {
-            StatusCode::OK => {
-                let id: String = invitation_res
-                    .into_body()
-                    .into_json()
-                    .await
-                    .expect("Failed to parse invitation response");
-                id.to_owned()
-            }
-            StatusCode::INTERNAL_SERVER_ERROR => {
-                let res = invitation_res
-                    .take_body()
-                    .into_string()
-                    .await
-                    .expect("Failed to parse invitation response");
-                panic!("Failed to send invitation: {}", res);
-            }
-            res => panic!("Unexpected response: {}", res),
-        }
-    }
-
-    pub async fn user_register(&mut self, id_token: String, req: &UserRegisterReq) -> ApiUser {
-        let res = self
-            .client
-            .request(Method::POST, "/users")
-            .body_json(req)
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-            .0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse update user response")
-    }
-
     pub async fn user_self_req(&self, id_token: String) -> poem::test::TestResponse {
         self.client
-            .get("/users")
+            .get("/user")
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await
@@ -114,24 +67,10 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn admin_update_account_address(
-        &mut self,
-        id_token: String,
-        cognito_user_id: String,
-        req: &UserUpdateAccountAddressRequest,
-    ) -> TestResponse {
-        self.client
-            .put(format!("/admin/users/{}/account_address", cognito_user_id))
-            .body_json(req)
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-    }
-
-    pub async fn admin_list_users(&self, id_token: String, page: i64) -> PagedResponse<AdminUser> {
+    pub async fn admin_list_users(&self, id_token: String, page: i64) -> PagedResponse<ApiUser> {
         let res = self
             .client
-            .get(format!("/admin/users/list/{}", page))
+            .get(format!("/admin/user/list/{}", page))
             .header("Authorization", format!("Bearer {}", id_token))
             .send()
             .await
@@ -141,27 +80,6 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse list users response")
-    }
-
-    pub async fn admin_user_delete(&mut self, id_token: String, cognito_user_id: String) {
-        let mut res = self
-            .client
-            .delete(format!("/admin/users/{}", cognito_user_id))
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-            .0;
-        match res.status() {
-            StatusCode::OK => {}
-            status_code => {
-                let res = res
-                    .take_body()
-                    .into_string()
-                    .await
-                    .expect("Failed to parse delete user response");
-                panic!("Failed to delete user: {} {}", status_code, res);
-            }
-        }
     }
 
     pub async fn user_affiliate_rewards_list(
@@ -231,6 +149,138 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse system contracts config response")
+    }
+}
+
+// User Registration Request Implementation
+impl ApiTestClient {
+    pub async fn user_registration_request(&self, req: UserRegistrationRequestApi) -> TestResponse {
+        self.client
+            .post("/user/registration-request")
+            .body_json(&req)
+            .send()
+            .await
+    }
+
+    pub async fn admin_registration_request_list(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<UserRegistrationRequest> {
+        let res = self
+            .client
+            .get(format!("/admin/registration-request/list/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list registration requests response")
+    }
+
+    pub async fn admin_registration_request_get(
+        &self,
+        id_token: String,
+        request_id: Uuid,
+    ) -> UserRegistrationRequest {
+        let res = self
+            .client
+            .get(format!("/admin/registration-request/{}", request_id))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse get registration request response")
+    }
+
+    pub async fn admin_registration_request_accept(
+        &self,
+        id_token: String,
+        request_id: Uuid,
+        is_accepted: bool,
+    ) -> TestResponse {
+        self.client
+            .put(format!(
+                "/admin/registration-request/{}/accept/{}",
+                request_id, is_accepted
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+    }
+
+    pub async fn get_user_register(&self, registration_request_id: Uuid) -> UserRegisterGetRes {
+        let res = self
+            .client
+            .get(format!("/user/register/{}", registration_request_id))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse get user register response")
+    }
+
+    pub async fn post_user_register(
+        &self,
+        registration_request_id: Uuid,
+        req: UserCreatePostReq,
+    ) -> ApiUser {
+        let res = self
+            .client
+            .post(format!("/user/register/{}", registration_request_id))
+            .body_json(&req)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse post user register response")
+    }
+
+    pub async fn admin_user_register(
+        &self,
+        id_token: String,
+        registration_request_id: Uuid,
+        req: UserCreatePostReqAdmin,
+    ) -> ApiUser {
+        let res = self
+            .client
+            .post(format!("/admin/user/register/{}", registration_request_id))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(&req)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse admin user register response")
+    }
+
+    pub async fn user_login_request(&self, req: LoginReq) -> TestResponse {
+        self.client.post("/user/login").body_json(&req).send().await
+    }
+
+    pub async fn user_login(&self, req: LoginReq) -> LoginRes {
+        let res = self.user_login_request(req).await.0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse user login response")
     }
 }
 

@@ -1,10 +1,11 @@
 mod test_utils;
 
-use passwords::PasswordGenerator;
-use test_utils::create_login_admin_user;
+use concordium_rust_sdk::id::types::ACCOUNT_ADDRESS_SIZE;
+use concordium_smart_contract_testing::AccountAddress;
 use test_utils::test_api::ApiTestClient;
-use test_utils::test_cognito::CognitoTestClient;
+use test_utils::{create_login_admin_user, PASS_GENERATOR};
 use upwood::api;
+use upwood::utils::aws::cognito::UserPool;
 use uuid::Uuid;
 
 #[tokio::test]
@@ -12,37 +13,55 @@ async fn test_s3_public_files() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
         .ok();
-
-    let config: api::Config = config::Config::builder()
+    let api_config: api::Config = config::Config::builder()
         .add_source(config::Environment::default())
         .build()
         .expect("Failed to build config")
         .try_deserialize()
         .expect("Failed to deserialize config");
+    let (db_config, _container) = shared_tests::create_new_database_container().await;
+    shared::db_setup::run_migrations(&db_config.db_url());
+    // Uncomment the following lines to run the tests on the local database container
+    // let db_config = shared_tests::PostgresTestConfig {
+    //     postgres_db:       "concordium_rwa_dev".to_string(),
+    //     postgres_host:     "localhost".to_string(),
+    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
+    //     postgres_port:     5432,
+    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
+    // };
+    let api_config = api::Config {
+        postgres_db: db_config.postgres_db,
+        postgres_host: db_config.postgres_host,
+        postgres_password: db_config.postgres_password.into(),
+        postgres_port: db_config.postgres_port,
+        postgres_user: db_config.postgres_user,
+        ..api_config
+    };
+    let mut api = ApiTestClient::new(api_config.clone()).await;
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let pass_generator = PasswordGenerator::new()
-        .length(10)
-        .numbers(true)
-        .lowercase_letters(true)
-        .uppercase_letters(true)
-        .symbols(true)
-        .spaces(false)
-        .strict(true);
-
-    let mut api = ApiTestClient::new(config.clone()).await;
-    let mut cognito = CognitoTestClient::new(
+    let mut user_pool = UserPool::new(
         &sdk_config,
-        config.aws_user_pool_id,
-        config.aws_user_pool_client_id,
-    );
+        api_config.aws_user_pool_id.to_string(),
+        api_config.aws_user_pool_client_id.to_string(),
+        api_config.aws_user_pool_region.to_string(),
+    )
+    .await
+    .expect("Failed to create user pool");
 
     let email = format!("s3_files_{}@yopmail.com", Uuid::new_v4());
-    let password = pass_generator.generate_one().unwrap();
-    let (cognito_user_id, id_token) =
-        create_login_admin_user(&mut cognito, &mut api, &email, &password).await;
-    println!("test user id: {}", cognito_user_id);
+    let password = PASS_GENERATOR.generate_one().unwrap();
+    let admin = create_login_admin_user(
+        &mut user_pool,
+        &api,
+        &email,
+        &password,
+        AccountAddress([0; ACCOUNT_ADDRESS_SIZE])
+            .to_string()
+            .as_str(),
+    )
+    .await;
     // create upload url
-    let create_url_res = api.admin_file_upload_url_s3(id_token.clone()).await;
+    let create_url_res = api.admin_file_upload_url_s3(admin.id_token.clone()).await;
     println!("upload url: {}", create_url_res.presigned_url);
     // upload file
     let client = reqwest::Client::new();
@@ -56,12 +75,13 @@ async fn test_s3_public_files() {
     assert_eq!(res.status(), 200);
     println!("file uploaded");
     // clear test data
-    api.admin_delete_file_s3(id_token.clone(), create_url_res.file_name)
+    api.admin_delete_file_s3(admin.id_token.clone(), create_url_res.file_name)
         .await;
     println!("file deleted");
-    api.admin_user_delete(id_token.clone(), cognito_user_id)
-        .await;
-    println!("user deleted");
+    user_pool
+        .disable_user(&email)
+        .await
+        .expect("Failed to disable user");
 }
 
 #[tokio::test]
@@ -69,37 +89,55 @@ async fn test_ipfs_public_files() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
         .ok();
-
-    let config: api::Config = config::Config::builder()
+    let api_config: api::Config = config::Config::builder()
         .add_source(config::Environment::default())
         .build()
         .expect("Failed to build config")
         .try_deserialize()
         .expect("Failed to deserialize config");
+    let (db_config, _container) = shared_tests::create_new_database_container().await;
+    shared::db_setup::run_migrations(&db_config.db_url());
+    // Uncomment the following lines to run the tests on the local database container
+    // let db_config = shared_tests::PostgresTestConfig {
+    //     postgres_db:       "concordium_rwa_dev".to_string(),
+    //     postgres_host:     "localhost".to_string(),
+    //     postgres_password: "concordium_rwa_dev_pswd".to_string(),
+    //     postgres_port:     5432,
+    //     postgres_user:     "concordium_rwa_dev_user".to_string(),
+    // };
+    let api_config = api::Config {
+        postgres_db: db_config.postgres_db,
+        postgres_host: db_config.postgres_host,
+        postgres_password: db_config.postgres_password.into(),
+        postgres_port: db_config.postgres_port,
+        postgres_user: db_config.postgres_user,
+        ..api_config
+    };
+    let mut api = ApiTestClient::new(api_config.clone()).await;
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
-    let pass_generator = PasswordGenerator::new()
-        .length(10)
-        .numbers(true)
-        .lowercase_letters(true)
-        .uppercase_letters(true)
-        .symbols(true)
-        .spaces(false)
-        .strict(true);
-
-    let mut api = ApiTestClient::new(config.clone()).await;
-    let mut cognito = CognitoTestClient::new(
+    let mut user_pool = UserPool::new(
         &sdk_config,
-        config.aws_user_pool_id,
-        config.aws_user_pool_client_id,
-    );
+        api_config.aws_user_pool_id.to_string(),
+        api_config.aws_user_pool_client_id.to_string(),
+        api_config.aws_user_pool_region.to_string(),
+    )
+    .await
+    .expect("Failed to create user pool");
 
     let email = format!("s3_files_{}@yopmail.com", Uuid::new_v4());
-    let password = pass_generator.generate_one().unwrap();
-    let (cognito_user_id, id_token) =
-        create_login_admin_user(&mut cognito, &mut api, &email, &password).await;
-    println!("test user id: {}", cognito_user_id);
+    let password = PASS_GENERATOR.generate_one().unwrap();
+    let admin = create_login_admin_user(
+        &mut user_pool,
+        &api,
+        &email,
+        &password,
+        AccountAddress([0; ACCOUNT_ADDRESS_SIZE])
+            .to_string()
+            .as_str(),
+    )
+    .await;
     // create upload url
-    let create_url_res = api.admin_file_upload_url_ipfs(id_token.clone()).await;
+    let create_url_res = api.admin_file_upload_url_ipfs(admin.id_token.clone()).await;
     println!("upload url: {}", create_url_res.presigned_url);
     // upload file
     let client = reqwest::Client::new();
@@ -113,9 +151,11 @@ async fn test_ipfs_public_files() {
     assert_eq!(res.status(), 200);
     println!("file uploaded");
     // clear test data
-    api.admin_delete_file_ipfs(id_token.clone(), create_url_res.file_name)
+    api.admin_delete_file_ipfs(admin.id_token.clone(), create_url_res.file_name)
         .await;
     println!("file deleted");
-    api.admin_user_delete(id_token, cognito_user_id).await;
-    println!("user deleted");
+    user_pool
+        .disable_user(&email)
+        .await
+        .expect("Failed to disable user");
 }

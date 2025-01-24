@@ -83,8 +83,8 @@ SELECT
      affiliate.affiliate_commission
 FROM
      forest_project_funds_investment_records investment_record
-     JOIN user_affiliates AS user_affiliate ON investor_cognito_user_id = user_affiliate.cognito_user_id
-     JOIN users AS affiliate ON user_affiliate.affiliate_account_address = affiliate.account_address
+     JOIN users AS usr ON investor_cognito_user_id = usr.cognito_user_id
+     JOIN users AS affiliate ON usr.affiliate_account_address = affiliate.account_address
      LEFT JOIN offchain_reward_claims AS claims ON claims.reward_id = DECODE(
           REPLACE(investment_record.id::TEXT, '-', ''),
           'hex'

@@ -560,25 +560,15 @@ diesel::table! {
 }
 
 diesel::table! {
-    user_affiliates (id) {
-        id -> Int4,
-        #[max_length = 255]
-        cognito_user_id -> Varchar,
-        #[max_length = 255]
-        affiliate_account_address -> Varchar,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    user_challenges (id) {
+    user_registration_requests (id) {
         id -> Uuid,
         #[max_length = 255]
-        cognito_user_id -> Varchar,
-        challenge -> Bytea,
+        email -> Varchar,
         #[max_length = 255]
-        account_address -> Varchar,
+        affiliate_account_address -> Nullable<Varchar>,
+        is_accepted -> Bool,
         created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -589,9 +579,17 @@ diesel::table! {
         #[max_length = 255]
         email -> Varchar,
         #[max_length = 255]
-        account_address -> Nullable<Varchar>,
+        first_name -> Varchar,
+        #[max_length = 255]
+        last_name -> Varchar,
+        #[max_length = 255]
+        nationality -> Varchar,
+        #[max_length = 255]
+        account_address -> Varchar,
         desired_investment_amount -> Nullable<Int4>,
         affiliate_commission -> Numeric,
+        #[max_length = 255]
+        affiliate_account_address -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
@@ -634,7 +632,6 @@ diesel::joinable!(security_p2p_trading_markets -> security_p2p_trading_contracts
 diesel::joinable!(security_p2p_trading_traders -> listener_contracts (token_contract_address));
 diesel::joinable!(security_p2p_trading_traders -> security_p2p_trading_contracts (contract_address));
 diesel::joinable!(support_questions -> users (cognito_user_id));
-diesel::joinable!(user_challenges -> users (cognito_user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     cis2_agents,
@@ -681,7 +678,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_sft_multi_yielder_yields,
     support_questions,
     tree_nft_metadatas,
-    user_affiliates,
-    user_challenges,
+    user_registration_requests,
     users,
 );

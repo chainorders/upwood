@@ -74,6 +74,9 @@ async fn signature_tests() {
                 cognito_groups: Some(vec!["admin".to_string()]),
                 email_verified: Some(true),
                 account:        None,
+                first_name:     None,
+                last_name:      None,
+                nationality:    None,
             }),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
@@ -274,6 +277,9 @@ async fn signature_tests() {
         email_verified: Some(true),
         email:          "normal_user@example.com".to_string(),
         account:        Some(holder.address.to_string()),
+        first_name:     None,
+        last_name:      None,
+        nationality:    None,
     });
 
     let poem_openapi::payload::Json(random_metadata) = tree_nft::Api

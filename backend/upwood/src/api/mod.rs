@@ -56,13 +56,12 @@ pub struct Config {
     pub postgres_user: String,
     pub postgres_password: SecureString,
     pub postgres_host: String,
-    pub postgres_port: u32,
+    pub postgres_port: u16,
     pub postgres_db: String,
     pub db_pool_max_size: u32,
     pub aws_user_pool_id: String,
     pub aws_user_pool_client_id: String,
     pub aws_user_pool_region: String,
-    pub user_challenge_expiry_duration_mins: i64,
     pub concordium_node_uri: String,
     pub concordium_network: String,
     pub tree_nft_agent_wallet_json_str: String,
@@ -219,14 +218,6 @@ impl Config {
         }
     }
 
-    pub fn user_challenge_config(&self) -> user::UserChallengeConfig {
-        user::UserChallengeConfig {
-            challenge_expiry_duration: chrono::Duration::minutes(
-                self.user_challenge_expiry_duration_mins,
-            ),
-        }
-    }
-
     /// Default commission for affiliates
     pub fn affiliate_commission(&self) -> AffiliateCommission {
         AffiliateCommission {
@@ -259,7 +250,6 @@ pub async fn create_web_app(config: Config) -> Route {
         .with(AddData::new(concordium_client))
         .with(AddData::new(config.concordium_network()))
         .with(AddData::new(config.contracts_config()))
-        .with(AddData::new(config.user_challenge_config()))
         .with(AddData::new(config.tree_nft_config()))
         .with(AddData::new(config.offchain_rewards_config()))
         .with(AddData::new(config.affiliate_commission()))

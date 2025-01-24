@@ -1,8 +1,12 @@
 use std::collections::BTreeSet;
 
+use aws::cognito::{
+    account_address_attribute, email_attribute, email_verified_attribute, first_name_attribute,
+    last_name_attribute, nationality_attribute,
+};
 use chrono::Utc;
 use concordium::account::Signer;
-use concordium::identity::Presentation;
+use concordium::identity::{Presentation, VerifyPresentationResponse};
 use concordium_cis2::{TokenAmountU64, TokenIdUnit};
 use concordium_rust_sdk::base::contracts_common::AccountSignatures;
 use concordium_rust_sdk::id::types::AccountAddress;
@@ -23,9 +27,7 @@ use shared::db_app::forest_project_crypto::{
     ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord,
 };
 use shared::db_app::portfolio::UserTransaction;
-use shared::db_app::user_challenges::UserChallenge;
-use shared::db_app::users::{User, UserAffiliate};
-use tracing::info;
+use shared::db_app::users::{User, UserRegistrationRequest};
 
 use crate::api::*;
 use crate::utils::*;
@@ -35,6 +37,339 @@ pub struct UserApi;
 
 #[OpenApi]
 impl UserApi {
+    #[oai(
+        path = "/user/registration-request",
+        method = "post",
+        tag = "ApiTags::User"
+    )]
+    pub async fn user_registration_request(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        Json(req): Json<UserRegistrationRequestApi>,
+    ) -> NoResResult {
+        let mut conn = db_pool.get()?;
+        if User::find_by_email(&mut conn, &req.email)?.is_some() {
+            return Err(Error::BadRequest(PlainText(
+                "User already registered".to_string(),
+            )));
+        }
+        if UserRegistrationRequest::find_by_email(&mut conn, &req.email)?.is_some() {
+            return Err(Error::BadRequest(PlainText(
+                "Request already exists".to_string(),
+            )));
+        }
+
+        UserRegistrationRequest {
+            id: uuid::Uuid::new_v4(),
+            email: req.email.clone(),
+            affiliate_account_address: req.affiliate_account_address.clone(),
+            is_accepted: false,
+            created_at: chrono::Utc::now().naive_utc(),
+            updated_at: chrono::Utc::now().naive_utc(),
+        }
+        .insert(&mut conn)?;
+        Ok(())
+    }
+
+    #[oai(
+        path = "/admin/registration-request/list/:page",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
+    pub async fn admin_registration_request_list(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<UserRegistrationRequest>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let (requests, page_count) = UserRegistrationRequest::list(&mut conn, page, PAGE_SIZE)?;
+        Ok(Json(PagedResponse {
+            data: requests,
+            page,
+            page_count,
+        }))
+    }
+
+    #[oai(
+        path = "/admin/registration-request/:id",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
+    pub async fn admin_registration_request_get(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(id): Path<uuid::Uuid>,
+    ) -> JsonResult<UserRegistrationRequest> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let request = UserRegistrationRequest::find(&mut conn, id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
+        Ok(Json(request))
+    }
+
+    #[oai(
+        path = "/admin/registration-request/:id/accept/:is_accepted",
+        method = "put",
+        tag = "ApiTags::User"
+    )]
+    pub async fn admin_registration_request_accept(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(id): Path<uuid::Uuid>,
+        Path(is_accepted): Path<bool>,
+    ) -> NoResResult {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let mut request = UserRegistrationRequest::find(&mut conn, id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
+        if !is_accepted {
+            UserRegistrationRequest::delete(&mut conn, id)?;
+        } else {
+            // TODO send acceptance email via SES
+            request.is_accepted = true;
+            request.updated_at = Utc::now().naive_utc();
+            request.update(&mut conn)?;
+        }
+
+        Ok(())
+    }
+
+    #[oai(
+        path = "/user/register/:registration_request_id",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
+    pub async fn get_user_register(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        Data(id_statement): Data<&concordium::identity::IdStatement>,
+        Path(registration_request_id): Path<uuid::Uuid>,
+    ) -> JsonResult<UserRegisterGetRes> {
+        let mut conn = db_pool.get()?;
+        let request = UserRegistrationRequest::find(&mut conn, registration_request_id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
+        if !request.is_accepted {
+            return Err(Error::BadRequest(PlainText(
+                "Request not accepted".to_string(),
+            )));
+        }
+        let id_statement = serde_json::to_value(id_statement).map_err(|_| {
+            Error::InternalServer(PlainText("Failed to serialize id statement".to_string()))
+        })?;
+        let challenge = concordium::identity::generate_challenge(request.id.to_string().as_str());
+        let challenge = hex::encode(challenge);
+        Ok(Json(UserRegisterGetRes {
+            challenge,
+            id_statement,
+        }))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[oai(
+        path = "/user/register/:registration_request_id",
+        method = "post",
+        tag = "ApiTags::User"
+    )]
+    pub async fn post_user_register(
+        &self,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Data(db_pool): Data<&DbPool>,
+        Data(global_context): Data<&concordium::identity::GlobalContext>,
+        Data(network): Data<&web3id::did::Network>,
+        Data(concordium_client): Data<&v2::Client>,
+        Data(affiliate_commission): Data<&AffiliateCommission>,
+        Path(registration_request_id): Path<uuid::Uuid>,
+        Json(req): Json<UserCreatePostReq>,
+    ) -> JsonResult<ApiUser> {
+        let mut conn = db_pool.get()?;
+        let request = UserRegistrationRequest::find(&mut conn, registration_request_id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
+        if !request.is_accepted {
+            return Err(Error::BadRequest(PlainText(
+                "Request not accepted".to_string(),
+            )));
+        }
+
+        let verification_res = {
+            let proof = req
+                .proof()?
+                .ok_or_else(|| Error::BadRequest(PlainText("Proof not provided".to_string())))?;
+            let account_address = req
+                .account_address
+                .parse()
+                .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))?;
+            let challenge =
+                concordium::identity::generate_challenge(request.id.to_string().as_str());
+
+            verify_presentation(
+                &mut concordium_client.clone(),
+                proof,
+                account_address,
+                network,
+                global_context,
+                challenge,
+            )
+            .await?
+        };
+
+        let user = user_pool
+            .admin_create_user(&request.email, &req.password, vec![
+                email_attribute(&request.email),
+                email_verified_attribute(true),
+                account_address_attribute(&req.account_address),
+                first_name_attribute(&verification_res.first_name),
+                last_name_attribute(&verification_res.last_name),
+                nationality_attribute(&verification_res.nationality),
+            ])
+            .await?;
+        let user = User {
+            account_address:           req.account_address.to_string(),
+            cognito_user_id:           user
+                .attributes
+                .and_then(|a| a.iter().find(|a| a.name == "sub").unwrap().value.clone())
+                .ok_or_else(|| {
+                    Error::InternalServer(PlainText("Cognito user ID not found".to_string()))
+                })?,
+            email:                     request.email.clone(),
+            first_name:                verification_res.first_name,
+            last_name:                 verification_res.last_name,
+            nationality:               verification_res.nationality,
+            affiliate_commission:      affiliate_commission.commission,
+            desired_investment_amount: req.desired_investment_amount,
+            affiliate_account_address: request.affiliate_account_address.clone(),
+        };
+        conn.transaction::<_, Error, _>(|conn| {
+            UserRegistrationRequest::delete(conn, registration_request_id)?;
+            user.upsert(conn)?;
+            Ok(())
+        })?;
+
+        Ok(Json(ApiUser::new(user, false, false)))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[oai(
+        path = "/admin/user/register/:registration_request_id",
+        method = "post",
+        tag = "ApiTags::User"
+    )]
+    pub async fn admin_user_register(
+        &self,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Data(db_pool): Data<&DbPool>,
+        Data(affiliate_commission): Data<&AffiliateCommission>,
+        Path(registration_request_id): Path<uuid::Uuid>,
+        Json(req): Json<UserCreatePostReqAdmin>,
+    ) -> JsonResult<ApiUser> {
+        let mut conn = db_pool.get()?;
+        let request = UserRegistrationRequest::find(&mut conn, registration_request_id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
+        if !request.is_accepted {
+            return Err(Error::BadRequest(PlainText(
+                "Request not accepted".to_string(),
+            )));
+        }
+
+        let user = user_pool
+            .admin_create_user(&request.email, &req.password, vec![
+                email_attribute(&request.email),
+                email_verified_attribute(true),
+                account_address_attribute(&req.account_address),
+                first_name_attribute(&req.first_name),
+                last_name_attribute(&req.last_name),
+                nationality_attribute(&req.nationality),
+            ])
+            .await
+            .map_err(|e| {
+                error!("Error creating user in user pool: {:?}", e);
+                e
+            })?;
+        let user = User {
+            account_address:           req.account_address.to_string(),
+            cognito_user_id:           user
+                .attributes
+                .and_then(|a| a.iter().find(|a| a.name == "sub").unwrap().value.clone())
+                .ok_or_else(|| {
+                    Error::InternalServer(PlainText("Cognito user ID not found".to_string()))
+                })?,
+            email:                     request.email.clone(),
+            first_name:                req.first_name,
+            last_name:                 req.last_name,
+            nationality:               req.nationality,
+            affiliate_commission:      req
+                .affiliate_commission
+                .unwrap_or(affiliate_commission.commission),
+            desired_investment_amount: req.desired_investment_amount,
+            affiliate_account_address: request.affiliate_account_address.clone(),
+        };
+        conn.transaction::<_, Error, _>(|conn| {
+            UserRegistrationRequest::delete(conn, registration_request_id)?;
+            user.upsert(conn)?;
+            Ok(())
+        })?;
+        Ok(Json(ApiUser::new(user, false, false)))
+    }
+
+    #[oai(path = "/user/login", method = "post", tag = "ApiTags::User")]
+    pub async fn user_login(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Json(req): Json<LoginReq>,
+    ) -> JsonResult<LoginRes> {
+        let id_token = user_pool.user_login(&req.email, &req.password).await;
+        let id_token = match id_token {
+            Ok(id_token) => Ok(id_token),
+            Err(e) => {
+                error!("Error logging in user: {:?}", e);
+                match e {
+                    aws::cognito::Error::AuthInitError(e) => {
+                        Err(Error::BadRequest(PlainText(e.to_string())))
+                    }
+                    aws::cognito::Error::LoginError => Err(Error::BadRequest(PlainText(
+                        "Invalid email or password".to_string(),
+                    ))),
+                    _ => Err(Error::InternalServer(PlainText(
+                        "Failed to login user".to_string(),
+                    ))),
+                }
+            }
+        }?;
+        let claims = user_pool
+            .verify_decode_id_token(&id_token)
+            .await
+            .map_err(|_| Error::BadRequest(PlainText("Invalid id token".to_string())))?;
+        let is_admin = claims.is_admin();
+        let mut conn = db_pool.get()?;
+        let db_user = User::find(&mut conn, &claims.sub)?.unwrap_or_else(|| User {
+            account_address:           claims.account().map(|a| a.to_string()).unwrap_or_default(),
+            cognito_user_id:           claims.sub.clone(),
+            email:                     req.email.clone(),
+            first_name:                claims.first_name.unwrap_or_default(),
+            last_name:                 claims.last_name.unwrap_or_default(),
+            nationality:               claims.nationality.unwrap_or_default(),
+            affiliate_commission:      Decimal::ZERO,
+            desired_investment_amount: None,
+            affiliate_account_address: None,
+        });
+        let is_kyc_verified = Identity::exists(
+            &mut conn,
+            contracts.identity_registry_contract_index,
+            &db_user.account_address,
+        )?;
+
+        Ok(Json(LoginRes {
+            id_token,
+            user: ApiUser::new(db_user, is_admin, is_kyc_verified),
+            contracts: contracts.clone(),
+        }))
+    }
+
     /// Retrieves the current user's information based on the provided bearer authorization token.
     ///
     /// This function fetches the user's information from the database using the Cognito user ID
@@ -48,7 +383,7 @@ impl UserApi {
     ///
     /// # Returns
     /// A `JsonResult` containing the user's information.
-    #[oai(path = "/users", method = "get", tag = "ApiTags::User")]
+    #[oai(path = "/user", method = "get", tag = "ApiTags::User")]
     pub async fn user_self(
         &self,
         Data(db_pool): Data<&DbPool>,
@@ -56,250 +391,32 @@ impl UserApi {
         BearerAuthorization(claims): BearerAuthorization,
     ) -> JsonResult<ApiUser> {
         let mut conn = db_pool.get()?;
-        let user = User::find(&mut conn, &claims.sub)?
-            .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-        let is_kyc_verified = claims
-            .account()
-            .map(|a| {
-                Identity::exists(
-                    &mut conn,
-                    contracts.identity_registry_contract_index,
-                    &a.into(),
-                )
-            })
-            .unwrap_or(Ok(false))?;
+        let is_admin = claims.is_admin();
+        let user = User::find(&mut conn, &claims.sub)
+            .map_err(|_| Error::NotFound(PlainText("User not found".to_string())))?
+            .unwrap_or_else(|| User {
+                account_address:           claims
+                    .account()
+                    .map(|a| a.to_string())
+                    .unwrap_or_default(),
+                cognito_user_id:           claims.sub.clone(),
+                email:                     claims.email,
+                first_name:                claims.first_name.unwrap_or_default(),
+                last_name:                 claims.last_name.unwrap_or_default(),
+                nationality:               claims.nationality.unwrap_or_default(),
+                affiliate_commission:      Decimal::ZERO,
+                desired_investment_amount: None,
+                affiliate_account_address: None,
+            });
+        let is_kyc_verified = Identity::exists(
+            &mut conn,
+            contracts.identity_registry_contract_index,
+            &user.account_address,
+        )
+        .map_err(|_| Error::InternalServer(PlainText("Failed to check KYC status".to_string())))?;
 
-        let user = ApiUser::new(&user, claims.is_admin(), is_kyc_verified);
+        let user = ApiUser::new(user, is_admin, is_kyc_verified);
         Ok(Json(user))
-    }
-
-    /// Sends a registration invitation for a new user.
-    ///
-    /// This function first checks if the user already exists in the Cognito user pool. If the user exists and their email is already verified, an error is returned.
-    /// Otherwise, the function either resets the password for the existing user or creates a new user in the Cognito user pool.
-    ///
-    /// If the request includes an affiliate account address, the function also inserts the affiliation information into the database.
-    ///
-    /// # Arguments
-    /// * `user_pool` - A reference to the Cognito user pool.
-    /// * `db_pool` - A reference to the database connection pool.
-    /// * `req` - The request containing the email and optional affiliate account address.
-    ///
-    /// # Returns
-    /// The user ID of the user for whom the registration invitation was sent.
-    #[oai(path = "/users/invitation", method = "post", tag = "ApiTags::User")]
-    pub async fn register_invitation_send(
-        &self,
-        Data(user_pool): Data<&aws::cognito::UserPool>,
-        Data(db_pool): Data<&DbPool>,
-        Json(req): Json<UserRegistrationInvitationSendReq>,
-    ) -> JsonResult<String> {
-        let user = user_pool.find_user_by_email(&req.email).await?;
-        let user_id = if let Some(user) = &user {
-            for attr in user.attributes() {
-                if attr.name().eq("email_verified") && attr.value().eq(&Some("true")) {
-                    return Err(Error::BadRequest(PlainText(
-                        "User already verified".to_owned(),
-                    )));
-                }
-            }
-            let user_id = user
-                .username()
-                .expect("User exists in pool without username")
-                .to_owned();
-            user_pool.reset_password(&user_id).await?;
-            user_id
-        } else {
-            let user = user_pool.create_user(&req.email).await?;
-            let user_id = user
-                .username()
-                .expect("User created without username")
-                .to_owned();
-            user_id
-        };
-
-        if let Some(account) = req.affiliate_account_address()? {
-            let mut conn = db_pool.get()?;
-            UserAffiliate::insert(&mut conn, &user_id, &account)?;
-        }
-
-        Ok(Json(user_id.to_owned()))
-    }
-
-    /// Inserts a new user into the database and Cognito user pool.
-    ///
-    /// If the user's email is not yet verified, this function will set the email as verified.
-    ///
-    /// The function will upsert the user information in the database, including the Cognito user ID, email, and desired investment amount.
-    ///
-    /// If the user has an associated account address, the function will check if the identity for that address exists in the identity registry.
-    ///
-    /// # Arguments
-    /// * `user_pool` - A reference to the Cognito user pool.
-    /// * `db_pool` - A reference to the database connection pool.
-    /// * `identity_registry` - A reference to the identity registry.
-    /// * `claims` - The bearer authorization claims for the current user.
-    /// * `req` - The user registration request containing the desired investment amount.
-    ///
-    /// # Returns
-    /// The newly created or updated user.
-    #[oai(path = "/users", method = "post", tag = "ApiTags::User")]
-    pub async fn user_insert(
-        &self,
-        Data(user_pool): Data<&aws::cognito::UserPool>,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(default_affiliate_commission): Data<&AffiliateCommission>,
-        Json(req): Json<UserRegisterReq>,
-    ) -> JsonResult<ApiUser> {
-        if !claims.email_verified() {
-            user_pool.set_email_verified(&claims.sub).await?;
-        }
-
-        let mut conn = db_pool.get()?;
-        let user = User {
-            email:                     claims.email.to_owned(),
-            cognito_user_id:           claims.sub.to_owned(),
-            account_address:           None,
-            desired_investment_amount: Some(req.desired_investment_amount),
-            affiliate_commission:      default_affiliate_commission.commission,
-        }
-        .upsert(&mut conn)?;
-        let user = ApiUser::new(
-            &user,
-            claims.is_admin(),
-            user.account_address()
-                .map(|a| {
-                    Identity::exists(
-                        &mut conn,
-                        contracts.identity_registry_contract_index,
-                        &a.into(),
-                    )
-                })
-                .unwrap_or(Ok(false))?,
-        );
-        Ok(Json(user))
-    }
-
-    /// Generates a new challenge for the user to verify their account address.
-    ///
-    /// This function first checks if the user has an existing valid challenge. If not, it generates a new challenge and stores it in the database.
-    ///
-    /// The function returns the challenge and the serialized identity statement for the user's account address.
-    ///
-    /// # Arguments
-    /// * `id_statement` - A reference to the user's identity statement.
-    /// * `db_pool` - A reference to the database connection pool.
-    /// * `config` - A reference to the user challenge configuration.
-    /// * `claims` - The bearer authorization claims for the current user.
-    ///
-    /// # Returns
-    /// A `CreateChallengeResponse` containing the challenge and the serialized identity statement.
-    #[oai(
-        path = "/users/account_address/generate_challenge",
-        method = "post",
-        tag = "ApiTags::User"
-    )]
-    pub async fn challenge_create(
-        &self,
-        Data(id_statement): Data<&concordium::identity::IdStatement>,
-        Data(db_pool): Data<&DbPool>,
-        Data(config): Data<&UserChallengeConfig>,
-        BearerAuthorization(claims): BearerAuthorization,
-    ) -> JsonResult<CreateChallengeResponse> {
-        let account_address = ensure_account_registered(&claims)?;
-        let id_statement = serde_json::to_value(id_statement).map_err(|_| {
-            Error::InternalServer(PlainText("Failed to serialize id statement".to_string()))
-        })?;
-        let challenge = db_pool.get()?.transaction(|conn| {
-            let challenge = match UserChallenge::find_by_user_id(
-                conn,
-                &claims.sub,
-                Utc::now(),
-                config.challenge_expiry_duration,
-            )? {
-                Some(challenge) => challenge,
-                None => {
-                    let challenge = concordium::identity::generate_challenge(&claims.sub);
-                    UserChallenge::new(claims.sub, challenge, account_address, Utc::now())
-                        .insert(conn)?
-                }
-            };
-
-            Ok::<_, Error>(challenge.challenge())
-        })?;
-
-        Ok(Json(CreateChallengeResponse {
-            challenge: hex::encode(challenge),
-            id_statement,
-        }))
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    /// Updates the account address for the current user.
-    ///
-    /// # Arguments
-    /// * `claims` - The bearer authorization claims for the current user.
-    /// * `concordium_client` - A reference to the Concordium client.
-    /// * `db_pool` - A reference to the database connection pool.
-    /// * `user_pool` - A reference to the Cognito user pool.
-    /// * `network` - A reference to the DID network.
-    /// * `global_context` - A reference to the Concordium global context.
-    /// * `config` - A reference to the user challenge configuration.
-    /// * `request` - The request containing the proof to verify the account address update.
-    ///
-    /// # Returns
-    /// A `NoResResult` indicating the success or failure of the operation.
-    #[oai(path = "/users/account_address", method = "put", tag = "ApiTags::User")]
-    pub async fn update_account_address(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(concordium_client): Data<&v2::Client>,
-        Data(db_pool): Data<&DbPool>,
-        Data(user_pool): Data<&aws::cognito::UserPool>,
-        Data(network): Data<&web3id::did::Network>,
-        Data(global_context): Data<&concordium::identity::GlobalContext>,
-        Data(config): Data<&UserChallengeConfig>,
-        Json(request): Json<UpdateAccountAddressReq>,
-    ) -> NoResResult {
-        let mut concordium_client = concordium_client.clone();
-        let proof = request.proof()?;
-        let mut conn = db_pool.get()?;
-        let account_address = {
-            let db_challenge = UserChallenge::find_by_user_id(
-                &mut conn,
-                &claims.sub,
-                Utc::now(),
-                config.challenge_expiry_duration,
-            )?
-            .ok_or(Error::NotFound(PlainText(
-                "Challenge not found".to_string(),
-            )))?;
-            let account_address = db_challenge.account_address();
-            let challenge = db_challenge.challenge();
-            verify_presentation(
-                &mut concordium_client,
-                proof,
-                account_address,
-                network,
-                global_context,
-                challenge,
-            )
-            .await?;
-            account_address
-        };
-        user_pool
-            .update_account_address(&claims.sub, &account_address)
-            .await?;
-        conn.transaction(|conn| {
-            let mut user = User::find(conn, &claims.sub)?
-                .ok_or(Error::NotFound(PlainText("User not found".to_string())))?;
-            user.account_address = Some(account_address.to_string());
-            user.upsert(conn)?;
-            UserChallenge::delete_by_user_id(conn, &claims.sub)?;
-            Ok::<_, Error>(())
-        })
     }
 
     /// Get a user by their Cognito user ID.
@@ -315,32 +432,29 @@ impl UserApi {
     /// # Returns
     /// A JSON response containing the `AdminUser` for the specified Cognito user ID.
     #[oai(
-        path = "/admin/users/:cognito_user_id",
+        path = "/admin/user/:cognito_user_id",
         method = "get",
         tag = "ApiTags::User"
     )]
-    pub async fn get_by_cognito_user_id(
+    pub async fn admin_get_by_cognito_user_id(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(cognito_user_id): Path<uuid::Uuid>,
-    ) -> JsonResult<AdminUser> {
+    ) -> JsonResult<ApiUser> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
         let user = User::find(&mut conn, &cognito_user_id.to_string())?
             .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-        let user = AdminUser::new(
-            &user,
-            user.account_address()
-                .map(|a| {
-                    Identity::exists(
-                        &mut conn,
-                        contracts.identity_registry_contract_index,
-                        &Address::Account(a),
-                    )
-                })
-                .unwrap_or(Ok(false))?,
+        let user = ApiUser::new(
+            user.clone(),
+            false,
+            Identity::exists(
+                &mut conn,
+                contracts.identity_registry_contract_index,
+                &user.account_address,
+            )?,
         );
         Ok(Json(user))
     }
@@ -358,17 +472,17 @@ impl UserApi {
     /// # Returns
     /// A JSON response containing the `AdminUser` for the specified account address.
     #[oai(
-        path = "/admin/users/account_address/:account_address",
+        path = "/admin/user/account_address/:account_address",
         method = "get",
         tag = "ApiTags::User"
     )]
-    pub async fn get_by_account_address(
+    pub async fn admin_get_by_account_address(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(account_address): Path<String>,
-    ) -> JsonResult<AdminUser> {
+    ) -> JsonResult<ApiUser> {
         ensure_is_admin(&claims)?;
         let account_address = account_address
             .parse()
@@ -376,12 +490,13 @@ impl UserApi {
         let mut conn = db_pool.get()?;
         let user = User::find_by_account_address(&mut conn, &account_address)?
             .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-        let user = AdminUser::new(
-            &user,
+        let user = ApiUser::new(
+            user.clone(),
+            false,
             Identity::exists(
                 &mut conn,
                 contracts.identity_registry_contract_index,
-                &Address::Account(account_address),
+                &user.account_address,
             )?,
         );
         Ok(Json(user))
@@ -399,25 +514,21 @@ impl UserApi {
     ///
     /// # Returns
     /// A JSON response containing a paged list of `AdminUser` objects.
-    #[oai(
-        path = "/admin/users/list/:page",
-        method = "get",
-        tag = "ApiTags::User"
-    )]
-    pub async fn list(
+    #[oai(path = "/admin/user/list/:page", method = "get", tag = "ApiTags::User")]
+    pub async fn admin_list(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<AdminUser>> {
+    ) -> JsonResult<PagedResponse<ApiUser>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
         let (users, page_count) = User::list(&mut conn, page, PAGE_SIZE)?;
         let addresses = users
             .iter()
             .map(|user| user.account_address())
-            .filter_map(|a| a.map(Address::Account))
+            .map(Address::Account)
             .collect::<Vec<_>>();
         let registered = Identity::exists_batch(
             &mut conn,
@@ -427,14 +538,11 @@ impl UserApi {
         .into_iter()
         .collect::<BTreeSet<_>>();
         let data = users
-            .iter()
-            .map(|u| {
-                AdminUser::new(
-                    u,
-                    u.account_address()
-                        .map(|a| registered.contains(&Address::Account(a)))
-                        .unwrap_or(false),
-                )
+            .into_iter()
+            .map(|user| ApiUser {
+                kyc_verified: registered.contains(&Address::Account(user.account_address())),
+                is_admin: false,
+                user,
             })
             .collect();
         Ok(Json(PagedResponse {
@@ -442,87 +550,6 @@ impl UserApi {
             page,
             page_count,
         }))
-    }
-
-    /// Delete a user by their Cognito user ID.
-    ///
-    /// This endpoint is only accessible to admin users.
-    ///
-    /// # Arguments
-    /// - `user_pool`: A reference to the Cognito user pool.
-    /// - `db_pool`: A reference to the database connection pool.
-    /// - `claims`: The authorization claims of the requesting user.
-    /// - `cognito_user_id`: The Cognito user ID of the user to delete.
-    ///
-    /// # Returns
-    /// A JSON response indicating the success of the deletion.
-    #[oai(
-        path = "/admin/users/:cognito_user_id",
-        method = "delete",
-        tag = "ApiTags::User"
-    )]
-    pub async fn delete(
-        &self,
-        Data(user_pool): Data<&aws::cognito::UserPool>,
-        Data(db_pool): Data<&DbPool>,
-        BearerAuthorization(claims): BearerAuthorization,
-        Path(cognito_user_id): Path<uuid::Uuid>,
-    ) -> NoResResult {
-        ensure_is_admin(&claims)?;
-        let cognito_user_id = cognito_user_id.to_string();
-        let mut conn = db_pool.get()?;
-        user_pool.delete_user(&cognito_user_id).await?;
-        info!("Deleted user from cognito: {}", cognito_user_id);
-        if User::delete(&mut conn, &cognito_user_id)?.ge(&1) {
-            info!("Deleted user from db: {}", cognito_user_id);
-        }
-
-        Ok(())
-    }
-
-    /// Update the Concordium account address for a user.
-    ///
-    /// This endpoint is only accessible to admin users.
-    ///
-    /// # Arguments
-    /// - `user_pool`: A reference to the Cognito user pool.
-    /// - `db_pool`: A reference to the database connection pool.
-    /// - `claims`: The authorization claims of the requesting user.
-    /// - `cognito_user_id`: The Cognito user ID of the user to update.
-    /// - `request`: The request body containing the new account address.
-    ///
-    /// # Returns
-    /// A successful response indicating the account address was updated.
-    #[oai(
-        path = "/admin/users/:cognito_user_id/account_address",
-        method = "put",
-        tag = "ApiTags::User"
-    )]
-    pub async fn admin_update_account_address(
-        &self,
-        Data(user_pool): Data<&aws::cognito::UserPool>,
-        Data(db_pool): Data<&DbPool>,
-        BearerAuthorization(claims): BearerAuthorization,
-        Path(cognito_user_id): Path<uuid::Uuid>,
-        Json(request): Json<UserUpdateAccountAddressRequest>,
-    ) -> NoResResult {
-        ensure_is_admin(&claims)?;
-        let cognito_user_id = cognito_user_id.to_string();
-        let mut conn = db_pool.get()?;
-        User::find(&mut conn, &cognito_user_id)?
-            .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-        let account_address = request.account_address()?;
-        user_pool
-            .update_account_address(&cognito_user_id, &account_address)
-            .await?;
-        {
-            let mut user = User::find(&mut conn, &cognito_user_id)?
-                .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-            user.account_address = Some(account_address.to_string());
-            user.affiliate_commission = request.affiliate_commission;
-            user.upsert(&mut conn)?;
-        }
-        Ok(())
     }
 
     #[oai(
@@ -747,69 +774,16 @@ pub struct OffchainRewardsConfig {
 
 #[derive(Object, Serialize, Deserialize, PartialEq, Debug)]
 pub struct ApiUser {
-    /// The email address of the user
-    /// This information is provided by the user during the signup process
-    pub email:                     String,
-    /// The concordium account address of the user
-    /// This information is updated by the user by providing concordium identity proofs
-    pub account_address:           Option<String>,
-    /// The amount of money that the user wants to invest
-    /// This information is supposed to be updated by the user
-    pub desired_investment_amount: Option<i32>,
-    /// Does user belong to the `admin` group in Cognito?
-    /// This information is parsed from the identity token
-    pub is_admin:                  bool,
-    /// The Cognito user id
-    /// This information is parsed from the identity token
-    pub cognito_user_id:           String,
-    /// Has the user completed the KYC process?
-    /// This information is parsed from the Identity Registry contract
-    /// If the user's account_address is not set, then the user has not completed the KYC process
-    pub kyc_verified:              bool,
+    pub user:         User,
+    pub is_admin:     bool,
+    pub kyc_verified: bool,
 }
 
 impl ApiUser {
-    pub fn new(db_user: &User, is_admin: bool, kyc_verified: bool) -> Self {
+    pub fn new(db_user: User, is_admin: bool, kyc_verified: bool) -> Self {
         Self {
-            email: db_user.email.clone(),
-            account_address: db_user.account_address.clone(),
-            desired_investment_amount: db_user.desired_investment_amount,
+            user: db_user,
             is_admin,
-            cognito_user_id: db_user.cognito_user_id.clone(),
-            kyc_verified,
-        }
-    }
-}
-
-/// This is the user being returned by the Users Admin Api.
-/// This dosent have the field is_admin.
-#[derive(Object, Serialize, Deserialize, PartialEq, Debug)]
-pub struct AdminUser {
-    /// The email address of the user
-    /// This information is provided by the user during the signup process
-    pub email:                     String,
-    /// The concordium account address of the user
-    /// This information is updated by the user by providing concordium identity proofs
-    pub account_address:           Option<String>,
-    /// The amount of money that the user wants to invest
-    /// This information is supposed to be updated by the user
-    pub desired_investment_amount: Option<i32>,
-    /// The Cognito user id
-    /// This information is parsed from the identity token
-    pub cognito_user_id:           String,
-    /// Has the user completed the KYC process?
-    /// This information is parsed from the Identity Registry contract
-    /// If the user's account_address is not set, then the user has not completed the KYC process
-    pub kyc_verified:              bool,
-}
-
-impl AdminUser {
-    pub fn new(db_user: &User, kyc_verified: bool) -> Self {
-        Self {
-            email: db_user.email.clone(),
-            account_address: db_user.account_address.clone(),
-            desired_investment_amount: db_user.desired_investment_amount,
-            cognito_user_id: db_user.cognito_user_id.clone(),
             kyc_verified,
         }
     }
@@ -835,56 +809,18 @@ pub struct UserRegisterReq {
 }
 
 #[derive(Serialize, Object)]
-pub struct UserRegistrationInvitationSendReq {
+pub struct UserRegistrationRequestApi {
     pub email:                     String,
     pub affiliate_account_address: Option<String>,
 }
 
-impl UserRegistrationInvitationSendReq {
+impl UserRegistrationRequestApi {
     pub fn affiliate_account_address(&self) -> Result<Option<AccountAddress>> {
         self.affiliate_account_address
             .as_ref()
             .map(|a| a.parse())
             .transpose()
             .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))
-    }
-}
-
-#[derive(Clone)]
-pub struct UserChallengeConfig {
-    pub challenge_expiry_duration: chrono::Duration,
-}
-
-#[derive(Serialize, Object)]
-pub struct CreateChallengeRequest {
-    pub account_address: String,
-}
-
-impl CreateChallengeRequest {
-    pub fn account_address(&self) -> Result<AccountAddress> {
-        self.account_address
-            .parse()
-            .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))
-    }
-}
-
-#[derive(Deserialize, Object)]
-pub struct CreateChallengeResponse {
-    pub id_statement: serde_json::Value,
-    /// The hex of the challenge
-    pub challenge:    String,
-}
-
-#[derive(Object)]
-pub struct UpdateAccountAddressReq {
-    pub proof:                serde_json::Value,
-    pub affiliate_commission: Decimal,
-}
-impl UpdateAccountAddressReq {
-    pub fn proof(&self) -> Result<concordium::identity::Presentation> {
-        let proof = serde_json::from_value(self.proof.clone())
-            .map_err(|_| Error::BadRequest(PlainText("Invalid proof".to_string())))?;
-        Ok(proof)
     }
 }
 
@@ -895,7 +831,7 @@ async fn verify_presentation(
     network: &web3id::did::Network,
     global_context: &concordium::identity::GlobalContext,
     challenge: [u8; 32],
-) -> Result<()> {
+) -> Result<VerifyPresentationResponse> {
     let mut cred_ids = proof
         .verifiable_credential
         .iter()
@@ -918,7 +854,7 @@ async fn verify_presentation(
             )));
         }
     }
-    concordium::identity::verify_presentation(
+    let res = concordium::identity::verify_presentation(
         *network,
         concordium_client,
         global_context,
@@ -928,5 +864,56 @@ async fn verify_presentation(
     .await
     .map_err(|_| Error::BadRequest(PlainText("Invalid proof".to_string())))?;
 
-    Ok(())
+    Ok(res)
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize)]
+pub struct UserRegisterGetRes {
+    pub id_statement: serde_json::Value,
+    /// The hex of the challenge
+    pub challenge:    String,
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize)]
+pub struct UserCreatePostReq {
+    pub account_address:           String,
+    pub desired_investment_amount: Option<i32>,
+    pub proof:                     Option<serde_json::Value>,
+    pub password:                  String,
+    pub affiliate_commission:      Option<Decimal>,
+}
+
+impl UserCreatePostReq {
+    pub fn proof(&self) -> Result<Option<concordium::identity::Presentation>> {
+        let proof = self.proof.clone().map_or(Ok(None), |p| {
+            serde_json::from_value(p)
+                .map_err(|_| Error::BadRequest(PlainText("Invalid proof".to_string())))
+                .map(Some)
+        })?;
+        Ok(proof)
+    }
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize)]
+pub struct UserCreatePostReqAdmin {
+    pub account_address:           String,
+    pub desired_investment_amount: Option<i32>,
+    pub password:                  String,
+    pub first_name:                String,
+    pub last_name:                 String,
+    pub nationality:               String,
+    pub affiliate_commission:      Option<Decimal>,
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize)]
+pub struct LoginReq {
+    pub email:    String,
+    pub password: String,
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize)]
+pub struct LoginRes {
+    pub id_token:  String,
+    pub user:      ApiUser,
+    pub contracts: SystemContractsConfig,
 }

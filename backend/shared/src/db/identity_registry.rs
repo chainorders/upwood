@@ -78,14 +78,14 @@ impl Identity {
     pub fn exists(
         conn: &mut DbConn,
         identity_registry_address: Decimal,
-        address: &Address,
+        address: &str,
     ) -> DbResult<bool> {
         let address = address.to_string();
         let res: bool = select(exists(
             identity_registry_identities::table.filter(
                 identity_registry_identities::identity_registry_address
                     .eq(identity_registry_address)
-                    .and(identity_registry_identities::identity_address.eq(address.to_string())),
+                    .and(identity_registry_identities::identity_address.eq(address)),
             ),
         ))
         .get_result(conn)?;

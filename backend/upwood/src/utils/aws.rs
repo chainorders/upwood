@@ -1,10 +1,16 @@
 pub mod cognito {
+    use aws_sdk_cognitoidentityprovider::error::SdkError;
     use aws_sdk_cognitoidentityprovider::operation::admin_create_user::AdminCreateUserError;
-    use aws_sdk_cognitoidentityprovider::operation::admin_delete_user::AdminDeleteUserError;
+    use aws_sdk_cognitoidentityprovider::operation::admin_disable_user::AdminDisableUserError;
     use aws_sdk_cognitoidentityprovider::operation::admin_set_user_password::AdminSetUserPasswordError;
     use aws_sdk_cognitoidentityprovider::operation::admin_update_user_attributes::AdminUpdateUserAttributesError;
+    use aws_sdk_cognitoidentityprovider::operation::initiate_auth::{
+        InitiateAuthError, InitiateAuthOutput,
+    };
     use aws_sdk_cognitoidentityprovider::operation::list_users::ListUsersError;
-    use aws_sdk_cognitoidentityprovider::types::{MessageActionType, UserType};
+    use aws_sdk_cognitoidentityprovider::types::{
+        AttributeType, AuthFlowType, MessageActionType, UserType,
+    };
     use concordium_rust_sdk::id::types::AccountAddress;
     use jsonwebtokens_cognito::KeySet;
     use poem_openapi::Object;
@@ -38,23 +44,28 @@ pub mod cognito {
         UserCreate(#[from] CognitoError<AdminCreateUserError>),
         #[error("User create response error")]
         UserCreateRes,
-        #[error("User delete error: {0}")]
-        DeleteUser(#[from] CognitoError<AdminDeleteUserError>),
+        #[error("User disable error: {0}")]
+        DisableUser(#[from] CognitoError<AdminDisableUserError>),
         #[error("User list error")]
         UserListRes,
         #[error("User update error: {0}")]
         UpdateAttributeError(#[from] CognitoError<AdminUpdateUserAttributesError>),
         #[error("User reset password error: {0}")]
         ResetPassword(#[from] CognitoError<AdminSetUserPasswordError>),
+        #[error("Login error")]
+        LoginError,
+        #[error("Auth initiate error: {0}")]
+        AuthInitError(#[from] SdkError<InitiateAuthError>),
     }
     pub type Result<T> = std::result::Result<T, Error>;
 
     #[derive(Clone)]
     pub struct UserPool {
-        key_set:          KeySet,
-        verifier:         jsonwebtokens::Verifier,
-        cognito_client:   CognitoClient,
-        pub user_pool_id: String,
+        key_set:                 KeySet,
+        verifier:                jsonwebtokens::Verifier,
+        cognito_client:          CognitoClient,
+        pub user_pool_id:        String,
+        pub user_pool_client_id: String,
     }
 
     impl UserPool {
@@ -78,6 +89,7 @@ pub mod cognito {
                 verifier,
                 cognito_client,
                 user_pool_id: user_pool_id.to_string(),
+                user_pool_client_id: user_pool_client_id.to_string(),
             })
         }
 
@@ -97,21 +109,75 @@ pub mod cognito {
             Ok(user)
         }
 
+        /// Create a new user in the Cognito user pool and sets the permanent password.
         #[instrument(skip_all)]
-        pub async fn create_user(&self, email: &str) -> Result<UserType> {
+        pub async fn admin_create_user(
+            &self,
+            username: &str,
+            password: &str,
+            attributes: Vec<AttributeType>,
+        ) -> Result<UserType> {
             let user = self
                 .cognito_client
                 .admin_create_user()
                 .user_pool_id(self.user_pool_id.clone())
-                .username(email)
-                .user_attributes(email_attribute(email))
+                .username(username)
+                .set_user_attributes(Some(attributes))
+                .temporary_password(password)
                 .force_alias_creation(true)
                 .message_action(MessageActionType::Suppress) // TODO: Change to "RESEND" for production
                 .send()
                 .await?
                 .user
                 .ok_or(Error::UserCreateRes)?;
+            self.cognito_client
+                .admin_set_user_password()
+                .user_pool_id(&self.user_pool_id)
+                .username(username)
+                .permanent(true)
+                .password(password)
+                .send()
+                .await?;
             Ok(user)
+        }
+
+        #[instrument(skip_all)]
+        pub async fn admin_add_to_admin_group(&mut self, username: &str) {
+            self.cognito_client
+                .admin_add_user_to_group()
+                .user_pool_id(self.user_pool_id.to_owned())
+                .username(username.to_owned())
+                .group_name("admin".to_owned())
+                .send()
+                .await
+                .expect("Failed to add user to admin group");
+        }
+
+        pub async fn user_initiate_auth_req(
+            &self,
+            email: &str,
+            password: &str,
+        ) -> Result<InitiateAuthOutput> {
+            self.cognito_client
+                .initiate_auth()
+                .client_id(&self.user_pool_client_id)
+                .auth_flow(AuthFlowType::UserPasswordAuth)
+                .auth_parameters("USERNAME", email.to_owned())
+                .auth_parameters("PASSWORD", password.to_owned())
+                .send()
+                .await
+                .map_err(Error::AuthInitError)
+        }
+
+        #[instrument(skip_all)]
+        pub async fn user_login(&self, email: &str, password: &str) -> Result<String> {
+            let auth_response = self.user_initiate_auth_req(email, password).await?;
+            debug_assert!(auth_response.challenge_name.is_none());
+            let id_token = auth_response
+                .authentication_result
+                .and_then(|r| r.id_token)
+                .ok_or(Error::LoginError)?;
+            Ok(id_token)
         }
 
         #[instrument(skip_all)]
@@ -140,11 +206,7 @@ pub mod cognito {
         }
 
         #[instrument(skip_all)]
-        pub async fn update_account_address(
-            &self,
-            username: &str,
-            address: &AccountAddress,
-        ) -> Result<()> {
+        pub async fn update_account_address(&self, username: &str, address: &str) -> Result<()> {
             self.cognito_client
                 .admin_update_user_attributes()
                 .user_pool_id(self.user_pool_id.clone())
@@ -156,9 +218,9 @@ pub mod cognito {
         }
 
         #[instrument(skip_all)]
-        pub async fn delete_user(&self, username: &str) -> Result<()> {
+        pub async fn disable_user(&self, username: &str) -> Result<()> {
             self.cognito_client
-                .admin_delete_user()
+                .admin_disable_user()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
                 .send()
@@ -206,6 +268,12 @@ pub mod cognito {
         /// Concordium account address for the user
         #[serde(rename = "custom:con_accnt")]
         pub account:        Option<String>,
+        #[serde(rename = "given_name")]
+        pub first_name:     Option<String>,
+        #[serde(rename = "family_name")]
+        pub last_name:      Option<String>,
+        #[serde(rename = "custom:nationallity")]
+        pub nationality:    Option<String>,
     }
 
     impl Claims {
@@ -244,11 +312,43 @@ pub mod cognito {
 
     #[inline]
     pub fn account_address_attribute(
-        address: &AccountAddress,
+        address: &str,
     ) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
         aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
             .name("custom:con_accnt".to_string())
-            .value(address.to_string())
+            .value(address)
+            .build()
+            .unwrap()
+    }
+
+    pub fn first_name_attribute(first_name: &str) -> AttributeType {
+        AttributeType::builder()
+            .name("given_name".to_string())
+            .value(first_name.to_string())
+            .build()
+            .unwrap()
+    }
+
+    pub fn last_name_attribute(last_name: &str) -> AttributeType {
+        AttributeType::builder()
+            .name("family_name".to_string())
+            .value(last_name.to_string())
+            .build()
+            .unwrap()
+    }
+
+    pub fn name_attribute(first_name: &str, last_name: &str) -> AttributeType {
+        AttributeType::builder()
+            .name("name".to_string())
+            .value(format!("{} {}", first_name, last_name))
+            .build()
+            .unwrap()
+    }
+
+    pub fn nationality_attribute(nationality: &str) -> AttributeType {
+        AttributeType::builder()
+            .name("custom:nationality".to_string())
+            .value(nationality.to_string())
             .build()
             .unwrap()
     }
