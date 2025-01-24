@@ -15,6 +15,8 @@ import Support from './pages/Support.tsx';
 import Settings from './pages/Settings.tsx';
 import FundedForestProjectsList from './pages/FundedForestProjectsList.tsx';
 import FundedForestProjectDetails from './pages/FundedForestProjectDetails.tsx';
+import Contracts from './pages/Contracts.tsx';
+import ContractsDetails from './pages/ContractsDetails.tsx';
 
 export default function App() {
     const [user, setUser] = useState<ApiUser>();
@@ -35,6 +37,8 @@ export default function App() {
                 <Route index path='portfolio' element={<InvestmentPortfolio />} />
                 <Route index path='wallet' element={<Wallet />} />
                 <Route index path='news' element={<News />} />
+                <Route index path='contracts' element={<Contracts />} />
+                <Route index path='contracts/:id' element={<ContractsDetails />} />
                 <Route index path='news/:id' element={<NewsDetails />} />
                 <Route index path='support' element={<Support />} />
                 <Route index path='settings' element={<Settings />} />

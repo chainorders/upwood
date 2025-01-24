@@ -142,17 +142,24 @@ body{
 .button.style4{
   border: 0;
   box-shadow: none;
+  font-weight: 600;
 }
 .button.style5{
   border: 0;
   box-shadow: none;
   color: rgba(15, 180, 4, 1);
+  font-weight: 600;
 }
 .button.text-align-left-on-mob{
   text-align: left;
 }
-.button img{
+.button img.left{
   margin-right: 10px;
+  position: relative;
+  top: 2px;
+}
+.button img.right{
+  margin-left: 10px;
   position: relative;
   top: 2px;
 }

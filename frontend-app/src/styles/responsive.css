@@ -77,6 +77,9 @@ body.menuopen .menuclose-bar{
 .col-m-full{
     width: 100% !important;
 }
+.col-m-half{
+    width: 50% !important;
+}
 .col-mr-bottom-30{
     margin-bottom: 30px;
 }
@@ -177,5 +180,12 @@ body.menuopen .menuclose-bar{
 }
 .chart .chart-in{
     width: 1300px;
+}
+.contract-card .content{
+    margin-bottom: 10px;
+}
+.contract{
+    padding-left: 15px;
+    padding-right: 15px;
 }
 }
