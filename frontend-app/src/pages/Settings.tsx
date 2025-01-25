@@ -5,96 +5,16 @@ import { Link, useOutletContext } from 'react-router';
 import { ApiUser } from '../apiClient';
 import Button from '../components/Button';
 import AccountCross from "../assets/account-not-protected.svg";
+import ClaimPopup from '../components/ClaimPopup';
+import EditProfile from '../components/EditProfile';
+import CreateCompany from '../components/CreateCompany';
+import EditCompany from '../components/EditCompany';
 export default function Settings() {
   const { user } = useOutletContext<{ user: ApiUser }>();
-  const carbon_credits = {
-    emissions : "15 Co2 TONS",
-    value : "750"
-  };
-  const dividends_details = "150 EUROe";
-  const etree_details = "1500"
-  const [carbon_credits_popup, setCarbonCreditsPopup] = useState(false);
-  const [dividends_details_popup, setDividendsPopup] = useState(false);
-  const [etrees_popup, setEtreesPopup] = useState(false);
-  const data = [
-    {
-      id: "1516",
-      image : "/Photo2.jpg",
-      image_label : "GROW",
-      title : "Latgale forest portfolio",
-      short : "Portfolio of 7 forest plantations in Latgale region.",
-      keyPoints : [
-        {
-          name : "AREA",
-          value : "30.4ha"
-        },
-        {
-          name : "ROI",
-          value : "63%"
-        },
-        {
-          name : "CARBON CREDITS",
-          value : "3509"
-        }
-      ],
-      share_price : "108",
-      share_available : "900"
-    },
-    {
-      id: "1920",
-      image : "/Photo2.jpg",
-      image_label : "GROW",
-      title : "Latgale forest portfolio",
-      short : "Portfolio of 7 forest plantations in Latgale region.",
-      keyPoints : [
-        {
-          name : "AREA",
-          value : "30.4ha"
-        },
-        {
-          name : "ROI",
-          value : "63%"
-        },
-        {
-          name : "CARBON CREDITS",
-          value : "3509"
-        }
-      ],
-      share_price : "98",
-      share_available : "400"
-    }
-  ];
-  const __carbon_credits_details = {
-    heading : "Claim carbon credits",
-    list : [
-      {
-        tag : "Offset your emissions",
-        display : carbon_credits.emissions
-      },
-      {
-        tag : "Carbon credit dividends",
-        display : carbon_credits.value+' EUROe'
-      }
-    ]
-  }
-  const __dividends_details = {
-    heading : "Dividends",
-    list : [
-      {
-        tag : "Claim all dividends",
-        display : dividends_details
-      }
-    ]
-  }
-  const __etrees_details = {
-    heading : "E-trees",
-    list : [
-      {
-        tag : "Claim E-trees",
-        display : etree_details
-      }
-    ]
-  }
+  const [claim_popup, setClaimPopup] = useState(false);
+  const [edit_profile_popup, setEditProfilePopup] = useState(false);
+  const [create_company_popup, setCreateCompanyPopup] = useState(false);
+  const [edit_company_popup, setEditCompanyPopup] = useState(false);
   const table_data = [
     {
         transaction_hash : "765192..",
@@ -165,6 +85,20 @@ export default function Settings() {
         status : "150€"
     }
   ]
+  const links = [
+    { title: "Portfolio", description: "How to manage your investments portfolio", link: "" },
+    { title: "Wallet", description: "How to manage your wallet", link: "" },
+    { title: "Contracts", description: "How to manage your contracts", link: "" }
+  ];
+  const claim_popup_details = {
+    heading: "Claim affiliate earnings",
+        list: [
+            {
+                tag: "Claim affiliate earnings",
+                display: "150 EUROe"
+            }
+    ]
+  }
   return (
     <>
       <div className="clr"></div>
@@ -180,7 +114,7 @@ export default function Settings() {
                   <div className="name">John Carter</div>
                   <div className="email mr">Jonh@gmail.com</div>
                   <div className='action'>
-                    <Button style={`style3`} text ={'Edit profile'} link={''} active={false}   />
+                    <Button style={`style3`} text ={'Edit profile'} link={''} active={false} call={()=> setEditProfilePopup(true)}   />
                   </div>
                   <div className="st"><span><img
                 src={AccountCross}
@@ -191,19 +125,37 @@ export default function Settings() {
               <div className="col-6 fl col-m-full">
               <div className='setting-block text-align-center'>
                   <div className="heading">Legal entity</div>
-                  <div className="letter">C</div>
-                  <div className="name">SIA Upwood</div>
-                  <div className="email">esg@upwood.io</div>
-                  <div className="reg">Reg. nr. 12343678</div>
-                  <div className='action'>
-                    <Button style={`style3`} text ={'Edit company profile'} link={''} active={false}   />
+                  {/* <div>
+                    <div className="letter">C</div>
+                    <div className="name">SIA Upwood</div>
+                    <div className="email">esg@upwood.io</div>
+                    <div className="reg">Reg. nr. 12343678</div>
+                    <div className='action'>
+                      <Button style={`style3`} text ={'Edit company profile'} link={''} active={false} call={()=> setEditCompanyPopup(true)} />
+                    </div>
+                    <div className="st"><Link type="text" to="/"
+                        className="guides"
+                        style={{ cursor: "pointer" }}
+                    >Download account statement</Link></div>
+                  </div> */}
+                  <div>
+                    <div className='action pdtop'>
+                      <Button text ={'Create company profile'} link={''} active={true} call={()=>setCreateCompanyPopup(true)}/>
+                    </div>
                   </div>
-                  <div className="st"><Link type="text" to="/"
-                      className="guides"
-                      style={{ cursor: "pointer" }}
-                  >Download account statement</Link></div>
                 </div>
               </div>
+              <div className="clr"></div>
+              {links.map((item, index) => (
+                <div className="col-4 col-m-full fl" key={index}>
+                  <div className="linkbox">
+                  <Link type="text" to={item.link}>
+                      <div className="title">{item.title}</div>
+                      <div className="description">{item.description}</div>
+                    </Link>
+                  </div>
+                </div>
+              ))}
               <div className="clr"></div>
             </div>
           </div>
@@ -344,7 +296,7 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="col-2 text-align-right fr hideonmobile">
-                  <Button  text ={'CLAIM EARNINGS'} link={''} active={true}   />
+                  <Button  text ={'CLAIM EARNINGS'} link={''} active={true} call={()=> setClaimPopup(true)}/>
                 </div>
                 <div className="clr"></div>
                 <div className="space-20 showonmobile"></div>
@@ -362,7 +314,7 @@ export default function Settings() {
                 </div>
                 <div className="space-20 showonmobile"></div>
                 <div className='col-12 showonmobile'>
-                  <Button  text ={'CLAIM EARNINGS'} link={''} active={true}   />
+                  <Button  text ={'CLAIM EARNINGS'} link={''} active={true} call={()=> setClaimPopup(true)}/>
                 </div>
                 <div className="space-20 showonmobile"></div>
                 <div className='col-12 text-align-center showonmobile'>
@@ -380,6 +332,10 @@ export default function Settings() {
         </div>
         <div className="space-30"></div>
       </div>
+      {claim_popup ? <ClaimPopup config={claim_popup_details} close={() => setClaimPopup(false)} /> : null}
+      {edit_profile_popup ? <EditProfile close={() => setEditProfilePopup(false)} /> : null}  
+      {create_company_popup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}  
+      {edit_company_popup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}  
     </>
   );
 }

@@ -48,6 +48,9 @@
 .setting-block .action{
     padding: 0 20%;
 }
+.setting-block .action.pdtop{
+    padding-top: 80px;
+}
 .setting-block .st{
     padding-top: 20px;
 }
@@ -72,4 +75,129 @@
     color: rgba(107, 107, 107, .7);
     margin: auto;
     margin-bottom: 20px;
+}
+.settings .linkbox{
+    border: 1px solid rgba(15, 180, 4, 1);
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 25px;
+}
+.settings .linkbox .title{
+    text-transform: uppercase;
+    color: initial;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+.settings .linkbox .description{
+    color: initial;
+}
+.settings .linkbox a{
+    text-decoration: none;
+}
+
+
+
+.edo .head{
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+.edo .headlink{
+    color: rgba(15, 180, 4, 1);
+    cursor: pointer;
+}
+.edo .headlink.danger{
+    color: red;
+}
+.edo .boxl{
+    padding-top: 10px;
+}
+.edo .boxl img{
+    cursor: pointer;
+}
+.edo .boxt{
+    width: 100%;
+    height: 36px;
+    padding: 0 15px;
+    border: 1px solid rgba(215, 219, 208, 1);
+    border-radius: 4px;
+}
+.edo .boxt:focus{
+    outline: none;
+  }
+.edo .boxt.withedit{
+    width: 80%;
+}
+.edo .boxt.error{
+    border: 1px solid red;
+}
+.edo .twofactor{
+    color: rgba(153, 153, 153, 1);
+}
+.edo .twofactor.enabled{
+    color: rgba(15, 180, 4, 1);
+}
+.edo .twofactor img{
+    position: relative;
+    margin-right: 10px;
+    top: 2px;
+}
+.edo .saverow{
+    margin-top: 8px;
+    cursor: pointer;
+}
+.edo .letter{
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: rgba(172, 221, 180, 1);
+    font-weight: 500;
+    text-align: center;
+    font-size: 22px;
+    line-height: 80px;
+    color: rgba(107, 107, 107, .7);
+    margin: auto;
+    margin-bottom: 10px;
+}
+.edo .Avatar{
+    width: 88px;
+    height: 88px;
+}
+.edo .links{
+    text-align: center;
+}
+.edo .links span{
+    text-transform: uppercase;
+    text-align: center;
+    color: rgba(15, 180, 4, 1);
+    cursor: pointer;
+    padding: 0 10px;
+    font-weight: 500;
+}
+.edo .links span.danger{
+    color: red;
+}
+.edo .inputotp {
+    border: 1px solid #ccc; /* Light gray border */
+    border-radius: 8px; /* Rounded borders */
+    padding: 10px;
+    margin: 5px;
+    font-size: 26px;
+    width: 48px; /* Fixed width */
+    text-align: center;
+}
+.edo .inputotp.error{
+    border:1px solid red; 
+}
+.edo .inputotp:focus {
+    outline: none;
+    border-color: #666; /* Darker border when focused */
+}
+.edo .sty.Sent{
+    color: rgba(255, 138, 0, 1);
+}
+.edo .sty.Accepted{
+    color: rgba(15, 180, 4, 1);
+}
+.edo .styremove{
+    cursor: pointer;
 }

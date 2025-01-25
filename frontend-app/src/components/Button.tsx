@@ -8,13 +8,15 @@ interface ButtonProps {
     disabled?: boolean,
     icon?: string,
     icononright? : boolean,
+    radius16? : boolean,
+    danger? : boolean,
     call?: () => void;
 }
-export default function Button({ text, link, active, style, disabled, icon, icononright, call }: ButtonProps) {
+export default function Button({ text, link, active, style, disabled, icon, icononright, radius16, danger, call }: ButtonProps) {
     return (
         <>
             {link === '' ?
-                <button className={`button ${style} ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`} onClick={call}>
+                <button className={`button ${radius16?'radius16':''} ${style} ${active ? 'active' : ''} ${danger?'danger':''} ${disabled ? 'disabled' : ''}`} onClick={call}>
                     
                     {icon && icon !== '' && !icononright &&
                     <img
@@ -35,7 +37,7 @@ export default function Button({ text, link, active, style, disabled, icon, icon
                     }
                     </button>
                 :
-                <Link to={link} className={`button ${style} ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`}>
+                <Link to={link} className={`button ${radius16?'radius16':''} ${style} ${active ? 'active' : ''} ${danger?'danger':''} ${disabled ? 'disabled' : ''}`}>
                     {icon && icon !== '' && !icononright &&
                     <img
                         src={icon}

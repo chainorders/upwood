@@ -188,4 +188,23 @@ body.menuopen .menuclose-bar{
     padding-left: 15px;
     padding-right: 15px;
 }
+.setting-block .action{
+    padding: 0;
+}
+.lg{
+    font-size: 20px;
+    opacity: .8;
+}
+.text-align-center-mob{
+    text-align: center;
+    width: 100%;
+    display: inline-block;
+}
+.edo .boxt.withedit{
+    width: 90%;
+}
+.setting-block .action.pdtop{
+    padding-top: 0;
+    margin-bottom: 50px;
+}
 }
