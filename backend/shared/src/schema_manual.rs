@@ -27,7 +27,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_user_yields_for_each_owned_token (forest_project_id, token_id, token_contract_address, holder_address, yielder_contract_address, yield_token_id, yield_contract_address) {
+    forest_project_token_user_yields (forest_project_id, token_id, token_contract_address, holder_address, yielder_contract_address, yield_token_id, yield_contract_address) {
         forest_project_id -> Uuid,
         token_id -> Numeric,
         token_contract_address -> Numeric,
@@ -47,7 +47,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_user_yields_aggregate (cognito_user_id, yielder_contract_address, yield_token_id, yield_contract_address) {
+    user_yields_aggregate (cognito_user_id, yielder_contract_address, yield_token_id, yield_contract_address) {
         cognito_user_id -> Varchar,
         yielder_contract_address -> Numeric,
         yield_token_id -> Numeric,
@@ -234,12 +234,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_user_agg_balances (cognito_user_id, forest_project_id) {
+    forest_project_user_balance_agg (cognito_user_id, forest_project_id) {
         cognito_user_id -> Varchar,
         forest_project_id -> Uuid,
         total_balance -> Numeric,
-        token_symbol -> Varchar,
-        token_decimals -> Integer,
     }
 }
 
@@ -264,5 +262,51 @@ diesel::table! {
         token_decimals -> Integer,
         to_address -> Varchar,
         create_time -> Timestamp,
+    }
+}
+
+diesel::table! {
+    forest_project_token_contract_user_balance_agg (forest_project_id, cognito_user_id, contract_address) {
+        forest_project_id -> Uuid,
+        forest_project_state -> crate::schema::sql_types::ForestProjectState,
+        forest_project_name -> Varchar,
+        cognito_user_id -> Varchar,
+        contract_address -> Numeric,
+        contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
+        total_balance -> Numeric,
+        un_frozen_balance -> Numeric,
+    }
+}
+
+diesel::table! {
+    forest_project_token_contract_user_yield_distribution_agg (cognito_user_id, forest_project_id, contract_address, yielder_contract_address, yield_contract_address, yield_token_id) {
+        cognito_user_id -> Varchar,
+        forest_project_id -> Uuid,
+        contract_address -> Numeric,
+        contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
+        yielder_contract_address -> Numeric,
+        yield_contract_address -> Numeric,
+        yield_token_id -> Numeric,
+        total_yield_amount -> Numeric,
+    }
+}
+
+diesel::table! {
+    forest_project_token_contract_user_yields (forest_project_id, token_contract_address, cognito_user_id, yielder_contract_address, yield_token_id, yield_contract_address) {
+        forest_project_id -> Uuid,
+        token_contract_address -> Numeric,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
+        cognito_user_id -> Varchar,
+        yielder_contract_address -> Numeric,
+        yield_token_id -> Numeric,
+        yield_contract_address -> Numeric,
+        yield_token_symbol -> Varchar,
+        yield_token_decimals -> Integer,
+        yield_amount -> Numeric,
     }
 }

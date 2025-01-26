@@ -9,8 +9,9 @@ use shared::db_app::forest_project::{
 };
 use shared::db_app::forest_project_crypto::{
     ForestProjectCurrentTokenFundMarkets, ForestProjectFundInvestor, ForestProjectSupply,
-    ForestProjectTokenContract, ForestProjectUserAggBalance, ForestProjectUserYieldsAggregate,
-    ForestProjectUserYieldsForEachOwnedToken, SecurityTokenContractType, TokenMetadata,
+    ForestProjectTokenContract, ForestProjectTokenContractUserBalanceAgg,
+    ForestProjectTokenContractUserYields, ForestProjectTokenUserYield, ForestProjectUserBalanceAgg,
+    SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
 };
 use tracing::{debug, info};
 
@@ -39,7 +40,7 @@ impl ForestProjectApi {
             })?;
         let project_ids = projects.iter().map(|p| p.id).collect::<Vec<_>>();
         let project_user_balances =
-            ForestProjectUserAggBalance::list_by_user_id_and_forest_project_ids(
+            ForestProjectUserBalanceAgg::list_by_user_id_and_forest_project_ids(
                 conn,
                 &claims.sub,
                 &project_ids,
@@ -176,7 +177,7 @@ impl ForestProjectApi {
         let supply = ForestProjectSupply::find_by_forest_project_id(conn, project_id)?
             .and_then(|supply| supply.supply)
             .unwrap_or(Decimal::ZERO);
-        let user_balance = ForestProjectUserAggBalance::find(conn, &claims.sub, project_id)
+        let user_balance = ForestProjectUserBalanceAgg::find(conn, &claims.sub, project_id)
             .map_err(|e| {
                 error!("Failed to find user balance: {}", e);
                 Error::InternalServer(PlainText(format!("Failed to find user balance: {}", e)))
@@ -276,7 +277,7 @@ impl ForestProjectApi {
     ) -> JsonResult<PagedResponse<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
         let (user_owned_projects, _) =
-            ForestProjectUserAggBalance::list_by_user_id(conn, &claims.sub, 0, i64::MAX).map_err(
+            ForestProjectUserBalanceAgg::list_by_user_id(conn, &claims.sub, 0, i64::MAX).map_err(
                 |e| {
                     error!("Failed to list user owned projects: {}", e);
                     Error::InternalServer(PlainText(format!(
@@ -406,6 +407,119 @@ impl ForestProjectApi {
     }
 
     #[oai(
+        path = "/forest_projects/token_contract/list/owned",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_token_contracts_list_owned(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<PagedResponse<ForestProjectTokenContractAggApiModel>> {
+        let conn = &mut db_pool.get()?;
+        let euro_e_metadata = TokenMetadata::find(
+            conn,
+            contracts.euro_e_contract_index,
+            contracts.euro_e_token_id,
+        )?;
+        let (owned_contracts, page_count) =
+            ForestProjectTokenContractUserBalanceAgg::list_by_user_id(
+                conn,
+                &claims.sub,
+                0,
+                i64::MAX,
+            )
+            .map_err(|e| {
+                error!("Failed to list owned token contracts: {}", e);
+                Error::InternalServer(PlainText(format!(
+                    "Failed to list owned token contracts: {}",
+                    e
+                )))
+            })?;
+        let forest_project_ids = owned_contracts
+            .iter()
+            .map(|contract| contract.forest_project_id)
+            .collect::<Vec<_>>();
+        let prices = ForestProjectPrice::list_by_forest_project_ids(
+            conn,
+            &forest_project_ids,
+            contracts.euro_e_token_id,
+            contracts.euro_e_contract_index,
+        )
+        .map_err(|e| {
+            error!("Failed to list project prices: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list project prices: {}", e)))
+        })?
+        .into_iter()
+        .map(|price| ((price.project_id), price))
+        .collect::<std::collections::HashMap<_, _>>();
+        let yields = ForestProjectTokenContractUserYields::list_by_forest_project_ids(
+            conn,
+            &claims.sub,
+            &forest_project_ids,
+            contracts.yielder_contract_index,
+        )
+        .map_err(|e| {
+            error!("Failed to list user yields: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list user yields: {}", e)))
+        })?;
+        let mut ret = Vec::with_capacity(owned_contracts.len());
+        for contract in owned_contracts {
+            let price = prices
+                .get(&contract.forest_project_id)
+                .map(|price| price.price)
+                .unwrap_or(Decimal::ZERO);
+            let euro_e_yeild = yields.iter().find(|yield_| {
+                yield_.forest_project_id == contract.forest_project_id
+                    && yield_.yield_contract_address == contracts.euro_e_contract_index
+                    && yield_.yield_token_id == contracts.euro_e_token_id
+            });
+            let carbon_credit_yield = yields.iter().find(|yield_| {
+                yield_.forest_project_id == contract.forest_project_id
+                    && yield_.yield_contract_address == contracts.carbon_credit_contract_index
+                    && yield_.yield_token_id == contracts.carbon_credit_token_id
+            });
+            ret.push(ForestProjectTokenContractAggApiModel {
+                forest_project_id:               contract.forest_project_id,
+                forest_project_name:             contract.forest_project_name.clone(),
+                token_contract_type:             contract.contract_type,
+                token_contract_address:          contract.contract_address,
+                user_balance:                    contract.total_balance,
+                user_balance_price:              contract.total_balance * price,
+                currency_token_id:               contracts.euro_e_token_id,
+                currency_token_contract_address: contracts.euro_e_contract_index,
+                currency_token_decimal:          euro_e_metadata
+                    .as_ref()
+                    .and_then(|m| m.decimals)
+                    .unwrap_or(0),
+                currency_token_symbol:           euro_e_metadata
+                    .as_ref()
+                    .and_then(|m| m.symbol.clone())
+                    .unwrap_or_default(),
+                carbon_credit_token_decimal:     carbon_credit_yield
+                    .map(|m| m.yield_token_decimals)
+                    .unwrap_or(0),
+                carbon_credit_yield_balance:     carbon_credit_yield
+                    .map(|m| m.yield_amount)
+                    .unwrap_or(Decimal::ZERO),
+                euro_e_token_decimal:            euro_e_yeild
+                    .map(|m| m.yield_token_decimals)
+                    .unwrap_or(0),
+                euro_e_yields_balance:           euro_e_yeild
+                    .map(|m| m.yield_amount)
+                    .unwrap_or(Decimal::ZERO),
+            });
+        }
+
+        Ok(Json(PagedResponse {
+            data: ret,
+            page_count,
+            page: 0,
+        }))
+    }
+
+    #[oai(
         path = "/forest_projects/:project_id/media/list/:page",
         method = "get",
         tag = "ApiTags::ForestProject"
@@ -474,9 +588,9 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<Vec<ForestProjectUserYieldsAggregate>> {
+    ) -> JsonResult<Vec<UserYieldsAggregate>> {
         let conn = &mut db_pool.get()?;
-        let (yields, _) = ForestProjectUserYieldsAggregate::list(
+        let (yields, _) = UserYieldsAggregate::list(
             conn,
             &claims.sub,
             contracts.yielder_contract_index,
@@ -500,9 +614,9 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<Vec<ForestProjectUserYieldsForEachOwnedToken>> {
+    ) -> JsonResult<Vec<ForestProjectTokenUserYield>> {
         let conn = &mut db_pool.get()?;
-        let (yields, _) = ForestProjectUserYieldsForEachOwnedToken::list(
+        let (yields, _) = ForestProjectTokenUserYield::list(
             conn,
             &claims.sub,
             contracts.yielder_contract_index,
@@ -549,6 +663,24 @@ pub struct ForestProjectAggApiModel {
     pub property_fund:   Option<ForestProjectFundApiModel>,
     pub bond_fund:       Option<ForestProjectFundApiModel>,
     pub user_balance:    Decimal,
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize, Clone, PartialEq, Debug)]
+pub struct ForestProjectTokenContractAggApiModel {
+    pub forest_project_id:               uuid::Uuid,
+    pub forest_project_name:             String,
+    pub token_contract_type:             SecurityTokenContractType,
+    pub token_contract_address:          Decimal,
+    pub user_balance:                    Decimal,
+    pub user_balance_price:              Decimal,
+    pub carbon_credit_yield_balance:     Decimal,
+    pub carbon_credit_token_decimal:     i32,
+    pub euro_e_yields_balance:           Decimal,
+    pub euro_e_token_decimal:            i32,
+    pub currency_token_id:               Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub currency_token_decimal:          i32,
+    pub currency_token_symbol:           String,
 }
 
 pub struct ForestProjectAdminApi;

@@ -175,7 +175,7 @@ impl ForestProjectTokenContract {
 #[derive(
     Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
 )]
-#[diesel(table_name = crate::schema_manual::forest_project_user_yields_for_each_owned_token)]
+#[diesel(table_name = crate::schema_manual::forest_project_token_user_yields)]
 #[diesel(primary_key(
     forest_project_id,
     token_id,
@@ -186,7 +186,7 @@ impl ForestProjectTokenContract {
     yield_contract_address
 ))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectUserYieldsForEachOwnedToken {
+pub struct ForestProjectTokenUserYield {
     pub forest_project_id:        Uuid,
     pub token_id:                 Decimal,
     pub token_contract_address:   Decimal,
@@ -204,7 +204,7 @@ pub struct ForestProjectUserYieldsForEachOwnedToken {
     pub yield_token_decimals:     i32,
 }
 
-impl ForestProjectUserYieldsForEachOwnedToken {
+impl ForestProjectTokenUserYield {
     pub fn list(
         conn: &mut DbConn,
         user_id: &str,
@@ -212,15 +212,15 @@ impl ForestProjectUserYieldsForEachOwnedToken {
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_user_yields_for_each_owned_token::dsl::*;
+        use crate::schema_manual::forest_project_token_user_yields::dsl::*;
 
-        let total_count = forest_project_user_yields_for_each_owned_token
+        let total_count = forest_project_token_user_yields
             .filter(cognito_user_id.eq(user_id))
             .filter(yielder_contract_address.eq(yielder_address))
             .count()
             .get_result::<i64>(conn)?;
 
-        let records = forest_project_user_yields_for_each_owned_token
+        let records = forest_project_token_user_yields
             .filter(cognito_user_id.eq(user_id))
             .filter(yielder_contract_address.eq(yielder_address))
             .limit(page_size)
@@ -234,7 +234,7 @@ impl ForestProjectUserYieldsForEachOwnedToken {
 #[derive(
     Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
 )]
-#[diesel(table_name = crate::schema_manual::forest_project_user_yields_aggregate)]
+#[diesel(table_name = crate::schema_manual::user_yields_aggregate)]
 #[diesel(primary_key(
     cognito_user_id,
     yielder_contract_address,
@@ -242,7 +242,7 @@ impl ForestProjectUserYieldsForEachOwnedToken {
     yield_contract_address
 ))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectUserYieldsAggregate {
+pub struct UserYieldsAggregate {
     pub cognito_user_id:          String,
     pub yielder_contract_address: Decimal,
     pub yield_token_id:           Decimal,
@@ -252,7 +252,7 @@ pub struct ForestProjectUserYieldsAggregate {
     pub yield_token_decimals:     i32,
 }
 
-impl ForestProjectUserYieldsAggregate {
+impl UserYieldsAggregate {
     pub fn list(
         conn: &mut DbConn,
         user_id: &str,
@@ -260,9 +260,9 @@ impl ForestProjectUserYieldsAggregate {
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_user_yields_aggregate::dsl::*;
+        use crate::schema_manual::user_yields_aggregate::dsl::*;
 
-        let query = forest_project_user_yields_aggregate
+        let query = user_yields_aggregate
             .filter(cognito_user_id.eq(user_id))
             .filter(
                 yielder_contract_address
@@ -270,7 +270,7 @@ impl ForestProjectUserYieldsAggregate {
                     .or(yielder_contract_address.eq(yielder_address)),
             );
 
-        let total_count = forest_project_user_yields_aggregate
+        let total_count = user_yields_aggregate
             .filter(cognito_user_id.eq(user_id))
             .filter(
                 yielder_contract_address
@@ -626,21 +626,19 @@ impl ForestProjectCurrentTokenFundMarkets {
 #[derive(
     Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
 )]
-#[diesel(table_name = crate::schema_manual::forest_project_user_agg_balances)]
+#[diesel(table_name = crate::schema_manual::forest_project_user_balance_agg)]
 #[diesel(primary_key(cognito_user_id, forest_project_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectUserAggBalance {
+pub struct ForestProjectUserBalanceAgg {
     pub cognito_user_id:   String,
     pub forest_project_id: Uuid,
     pub total_balance:     Decimal,
-    pub token_symbol:      String,
-    pub token_decimals:    i32,
 }
 
-impl ForestProjectUserAggBalance {
+impl ForestProjectUserBalanceAgg {
     pub fn find(conn: &mut DbConn, user_id: &str, project_id: Uuid) -> QueryResult<Option<Self>> {
-        use crate::schema_manual::forest_project_user_agg_balances::dsl::*;
-        forest_project_user_agg_balances
+        use crate::schema_manual::forest_project_user_balance_agg::dsl::*;
+        forest_project_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
             .filter(forest_project_id.eq(project_id))
             .first(conn)
@@ -652,9 +650,9 @@ impl ForestProjectUserAggBalance {
         user_id: &str,
         project_ids: &[Uuid],
     ) -> QueryResult<Vec<Self>> {
-        use crate::schema_manual::forest_project_user_agg_balances::dsl::*;
+        use crate::schema_manual::forest_project_user_balance_agg::dsl::*;
 
-        forest_project_user_agg_balances
+        forest_project_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
             .filter(forest_project_id.eq_any(project_ids))
             .load::<Self>(conn)
@@ -666,15 +664,15 @@ impl ForestProjectUserAggBalance {
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_user_agg_balances::dsl::*;
+        use crate::schema_manual::forest_project_user_balance_agg::dsl::*;
 
-        let total_count = forest_project_user_agg_balances
+        let total_count = forest_project_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
             .filter(total_balance.gt(Decimal::ZERO))
             .count()
             .get_result::<i64>(conn)?;
 
-        let records = forest_project_user_agg_balances
+        let records = forest_project_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
             .limit(page_size)
             .offset(page * page_size)
@@ -742,6 +740,7 @@ impl ForestProjectUserYieldDistribution {
         Ok((records, total_count))
     }
 }
+
 #[derive(
     Object,
     Selectable,
@@ -822,5 +821,96 @@ impl TokenMetadata {
                 .filter(token_id.eq(metadata_token_id)),
         )
         .execute(conn)
+    }
+}
+
+#[derive(
+    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
+)]
+#[diesel(table_name = crate::schema_manual::forest_project_token_contract_user_balance_agg)]
+#[diesel(primary_key(forest_project_id, cognito_user_id, contract_address))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ForestProjectTokenContractUserBalanceAgg {
+    pub forest_project_id:    Uuid,
+    pub forest_project_state: ForestProjectState,
+    pub forest_project_name:  String,
+    pub cognito_user_id:      String,
+    pub contract_address:     Decimal,
+    pub contract_type:        SecurityTokenContractType,
+    pub token_symbol:         String,
+    pub token_decimals:       i32,
+    pub total_balance:        Decimal,
+    pub un_frozen_balance:    Decimal,
+}
+
+impl ForestProjectTokenContractUserBalanceAgg {
+    pub fn list_by_user_id(
+        conn: &mut DbConn,
+        user_id: &str,
+        page: i64,
+        page_size: i64,
+    ) -> QueryResult<(Vec<Self>, i64)> {
+        use crate::schema_manual::forest_project_token_contract_user_balance_agg::dsl::*;
+
+        let total_count = forest_project_token_contract_user_balance_agg
+            .filter(cognito_user_id.eq(user_id))
+            .filter(total_balance.gt(Decimal::ZERO))
+            .count()
+            .get_result::<i64>(conn)?;
+
+        let records = forest_project_token_contract_user_balance_agg
+            .filter(cognito_user_id.eq(user_id))
+            .filter(total_balance.gt(Decimal::ZERO))
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Self>(conn)?;
+
+        Ok((records, total_count))
+    }
+}
+
+#[derive(
+    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
+)]
+#[diesel(table_name = crate::schema_manual::forest_project_token_contract_user_yields)]
+#[diesel(primary_key(
+    forest_project_id,
+    token_contract_address,
+    cognito_user_id,
+    yielder_contract_address,
+    yield_token_id,
+    yield_contract_address
+))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ForestProjectTokenContractUserYields {
+    pub forest_project_id:        Uuid,
+    pub token_contract_address:   Decimal,
+    pub token_symbol:             String,
+    pub token_decimals:           i32,
+    pub cognito_user_id:          String,
+    pub yielder_contract_address: Decimal,
+    pub yield_token_id:           Decimal,
+    pub yield_contract_address:   Decimal,
+    pub yield_token_symbol:       String,
+    pub yield_token_decimals:     i32,
+    pub yield_amount:             Decimal,
+}
+
+impl ForestProjectTokenContractUserYields {
+    pub fn list_by_forest_project_ids(
+        conn: &mut DbConn,
+        user_id: &str,
+        project_ids: &[Uuid],
+        yielder_address: Decimal,
+    ) -> QueryResult<Vec<Self>> {
+        use crate::schema_manual::forest_project_token_contract_user_yields::dsl::*;
+
+        let records = forest_project_token_contract_user_yields
+            .filter(cognito_user_id.eq(user_id))
+            .filter(forest_project_id.eq_any(project_ids))
+            .filter(yielder_contract_address.eq(yielder_address))
+            .load::<Self>(conn)?;
+
+        Ok(records)
     }
 }

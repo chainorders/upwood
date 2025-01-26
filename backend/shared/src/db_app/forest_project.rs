@@ -357,6 +357,27 @@ impl ForestProjectPrice {
         Ok((prices, page_count))
     }
 
+    pub fn list_by_forest_project_ids(
+        conn: &mut DbConn,
+        project_ids: &[Uuid],
+        currency_token_id: Decimal,
+        currency_token_contract_address: Decimal,
+    ) -> DbResult<Vec<Self>> {
+        let prices = schema::forest_project_prices::table
+            .filter(
+                schema::forest_project_prices::project_id
+                    .eq_any(project_ids)
+                    .and(schema::forest_project_prices::currency_token_id.eq(currency_token_id))
+                    .and(schema::forest_project_prices::currency_token_contract_address.eq(currency_token_contract_address))
+            )
+            .select(ForestProjectPrice::as_select())
+            .order_by((schema::forest_project_prices::project_id, schema::forest_project_prices::price_at.desc()))
+            .distinct_on(schema::forest_project_prices::project_id)
+            .get_results(conn)?;
+
+        Ok(prices)
+    }
+
     pub fn delete(
         conn: &mut DbConn,
         project_id: uuid::Uuid,

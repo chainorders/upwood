@@ -9,14 +9,15 @@ use shared::db_app::forest_project::{
 };
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundInvestor, ForestProjectFundsAffiliateRewardRecord, ForestProjectTokenContract,
-    ForestProjectUserYieldsAggregate, ForestProjectUserYieldsForEachOwnedToken,
-    SecurityTokenContractType, TokenMetadata,
+    ForestProjectTokenUserYield, SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
 };
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::users::UserRegistrationRequest;
 use upwood::api;
 use upwood::api::files::UploadUrlResponse;
-use upwood::api::forest_project::ForestProjectAggApiModel;
+use upwood::api::forest_project::{
+    ForestProjectAggApiModel, ForestProjectTokenContractAggApiModel,
+};
 use upwood::api::investment_portfolio::{InvestmentPortfolioUserAggregate, PortfolioValue};
 use upwood::api::user::{
     ApiUser, ClaimRequest, LoginReq, LoginRes, UserCreatePostReq, UserCreatePostReqAdmin,
@@ -473,10 +474,7 @@ impl ApiTestClient {
             .expect("Failed to parse find forest project media response")
     }
 
-    pub async fn forest_project_yields_total(
-        &self,
-        id_token: String,
-    ) -> Vec<ForestProjectUserYieldsAggregate> {
+    pub async fn forest_project_yields_total(&self, id_token: String) -> Vec<UserYieldsAggregate> {
         let res = self
             .client
             .get("/forest_projects/yields/total")
@@ -494,7 +492,7 @@ impl ApiTestClient {
     pub async fn forest_project_yields_claimable(
         &self,
         id_token: String,
-    ) -> Vec<ForestProjectUserYieldsForEachOwnedToken> {
+    ) -> Vec<ForestProjectTokenUserYield> {
         let res = self
             .client
             .get("/forest_projects/yields/claimable")
@@ -507,6 +505,24 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse list forest project yields claimable response")
+    }
+
+    pub async fn forest_project_token_contracts_list_owned(
+        &self,
+        id_token: String,
+    ) -> PagedResponse<ForestProjectTokenContractAggApiModel> {
+        let res = self
+            .client
+            .get("/forest_projects/token_contract/list/owned")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list owned forest project token contracts response")
     }
 
     // ForestProjectAdminApi Implementation

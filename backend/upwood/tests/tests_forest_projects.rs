@@ -44,8 +44,8 @@ use security_sft_multi_yielder::{
 use shared::api::PagedResponse;
 use shared::db_app::forest_project::{ForestProject, ForestProjectPrice, ForestProjectState};
 use shared::db_app::forest_project_crypto::{
-    ForestProjectTokenContract, ForestProjectUserYieldsAggregate,
-    ForestProjectUserYieldsForEachOwnedToken, SecurityTokenContractType, TokenMetadata,
+    ForestProjectTokenContract, ForestProjectTokenUserYield, SecurityTokenContractType,
+    TokenMetadata, UserYieldsAggregate,
 };
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_shared::{DbConn, DbPool};
@@ -55,6 +55,7 @@ use test_utils::test_chain::{Account, Chain};
 use test_utils::test_user::UserTestClient;
 use test_utils::{create_login_admin_user, create_login_user, PASS_GENERATOR};
 use upwood::api;
+use upwood::api::forest_project::ForestProjectTokenContractAggApiModel;
 use upwood::api::investment_portfolio::InvestmentPortfolioUserAggregate;
 use upwood::utils::aws::cognito::UserPool;
 use uuid::Uuid;
@@ -843,7 +844,7 @@ pub async fn test_forest_projects() {
             .call_api(|id_token| api.forest_project_yields_total(id_token))
             .await;
         assert_eq!(rewards_total, vec![
-            ForestProjectUserYieldsAggregate {
+            UserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
                 yielder_contract_address: yielder_contract.0.to_decimal(),
                 yield_token_id:           0.into(),
@@ -852,7 +853,7 @@ pub async fn test_forest_projects() {
                 yield_token_decimals:     6,
                 yield_token_symbol:       "EUROe".to_string(),
             },
-            ForestProjectUserYieldsAggregate {
+            UserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
                 yielder_contract_address: yielder_contract.0.to_decimal(),
                 yield_token_id:           0.into(),
@@ -861,7 +862,7 @@ pub async fn test_forest_projects() {
                 yield_token_decimals:     0,
                 yield_token_symbol:       "CC".to_string(),
             },
-            ForestProjectUserYieldsAggregate {
+            UserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
                 yielder_contract_address: yielder_contract.0.to_decimal(),
                 yield_token_id:           0.into(),
@@ -877,7 +878,7 @@ pub async fn test_forest_projects() {
             .call_api(|id_token| api.forest_project_yields_claimable(id_token))
             .await;
         assert_eq!(rewards_claimable, vec![
-            ForestProjectUserYieldsForEachOwnedToken {
+            ForestProjectTokenUserYield {
                 forest_project_id:        fp_1.id,
                 token_id:                 fp_1_token_1.to_decimal(),
                 max_token_id:             fp_1_token_2.to_decimal(),
@@ -894,7 +895,7 @@ pub async fn test_forest_projects() {
                 yield_token_decimals:     6,
                 yield_token_symbol:       "EUROe".to_string(),
             },
-            ForestProjectUserYieldsForEachOwnedToken {
+            ForestProjectTokenUserYield {
                 forest_project_id:        fp_1.id,
                 token_id:                 fp_1_token_1.to_decimal(),
                 max_token_id:             fp_1_token_2.to_decimal(),
@@ -911,7 +912,7 @@ pub async fn test_forest_projects() {
                 yield_token_decimals:     0,
                 yield_token_symbol:       "CC".to_string(),
             },
-            ForestProjectUserYieldsForEachOwnedToken {
+            ForestProjectTokenUserYield {
                 forest_project_id:        fp_1.id,
                 token_id:                 fp_1_token_1.to_decimal(),
                 max_token_id:             fp_1_token_2.to_decimal(),
@@ -929,6 +930,33 @@ pub async fn test_forest_projects() {
                 yield_token_symbol:       "TREES".to_string(),
             },
         ]);
+    }
+
+    // user 1 owned forest projects assertions
+    {
+        let user_owned_token_contracts = user_1
+            .call_api(|id_token| api.forest_project_token_contracts_list_owned(id_token))
+            .await;
+        assert_eq!(user_owned_token_contracts.data.len(), 1);
+        assert_eq!(
+            user_owned_token_contracts.data[0],
+            ForestProjectTokenContractAggApiModel {
+                forest_project_id:               fp_1.id,
+                token_contract_address:          fp_1_contract.0.to_decimal(),
+                carbon_credit_yield_balance:     50000.into(),
+                carbon_credit_token_decimal:     0,
+                currency_token_decimal:          6,
+                euro_e_token_decimal:            6,
+                currency_token_contract_address: euroe.0.to_decimal(),
+                currency_token_id:               0.into(),
+                euro_e_yields_balance:           1000.into(),
+                user_balance:                    100.into(),
+                user_balance_price:              (100 * 14).into(),
+                currency_token_symbol:           "EUROe".to_string(),
+                forest_project_name:             "Forest Project 1".to_string(),
+                token_contract_type:             SecurityTokenContractType::Property,
+            }
+        );
     }
 
     // user 1 claims yields
@@ -961,35 +989,7 @@ pub async fn test_forest_projects() {
             let rewards_total = user_1
                 .call_api(|id_token| api.forest_project_yields_total(id_token))
                 .await;
-            assert_eq!(rewards_total, vec![
-                ForestProjectUserYieldsAggregate {
-                    cognito_user_id:          user_1.id.clone(),
-                    yield_token_id:           0.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    yield_contract_address:   euroe.0.to_decimal(),
-                    yield_amount:             1000.into(),
-                    yield_token_decimals:     6,
-                    yield_token_symbol:       "EUROe".to_string(),
-                },
-                ForestProjectUserYieldsAggregate {
-                    cognito_user_id:          user_1.id.clone(),
-                    yield_token_id:           0.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    yield_contract_address:   carbon_credits.0.to_decimal(),
-                    yield_amount:             50000.into(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "CC".to_string(),
-                },
-                ForestProjectUserYieldsAggregate {
-                    cognito_user_id:          user_1.id.clone(),
-                    yield_token_id:           0.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    yield_contract_address:   tree_sft.0.to_decimal(),
-                    yield_amount:             100.into(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "TREES".to_string(),
-                },
-            ]);
+            assert_eq!(rewards_total, vec![]);
         }
 
         // Asserting claimable rewards for user 1
@@ -997,59 +997,7 @@ pub async fn test_forest_projects() {
             let rewards_claimable = user_1
                 .call_api(|id_token| api.forest_project_yields_claimable(id_token))
                 .await;
-            assert_eq!(rewards_claimable, vec![
-                ForestProjectUserYieldsForEachOwnedToken {
-                    cognito_user_id:          user_1.id.clone(),
-                    forest_project_id:        fp_1.id,
-                    token_id:                 fp_1_token_2.to_decimal(),
-                    max_token_id:             fp_1_token_2.to_decimal(),
-                    token_contract_address:   fp_1_contract.0.to_decimal(),
-                    holder_address:           user_1.account_address.clone(),
-                    yield_token_id:           0.into(),
-                    yield_contract_address:   euroe.0.to_decimal(),
-                    token_balance:            100.into(),
-                    yield_amount:             1000.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    token_decimals:           0,
-                    token_symbol:             "FP1".to_string(),
-                    yield_token_decimals:     6,
-                    yield_token_symbol:       "EUROe".to_string(),
-                },
-                ForestProjectUserYieldsForEachOwnedToken {
-                    cognito_user_id:          user_1.id.clone(),
-                    forest_project_id:        fp_1.id,
-                    token_id:                 fp_1_token_2.to_decimal(),
-                    max_token_id:             fp_1_token_2.to_decimal(),
-                    token_contract_address:   fp_1_contract.0.to_decimal(),
-                    holder_address:           user_1.account_address.clone(),
-                    yield_token_id:           0.into(),
-                    yield_contract_address:   carbon_credits.0.to_decimal(),
-                    token_balance:            100.into(),
-                    yield_amount:             50000.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    token_decimals:           0,
-                    token_symbol:             "FP1".to_string(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "CC".to_string(),
-                },
-                ForestProjectUserYieldsForEachOwnedToken {
-                    cognito_user_id:          user_1.id.clone(),
-                    forest_project_id:        fp_1.id,
-                    token_id:                 fp_1_token_2.to_decimal(),
-                    max_token_id:             fp_1_token_2.to_decimal(),
-                    token_contract_address:   fp_1_contract.0.to_decimal(),
-                    holder_address:           user_1.account_address.clone(),
-                    yield_token_id:           0.into(),
-                    yield_contract_address:   tree_sft.0.to_decimal(),
-                    token_balance:            100.into(),
-                    yield_amount:             100.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    token_decimals:           0,
-                    token_symbol:             "FP1".to_string(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "TREES".to_string(),
-                },
-            ]);
+            assert_eq!(rewards_claimable, vec![]);
         }
 
         // asserting owned forest projects for user 1
@@ -1150,35 +1098,7 @@ pub async fn test_forest_projects() {
             let rewards_total = user_1
                 .call_api(|id_token| api.forest_project_yields_total(id_token))
                 .await;
-            assert_eq!(rewards_total, vec![
-                ForestProjectUserYieldsAggregate {
-                    cognito_user_id:          user_1.id.clone(),
-                    yield_token_id:           0.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    yield_contract_address:   euroe.0.to_decimal(),
-                    yield_amount:             500.into(),
-                    yield_token_decimals:     6,
-                    yield_token_symbol:       "EUROe".to_string(),
-                },
-                ForestProjectUserYieldsAggregate {
-                    cognito_user_id:          user_1.id.clone(),
-                    yield_token_id:           0.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    yield_contract_address:   carbon_credits.0.to_decimal(),
-                    yield_amount:             25000.into(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "CC".to_string(),
-                },
-                ForestProjectUserYieldsAggregate {
-                    cognito_user_id:          user_1.id.clone(),
-                    yield_token_id:           0.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    yield_contract_address:   tree_sft.0.to_decimal(),
-                    yield_amount:             50.into(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "TREES".to_string(),
-                },
-            ]);
+            assert_eq!(rewards_total, vec![]);
         }
 
         // Asserting claimable rewards for user 1
@@ -1186,59 +1106,7 @@ pub async fn test_forest_projects() {
             let rewards_claimable = user_1
                 .call_api(|id_token| api.forest_project_yields_claimable(id_token))
                 .await;
-            assert_eq!(rewards_claimable, vec![
-                ForestProjectUserYieldsForEachOwnedToken {
-                    cognito_user_id:          user_1.id.clone(),
-                    forest_project_id:        fp_1.id,
-                    token_id:                 fp_1_token_2.to_decimal(),
-                    max_token_id:             fp_1_token_2.to_decimal(),
-                    token_contract_address:   fp_1_contract.0.to_decimal(),
-                    holder_address:           user_1.account_address.clone(),
-                    yield_token_id:           0.into(),
-                    yield_contract_address:   euroe.0.to_decimal(),
-                    token_balance:            50.into(),
-                    yield_amount:             500.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    token_decimals:           0,
-                    token_symbol:             "FP1".to_string(),
-                    yield_token_decimals:     6,
-                    yield_token_symbol:       "EUROe".to_string(),
-                },
-                ForestProjectUserYieldsForEachOwnedToken {
-                    cognito_user_id:          user_1.id.clone(),
-                    forest_project_id:        fp_1.id,
-                    token_id:                 fp_1_token_2.to_decimal(),
-                    max_token_id:             fp_1_token_2.to_decimal(),
-                    token_contract_address:   fp_1_contract.0.to_decimal(),
-                    holder_address:           user_1.account_address.clone(),
-                    yield_token_id:           0.into(),
-                    yield_contract_address:   carbon_credits.0.to_decimal(),
-                    token_balance:            50.into(),
-                    yield_amount:             25000.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    token_decimals:           0,
-                    token_symbol:             "FP1".to_string(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "CC".to_string(),
-                },
-                ForestProjectUserYieldsForEachOwnedToken {
-                    cognito_user_id:          user_1.id.clone(),
-                    forest_project_id:        fp_1.id,
-                    token_id:                 fp_1_token_2.to_decimal(),
-                    max_token_id:             fp_1_token_2.to_decimal(),
-                    token_contract_address:   fp_1_contract.0.to_decimal(),
-                    holder_address:           user_1.account_address.clone(),
-                    yield_token_id:           0.into(),
-                    yield_contract_address:   tree_sft.0.to_decimal(),
-                    token_balance:            50.into(),
-                    yield_amount:             50.into(),
-                    yielder_contract_address: yielder_contract.0.to_decimal(),
-                    token_decimals:           0,
-                    token_symbol:             "FP1".to_string(),
-                    yield_token_decimals:     0,
-                    yield_token_symbol:       "TREES".to_string(),
-                },
-            ]);
+            assert_eq!(rewards_claimable, vec![]);
         }
     }
 
@@ -1570,6 +1438,33 @@ pub async fn test_forest_projects() {
                 user_1.id
             );
         }
+    }
+
+    // user 1 owned forest projects assertions
+    {
+        let user_owned_token_contracts = user_1
+            .call_api(|id_token| api.forest_project_token_contracts_list_owned(id_token))
+            .await;
+        assert_eq!(user_owned_token_contracts.data.len(), 1);
+        assert_eq!(
+            user_owned_token_contracts.data[0],
+            ForestProjectTokenContractAggApiModel {
+                forest_project_id:               fp_1.id,
+                token_contract_address:          fp_1_contract.0.to_decimal(),
+                carbon_credit_yield_balance:     0.into(),
+                carbon_credit_token_decimal:     0,
+                currency_token_decimal:          6,
+                euro_e_token_decimal:            0,
+                currency_token_contract_address: euroe.0.to_decimal(),
+                currency_token_id:               0.into(),
+                euro_e_yields_balance:           0.into(),
+                user_balance:                    50.into(),
+                user_balance_price:              (50 * 14).into(),
+                currency_token_symbol:           "EUROe".to_string(),
+                forest_project_name:             "Forest Project 1".to_string(),
+                token_contract_type:             SecurityTokenContractType::Property,
+            }
+        );
     }
 }
 
