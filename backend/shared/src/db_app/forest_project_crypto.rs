@@ -27,6 +27,14 @@ pub struct ForestProjectFundsAffiliateRewardRecord {
     pub is_default: Option<bool>,
     pub investor_cognito_user_id: String,
     pub investor_account_address: String,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub currency_amount: Decimal,
+    pub token_amount: Decimal,
+    pub investment_token_symbol: String,
+    pub investment_token_decimals: i32,
+    pub currency_token_symbol: String,
+    pub currency_token_decimals: i32,
     pub claim_id: Option<Uuid>,
     pub claims_contract_address: Option<Decimal>,
     pub reward_amount: Decimal,
@@ -90,6 +98,8 @@ pub struct ForestProjectTokenContract {
     pub contract_type:     SecurityTokenContractType,
     pub fund_token_id:     Option<Decimal>,
     pub market_token_id:   Option<Decimal>,
+    pub symbol:            Option<String>,
+    pub decimals:          Option<i32>,
     pub created_at:        chrono::NaiveDateTime,
     pub updated_at:        chrono::NaiveDateTime,
 }
@@ -188,6 +198,10 @@ pub struct ForestProjectUserYieldsForEachOwnedToken {
     pub yield_contract_address:   Decimal,
     pub yield_amount:             Decimal,
     pub max_token_id:             Decimal,
+    pub token_symbol:             String,
+    pub token_decimals:           i32,
+    pub yield_token_symbol:       String,
+    pub yield_token_decimals:     i32,
 }
 
 impl ForestProjectUserYieldsForEachOwnedToken {
@@ -234,6 +248,8 @@ pub struct ForestProjectUserYieldsAggregate {
     pub yield_token_id:           Decimal,
     pub yield_contract_address:   Decimal,
     pub yield_amount:             Decimal,
+    pub yield_token_symbol:       String,
+    pub yield_token_decimals:     i32,
 }
 
 impl ForestProjectUserYieldsAggregate {
@@ -286,7 +302,7 @@ impl ForestProjectUserYieldsAggregate {
     QueryableByName,
 )]
 #[diesel(table_name = crate::schema_manual::forest_project_fund_investor)]
-#[diesel(primary_key(forest_project_id, fund_contract_address, investor_cognito_user_id,))]
+#[diesel(primary_key(forest_project_id, fund_contract_address, investor_cognito_user_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ForestProjectFundInvestor {
     pub forest_project_id: Uuid,
@@ -296,6 +312,14 @@ pub struct ForestProjectFundInvestor {
     pub investment_token_id: Decimal,
     pub investment_token_contract_address: Decimal,
     pub fund_type: SecurityTokenContractType,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub currency_token_symbol: String,
+    pub currency_token_decimals: i32,
+    pub investment_token_symbol: String,
+    pub investment_token_decimals: i32,
+    pub fund_token_symbol: String,
+    pub fund_token_decimals: i32,
     pub investor_account_address: String,
     pub investment_token_amount: Decimal,
     pub investment_currency_amount: Decimal,
@@ -327,22 +351,6 @@ impl ForestProjectFundInvestor {
             .load::<Self>(conn)?;
 
         Ok((records, total_count))
-    }
-
-    pub fn total_investment_currency_amount_by_investor(
-        conn: &mut DbConn,
-        fund_contract_addr: Decimal,
-        investor_id: &str,
-    ) -> QueryResult<Decimal> {
-        use crate::schema_manual::forest_project_fund_investor::dsl::*;
-
-        forest_project_fund_investor
-            .group_by((investor_cognito_user_id, fund_contract_address))
-            .filter(investor_cognito_user_id.eq(investor_id))
-            .filter(fund_contract_address.eq(fund_contract_addr))
-            .select(diesel::dsl::sum(investment_currency_amount))
-            .first(conn)
-            .map(|x: Option<Decimal>| x.unwrap_or_default())
     }
 }
 
@@ -402,6 +410,10 @@ pub struct ForestProjectFundsInvestmentRecord {
     pub fund_type: SecurityTokenContractType,
     pub is_default: bool,
     pub investor_cognito_user_id: String,
+    pub investment_token_symbol: String,
+    pub investment_token_decimals: i32,
+    pub currency_token_symbol: String,
+    pub currency_token_decimals: i32,
 }
 
 impl ForestProjectFundsInvestmentRecord {
@@ -441,6 +453,8 @@ pub struct ForestProjectSupply {
     pub forest_project_id:    Uuid,
     pub forest_project_state: ForestProjectState,
     pub supply:               Option<Decimal>,
+    pub symbol:               String,
+    pub decimals:             i32,
 }
 
 impl ForestProjectSupply {
@@ -530,6 +544,8 @@ pub struct ForestProjectCurrentTokenFundMarkets {
     pub token_id:                     Option<Decimal>,
     pub token_contract_type:          SecurityTokenContractType,
     pub market_token_id:              Option<Decimal>,
+    pub token_symbol:                 String,
+    pub token_decimals:               i32,
     pub fund_contract_address:        Option<Decimal>,
     pub fund_rate_numerator:          Option<Decimal>,
     pub fund_rate_denominator:        Option<Decimal>,
@@ -617,14 +633,12 @@ pub struct ForestProjectUserAggBalance {
     pub cognito_user_id:   String,
     pub forest_project_id: Uuid,
     pub total_balance:     Decimal,
+    pub token_symbol:      String,
+    pub token_decimals:    i32,
 }
 
 impl ForestProjectUserAggBalance {
-    pub fn find(
-        conn: &mut DbConn,
-        user_id: &str,
-        project_id: Uuid,
-    ) -> QueryResult<Option<Self>> {
+    pub fn find(conn: &mut DbConn, user_id: &str, project_id: Uuid) -> QueryResult<Option<Self>> {
         use crate::schema_manual::forest_project_user_agg_balances::dsl::*;
         forest_project_user_agg_balances
             .filter(cognito_user_id.eq(user_id))
@@ -667,5 +681,146 @@ impl ForestProjectUserAggBalance {
             .load::<Self>(conn)?;
 
         Ok((records, total_count))
+    }
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    PartialEq,
+    Object,
+    Serialize,
+    AsChangeset,
+)]
+#[diesel(table_name = crate::schema_manual::forest_project_user_yield_distributions)]
+#[diesel(primary_key(yield_distribution_id))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ForestProjectUserYieldDistribution {
+    pub forest_project_id:        Uuid,
+    pub forest_project_name:      String,
+    pub token_contract_type:      SecurityTokenContractType,
+    pub cognito_user_id:          String,
+    pub yield_distribution_id:    Uuid,
+    pub yielder_contract_address: Decimal,
+    pub token_contract_address:   Decimal,
+    pub from_token_version:       Decimal,
+    pub to_token_version:         Decimal,
+    pub token_amount:             Decimal,
+    pub yield_contract_address:   Decimal,
+    pub yield_token_id:           Decimal,
+    pub yield_amount:             Decimal,
+    pub yield_token_symbol:       String,
+    pub yield_token_decimals:     i32,
+    pub token_symbol:             String,
+    pub token_decimals:           i32,
+    pub to_address:               String,
+    pub create_time:              chrono::NaiveDateTime,
+}
+impl ForestProjectUserYieldDistribution {
+    pub fn list_by_user_id(
+        conn: &mut DbConn,
+        user_id: &str,
+        page: i64,
+        page_size: i64,
+    ) -> QueryResult<(Vec<Self>, i64)> {
+        use crate::schema_manual::forest_project_user_yield_distributions::dsl::*;
+
+        let total_count = forest_project_user_yield_distributions
+            .filter(cognito_user_id.eq(user_id))
+            .count()
+            .get_result::<i64>(conn)?;
+
+        let records = forest_project_user_yield_distributions
+            .filter(cognito_user_id.eq(user_id))
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Self>(conn)?;
+
+        Ok((records, total_count))
+    }
+}
+#[derive(
+    Object,
+    Selectable,
+    Queryable,
+    Identifiable,
+    Debug,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    Clone,
+    Insertable,
+    AsChangeset,
+)]
+#[diesel(table_name = crate::schema::token_metadatas)]
+#[diesel(primary_key(contract_address, token_id))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct TokenMetadata {
+    pub contract_address: Decimal,
+    pub token_id:         Decimal,
+    pub symbol:           Option<String>,
+    pub decimals:         Option<i32>,
+}
+
+impl TokenMetadata {
+    pub fn update(&self, conn: &mut DbConn) -> QueryResult<Self> {
+        use crate::schema::token_metadatas::dsl::*;
+        diesel::update(
+            token_metadatas
+                .filter(contract_address.eq(self.contract_address))
+                .filter(token_id.eq(self.token_id)),
+        )
+        .set(self)
+        .get_result(conn)
+    }
+
+    pub fn create(&self, conn: &mut DbConn) -> QueryResult<Self> {
+        use crate::schema::token_metadatas::dsl::*;
+        diesel::insert_into(token_metadatas)
+            .values(self)
+            .get_result(conn)
+    }
+
+    pub fn find(
+        conn: &mut DbConn,
+        contract_addr: Decimal,
+        metadata_token_id: Decimal,
+    ) -> QueryResult<Option<Self>> {
+        use crate::schema::token_metadatas::dsl::*;
+        token_metadatas
+            .filter(contract_address.eq(contract_addr))
+            .filter(token_id.eq(metadata_token_id))
+            .first(conn)
+            .optional()
+    }
+
+    pub fn list(conn: &mut DbConn, page: i64, page_size: i64) -> QueryResult<(Vec<Self>, i64)> {
+        use crate::schema::token_metadatas::dsl::*;
+
+        let total_count = token_metadatas.count().get_result::<i64>(conn)?;
+
+        let records = token_metadatas
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Self>(conn)?;
+
+        Ok((records, total_count))
+    }
+
+    pub fn delete(
+        conn: &mut DbConn,
+        contract_addr: Decimal,
+        metadata_token_id: Decimal,
+    ) -> QueryResult<usize> {
+        use crate::schema::token_metadatas::dsl::*;
+        diesel::delete(
+            token_metadatas
+                .filter(contract_address.eq(contract_addr))
+                .filter(token_id.eq(metadata_token_id)),
+        )
+        .execute(conn)
     }
 }

@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use concordium_rust_sdk::id::types::ACCOUNT_ADDRESS_SIZE;
-use concordium_smart_contract_testing::AccountAddress;
 use passwords::PasswordGenerator;
 use rust_decimal::Decimal;
 use upwood::api::user::{LoginReq, UserCreatePostReqAdmin, UserRegistrationRequestApi};

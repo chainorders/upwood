@@ -72,19 +72,26 @@ pub fn process_events(
                 Agent::delete(conn, contract.to_decimal(), &agent)?;
             }
             Event::MarketAdded(AddMarketParams { token, market }) => {
+                let contract = P2PTradeContract::find(conn, contract.to_decimal())?.ok_or(
+                    ProcessorError::TradeContractNotFound {
+                        contract: contract.to_decimal(),
+                    },
+                )?;
                 Market {
-                    contract_address:           contract.to_decimal(),
-                    token_contract_address:     token.contract.to_decimal(),
-                    token_id:                   token.id.to_decimal(),
-                    liquidity_provider:         market.liquidity_provider.to_string(),
-                    buy_rate_numerator:         market.buy_rate.numerator.into(),
-                    buy_rate_denominator:       market.buy_rate.denominator.into(),
-                    sell_rate_numerator:        market.sell_rate.numerator.into(),
-                    sell_rate_denominator:      market.sell_rate.denominator.into(),
+                    contract_address: contract.contract_address,
+                    token_contract_address: token.contract.to_decimal(),
+                    token_id: token.id.to_decimal(),
+                    currency_token_id: contract.currency_token_id,
+                    currency_token_contract_address: contract.currency_token_contract_address,
+                    liquidity_provider: market.liquidity_provider.to_string(),
+                    buy_rate_numerator: market.buy_rate.numerator.into(),
+                    buy_rate_denominator: market.buy_rate.denominator.into(),
+                    sell_rate_numerator: market.sell_rate.numerator.into(),
+                    sell_rate_denominator: market.sell_rate.denominator.into(),
                     total_sell_currency_amount: 0.into(),
-                    total_sell_token_amount:    0.into(),
-                    create_time:                block_time,
-                    update_time:                block_time,
+                    total_sell_token_amount: 0.into(),
+                    create_time: block_time,
+                    update_time: block_time,
                 }
                 .insert(conn)?;
             }
@@ -105,7 +112,7 @@ pub fn process_events(
                 token_id,
                 currency_amount,
             }) => {
-                let _ = Market::find(
+                let market = Market::find(
                     conn,
                     contract.to_decimal(),
                     token_id.to_decimal(),
@@ -137,16 +144,18 @@ pub fn process_events(
                     seller
                 })
                 .unwrap_or_else(|| Trader {
-                    contract_address:       contract.to_decimal(),
+                    contract_address: contract.to_decimal(),
                     token_contract_address: token_contract.to_decimal(),
-                    token_id:               token_id.to_decimal(),
-                    trader:                 seller.to_string(),
-                    token_in_amount:        0.into(),
-                    token_out_amount:       token_amount.to_decimal(),
-                    currency_in_amount:     currency_amount.to_decimal(),
-                    currency_out_amount:    0.into(),
-                    create_time:            block_time,
-                    update_time:            block_time,
+                    token_id: token_id.to_decimal(),
+                    trader: seller.to_string(),
+                    token_in_amount: 0.into(),
+                    token_out_amount: token_amount.to_decimal(),
+                    currency_in_amount: currency_amount.to_decimal(),
+                    currency_out_amount: 0.into(),
+                    currency_token_id: market.currency_token_id,
+                    currency_token_contract_address: market.currency_token_contract_address,
+                    create_time: block_time,
+                    update_time: block_time,
                 })
                 .upsert(conn)?;
                 Trader::find(
@@ -163,16 +172,18 @@ pub fn process_events(
                     buyer
                 })
                 .unwrap_or_else(|| Trader {
-                    contract_address:       contract.to_decimal(),
+                    contract_address: contract.to_decimal(),
                     token_contract_address: token_contract.to_decimal(),
-                    token_id:               token_id.to_decimal(),
-                    trader:                 buyer.to_string(),
-                    token_in_amount:        token_amount.to_decimal(),
-                    token_out_amount:       0.into(),
-                    currency_in_amount:     0.into(),
-                    currency_out_amount:    currency_amount.to_decimal(),
-                    create_time:            block_time,
-                    update_time:            block_time,
+                    token_id: token_id.to_decimal(),
+                    trader: buyer.to_string(),
+                    token_in_amount: token_amount.to_decimal(),
+                    token_out_amount: 0.into(),
+                    currency_in_amount: 0.into(),
+                    currency_out_amount: currency_amount.to_decimal(),
+                    currency_token_id: market.currency_token_id,
+                    currency_token_contract_address: market.currency_token_contract_address,
+                    create_time: block_time,
+                    update_time: block_time,
                 })
                 .upsert(conn)?;
                 ExchangeRecord {
@@ -182,6 +193,8 @@ pub fn process_events(
                     contract_address: contract.to_decimal(),
                     token_id: token_id.to_decimal(),
                     token_contract_address: token_contract.to_decimal(),
+                    currency_token_id: market.currency_token_id,
+                    currency_token_contract_address: market.currency_token_contract_address,
                     seller: seller.to_string(),
                     buyer: buyer.to_string(),
                     currency_amount: currency_amount.to_decimal(),

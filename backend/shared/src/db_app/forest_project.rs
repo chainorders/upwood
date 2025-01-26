@@ -43,7 +43,6 @@ pub struct ForestProject {
     pub offering_doc_link:     Option<String>,
     pub property_media_header: String,
     pub property_media_footer: String,
-    pub latest_price:          Decimal,
     pub created_at:            NaiveDateTime,
     pub updated_at:            NaiveDateTime,
 }
@@ -295,8 +294,10 @@ impl std::fmt::Display for ForestProjectState {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ForestProjectPrice {
     pub project_id: uuid::Uuid,
-    pub price:      Decimal,
-    pub price_at:   NaiveDateTime,
+    pub price: Decimal,
+    pub price_at: NaiveDateTime,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
 }
 
 impl ForestProjectPrice {

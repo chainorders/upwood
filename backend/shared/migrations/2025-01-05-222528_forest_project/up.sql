@@ -18,18 +18,8 @@ CREATE TABLE forest_projects (
        offering_doc_link VARCHAR,
        property_media_header TEXT NOT NULL,
        property_media_footer TEXT NOT NULL,
-       latest_price NUMERIC(20, 10) NOT NULL,
        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE forest_project_prices (
-       project_id uuid NOT NULL REFERENCES forest_projects (id),
-       price NUMERIC(20, 10) NOT NULL,
-       price_at TIMESTAMP NOT NULL DEFAULT NOW(),
-       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-       PRIMARY KEY (project_id, price_at)
 );
 
 CREATE TABLE forest_project_property_media (

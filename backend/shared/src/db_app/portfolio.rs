@@ -8,65 +8,31 @@ use crate::db_shared::DbConn;
 #[derive(
     Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
 )]
-#[diesel(table_name = crate::schema_manual::forest_project_investor)]
-#[diesel(primary_key(cognito_user_id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectInvestor {
-    pub cognito_user_id:                String,
-    pub total_currency_amount_locked:   Decimal,
-    pub total_currency_amount_invested: Decimal,
-}
-
-impl ForestProjectInvestor {
-    pub fn find_by_cognito_user_id(
-        conn: &mut DbConn,
-        user_id: &str,
-    ) -> QueryResult<Option<ForestProjectInvestor>> {
-        use crate::schema_manual::forest_project_investor::dsl::*;
-        let amount = forest_project_investor
-            .select(ForestProjectInvestor::as_select())
-            .filter(cognito_user_id.eq(user_id))
-            .first(conn)
-            .optional()?;
-        Ok(amount)
-    }
-}
-
-#[derive(
-    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
-)]
-#[diesel(table_name = crate::schema_manual::forest_project_trader)]
-#[diesel(primary_key(cognito_user_id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectTrader {
-    pub cognito_user_id:           String,
-    pub total_currency_in_amount:  Decimal,
-    pub total_currency_out_amount: Decimal,
-}
-
-#[derive(
-    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
-)]
 #[diesel(table_name = crate::schema_manual::forest_project_user_investment_amounts)]
 #[diesel(primary_key(cognito_user_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ForestProjectUserInvestmentAmount {
-    pub cognito_user_id:                String,
-    pub total_currency_amount_locked:   Decimal,
-    pub total_currency_amount_invested: Decimal,
+    pub cognito_user_id:                 String,
+    pub currency_token_id:               Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub total_currency_amount_locked:    Decimal,
+    pub total_currency_amount_invested:  Decimal,
 }
 impl ForestProjectUserInvestmentAmount {
     pub fn find_by_cognito_user_id(
         conn: &mut DbConn,
         user_id: &str,
+        curr_token_id: Decimal,
+        curr_token_contract_address: Decimal,
     ) -> QueryResult<Option<ForestProjectUserInvestmentAmount>> {
         use crate::schema_manual::forest_project_user_investment_amounts::dsl::*;
-        let amount = forest_project_user_investment_amounts
-            .select(ForestProjectUserInvestmentAmount::as_select())
+        let result = forest_project_user_investment_amounts
             .filter(cognito_user_id.eq(user_id))
-            .first(conn)
+            .filter(currency_token_id.eq(curr_token_id))
+            .filter(currency_token_contract_address.eq(curr_token_contract_address))
+            .first::<ForestProjectUserInvestmentAmount>(conn)
             .optional()?;
-        Ok(amount)
+        Ok(result)
     }
 }
 

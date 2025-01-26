@@ -2,6 +2,7 @@ use poem::http::StatusCode;
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
 use poem_openapi::types::ToJSON;
+use rust_decimal::Decimal;
 use shared::api::PagedResponse;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
@@ -9,7 +10,7 @@ use shared::db_app::forest_project::{
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundInvestor, ForestProjectFundsAffiliateRewardRecord, ForestProjectTokenContract,
     ForestProjectUserYieldsAggregate, ForestProjectUserYieldsForEachOwnedToken,
-    SecurityTokenContractType,
+    SecurityTokenContractType, TokenMetadata,
 };
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::users::UserRegistrationRequest;
@@ -633,6 +634,28 @@ impl ApiTestClient {
             .expect("Failed to parse delete forest project media response")
     }
 
+    pub async fn admin_find_forest_project_latest_price(
+        &self,
+        id_token: String,
+        project_id: Uuid,
+    ) -> ForestProjectPrice {
+        let res = self
+            .client
+            .get(format!(
+                "/admin/forest_projects/{}/price/latest",
+                project_id
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse find forest project latest price response")
+    }
+
     pub async fn admin_find_forest_project_price(
         &self,
         id_token: String,
@@ -864,5 +887,109 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse portfolio value last n months response")
+    }
+}
+
+// Token Metadata Implementation
+impl ApiTestClient {
+    pub async fn admin_create_token_metadata(
+        &self,
+        id_token: String,
+        metadata: &TokenMetadata,
+    ) -> TokenMetadata {
+        let res = self
+            .client
+            .post("/admin/token_metadata")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(metadata)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse create token metadata response")
+    }
+
+    pub async fn admin_find_token_metadata(
+        &self,
+        id_token: String,
+        contract_address: Decimal,
+        token_id: Decimal,
+    ) -> TokenMetadata {
+        let res = self
+            .client
+            .get(format!(
+                "/admin/token_metadata/{}/{}",
+                contract_address, token_id
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse find token metadata response")
+    }
+
+    pub async fn admin_update_token_metadata(
+        &self,
+        id_token: String,
+        metadata: &TokenMetadata,
+    ) -> TokenMetadata {
+        let res = self
+            .client
+            .put("/admin/token_metadata")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .body_json(metadata)
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse update token metadata response")
+    }
+
+    pub async fn admin_list_token_metadata(
+        &self,
+        id_token: String,
+        page: i64,
+    ) -> PagedResponse<TokenMetadata> {
+        let res = self
+            .client
+            .get(format!("/admin/token_metadata/list/{}", page))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse list token metadata response")
+    }
+
+    pub async fn admin_delete_token_metadata(
+        &self,
+        id_token: String,
+        contract_address: Decimal,
+        token_id: Decimal,
+    ) {
+        let res = self
+            .client
+            .delete(format!(
+                "/admin/token_metadata/{}/{}",
+                contract_address, token_id
+            ))
+            .header("Authorization", format!("Bearer {}", id_token))
+            .send()
+            .await
+            .0;
+        assert_eq!(res.status(), StatusCode::OK);
     }
 }

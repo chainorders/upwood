@@ -94,18 +94,20 @@ impl P2PTradeContract {
 #[diesel(primary_key(contract_address, token_id, token_contract_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Market {
-    pub contract_address:           Decimal,
-    pub token_id:                   Decimal,
-    pub token_contract_address:     Decimal,
-    pub liquidity_provider:         String,
-    pub buy_rate_numerator:         Decimal,
-    pub buy_rate_denominator:       Decimal,
-    pub sell_rate_numerator:        Decimal,
-    pub sell_rate_denominator:      Decimal,
-    pub total_sell_token_amount:    Decimal,
+    pub contract_address: Decimal,
+    pub token_id: Decimal,
+    pub token_contract_address: Decimal,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub liquidity_provider: String,
+    pub buy_rate_numerator: Decimal,
+    pub buy_rate_denominator: Decimal,
+    pub sell_rate_numerator: Decimal,
+    pub sell_rate_denominator: Decimal,
+    pub total_sell_token_amount: Decimal,
     pub total_sell_currency_amount: Decimal,
-    pub create_time:                NaiveDateTime,
-    pub update_time:                NaiveDateTime,
+    pub create_time: NaiveDateTime,
+    pub update_time: NaiveDateTime,
 }
 
 impl Market {
@@ -205,16 +207,18 @@ impl Market {
 #[diesel(primary_key(contract_address, token_id, token_contract_address, trader))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Trader {
-    pub contract_address:       Decimal,
-    pub token_id:               Decimal,
+    pub contract_address: Decimal,
+    pub token_id: Decimal,
     pub token_contract_address: Decimal,
-    pub trader:                 String,
-    pub token_in_amount:        Decimal,
-    pub token_out_amount:       Decimal,
-    pub currency_in_amount:     Decimal,
-    pub currency_out_amount:    Decimal,
-    pub create_time:            NaiveDateTime,
-    pub update_time:            NaiveDateTime,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub trader: String,
+    pub token_in_amount: Decimal,
+    pub token_out_amount: Decimal,
+    pub currency_in_amount: Decimal,
+    pub currency_out_amount: Decimal,
+    pub create_time: NaiveDateTime,
+    pub update_time: NaiveDateTime,
 }
 
 impl Trader {
@@ -300,18 +304,20 @@ impl Trader {
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ExchangeRecord {
-    pub id:                     Uuid,
-    pub block_height:           Decimal,
-    pub txn_index:              Decimal,
-    pub contract_address:       Decimal,
-    pub token_id:               Decimal,
+    pub id: Uuid,
+    pub block_height: Decimal,
+    pub txn_index: Decimal,
+    pub contract_address: Decimal,
+    pub token_id: Decimal,
     pub token_contract_address: Decimal,
-    pub seller:                 String,
-    pub buyer:                  String,
-    pub currency_amount:        Decimal,
-    pub token_amount:           Decimal,
-    pub rate:                   Decimal,
-    pub create_time:            NaiveDateTime,
+    pub currency_token_id: Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub seller: String,
+    pub buyer: String,
+    pub currency_amount: Decimal,
+    pub token_amount: Decimal,
+    pub rate: Decimal,
+    pub create_time: NaiveDateTime,
 }
 
 impl ExchangeRecord {

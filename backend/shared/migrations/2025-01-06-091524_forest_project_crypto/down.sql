@@ -1,9 +1,11 @@
 /* plpgsql-language-server:disable validation */
-DROP VIEW if EXISTS forest_project_user_agg_baalances;
+DROP VIEW IF EXISTS forest_project_user_agg_balances;
 
 DROP VIEW IF EXISTS forest_project_current_token_fund_markets;
 
 DROP VIEW IF EXISTS forest_project_supply;
+
+DROP VIEW IF EXISTS forest_project_user_yield_distributions;
 
 DROP VIEW IF EXISTS forest_project_user_yields_aggregate;
 
@@ -19,4 +21,8 @@ DROP VIEW IF EXISTS forest_project_funds;
 
 DROP TABLE IF EXISTS forest_project_token_contracts;
 
+DROP TABLE IF EXISTS token_metadatas;
+
 DROP TYPE IF EXISTS forest_project_security_token_contract_type;
+
+DROP TABLE IF EXISTS forest_project_prices;

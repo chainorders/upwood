@@ -42,10 +42,10 @@ use security_sft_multi_yielder::{
     UpsertYieldParams, YieldCalculation, YieldParam, YieldParams, YieldState,
 };
 use shared::api::PagedResponse;
-use shared::db_app::forest_project::{ForestProject, ForestProjectState};
+use shared::db_app::forest_project::{ForestProject, ForestProjectPrice, ForestProjectState};
 use shared::db_app::forest_project_crypto::{
     ForestProjectTokenContract, ForestProjectUserYieldsAggregate,
-    ForestProjectUserYieldsForEachOwnedToken, SecurityTokenContractType,
+    ForestProjectUserYieldsForEachOwnedToken, SecurityTokenContractType, TokenMetadata,
 };
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_shared::{DbConn, DbPool};
@@ -206,6 +206,52 @@ pub async fn test_forest_projects() {
         password:        admin_password,
     };
 
+    {
+        let metadata = TokenMetadata {
+            contract_address: carbon_credits.0.to_decimal(),
+            token_id:         TokenIdUnit().to_decimal(),
+            symbol:           Some("CC".to_string()),
+            decimals:         Some(0),
+        };
+        admin
+            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
+            .await;
+    }
+
+    {
+        let metadata = TokenMetadata {
+            contract_address: tree_sft.0.to_decimal(),
+            token_id:         TokenIdUnit().to_decimal(),
+            symbol:           Some("TREES".to_string()),
+            decimals:         Some(0),
+        };
+        admin
+            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
+            .await;
+    }
+    {
+        let metadata = TokenMetadata {
+            contract_address: tree_nft.0.to_decimal(),
+            token_id:         TokenIdUnit().to_decimal(),
+            symbol:           Some("TREE".to_string()),
+            decimals:         Some(0),
+        };
+        admin
+            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
+            .await;
+    }
+    {
+        let metadata = TokenMetadata {
+            contract_address: euroe.0.to_decimal(),
+            token_id:         TokenIdUnit().to_decimal(),
+            symbol:           Some("EUROe".to_string()),
+            decimals:         Some(6),
+        };
+        admin
+            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
+            .await;
+    }
+
     let user_1 = create_user(
         &test_id,
         &mut chain,
@@ -233,6 +279,7 @@ pub async fn test_forest_projects() {
         &mut api,
         &mut db_conn,
         &mut processor,
+        &euroe,
         &admin,
         &identity_registry,
         &compliance_contract,
@@ -249,6 +296,7 @@ pub async fn test_forest_projects() {
         &mut api,
         &mut db_conn,
         &mut processor,
+        &euroe,
         &admin,
         &identity_registry,
         &compliance_contract,
@@ -265,6 +313,7 @@ pub async fn test_forest_projects() {
         &mut api,
         &mut db_conn,
         &mut processor,
+        &euroe,
         &admin,
         &identity_registry,
         &compliance_contract,
@@ -281,6 +330,7 @@ pub async fn test_forest_projects() {
         &mut api,
         &mut db_conn,
         &mut processor,
+        &euroe,
         &admin,
         &identity_registry,
         &compliance_contract,
@@ -658,14 +708,17 @@ pub async fn test_forest_projects() {
             .await;
         for month in 1..=12 {
             chain.tick_block_time(concordium_smart_contract_testing::Duration::from_days(30));
-            // increase the current time by 30 days
-            let forest_project = ForestProject {
-                latest_price: forest_project.latest_price + Decimal::from(month), /* increase price by 1 each month */
-                updated_at: chain.block_time_naive_utc(),
-                ..forest_project.clone()
+            let price = ForestProjectPrice {
+                price: Decimal::from(2 + month),
+                price_at: chain.block_time_naive_utc(),
+                currency_token_id: TokenIdUnit().to_decimal(),
+                currency_token_contract_address: euroe.0.to_decimal(),
+                project_id: forest_project.id,
             };
             admin
-                .call_api(|token| api.admin_update_forest_project(token, &forest_project))
+                .call_api(|token| {
+                    api.admin_forest_project_create_price(token, forest_project.id, &price)
+                })
                 .await;
         }
 
@@ -796,6 +849,8 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   euroe.0.to_decimal(),
                 yield_amount:             1000.into(),
+                yield_token_decimals:     6,
+                yield_token_symbol:       "EUROe".to_string(),
             },
             ForestProjectUserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
@@ -803,6 +858,8 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   carbon_credits.0.to_decimal(),
                 yield_amount:             50000.into(),
+                yield_token_decimals:     0,
+                yield_token_symbol:       "CC".to_string(),
             },
             ForestProjectUserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
@@ -810,6 +867,8 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   tree_sft.0.to_decimal(),
                 yield_amount:             100.into(),
+                yield_token_decimals:     0,
+                yield_token_symbol:       "TREES".to_string(),
             },
         ]);
 
@@ -828,8 +887,12 @@ pub async fn test_forest_projects() {
                 cognito_user_id:          user_1.id.clone(),
                 yielder_contract_address: yielder_contract.0.to_decimal(),
                 yield_token_id:           0.into(),
-                yield_contract_address:   tree_sft.0.to_decimal(),
-                yield_amount:             100.into(),
+                yield_contract_address:   euroe.0.to_decimal(),
+                yield_amount:             1000.into(),
+                token_decimals:           0,
+                token_symbol:             "FP1".to_string(),
+                yield_token_decimals:     6,
+                yield_token_symbol:       "EUROe".to_string(),
             },
             ForestProjectUserYieldsForEachOwnedToken {
                 forest_project_id:        fp_1.id,
@@ -843,6 +906,10 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   carbon_credits.0.to_decimal(),
                 yield_amount:             50000.into(),
+                token_decimals:           0,
+                token_symbol:             "FP1".to_string(),
+                yield_token_decimals:     0,
+                yield_token_symbol:       "CC".to_string(),
             },
             ForestProjectUserYieldsForEachOwnedToken {
                 forest_project_id:        fp_1.id,
@@ -854,9 +921,13 @@ pub async fn test_forest_projects() {
                 cognito_user_id:          user_1.id.clone(),
                 yielder_contract_address: yielder_contract.0.to_decimal(),
                 yield_token_id:           0.into(),
-                yield_contract_address:   euroe.0.to_decimal(),
-                yield_amount:             1000.into(),
-            }
+                yield_contract_address:   tree_sft.0.to_decimal(),
+                yield_amount:             100.into(),
+                token_decimals:           0,
+                token_symbol:             "FP1".to_string(),
+                yield_token_decimals:     0,
+                yield_token_symbol:       "TREES".to_string(),
+            },
         ]);
     }
 
@@ -897,6 +968,8 @@ pub async fn test_forest_projects() {
                     yielder_contract_address: yielder_contract.0.to_decimal(),
                     yield_contract_address:   euroe.0.to_decimal(),
                     yield_amount:             1000.into(),
+                    yield_token_decimals:     6,
+                    yield_token_symbol:       "EUROe".to_string(),
                 },
                 ForestProjectUserYieldsAggregate {
                     cognito_user_id:          user_1.id.clone(),
@@ -904,6 +977,8 @@ pub async fn test_forest_projects() {
                     yielder_contract_address: yielder_contract.0.to_decimal(),
                     yield_contract_address:   carbon_credits.0.to_decimal(),
                     yield_amount:             50000.into(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "CC".to_string(),
                 },
                 ForestProjectUserYieldsAggregate {
                     cognito_user_id:          user_1.id.clone(),
@@ -911,6 +986,8 @@ pub async fn test_forest_projects() {
                     yielder_contract_address: yielder_contract.0.to_decimal(),
                     yield_contract_address:   tree_sft.0.to_decimal(),
                     yield_amount:             100.into(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "TREES".to_string(),
                 },
             ]);
         }
@@ -929,10 +1006,14 @@ pub async fn test_forest_projects() {
                     token_contract_address:   fp_1_contract.0.to_decimal(),
                     holder_address:           user_1.account_address.clone(),
                     yield_token_id:           0.into(),
-                    yield_contract_address:   tree_sft.0.to_decimal(),
+                    yield_contract_address:   euroe.0.to_decimal(),
                     token_balance:            100.into(),
-                    yield_amount:             100.into(),
+                    yield_amount:             1000.into(),
                     yielder_contract_address: yielder_contract.0.to_decimal(),
+                    token_decimals:           0,
+                    token_symbol:             "FP1".to_string(),
+                    yield_token_decimals:     6,
+                    yield_token_symbol:       "EUROe".to_string(),
                 },
                 ForestProjectUserYieldsForEachOwnedToken {
                     cognito_user_id:          user_1.id.clone(),
@@ -946,6 +1027,10 @@ pub async fn test_forest_projects() {
                     token_balance:            100.into(),
                     yield_amount:             50000.into(),
                     yielder_contract_address: yielder_contract.0.to_decimal(),
+                    token_decimals:           0,
+                    token_symbol:             "FP1".to_string(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "CC".to_string(),
                 },
                 ForestProjectUserYieldsForEachOwnedToken {
                     cognito_user_id:          user_1.id.clone(),
@@ -955,10 +1040,14 @@ pub async fn test_forest_projects() {
                     token_contract_address:   fp_1_contract.0.to_decimal(),
                     holder_address:           user_1.account_address.clone(),
                     yield_token_id:           0.into(),
-                    yield_contract_address:   euroe.0.to_decimal(),
+                    yield_contract_address:   tree_sft.0.to_decimal(),
                     token_balance:            100.into(),
-                    yield_amount:             1000.into(),
+                    yield_amount:             100.into(),
                     yielder_contract_address: yielder_contract.0.to_decimal(),
+                    token_decimals:           0,
+                    token_symbol:             "FP1".to_string(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "TREES".to_string(),
                 },
             ]);
         }
@@ -1068,6 +1157,8 @@ pub async fn test_forest_projects() {
                     yielder_contract_address: yielder_contract.0.to_decimal(),
                     yield_contract_address:   euroe.0.to_decimal(),
                     yield_amount:             500.into(),
+                    yield_token_decimals:     6,
+                    yield_token_symbol:       "EUROe".to_string(),
                 },
                 ForestProjectUserYieldsAggregate {
                     cognito_user_id:          user_1.id.clone(),
@@ -1075,6 +1166,8 @@ pub async fn test_forest_projects() {
                     yielder_contract_address: yielder_contract.0.to_decimal(),
                     yield_contract_address:   carbon_credits.0.to_decimal(),
                     yield_amount:             25000.into(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "CC".to_string(),
                 },
                 ForestProjectUserYieldsAggregate {
                     cognito_user_id:          user_1.id.clone(),
@@ -1082,6 +1175,8 @@ pub async fn test_forest_projects() {
                     yielder_contract_address: yielder_contract.0.to_decimal(),
                     yield_contract_address:   tree_sft.0.to_decimal(),
                     yield_amount:             50.into(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "TREES".to_string(),
                 },
             ]);
         }
@@ -1100,10 +1195,14 @@ pub async fn test_forest_projects() {
                     token_contract_address:   fp_1_contract.0.to_decimal(),
                     holder_address:           user_1.account_address.clone(),
                     yield_token_id:           0.into(),
-                    yield_contract_address:   tree_sft.0.to_decimal(),
+                    yield_contract_address:   euroe.0.to_decimal(),
                     token_balance:            50.into(),
-                    yield_amount:             50.into(),
+                    yield_amount:             500.into(),
                     yielder_contract_address: yielder_contract.0.to_decimal(),
+                    token_decimals:           0,
+                    token_symbol:             "FP1".to_string(),
+                    yield_token_decimals:     6,
+                    yield_token_symbol:       "EUROe".to_string(),
                 },
                 ForestProjectUserYieldsForEachOwnedToken {
                     cognito_user_id:          user_1.id.clone(),
@@ -1117,6 +1216,10 @@ pub async fn test_forest_projects() {
                     token_balance:            50.into(),
                     yield_amount:             25000.into(),
                     yielder_contract_address: yielder_contract.0.to_decimal(),
+                    token_decimals:           0,
+                    token_symbol:             "FP1".to_string(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "CC".to_string(),
                 },
                 ForestProjectUserYieldsForEachOwnedToken {
                     cognito_user_id:          user_1.id.clone(),
@@ -1126,10 +1229,14 @@ pub async fn test_forest_projects() {
                     token_contract_address:   fp_1_contract.0.to_decimal(),
                     holder_address:           user_1.account_address.clone(),
                     yield_token_id:           0.into(),
-                    yield_contract_address:   euroe.0.to_decimal(),
+                    yield_contract_address:   tree_sft.0.to_decimal(),
                     token_balance:            50.into(),
-                    yield_amount:             500.into(),
+                    yield_amount:             50.into(),
                     yielder_contract_address: yielder_contract.0.to_decimal(),
+                    token_decimals:           0,
+                    token_symbol:             "FP1".to_string(),
+                    yield_token_decimals:     0,
+                    yield_token_symbol:       "TREES".to_string(),
                 },
             ]);
         }
@@ -1223,11 +1330,6 @@ pub async fn test_forest_projects() {
             });
         }
     }
-
-    let forest_project = user_2
-        .call_api(|token| api.forest_project_get(token, fp_1.id))
-        .await;
-    assert_eq!(forest_project.forest_project.latest_price, 14.into());
 
     // user 2 sells
     {
@@ -1655,6 +1757,7 @@ async fn create_forest_project(
     api: &mut ApiTestClient,
     db_conn: &mut DbConn,
     processors: &mut Processors,
+    euro_e_contract: &EuroETestClient,
     admin: &UserTestClient,
     identity_registry: &IdentityRegistryTestClient,
     compliance_contract: &ComplianceTestClient,
@@ -1670,28 +1773,37 @@ async fn create_forest_project(
     ForestProject,      // project
 ) {
     let project = ForestProject {
-        id: Uuid::new_v4(),
-        area: "100 HA".to_string(),
-        desc_long: format!("Forest Project {} Long description", index),
-        name: format!("Forest Project {}", index),
-        desc_short: format!("Forest Project {} Short description", index),
+        id:                    Uuid::new_v4(),
+        area:                  "100 HA".to_string(),
+        desc_long:             format!("Forest Project {} Long description", index),
+        name:                  format!("Forest Project {}", index),
+        desc_short:            format!("Forest Project {} Short description", index),
         property_media_header: "Property Media Header".to_string(),
         property_media_footer: "Property Media Footer".to_string(),
-        image_small_url: format!("https://picsum.photos/id/{}/550/250", test_image_id),
-        image_large_url: format!("https://picsum.photos/id/{}/1088/494", test_image_id),
-        label: "GROW".to_string(),
-        carbon_credits: 200,
-        shares_available: 100,
-        latest_price,
-        geo_spatial_url: Some("https://geo.com/spatial".to_string()),
-        offering_doc_link: Some("https://offering.com/doc".to_string()),
-        roi_percent: 12.5,
-        state: ForestProjectState::Draft,
-        created_at: chain.block_time_naive_utc(),
-        updated_at: chain.block_time_naive_utc(),
+        image_small_url:       format!("https://picsum.photos/id/{}/550/250", test_image_id),
+        image_large_url:       format!("https://picsum.photos/id/{}/1088/494", test_image_id),
+        label:                 "GROW".to_string(),
+        carbon_credits:        200,
+        shares_available:      100,
+        geo_spatial_url:       Some("https://geo.com/spatial".to_string()),
+        offering_doc_link:     Some("https://offering.com/doc".to_string()),
+        roi_percent:           12.5,
+        state:                 ForestProjectState::Draft,
+        created_at:            chain.block_time_naive_utc(),
+        updated_at:            chain.block_time_naive_utc(),
     };
     let project = admin
         .call_api(|token| api.admin_create_forest_project(token, &project))
+        .await;
+    let price = ForestProjectPrice {
+        project_id: project.id,
+        price_at: chain.block_time_naive_utc(),
+        currency_token_id: TokenIdUnit().to_decimal(),
+        currency_token_contract_address: euro_e_contract.0.to_decimal(),
+        price: latest_price,
+    };
+    admin
+        .call_api(|token| api.admin_forest_project_create_price(token, project.id, &price))
         .await;
 
     let project_property_contract = admin
@@ -1761,6 +1873,8 @@ async fn create_forest_project(
             fund_token_id:     None,
             market_token_id:   None,
             contract_type:     SecurityTokenContractType::Property,
+            symbol:            Some("FP1".to_string()),
+            decimals:          Some(0),
             created_at:        chrono::Utc::now().naive_utc(),
             updated_at:        chrono::Utc::now().naive_utc(),
         };
@@ -1776,6 +1890,8 @@ async fn create_forest_project(
             fund_token_id:     None,
             market_token_id:   None,
             contract_type:     SecurityTokenContractType::PropertyPreSale,
+            symbol:            Some("FP-PRE".to_string()),
+            decimals:          Some(0),
             created_at:        chrono::Utc::now().naive_utc(),
             updated_at:        chrono::Utc::now().naive_utc(),
         };
@@ -1836,7 +1952,8 @@ pub async fn create_user(
     user_affiliate_fees: Decimal,
     index: u8,
 ) -> UserTestClient {
-    let user_account = chain.create_account(AccountAddress([100 + index; 32]), DEFAULT_ACCOUNT_BALANCE);
+    let user_account =
+        chain.create_account(AccountAddress([100 + index; 32]), DEFAULT_ACCOUNT_BALANCE);
     let pass = PASS_GENERATOR.generate_one().unwrap();
     let user = create_login_user(
         api,

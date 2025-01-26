@@ -79,12 +79,19 @@ pub fn process_events(
                 security_token,
                 token,
             }) => {
+                let contract = SecurityMintFundContract::find(conn, contract.to_decimal())?.ok_or(
+                    ProcessorError::SecurityMintFundContractNotFound {
+                        contract: contract.to_decimal(),
+                    },
+                )?;
                 SecurityMintFund {
-                    contract_address: contract.to_decimal(),
+                    contract_address: contract.contract_address,
                     token_id: token.id.to_decimal(),
                     token_contract_address: token.contract.to_decimal(),
                     investment_token_id: security_token.id.to_decimal(),
                     investment_token_contract_address: security_token.contract.to_decimal(),
+                    currency_token_id: contract.currency_token_id,
+                    currency_token_contract_address: contract.currency_token_contract_address,
                     currency_amount: Decimal::ZERO,
                     token_amount: Decimal::ZERO,
                     receiver_address: None,
@@ -102,7 +109,7 @@ pub fn process_events(
                     rate.to_decimal(),
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
-                    contract.to_decimal()
+                    contract.contract_address
                 );
             }
             Event::FundRemoved(security_token) => {
@@ -156,9 +163,14 @@ pub fn process_events(
                 security_token,
                 investor,
             }) => {
+                let contract = SecurityMintFundContract::find(conn, contract.to_decimal())?.ok_or(
+                    ProcessorError::SecurityMintFundContractNotFound {
+                        contract: contract.to_decimal(),
+                    },
+                )?;
                 let investor = Investor::find(
                     conn,
-                    contract.to_decimal(),
+                    contract.contract_address,
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
                     &investor.to_string(),
@@ -172,13 +184,15 @@ pub fn process_events(
                     ..investor
                 })
                 .unwrap_or_else(|| Investor {
-                    contract_address: contract.to_decimal(),
+                    contract_address: contract.contract_address,
                     investment_token_id: security_token.id.to_decimal(),
                     investment_token_contract_address: security_token.contract.to_decimal(),
                     investor: investor.to_string(),
                     currency_amount: currency_amount.to_decimal(),
                     token_amount: security_amount.to_decimal(),
                     currency_amount_total: currency_amount.to_decimal(),
+                    currency_token_id: contract.currency_token_id,
+                    currency_token_contract_address: contract.currency_token_contract_address,
                     token_amount_total: 0.into(),
                     create_time: block_time,
                     update_time: block_time,
@@ -188,9 +202,11 @@ pub fn process_events(
                     id: Uuid::new_v4(),
                     block_height,
                     txn_index,
-                    contract_address: contract.to_decimal(),
+                    contract_address: contract.contract_address,
                     investment_token_id: security_token.id.to_decimal(),
                     investment_token_contract_address: security_token.contract.to_decimal(),
+                    currency_token_id: contract.currency_token_id,
+                    currency_token_contract_address: contract.currency_token_contract_address,
                     investor: investor.investor.to_string(),
                     currency_amount: currency_amount.to_decimal(),
                     token_amount: security_amount.to_decimal(),
@@ -202,7 +218,7 @@ pub fn process_events(
                 .insert(conn)?;
                 SecurityMintFund::find(
                     conn,
-                    contract.to_decimal(),
+                    contract.contract_address,
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
                 )?
@@ -213,7 +229,7 @@ pub fn process_events(
                     fund
                 })
                 .ok_or(ProcessorError::FundNotFound {
-                    contract: contract.to_decimal(),
+                    contract: contract.contract_address,
                     security_token_id: security_token.id.to_decimal(),
                     security_token_contract_address: security_token.contract.to_decimal(),
                 })?
@@ -238,10 +254,15 @@ pub fn process_events(
                 let security_amount = security_amount.to_decimal();
                 let security_token_id = security_token.id.to_decimal();
                 let security_token_contract_address = security_token.contract.to_decimal();
+                let contract = SecurityMintFundContract::find(conn, contract.to_decimal())?.ok_or(
+                    ProcessorError::SecurityMintFundContractNotFound {
+                        contract: contract.to_decimal(),
+                    },
+                )?;
 
                 let investor = Investor::find(
                     conn,
-                    contract.to_decimal(),
+                    contract.contract_address,
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
                     &investor.to_string(),
@@ -255,12 +276,12 @@ pub fn process_events(
                 })
                 .ok_or(ProcessorError::InvestorNotFound {
                     investor: investor.to_string(),
-                    contract: contract.to_decimal(),
+                    contract: contract.contract_address,
                 })?
                 .update(conn)?;
                 let _ = SecurityMintFund::find(
                     conn,
-                    contract.to_decimal(),
+                    contract.contract_address,
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
                 )?
@@ -273,17 +294,19 @@ pub fn process_events(
                 .ok_or(ProcessorError::FundNotFound {
                     security_token_id,
                     security_token_contract_address,
-                    contract: contract.to_decimal(),
+                    contract: contract.contract_address,
                 })?
                 .update(conn)?;
                 InvestmentRecord {
                     id: Uuid::new_v4(),
                     block_height,
                     txn_index,
-                    contract_address: contract.to_decimal(),
+                    contract_address: contract.contract_address,
                     investor: investor.investor.to_string(),
                     investment_token_id: security_token_id,
                     investment_token_contract_address: security_token_contract_address,
+                    currency_token_id: contract.currency_token_id,
+                    currency_token_contract_address: contract.currency_token_contract_address,
                     currency_amount,
                     token_amount: security_amount,
                     currency_amount_balance: investor.currency_amount,
@@ -312,10 +335,15 @@ pub fn process_events(
                 let security_amount = security_amount.to_decimal();
                 let security_token_id = security_token.id.to_decimal();
                 let security_token_contract_address = security_token.contract.to_decimal();
+                let contract = SecurityMintFundContract::find(conn, contract.to_decimal())?.ok_or(
+                    ProcessorError::SecurityMintFundContractNotFound {
+                        contract: contract.to_decimal(),
+                    },
+                )?;
 
                 let investor = Investor::find(
                     conn,
-                    contract.to_decimal(),
+                    contract.contract_address,
                     security_token.id.to_decimal(),
                     security_token.contract.to_decimal(),
                     &investor.to_string(),
@@ -329,12 +357,12 @@ pub fn process_events(
                 })
                 .ok_or(ProcessorError::InvestorNotFound {
                     investor: investor.to_string(),
-                    contract: contract.to_decimal(),
+                    contract: contract.contract_address,
                 })?
                 .update(conn)?;
                 SecurityMintFund::find(
                     conn,
-                    contract.to_decimal(),
+                    contract.contract_address,
                     security_token_id,
                     security_token_contract_address,
                 )?
@@ -347,16 +375,18 @@ pub fn process_events(
                 .ok_or(ProcessorError::FundNotFound {
                     security_token_id,
                     security_token_contract_address,
-                    contract: contract.to_decimal(),
+                    contract: contract.contract_address,
                 })?
                 .update(conn)?;
                 InvestmentRecord {
                     id: Uuid::new_v4(),
                     block_height,
                     txn_index,
-                    contract_address: contract.to_decimal(),
+                    contract_address: contract.contract_address,
                     investment_token_id: security_token_id,
                     investment_token_contract_address: security_token_contract_address,
+                    currency_token_id: contract.currency_token_id,
+                    currency_token_contract_address: contract.currency_token_contract_address,
                     investor: investor.investor.to_string(),
                     currency_amount,
                     token_amount: security_amount,

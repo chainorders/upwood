@@ -215,6 +215,7 @@ pub struct YieldDistribution {
     pub token_contract_address: Decimal,
     pub from_token_version:     Decimal,
     pub to_token_version:       Decimal,
+    pub token_amount:           Decimal,
     pub yield_contract_address: Decimal,
     pub yield_token_id:         Decimal,
     pub yield_amount:           Decimal,

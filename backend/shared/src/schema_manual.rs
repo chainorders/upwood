@@ -1,44 +1,4 @@
 diesel::table! {
-    forest_project_property_funds (contract_address, investment_token_id, investment_token_contract_address) {
-        contract_address -> Numeric,
-        investment_token_id -> Numeric,
-        investment_token_contract_address -> Numeric,
-        token_id -> Numeric,
-        token_contract_address -> Numeric,
-        currency_amount -> Numeric,
-        token_amount -> Numeric,
-        receiver_address -> Nullable<Varchar>,
-        rate_numerator -> Numeric,
-        rate_denominator -> Numeric,
-        fund_state -> crate::schema::sql_types::SecurityMintFundState,
-        create_time -> Timestamp,
-        update_time -> Timestamp,
-        forest_project_id -> Numeric,
-        mint_fund_type -> Varchar,
-    }
-}
-
-diesel::table! {
-    forest_project_bond_funds (contract_address, investment_token_id, investment_token_contract_address) {
-        contract_address -> Numeric,
-        investment_token_id -> Numeric,
-        investment_token_contract_address -> Numeric,
-        token_id -> Numeric,
-        token_contract_address -> Numeric,
-        currency_amount -> Numeric,
-        token_amount -> Numeric,
-        receiver_address -> Nullable<Varchar>,
-        rate_numerator -> Numeric,
-        rate_denominator -> Numeric,
-        fund_state -> crate::schema::sql_types::SecurityMintFundState,
-        create_time -> Timestamp,
-        update_time -> Timestamp,
-        forest_project_id -> Numeric,
-        mint_fund_type -> Varchar,
-    }
-}
-
-diesel::table! {
     forest_project_funds_affiliate_reward_records (investment_record_id) {
         investment_record_id -> Uuid,
         fund_contract_address -> Numeric,
@@ -49,6 +9,14 @@ diesel::table! {
         is_default -> Nullable<Bool>,
         investor_cognito_user_id -> Varchar,
         investor_account_address -> Varchar,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        investment_token_symbol -> Varchar,
+        investment_token_decimals -> Integer,
+        currency_token_symbol -> Varchar,
+        currency_token_decimals -> Integer,
         claim_id -> Nullable<Uuid>,
         claims_contract_address -> Nullable<Numeric>,
         reward_amount -> Numeric,
@@ -71,6 +39,10 @@ diesel::table! {
         yield_contract_address -> Numeric,
         yield_amount -> Numeric,
         max_token_id -> Numeric,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
+        yield_token_symbol -> Varchar,
+        yield_token_decimals -> Integer,
     }
 }
 
@@ -81,11 +53,13 @@ diesel::table! {
         yield_token_id -> Numeric,
         yield_contract_address -> Numeric,
         yield_amount -> Numeric,
+        yield_token_symbol -> Varchar,
+        yield_token_decimals -> Integer,
     }
 }
 
 diesel::table! {
-    forest_project_fund_investor (fund_contract_address, investor_cognito_user_id) {
+    forest_project_fund_investor (forest_project_id, fund_contract_address, investor_cognito_user_id) {
         forest_project_id -> Uuid,
         fund_contract_address -> Numeric,
         fund_token_id -> Numeric,
@@ -93,6 +67,14 @@ diesel::table! {
         investment_token_id -> Numeric,
         investment_token_contract_address -> Numeric,
         fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
+        currency_token_symbol -> Varchar,
+        currency_token_decimals -> Integer,
+        investment_token_symbol -> Varchar,
+        investment_token_decimals -> Integer,
+        fund_token_symbol -> Varchar,
+        fund_token_decimals -> Integer,
         investor_account_address -> Varchar,
         investment_token_amount -> Numeric,
         investment_currency_amount -> Numeric,
@@ -120,28 +102,18 @@ diesel::table! {
         fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
         is_default -> Bool,
         investor_cognito_user_id -> Varchar,
-    }
-}
-
-diesel::table! {
-    forest_project_investor (cognito_user_id) {
-        cognito_user_id -> Varchar,
-        total_currency_amount_locked -> Numeric,
-        total_currency_amount_invested -> Numeric,
-    }
-}
-
-diesel::table! {
-    forest_project_trader (cognito_user_id) {
-        cognito_user_id -> Varchar,
-        total_currency_in_amount -> Numeric,
-        total_currency_out_amount -> Numeric,
+        investment_token_symbol -> Varchar,
+        investment_token_decimals -> Integer,
+        currency_token_symbol -> Varchar,
+        currency_token_decimals -> Integer,
     }
 }
 
 diesel::table! {
     forest_project_user_investment_amounts(cognito_user_id) {
         cognito_user_id -> Varchar,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         total_currency_amount_locked -> Numeric,
         total_currency_amount_invested -> Numeric,
     }
@@ -160,56 +132,70 @@ diesel::table! {
 diesel::define_sql_function!(
     fn user_currency_value_for_forest_project_owned_tokens_at(
         user_id: diesel::sql_types::Text,
-        time_at: diesel::sql_types::Timestamp
-    ) -> Nullable<Numeric>
-);
-
-diesel::define_sql_function!(
-    fn user_exchange_profits(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp
-    ) -> Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_fund_profits(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp
-    ) -> Numeric
+        time_at: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
 );
 
 diesel::define_sql_function!(
     fn user_exchange_input_amount(
         user_id: diesel::sql_types::Text,
         from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp
-    ) -> Numeric
+        to_time: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
 );
 
 diesel::define_sql_function!(
     fn user_exchange_output_amount(
         user_id: diesel::sql_types::Text,
         from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp
-    ) -> Numeric
+        to_time: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_exchange_profits(
+        user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
 );
 
 diesel::define_sql_function!(
     fn user_fund_investment_amount(
         user_id: diesel::sql_types::Text,
         from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp
-    ) -> Numeric
+        to_time: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
+);
+
+diesel::define_sql_function!(
+    fn user_fund_profits(
+        user_id: diesel::sql_types::Text,
+        from_time: diesel::sql_types::Timestamp,
+        to_time: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
 );
 
 diesel::define_sql_function!(
     fn user_token_manual_transfer_profits(
         user_id: diesel::sql_types::Text,
         from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp
-    ) -> Numeric
+        to_time: diesel::sql_types::Timestamp,
+        currency_token_id: diesel::sql_types::Numeric,
+        currency_token_contract_address: diesel::sql_types::Numeric
+    ) -> diesel::sql_types::Numeric
 );
 
 diesel::table! {
@@ -217,6 +203,8 @@ diesel::table! {
         forest_project_id -> Uuid,
         forest_project_state -> crate::schema::sql_types::ForestProjectState,
         supply -> Nullable<Numeric>,
+        symbol -> Varchar,
+        decimals -> Integer,
     }
 }
 
@@ -228,6 +216,8 @@ diesel::table! {
         token_id -> Nullable<Numeric>,
         token_contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
         market_token_id -> Nullable<Numeric>,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
         fund_contract_address -> Nullable<Numeric>,
         fund_rate_numerator -> Nullable<Numeric>,
         fund_rate_denominator -> Nullable<Numeric>,
@@ -248,5 +238,31 @@ diesel::table! {
         cognito_user_id -> Varchar,
         forest_project_id -> Uuid,
         total_balance -> Numeric,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
+    }
+}
+
+diesel::table! {
+    forest_project_user_yield_distributions (yield_distribution_id) {
+        forest_project_id -> Uuid,
+        forest_project_name -> Varchar,
+        token_contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
+        cognito_user_id -> Varchar,
+        yield_distribution_id -> Uuid,
+        yielder_contract_address -> Numeric,
+        token_contract_address -> Numeric,
+        from_token_version -> Numeric,
+        to_token_version -> Numeric,
+        token_amount -> Numeric,
+        yield_contract_address -> Numeric,
+        yield_token_id -> Numeric,
+        yield_amount -> Numeric,
+        yield_token_symbol -> Varchar,
+        yield_token_decimals -> Integer,
+        token_symbol -> Varchar,
+        token_decimals -> Integer,
+        to_address -> Varchar,
+        create_time -> Timestamp,
     }
 }

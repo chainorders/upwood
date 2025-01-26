@@ -119,6 +119,7 @@ pub fn process_events(
                     contract_address:       y.contract_address,
                     from_token_version:     from_token.to_decimal(),
                     to_token_version:       to_token.to_decimal(),
+                    token_amount:           amount.to_decimal(),
                     token_contract_address: y.token_contract_address,
                     yield_contract_address: y.yield_contract_address,
                     yield_token_id:         y.yield_token_id,

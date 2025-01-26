@@ -1,6 +1,3 @@
-use std::cmp;
-
-use diesel::Connection;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::types::ToJSON;
@@ -13,47 +10,13 @@ use shared::db_app::forest_project::{
 use shared::db_app::forest_project_crypto::{
     ForestProjectCurrentTokenFundMarkets, ForestProjectFundInvestor, ForestProjectSupply,
     ForestProjectTokenContract, ForestProjectUserAggBalance, ForestProjectUserYieldsAggregate,
-    ForestProjectUserYieldsForEachOwnedToken, SecurityTokenContractType,
+    ForestProjectUserYieldsForEachOwnedToken, SecurityTokenContractType, TokenMetadata,
 };
 use tracing::{debug, info};
 
 use super::*;
 pub const MEDIA_LIMIT: i64 = 4;
 pub struct ForestProjectApi;
-
-#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
-pub struct ForestProjectMarketApiModel {
-    pub contract_address:       Decimal,
-    pub token_id:               Decimal,
-    pub token_contract_address: Decimal,
-    pub sell_rate_numerator:    Decimal,
-    pub sell_rate_denominator:  Decimal,
-    pub buy_rate_numerator:     Decimal,
-    pub buy_rate_denominator:   Decimal,
-    pub liquidity_provider:     String,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
-pub struct ForestProjectFundApiModel {
-    pub contract_address: Decimal,
-    pub rate_numerator: Decimal,
-    pub rate_denominator: Decimal,
-    pub state: SecurityMintFundState,
-    pub token_contract_address: Decimal,
-    pub token_id: Decimal,
-    pub investment_token_id: Decimal,
-    pub investment_token_contract_address: Decimal,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
-pub struct ForestProjectAggApiModel {
-    pub forest_project:  ForestProject,
-    pub supply:          Decimal,
-    pub property_market: Option<ForestProjectMarketApiModel>,
-    pub property_fund:   Option<ForestProjectFundApiModel>,
-    pub bond_fund:       Option<ForestProjectFundApiModel>,
-    pub user_balance:    Decimal,
-}
 
 #[OpenApi]
 impl ForestProjectApi {
@@ -554,6 +517,40 @@ impl ForestProjectApi {
     }
 }
 
+#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
+pub struct ForestProjectMarketApiModel {
+    pub contract_address:       Decimal,
+    pub token_id:               Decimal,
+    pub token_contract_address: Decimal,
+    pub sell_rate_numerator:    Decimal,
+    pub sell_rate_denominator:  Decimal,
+    pub buy_rate_numerator:     Decimal,
+    pub buy_rate_denominator:   Decimal,
+    pub liquidity_provider:     String,
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
+pub struct ForestProjectFundApiModel {
+    pub contract_address: Decimal,
+    pub rate_numerator: Decimal,
+    pub rate_denominator: Decimal,
+    pub state: SecurityMintFundState,
+    pub token_contract_address: Decimal,
+    pub token_id: Decimal,
+    pub investment_token_id: Decimal,
+    pub investment_token_contract_address: Decimal,
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
+pub struct ForestProjectAggApiModel {
+    pub forest_project:  ForestProject,
+    pub supply:          Decimal,
+    pub property_market: Option<ForestProjectMarketApiModel>,
+    pub property_fund:   Option<ForestProjectFundApiModel>,
+    pub bond_fund:       Option<ForestProjectFundApiModel>,
+    pub user_balance:    Decimal,
+}
+
 pub struct ForestProjectAdminApi;
 
 #[OpenApi]
@@ -640,12 +637,6 @@ impl ForestProjectAdminApi {
             }
         };
         info!("Created project: {:?} by: {}", project.id, claims.email);
-        ForestProjectPrice {
-            price:      project.latest_price,
-            project_id: project.id,
-            price_at:   project.created_at,
-        }
-        .insert(conn)?;
         Ok(Json(project))
     }
 
@@ -658,49 +649,22 @@ impl ForestProjectAdminApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Json(project): Json<ForestProject>,
+        Json(mut project): Json<ForestProject>,
     ) -> JsonResult<ForestProject> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let existing_project = ForestProject::find(conn, project.id)?.ok_or(Error::NotFound(
-            PlainText(format!("Forest project not found: {}", project.id)),
-        ))?;
-        let project = conn.transaction(|conn| {
-            if existing_project.latest_price != project.latest_price {
-                let price = ForestProjectPrice {
-                    price:      project.latest_price,
-                    project_id: project.id,
-                    price_at:   project.updated_at,
-                }
-                .insert(conn);
-                match price {
-                    Ok(price) => {
-                        debug!("Inserted price: {:?}", price);
-                    }
-                    Err(e) => {
-                        error!("Failed to insert price: {}", e);
-                        return Err(Error::InternalServer(PlainText(format!(
-                            "Failed to insert price: {}",
-                            e
-                        ))));
-                    }
-                }
+        project.updated_at = chrono::Utc::now().naive_utc();
+        let project = project.update(conn);
+        let project = match project {
+            Ok(project) => project,
+            Err(e) => {
+                error!("Failed to update project: {}", e);
+                return Err(Error::InternalServer(PlainText(format!(
+                    "Failed to update project: {}",
+                    e
+                ))));
             }
-            debug!("Updating project: {:?}", project);
-            let project = project.update(conn);
-            let project = match project {
-                Ok(project) => project,
-                Err(e) => {
-                    error!("Failed to update project: {}", e);
-                    return Err(Error::InternalServer(PlainText(format!(
-                        "Failed to update project: {}",
-                        e
-                    ))));
-                }
-            };
-
-            Ok(project)
-        })?;
+        };
 
         Ok(Json(project))
     }
@@ -755,6 +719,25 @@ impl ForestProjectAdminApi {
         }
         let media = media.delete_self(conn)?;
         Ok(Json(media))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/:project_id/price/latest",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_find_forest_project_latest_price(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+    ) -> JsonResult<ForestProjectPrice> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let price = ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(
+            PlainText(format!("Price not found for project: {}", project_id)),
+        ))?;
+        Ok(Json(price))
     }
 
     #[oai(
@@ -822,22 +805,7 @@ impl ForestProjectAdminApi {
         }
 
         let conn = &mut db_pool.get()?;
-        conn.transaction::<_, Error, _>(|conn| {
-            let price = price.insert(conn)?;
-            // Update the latest price and updated_at fields of the forest project
-            let mut forest_project =
-                ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-                    format!("Forest project not found: {}", project_id),
-                )))?;
-            let latest_price =
-                ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-                    format!("Latest price not found for project: {}", project_id),
-                )))?;
-            forest_project.latest_price = latest_price.price;
-            forest_project.updated_at = cmp::max(forest_project.updated_at, price.price_at);
-            forest_project.update(conn)?;
-            Ok(price)
-        })?;
+        let price = price.insert(conn)?;
         Ok(Json(price))
     }
 
@@ -855,21 +823,7 @@ impl ForestProjectAdminApi {
     ) -> NoResResult {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        conn.transaction(|conn| {
-            ForestProjectPrice::delete(conn, project_id, price_at)?;
-            let latest_price =
-                ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-                    format!("Latest price not found for project: {}", project_id),
-                )))?;
-            let mut forest_project =
-                ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-                    format!("Forest project not found: {}", project_id),
-                )))?;
-            forest_project.latest_price = latest_price.price;
-            forest_project.updated_at = latest_price.price_at;
-            forest_project.update(conn)?;
-            NoResResult::Ok(())
-        })?;
+        ForestProjectPrice::delete(conn, project_id, price_at)?;
         Ok(())
     }
 
@@ -986,6 +940,111 @@ impl ForestProjectAdminApi {
         ForestProjectTokenContract::delete(conn, project_id, contract_type).map_err(|e| {
             error!("Failed to delete token contract: {}", e);
             Error::InternalServer(PlainText(format!("Failed to delete token contract: {}", e)))
+        })?;
+        Ok(())
+    }
+
+    #[oai(
+        path = "/admin/token_metadata",
+        method = "post",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_create_token_metadata(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(metadata): Json<TokenMetadata>,
+    ) -> JsonResult<TokenMetadata> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let metadata = metadata.create(conn).map_err(|e| {
+            error!("Failed to create token metadata: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to create token metadata: {}", e)))
+        })?;
+        Ok(Json(metadata))
+    }
+
+    #[oai(
+        path = "/admin/token_metadata/:contract_address/:token_id",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_find_token_metadata(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(contract_address): Path<Decimal>,
+        Path(token_id): Path<Decimal>,
+    ) -> JsonResult<TokenMetadata> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let metadata = TokenMetadata::find(conn, contract_address, token_id)?.ok_or(
+            Error::NotFound(PlainText(format!(
+                "Token metadata not found: {}, {}",
+                contract_address, token_id
+            ))),
+        )?;
+        Ok(Json(metadata))
+    }
+
+    #[oai(
+        path = "/admin/token_metadata",
+        method = "put",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_update_token_metadata(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(metadata): Json<TokenMetadata>,
+    ) -> JsonResult<TokenMetadata> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let metadata = metadata.update(conn).map_err(|e| {
+            error!("Failed to update token metadata: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to update token metadata: {}", e)))
+        })?;
+        Ok(Json(metadata))
+    }
+
+    #[oai(
+        path = "/admin/token_metadata/list/:page",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_list_token_metadata(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(page): Path<i64>,
+    ) -> JsonResult<PagedResponse<TokenMetadata>> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let (metadata, page_count) = TokenMetadata::list(conn, page, PAGE_SIZE)?;
+        Ok(Json(PagedResponse {
+            data: metadata,
+            page_count,
+            page,
+        }))
+    }
+
+    #[oai(
+        path = "/admin/token_metadata/:contract_address/:token_id",
+        method = "delete",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_delete_token_metadata(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(contract_address): Path<Decimal>,
+        Path(token_id): Path<Decimal>,
+    ) -> NoResResult {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        TokenMetadata::delete(conn, contract_address, token_id).map_err(|e| {
+            error!("Failed to delete token metadata: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to delete token metadata: {}", e)))
         })?;
         Ok(())
     }

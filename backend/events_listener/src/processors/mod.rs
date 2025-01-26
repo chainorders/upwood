@@ -91,6 +91,10 @@ pub enum ProcessorError {
         token_id:       Decimal,
         token_contract: Decimal,
     },
+    #[error("Security Mint Fund Contract not found: {contract}")]
+    SecurityMintFundContractNotFound { contract: Decimal },
+    #[error("Trade Contract not found: {contract}")]
+    TradeContractNotFound { contract: Decimal },
 }
 
 pub type ProcessorFnType = fn(

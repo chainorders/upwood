@@ -23,8 +23,6 @@ DROP TABLE IF EXISTS forest_project_legal_contract_user_signatures;
 
 DROP TABLE IF EXISTS forest_project_legal_contracts;
 
-DROP TABLE IF EXISTS forest_project_prices;
-
 DROP TABLE IF EXISTS forest_projects;
 
 DROP TYPE if EXISTS forest_project_state;

@@ -150,6 +150,8 @@ diesel::table! {
         project_id -> Uuid,
         price -> Numeric,
         price_at -> Timestamp,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -175,6 +177,9 @@ diesel::table! {
         contract_type -> ForestProjectSecurityTokenContractType,
         fund_token_id -> Nullable<Numeric>,
         market_token_id -> Nullable<Numeric>,
+        #[max_length = 10]
+        symbol -> Nullable<Varchar>,
+        decimals -> Nullable<Int4>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -201,7 +206,6 @@ diesel::table! {
         offering_doc_link -> Nullable<Varchar>,
         property_media_header -> Text,
         property_media_footer -> Text,
-        latest_price -> Numeric,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -400,6 +404,8 @@ diesel::table! {
         contract_address -> Numeric,
         investment_token_id -> Numeric,
         investment_token_contract_address -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         investor -> Varchar,
         currency_amount -> Numeric,
         token_amount -> Numeric,
@@ -416,6 +422,8 @@ diesel::table! {
         investment_token_id -> Numeric,
         investment_token_contract_address -> Numeric,
         investor -> Varchar,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         currency_amount -> Numeric,
         currency_amount_total -> Numeric,
         token_amount -> Numeric,
@@ -435,6 +443,8 @@ diesel::table! {
         investment_token_contract_address -> Numeric,
         token_id -> Numeric,
         token_contract_address -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         currency_amount -> Numeric,
         token_amount -> Numeric,
         receiver_address -> Nullable<Varchar>,
@@ -454,6 +464,8 @@ diesel::table! {
         contract_address -> Numeric,
         token_id -> Numeric,
         token_contract_address -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         buyer -> Varchar,
         seller -> Varchar,
         currency_amount -> Numeric,
@@ -478,6 +490,8 @@ diesel::table! {
         contract_address -> Numeric,
         token_id -> Numeric,
         token_contract_address -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         liquidity_provider -> Varchar,
         buy_rate_numerator -> Numeric,
         buy_rate_denominator -> Numeric,
@@ -495,6 +509,8 @@ diesel::table! {
         contract_address -> Numeric,
         token_id -> Numeric,
         token_contract_address -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         trader -> Varchar,
         token_in_amount -> Numeric,
         currency_out_amount -> Numeric,
@@ -512,6 +528,7 @@ diesel::table! {
         token_contract_address -> Numeric,
         from_token_version -> Numeric,
         to_token_version -> Numeric,
+        token_amount -> Numeric,
         yield_contract_address -> Numeric,
         yield_token_id -> Numeric,
         yield_amount -> Numeric,
@@ -544,6 +561,16 @@ diesel::table! {
         user_email -> Varchar,
         message -> Text,
         created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    token_metadatas (contract_address, token_id) {
+        contract_address -> Numeric,
+        token_id -> Numeric,
+        #[max_length = 10]
+        symbol -> Nullable<Varchar>,
+        decimals -> Nullable<Int4>,
     }
 }
 
@@ -677,6 +704,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_sft_multi_yielder_yeild_distributions,
     security_sft_multi_yielder_yields,
     support_questions,
+    token_metadatas,
     tree_nft_metadatas,
     user_registration_requests,
     users,
