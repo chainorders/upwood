@@ -747,6 +747,7 @@ impl ForestProjectUserYieldDistribution {
     Queryable,
     Identifiable,
     Debug,
+    Eq,
     PartialEq,
     Serialize,
     Deserialize,

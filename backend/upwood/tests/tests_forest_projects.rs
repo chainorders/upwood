@@ -575,6 +575,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 100.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        Decimal::ZERO,
@@ -590,6 +596,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 200.into(),
                 invested_value:                 200.into(),
                 current_portfolio_value:        Decimal::ZERO,
@@ -667,6 +679,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        200.into(), // 100 shares at 2 price
@@ -682,6 +700,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 200.into(),
                 current_portfolio_value:        400.into(),
@@ -728,6 +752,12 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggregate(token, Some(mint_fund_completion_time)))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+            euro_e_token_metadata:          Some(TokenMetadata {
+                contract_address: euroe.0.to_decimal(),
+                token_id:         TokenIdUnit().to_decimal(),
+                symbol:           Some("EUROe".to_string()),
+                decimals:         Some(6),
+            }),
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        200.into(), // 100 shares at 2 price
@@ -743,6 +773,12 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggregate(token, Some(chain.block_time_naive_utc())))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+            euro_e_token_metadata:          Some(TokenMetadata {
+                contract_address: euroe.0.to_decimal(),
+                token_id:         TokenIdUnit().to_decimal(),
+                symbol:           Some("EUROe".to_string()),
+                decimals:         Some(6),
+            }),
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             // (initial price of 2 + 12 months increase of 1 each month) * 100 shares
@@ -1043,6 +1079,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        1400.into(),
@@ -1082,6 +1124,12 @@ pub async fn test_forest_projects() {
             // here only the `current_portfolio_value` has changed
             // because transfers are assumed to be done at market rate / forest project price
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        700.into(),
@@ -1120,6 +1168,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        700.into(),
@@ -1188,6 +1242,12 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+                euro_e_token_metadata:          Some(TokenMetadata {
+                    contract_address: euroe.0.to_decimal(),
+                    token_id:         TokenIdUnit().to_decimal(),
+                    symbol:           Some("EUROe".to_string()),
+                    decimals:         Some(6),
+                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 75.into(), // 100 initially invested - 25 taken out
                 current_portfolio_value:        0.into(),
@@ -1274,6 +1334,12 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggregate(token, Some(chain.block_time_naive_utc())))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
+            euro_e_token_metadata:          Some(TokenMetadata {
+                contract_address: euroe.0.to_decimal(),
+                token_id:         TokenIdUnit().to_decimal(),
+                symbol:           Some("EUROe".to_string()),
+                decimals:         Some(6),
+            }),
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        700.into(), // 50 shares at 14 price

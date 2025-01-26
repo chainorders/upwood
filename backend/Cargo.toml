@@ -40,5 +40,5 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 backon = "1.2.0"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 serde = "1.0.210"
-rust_decimal = { version = "1.36.0", features = ["db-diesel-postgres"] }
+rust_decimal = { version = "1.36.0", features = ["db-diesel-postgres", "maths"] }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
