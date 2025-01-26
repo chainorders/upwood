@@ -1,43 +1,43 @@
-.support{
-    padding: 0 15px;
+.support {
+	padding: 0 15px;
 }
-.support .outerboxshadow{
-    padding: 20px 20px 0 20px;
-    box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
+.support .outerboxshadow {
+	padding: 20px 20px 0 20px;
+	box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
 }
-.support .seeall{
-    display: inline-block;
-    width: 100%;
-    padding-top: 10px;
-    font-weight: 500;
-    color: rgba(15, 180, 4, 1);
+.support .seeall {
+	display: inline-block;
+	width: 100%;
+	padding-top: 10px;
+	font-weight: 500;
+	color: rgba(15, 180, 4, 1);
 }
-.support .linkbox{
-    border: 1px solid rgba(15, 180, 4, 1);
-    text-align: center;
-    margin-bottom: 20px;
-    padding: 25px;
+.support .linkbox {
+	border: 1px solid rgba(15, 180, 4, 1);
+	text-align: center;
+	margin-bottom: 20px;
+	padding: 25px;
 }
-.support .linkbox .title{
-    text-transform: uppercase;
-    color: initial;
-    margin-bottom: 15px;
-    font-weight: 500;
+.support .linkbox .title {
+	text-transform: uppercase;
+	color: initial;
+	margin-bottom: 15px;
+	font-weight: 500;
 }
-.support .linkbox .description{
-    color: initial;
+.support .linkbox .description {
+	color: initial;
 }
-.support .linkbox a{
-    text-decoration: none;
+.support .linkbox a {
+	text-decoration: none;
 }
-.support .heading{
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 20px;
+.support .heading {
+	font-size: 24px;
+	font-weight: 600;
+	margin-bottom: 20px;
 }
 
 @media only screen and (max-width: 1919px) {
-    .support .linkbox{
-        padding: 25px 10px;
-    }
+	.support .linkbox {
+		padding: 25px 10px;
+	}
 }

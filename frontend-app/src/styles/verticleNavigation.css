@@ -1,40 +1,40 @@
-.verticle-navigation{
-    padding:20px 10px 0;
-    position: fixed;
-    left: 0;
-    top: 71px;
-    z-index: 1;
-    width: 280px;
+.verticle-navigation {
+	padding: 20px 10px 0;
+	position: fixed;
+	left: 0;
+	top: 71px;
+	z-index: 1;
+	width: 280px;
 }
-.verticle-navigation ul{
-    margin:0;
-    padding:0;
+.verticle-navigation ul {
+	margin: 0;
+	padding: 0;
 }
-.verticle-navigation ul li{
-    list-style: none;
-    margin-bottom: 5px;
-    position: relative;
+.verticle-navigation ul li {
+	list-style: none;
+	margin-bottom: 5px;
+	position: relative;
 }
-.verticle-navigation ul li .navigation-icon{
-    position: absolute;
-    top: 11px;
-    left: 15px;
+.verticle-navigation ul li .navigation-icon {
+	position: absolute;
+	top: 11px;
+	left: 15px;
 }
-.verticle-navigation ul li a{
-    text-decoration: none;
-    color: rgba(74, 87, 76, 1);
-    font-weight: 500;
-    display: inline-block;
-    width: 100%;
-    height: 48px;
-    line-height: 48px;
-    border-radius: 16px;
-    padding: 0 20px 0 50px;
-    transition-duration: .5s;
+.verticle-navigation ul li a {
+	text-decoration: none;
+	color: rgba(74, 87, 76, 1);
+	font-weight: 500;
+	display: inline-block;
+	width: 100%;
+	height: 48px;
+	line-height: 48px;
+	border-radius: 16px;
+	padding: 0 20px 0 50px;
+	transition-duration: 0.5s;
 }
-.verticle-navigation ul li.active a{
-    background: #000;
-    color: #fff;
-    background: linear-gradient(100.05deg, #00AA81 0%, #0EB400 100%);
-    box-shadow: 2px 2px 6px 0px rgba(1, 170, 122, 0.4);
+.verticle-navigation ul li.active a {
+	background: #000;
+	color: #fff;
+	background: linear-gradient(100.05deg, #00aa81 0%, #0eb400 100%);
+	box-shadow: 2px 2px 6px 0px rgba(1, 170, 122, 0.4);
 }

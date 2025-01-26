@@ -4,8 +4,7 @@
 /* eslint-disable */
 
 export type Agent = {
-    cis2_address: string;
-    agent_address: string;
-    roles: Array<string>;
+	cis2_address: string;
+	agent_address: string;
+	roles: Array<string>;
 };
-

@@ -24,12 +24,17 @@ export class CognitoStack extends cdk.Stack {
 			userPoolName: constructName(props, "user-pool"),
 			standardAttributes: {
 				email: { required: true, mutable: false },
+				familyName: { required: true, mutable: true },
+				givenName: { required: true, mutable: true },
 			},
 			customAttributes: {
 				con_accnt: new StringAttribute({
 					mutable: true,
 					minLen: 50,
 					maxLen: 50,
+				}),
+				nationality: new StringAttribute({
+					mutable: true,
 				}),
 			},
 			autoVerify: { email: true },
@@ -73,8 +78,11 @@ export class CognitoStack extends cdk.Stack {
 					.withStandardAttributes({
 						email: true,
 						emailVerified: true,
+						familyName: true,
+						givenName: true,
 					})
-					.withCustomAttributes("con_accnt"),
+					.withCustomAttributes("con_accnt")
+					.withCustomAttributes("nationality"),
 			},
 		);
 		cdk.Tags.of(client).add("organization", props.organization);

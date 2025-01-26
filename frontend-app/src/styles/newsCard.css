@@ -1,41 +1,41 @@
-.news-card{
-    box-shadow: 2px 4px 16px -4px rgba(71, 102, 68, 0.15);
-    padding: 10px;
-    margin-bottom: 20px;
+.news-card {
+	box-shadow: 2px 4px 16px -4px rgba(71, 102, 68, 0.15);
+	padding: 10px;
+	margin-bottom: 20px;
 }
-.news-card .news-name{
-    font-size: 22px;
-    font-weight: 500;
-    margin-bottom: 10px;
+.news-card .news-name {
+	font-size: 22px;
+	font-weight: 500;
+	margin-bottom: 10px;
 }
-.news-card .news-description{
-    line-height: 24px;
+.news-card .news-description {
+	line-height: 24px;
 }
-.news-card .image{
-    margin: -10px -10px 20px -10px;
-    position: relative;
+.news-card .image {
+	margin: -10px -10px 20px -10px;
+	position: relative;
 }
-.news-card .image .caption{
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    text-align: center;
-    background: rgba(255,255,255,0.7);
-    padding: 5px 0 8px;
+.news-card .image .caption {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	text-align: center;
+	background: rgba(255, 255, 255, 0.7);
+	padding: 5px 0 8px;
 }
-.news-card .image img{
-    width: 100%;
-    height: auto;
-    border-radius: 15px 15px 0 0;
+.news-card .image img {
+	width: 100%;
+	height: auto;
+	border-radius: 15px 15px 0 0;
 }
-.news-card .read{
-    display: inline-block;
-    width: 100%;
-    padding-top: 10px;
-    font-weight: 500;
-    color: rgba(15, 180, 4, 1);
-    text-decoration: none;
-    padding-bottom: 20px;
-    padding-right: 20px;
+.news-card .read {
+	display: inline-block;
+	width: 100%;
+	padding-top: 10px;
+	font-weight: 500;
+	color: rgba(15, 180, 4, 1);
+	text-decoration: none;
+	padding-bottom: 20px;
+	padding-right: 20px;
 }

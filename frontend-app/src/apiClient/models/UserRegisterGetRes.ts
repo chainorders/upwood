@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type CreateChallengeResponse = {
-    id_statement: any;
-    /**
-     * The hex of the challenge
-     */
-    challenge: string;
+export type UserRegisterGetRes = {
+	id_statement: any;
+	/**
+	 * The hex of the challenge
+	 */
+	challenge: string;
 };
-

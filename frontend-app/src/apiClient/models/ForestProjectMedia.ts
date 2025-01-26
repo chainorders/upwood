@@ -4,8 +4,7 @@
 /* eslint-disable */
 
 export type ForestProjectMedia = {
-    id: string;
-    image_url: string;
-    project_id: string;
+	id: string;
+	image_url: string;
+	project_id: string;
 };
-

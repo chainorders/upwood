@@ -3,7 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type UserRegisterReq = {
-    desired_investment_amount: number;
+export type TokenMetadata = {
+	contract_address: string;
+	token_id: string;
+	symbol?: string;
+	decimals?: number;
 };
-

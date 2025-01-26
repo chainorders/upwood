@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { NftMultiRewardedContract } from './NftMultiRewardedContract';
+import type { NftMultiRewardedContract } from "./NftMultiRewardedContract";
 
 export type NftMultiRewardedDetails = {
-    contract: NftMultiRewardedContract;
-    tokens_count: number;
-    unique_metdata_count: number;
+	contract: NftMultiRewardedContract;
+	tokens_count: number;
+	unique_metdata_count: number;
 };
-

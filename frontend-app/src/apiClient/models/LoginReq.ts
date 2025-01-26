@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type UpdateAccountAddressReq = {
-    proof: any;
-    affiliate_commission: string;
+export type LoginReq = {
+	email: string;
+	password: string;
 };
-

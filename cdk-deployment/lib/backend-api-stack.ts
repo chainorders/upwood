@@ -52,7 +52,6 @@ interface StackProps extends SP {
 	// User Authentication Params
 	awsUserPoolId: string;
 	awsUserPoolClientId: string;
-	userChallengeExpiryDurationMins: number;
 	/// Tree NFT Agent Wallet Json String
 	treeNftAgentWalletJsonStr: SecretValue;
 	// Concordium chain Params
@@ -133,9 +132,6 @@ export class BackendApiStack extends Stack {
 				AWS_USER_POOL_ID: props.awsUserPoolId,
 				AWS_USER_POOL_CLIENT_ID: props.awsUserPoolClientId,
 				AWS_USER_POOL_REGION: props.awsUserPoolRegion,
-				USER_CHALLENGE_EXPIRY_DURATION_MINS: String(
-					props.userChallengeExpiryDurationMins,
-				),
 				CONCORDIUM_NETWORK: props.concordiumNetwork,
 				CONCORDIUM_NODE_URI: props.concordiumNodeUri,
 				FILES_BUCKET_NAME: props.filesBucket.bucketName,

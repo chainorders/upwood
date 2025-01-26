@@ -3,15 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { AdminUser } from './AdminUser';
+import type { ApiUser } from "./ApiUser";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_AdminUser_ = {
-    page_count: number;
-    page: number;
-    data: Array<AdminUser>;
+export type PagedResponse_ApiUser_ = {
+	page_count: number;
+	page: number;
+	data: Array<ApiUser>;
 };
-

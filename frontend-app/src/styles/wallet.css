@@ -1,46 +1,49 @@
-.walletmanagement{
-    padding: 0 15px;
+.walletmanagement {
+	padding: 0 15px;
 }
-.walletmanagement .outerboxshadow{
-    padding: 20px 20px 0 20px;
-    box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
+.walletmanagement .outerboxshadow {
+	padding: 20px 20px 0 20px;
+	box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
 }
-.walletmanagement .guides{
-    display: inline-block;
-    padding-top: 10px;
-    font-weight: 500;
-    color: rgba(15, 180, 4, 1);
-    text-transform: uppercase;
-    text-decoration: none;
+.walletmanagement .guides {
+	display: inline-block;
+	padding-top: 10px;
+	font-weight: 500;
+	color: rgba(15, 180, 4, 1);
+	text-transform: uppercase;
+	text-decoration: none;
 }
-.walletmanagement .guides.margin{
-    margin-left: 60px;
+.walletmanagement .guides.margin {
+	margin-left: 60px;
 }
-.walletmanagement .heading{
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 20px;
+.walletmanagement .heading {
+	font-size: 24px;
+	font-weight: 600;
+	margin-bottom: 20px;
 }
-.walletmanagement .walletclms{
-    text-align: center;
+.walletmanagement .walletclms {
+	text-align: center;
 }
-.walletmanagement .walletclms .tag{
-    text-transform: uppercase;
-    color: rgba(107, 107, 107, 1);
-    font-size: 12px;
-    margin-bottom: 10px;
+.walletmanagement .walletclms .tag {
+	text-transform: uppercase;
+	color: rgba(107, 107, 107, 1);
+	font-size: 12px;
+	margin-bottom: 10px;
 }
-.walletmanagement .walletclms .value{
-    font-size: 18px;
-    font-weight: 500;
-    color: rgba(51, 51, 51, 1);
-    margin-bottom: 10px;
+.walletmanagement .walletclms .value {
+	font-size: 18px;
+	font-weight: 500;
+	color: rgba(51, 51, 51, 1);
+	margin-bottom: 10px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	overflow: hidden;
 }
-.walletmanagement .walletclms button{
-    font-weight: 600;
-    text-transform: uppercase;
-    color: rgba(15, 180, 4, 1);
-    cursor: pointer;
-    border: 0;
-    background: transparent;
+.walletmanagement .walletclms button {
+	font-weight: 600;
+	text-transform: uppercase;
+	color: rgba(15, 180, 4, 1);
+	cursor: pointer;
+	border: 0;
+	background: transparent;
 }

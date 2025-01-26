@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type UserRegistrationInvitationSendReq = {
-    email: string;
-    affiliate_account_address?: string;
+export type UserRegistrationRequestApi = {
+	email: string;
+	affiliate_account_address?: string;
 };
-

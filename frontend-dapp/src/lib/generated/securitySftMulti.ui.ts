@@ -7,8 +7,8 @@
 import { RJSFSchema, RegistryWidgetsType, UiSchema } from "@rjsf/utils";
 import React from "react";
 import { ContractAddress } from "@concordium/web-sdk";
-import { default as client } from "./securitySftRewards";
-import * as types from "./securitySftRewards";
+import { default as client } from "./securitySftMulti";
+import * as types from "./securitySftMulti";
 import {
 	GenericInit,
 	GenericInvoke,
@@ -18,25 +18,9 @@ export const initRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Init Request",
 	properties: {
-		identity_registry: {
+		security: {
 			type: "object",
-			title: "Identity Registry",
-			properties: {
-				index: { type: "integer", minimum: 0 },
-				subindex: { type: "integer", minimum: 0 },
-			},
-		},
-		compliance: {
-			type: "object",
-			title: "Compliance",
-			properties: {
-				index: { type: "integer", minimum: 0 },
-				subindex: { type: "integer", minimum: 0 },
-			},
-		},
-		sponsors: {
-			type: "object",
-			title: "Sponsors",
+			title: "Security",
 			properties: { tag: { type: "string", enum: ["None", "Some"] } },
 			required: ["tag"],
 			dependencies: {
@@ -57,8 +41,22 @@ export const initRequestJsonSchema: RJSFSchema = {
 										type: "object",
 										title: "",
 										properties: {
-											index: { type: "integer", minimum: 0 },
-											subindex: { type: "integer", minimum: 0 },
+											identity_registry: {
+												type: "object",
+												title: "Identity Registry",
+												properties: {
+													index: { type: "integer", minimum: 0 },
+													subindex: { type: "integer", minimum: 0 },
+												},
+											},
+											compliance: {
+												type: "object",
+												title: "Compliance",
+												properties: {
+													index: { type: "integer", minimum: 0 },
+													subindex: { type: "integer", minimum: 0 },
+												},
+											},
 										},
 									},
 								},
@@ -68,104 +66,261 @@ export const initRequestJsonSchema: RJSFSchema = {
 				},
 			},
 		},
-		metadata_url: {
-			type: "object",
-			title: "Metadata Url",
-			properties: {
-				url: { type: "string", title: "Url", default: "" },
-				hash: {
-					type: "object",
-					title: "Hash",
-					properties: { tag: { type: "string", enum: ["None", "Some"] } },
-					required: ["tag"],
-					dependencies: {
-						tag: {
-							oneOf: [
-								{
-									properties: {
-										tag: { enum: ["None"] },
-										None: { type: "object", title: "None", properties: {} },
-									},
-								},
-								{
-									properties: {
-										tag: { enum: ["Some"] },
-										Some: {
-											type: "array",
-											items: { type: "string", title: "", default: "" },
+		agents: {
+			type: "array",
+			items: {
+				type: "object",
+				title: "",
+				properties: {
+					address: {
+						type: "object",
+						title: "Address",
+						properties: {
+							tag: { type: "string", enum: ["Account", "Contract"] },
+						},
+						required: ["tag"],
+						dependencies: {
+							tag: {
+								oneOf: [
+									{
+										properties: {
+											tag: { enum: ["Account"] },
+											Account: {
+												type: "array",
+												items: { type: "string", title: "" },
+											},
 										},
 									},
-								},
-							],
+									{
+										properties: {
+											tag: { enum: ["Contract"] },
+											Contract: {
+												type: "array",
+												items: {
+													type: "object",
+													title: "",
+													properties: {
+														index: { type: "integer", minimum: 0 },
+														subindex: { type: "integer", minimum: 0 },
+													},
+												},
+											},
+										},
+									},
+								],
+							},
 						},
+					},
+					roles: {
+						type: "array",
+						items: {
+							type: "object",
+							title: "",
+							properties: {
+								tag: {
+									type: "string",
+									enum: [
+										"SetIdentityRegistry",
+										"SetCompliance",
+										"AddAgent",
+										"Mint",
+										"ForcedBurn",
+										"ForcedTransfer",
+										"Freeze",
+										"UnFreeze",
+										"HolderRecovery",
+										"Pause",
+										"UnPause",
+										"AddToken",
+										"Operator",
+										"RemoveToken",
+									],
+								},
+							},
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["SetIdentityRegistry"] },
+												SetIdentityRegistry: {
+													type: "object",
+													title: "SetIdentityRegistry",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["SetCompliance"] },
+												SetCompliance: {
+													type: "object",
+													title: "SetCompliance",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["AddAgent"] },
+												AddAgent: {
+													type: "object",
+													title: "AddAgent",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Mint"] },
+												Mint: { type: "object", title: "Mint", properties: {} },
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["ForcedBurn"] },
+												ForcedBurn: {
+													type: "object",
+													title: "ForcedBurn",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["ForcedTransfer"] },
+												ForcedTransfer: {
+													type: "object",
+													title: "ForcedTransfer",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Freeze"] },
+												Freeze: {
+													type: "object",
+													title: "Freeze",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["UnFreeze"] },
+												UnFreeze: {
+													type: "object",
+													title: "UnFreeze",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["HolderRecovery"] },
+												HolderRecovery: {
+													type: "object",
+													title: "HolderRecovery",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Pause"] },
+												Pause: {
+													type: "object",
+													title: "Pause",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["UnPause"] },
+												UnPause: {
+													type: "object",
+													title: "UnPause",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["AddToken"] },
+												AddToken: {
+													type: "object",
+													title: "AddToken",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Operator"] },
+												Operator: {
+													type: "object",
+													title: "Operator",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["RemoveToken"] },
+												RemoveToken: {
+													type: "object",
+													title: "RemoveToken",
+													properties: {},
+												},
+											},
+										},
+									],
+								},
+							},
+						},
+						title: "Roles",
 					},
 				},
 			},
-		},
-		blank_reward_metadata_url: {
-			type: "object",
-			title: "Blank Reward Metadata Url",
-			properties: {
-				url: { type: "string", title: "Url", default: "" },
-				hash: {
-					type: "object",
-					title: "Hash",
-					properties: { tag: { type: "string", enum: ["None", "Some"] } },
-					required: ["tag"],
-					dependencies: {
-						tag: {
-							oneOf: [
-								{
-									properties: {
-										tag: { enum: ["None"] },
-										None: { type: "object", title: "None", properties: {} },
-									},
-								},
-								{
-									properties: {
-										tag: { enum: ["Some"] },
-										Some: {
-											type: "array",
-											items: { type: "string", title: "", default: "" },
-										},
-									},
-								},
-							],
-						},
-					},
-				},
-			},
-		},
-		tracked_token_id: {
-			type: "string",
-			title: "Tracked Token Id",
-			default: "",
-			format: "byte",
-		},
-		min_reward_token_id: {
-			type: "string",
-			title: "Min Reward Token Id",
-			default: "",
-			format: "byte",
+			title: "Agents",
 		},
 	},
 };
 export type initRequestUi = {
-	identity_registry: { index: number; subindex: number };
-	compliance: { index: number; subindex: number };
-	sponsors:
+	security:
 		| { tag: "None"; None: never }
-		| { tag: "Some"; Some: [{ index: number; subindex: number }] };
-	metadata_url: {
-		url: string;
-		hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
-	};
-	blank_reward_metadata_url: {
-		url: string;
-		hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
-	};
-	tracked_token_id: string;
-	min_reward_token_id: string;
+		| {
+				tag: "Some";
+				Some: [
+					{
+						identity_registry: { index: number; subindex: number };
+						compliance: { index: number; subindex: number };
+					},
+				];
+		  };
+	agents: {
+		address:
+			| { tag: "Account"; Account: [string] }
+			| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+		roles:
+			| { tag: "SetIdentityRegistry"; SetIdentityRegistry: never }
+			| { tag: "SetCompliance"; SetCompliance: never }
+			| { tag: "AddAgent"; AddAgent: never }
+			| { tag: "Mint"; Mint: never }
+			| { tag: "ForcedBurn"; ForcedBurn: never }
+			| { tag: "ForcedTransfer"; ForcedTransfer: never }
+			| { tag: "Freeze"; Freeze: never }
+			| { tag: "UnFreeze"; UnFreeze: never }
+			| { tag: "HolderRecovery"; HolderRecovery: never }
+			| { tag: "Pause"; Pause: never }
+			| { tag: "UnPause"; UnPause: never }
+			| { tag: "AddToken"; AddToken: never }
+			| { tag: "Operator"; Operator: never }
+			| { tag: "RemoveToken"; RemoveToken: never }[];
+	}[];
 };
 export const initErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -178,7 +333,6 @@ export const initErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -186,14 +340,8 @@ export const initErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -229,16 +377,6 @@ export const initErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -315,66 +453,6 @@ export const initErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -385,10 +463,10 @@ export const initErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -402,7 +480,6 @@ export type initErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -410,14 +487,8 @@ export type initErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const addAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Agent Request",
@@ -479,7 +550,9 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 							"HolderRecovery",
 							"Pause",
 							"UnPause",
-							"Rewarder",
+							"AddToken",
+							"Operator",
+							"RemoveToken",
 						],
 					},
 				},
@@ -583,10 +656,30 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 							},
 							{
 								properties: {
-									tag: { enum: ["Rewarder"] },
-									Rewarder: {
+									tag: { enum: ["AddToken"] },
+									AddToken: {
 										type: "object",
-										title: "Rewarder",
+										title: "AddToken",
+										properties: {},
+									},
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["Operator"] },
+									Operator: {
+										type: "object",
+										title: "Operator",
+										properties: {},
+									},
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["RemoveToken"] },
+									RemoveToken: {
+										type: "object",
+										title: "RemoveToken",
 										properties: {},
 									},
 								},
@@ -615,7 +708,9 @@ export type AddAgentRequestUi = {
 		| { tag: "HolderRecovery"; HolderRecovery: never }
 		| { tag: "Pause"; Pause: never }
 		| { tag: "UnPause"; UnPause: never }
-		| { tag: "Rewarder"; Rewarder: never }[];
+		| { tag: "AddToken"; AddToken: never }
+		| { tag: "Operator"; Operator: never }
+		| { tag: "RemoveToken"; RemoveToken: never }[];
 };
 export const addAgentErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -628,7 +723,6 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -636,14 +730,8 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -679,16 +767,6 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -765,60 +843,220 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
+						tag: { enum: ["RecoveredAddress"] },
+						RecoveredAddress: {
 							type: "object",
-							title: "AgentNotFound",
+							title: "RecoveredAddress",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "OnlyAccount",
+							title: "SecurityNotSet",
+							properties: {},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type AddAgentErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "InvalidTokenId"; InvalidTokenId: never }
+	| { tag: "InsufficientFunds"; InsufficientFunds: never }
+	| { tag: "Unauthorized"; Unauthorized: never }
+	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
+	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
+	| { tag: "CallContractError"; CallContractError: never }
+	| { tag: "PausedToken"; PausedToken: never }
+	| { tag: "InvalidAmount"; InvalidAmount: never }
+	| { tag: "InvalidAddress"; InvalidAddress: never }
+	| { tag: "RecoveredAddress"; RecoveredAddress: never }
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
+export const addTokenRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Add Token Request",
+	properties: {
+		token_id: {
+			type: "string",
+			title: "Token Id",
+			default: "",
+			format: "byte",
+		},
+		token_metadata: {
+			type: "object",
+			title: "Token Metadata",
+			properties: {
+				url: { type: "string", title: "Url", default: "" },
+				hash: {
+					type: "object",
+					title: "Hash",
+					properties: { tag: { type: "string", enum: ["None", "Some"] } },
+					required: ["tag"],
+					dependencies: {
+						tag: {
+							oneOf: [
+								{
+									properties: {
+										tag: { enum: ["None"] },
+										None: { type: "object", title: "None", properties: {} },
+									},
+								},
+								{
+									properties: {
+										tag: { enum: ["Some"] },
+										Some: {
+											type: "array",
+											items: { type: "string", title: "", default: "" },
+										},
+									},
+								},
+							],
+						},
+					},
+				},
+			},
+		},
+	},
+};
+export type AddTokenRequestUi = {
+	token_id: string;
+	token_metadata: {
+		url: string;
+		hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+	};
+};
+export const addTokenErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Add Token Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"InvalidTokenId",
+				"InsufficientFunds",
+				"Unauthorized",
+				"UnVerifiedIdentity",
+				"InCompliantTransfer",
+				"CallContractError",
+				"PausedToken",
+				"InvalidAmount",
+				"InvalidAddress",
+				"RecoveredAddress",
+				"SecurityNotSet",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidTokenId"] },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
+						tag: { enum: ["InsufficientFunds"] },
+						InsufficientFunds: {
 							type: "object",
-							title: "InvalidDepositData",
+							title: "InsufficientFunds",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
+						tag: { enum: ["Unauthorized"] },
+						Unauthorized: {
 							type: "object",
-							title: "Cis2WithdrawError",
+							title: "Unauthorized",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
+						tag: { enum: ["UnVerifiedIdentity"] },
+						UnVerifiedIdentity: {
 							type: "object",
-							title: "InsufficientDeposits",
+							title: "UnVerifiedIdentity",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
+						tag: { enum: ["InCompliantTransfer"] },
+						InCompliantTransfer: {
 							type: "object",
-							title: "InvalidRewardRate",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractError"] },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["PausedToken"] },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAmount"] },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAddress"] },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
 							properties: {},
 						},
 					},
@@ -835,10 +1073,10 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -847,12 +1085,11 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 		},
 	},
 };
-export type AddAgentErrorUi =
+export type AddTokenErrorUi =
 	| { tag: "ParseError"; ParseError: never }
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -860,14 +1097,8 @@ export type AddAgentErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const balanceOfRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -944,7 +1175,6 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -952,14 +1182,8 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -995,16 +1219,6 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -1081,66 +1295,6 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -1151,10 +1305,10 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -1168,7 +1322,6 @@ export type BalanceOfErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -1176,14 +1329,8 @@ export type BalanceOfErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const balanceOfFrozenRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -1260,7 +1407,6 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -1268,14 +1414,8 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -1311,16 +1451,6 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -1397,66 +1527,6 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -1467,10 +1537,10 @@ export const balanceOfFrozenErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -1484,7 +1554,6 @@ export type BalanceOfFrozenErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -1492,14 +1561,8 @@ export type BalanceOfFrozenErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const balanceOfUnFrozenRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -1576,7 +1639,6 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -1584,14 +1646,8 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -1627,16 +1683,6 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -1713,66 +1759,6 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -1783,10 +1769,10 @@ export const balanceOfUnFrozenErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -1800,7 +1786,6 @@ export type BalanceOfUnFrozenErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -1808,14 +1793,8 @@ export type BalanceOfUnFrozenErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const burnRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -1888,7 +1867,6 @@ export const burnErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -1896,14 +1874,8 @@ export const burnErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -1939,16 +1911,6 @@ export const burnErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -2025,66 +1987,6 @@ export const burnErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -2095,10 +1997,10 @@ export const burnErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -2112,7 +2014,6 @@ export type BurnErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -2120,337 +2021,8 @@ export type BurnErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
-export const claimRewardsRequestJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Claim Rewards Request",
-	properties: {
-		owner: {
-			type: "object",
-			title: "Owner",
-			properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-			required: ["tag"],
-			dependencies: {
-				tag: {
-					oneOf: [
-						{
-							properties: {
-								tag: { enum: ["Account"] },
-								Account: {
-									type: "array",
-									items: { type: "string", title: "" },
-								},
-							},
-						},
-						{
-							properties: {
-								tag: { enum: ["Contract"] },
-								Contract: {
-									type: "array",
-									items: [
-										{
-											type: "object",
-											title: "",
-											properties: {
-												index: { type: "integer", minimum: 0 },
-												subindex: { type: "integer", minimum: 0 },
-											},
-										},
-										{ type: "string", title: "", default: "" },
-									],
-								},
-							},
-						},
-					],
-				},
-			},
-		},
-		claims: {
-			type: "array",
-			items: {
-				type: "object",
-				title: "",
-				properties: {
-					token_id: {
-						type: "string",
-						title: "Token Id",
-						default: "",
-						format: "byte",
-					},
-					amount: { type: "string", title: "Amount" },
-				},
-			},
-			title: "Claims",
-		},
-	},
-};
-export type ClaimRewardsRequestUi = {
-	owner:
-		| { tag: "Account"; Account: [string] }
-		| {
-				tag: "Contract";
-				Contract: [{ index: number; subindex: number }, string];
-		  };
-	claims: { token_id: string; amount: string }[];
-};
-export const claimRewardsErrorJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Claim Rewards Error",
-	properties: {
-		tag: {
-			type: "string",
-			enum: [
-				"ParseError",
-				"LogError",
-				"InvalidTokenId",
-				"InsufficientFunds",
-				"InsufficientRewardFunds",
-				"Unauthorized",
-				"UnVerifiedIdentity",
-				"InCompliantTransfer",
-				"CallContractError",
-				"PausedToken",
-				"InvalidAmount",
-				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
-				"RecoveredAddress",
-				"InvalidRewardTokenId",
-			],
-		},
-	},
-	required: ["tag"],
-	dependencies: {
-		tag: {
-			oneOf: [
-				{
-					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: {
-							type: "object",
-							title: "InvalidTokenId",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: {
-							type: "object",
-							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Unauthorized"] },
-						Unauthorized: {
-							type: "object",
-							title: "Unauthorized",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: {
-							type: "object",
-							title: "UnVerifiedIdentity",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: {
-							type: "object",
-							title: "InCompliantTransfer",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CallContractError"] },
-						CallContractError: {
-							type: "object",
-							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["PausedToken"] },
-						PausedToken: {
-							type: "object",
-							title: "PausedToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: {
-							type: "object",
-							title: "InvalidAmount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: {
-							type: "object",
-							title: "InvalidAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["RecoveredAddress"] },
-						RecoveredAddress: {
-							type: "object",
-							title: "RecoveredAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
-							type: "object",
-							title: "InvalidRewardTokenId",
-							properties: {},
-						},
-					},
-				},
-			],
-		},
-	},
-};
-export type ClaimRewardsErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
-	| { tag: "InvalidTokenId"; InvalidTokenId: never }
-	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
-	| { tag: "Unauthorized"; Unauthorized: never }
-	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
-	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
-	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "PausedToken"; PausedToken: never }
-	| { tag: "InvalidAmount"; InvalidAmount: never }
-	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
-	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const complianceResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Compliance Response",
@@ -2460,678 +2032,6 @@ export const complianceResponseJsonSchema: RJSFSchema = {
 	},
 };
 export type ComplianceResponseUi = { index: number; subindex: number };
-export const forcedBurnRequestJsonSchema: RJSFSchema = {
-	type: "array",
-	items: {
-		type: "object",
-		title: "",
-		properties: {
-			token_id: {
-				type: "string",
-				title: "Token Id",
-				default: "",
-				format: "byte",
-			},
-			amount: { type: "string", title: "Amount" },
-			owner: {
-				type: "object",
-				title: "Owner",
-				properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-				required: ["tag"],
-				dependencies: {
-					tag: {
-						oneOf: [
-							{
-								properties: {
-									tag: { enum: ["Account"] },
-									Account: {
-										type: "array",
-										items: { type: "string", title: "" },
-									},
-								},
-							},
-							{
-								properties: {
-									tag: { enum: ["Contract"] },
-									Contract: {
-										type: "array",
-										items: {
-											type: "object",
-											title: "",
-											properties: {
-												index: { type: "integer", minimum: 0 },
-												subindex: { type: "integer", minimum: 0 },
-											},
-										},
-									},
-								},
-							},
-						],
-					},
-				},
-			},
-		},
-	},
-	title: "Forced Burn Request",
-};
-export type ForcedBurnRequestUi = {
-	token_id: string;
-	amount: string;
-	owner:
-		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-}[];
-export const forcedBurnErrorJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Forced Burn Error",
-	properties: {
-		tag: {
-			type: "string",
-			enum: [
-				"ParseError",
-				"LogError",
-				"InvalidTokenId",
-				"InsufficientFunds",
-				"InsufficientRewardFunds",
-				"Unauthorized",
-				"UnVerifiedIdentity",
-				"InCompliantTransfer",
-				"CallContractError",
-				"PausedToken",
-				"InvalidAmount",
-				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
-				"RecoveredAddress",
-				"InvalidRewardTokenId",
-			],
-		},
-	},
-	required: ["tag"],
-	dependencies: {
-		tag: {
-			oneOf: [
-				{
-					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: {
-							type: "object",
-							title: "InvalidTokenId",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: {
-							type: "object",
-							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Unauthorized"] },
-						Unauthorized: {
-							type: "object",
-							title: "Unauthorized",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: {
-							type: "object",
-							title: "UnVerifiedIdentity",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: {
-							type: "object",
-							title: "InCompliantTransfer",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CallContractError"] },
-						CallContractError: {
-							type: "object",
-							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["PausedToken"] },
-						PausedToken: {
-							type: "object",
-							title: "PausedToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: {
-							type: "object",
-							title: "InvalidAmount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: {
-							type: "object",
-							title: "InvalidAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["RecoveredAddress"] },
-						RecoveredAddress: {
-							type: "object",
-							title: "RecoveredAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
-							type: "object",
-							title: "InvalidRewardTokenId",
-							properties: {},
-						},
-					},
-				},
-			],
-		},
-	},
-};
-export type ForcedBurnErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
-	| { tag: "InvalidTokenId"; InvalidTokenId: never }
-	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
-	| { tag: "Unauthorized"; Unauthorized: never }
-	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
-	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
-	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "PausedToken"; PausedToken: never }
-	| { tag: "InvalidAmount"; InvalidAmount: never }
-	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
-	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
-export const forcedTransferRequestJsonSchema: RJSFSchema = {
-	type: "array",
-	items: {
-		type: "object",
-		title: "",
-		properties: {
-			token_id: {
-				type: "string",
-				title: "Token Id",
-				default: "",
-				format: "byte",
-			},
-			amount: { type: "string", title: "Amount" },
-			from: {
-				type: "object",
-				title: "From",
-				properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-				required: ["tag"],
-				dependencies: {
-					tag: {
-						oneOf: [
-							{
-								properties: {
-									tag: { enum: ["Account"] },
-									Account: {
-										type: "array",
-										items: { type: "string", title: "" },
-									},
-								},
-							},
-							{
-								properties: {
-									tag: { enum: ["Contract"] },
-									Contract: {
-										type: "array",
-										items: {
-											type: "object",
-											title: "",
-											properties: {
-												index: { type: "integer", minimum: 0 },
-												subindex: { type: "integer", minimum: 0 },
-											},
-										},
-									},
-								},
-							},
-						],
-					},
-				},
-			},
-			to: {
-				type: "object",
-				title: "To",
-				properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-				required: ["tag"],
-				dependencies: {
-					tag: {
-						oneOf: [
-							{
-								properties: {
-									tag: { enum: ["Account"] },
-									Account: {
-										type: "array",
-										items: { type: "string", title: "" },
-									},
-								},
-							},
-							{
-								properties: {
-									tag: { enum: ["Contract"] },
-									Contract: {
-										type: "array",
-										items: [
-											{
-												type: "object",
-												title: "",
-												properties: {
-													index: { type: "integer", minimum: 0 },
-													subindex: { type: "integer", minimum: 0 },
-												},
-											},
-											{ type: "string", title: "", default: "" },
-										],
-									},
-								},
-							},
-						],
-					},
-				},
-			},
-			data: { type: "string", title: "Data", default: "", format: "byte" },
-		},
-	},
-	title: "Forced Transfer Request",
-};
-export type ForcedTransferRequestUi = {
-	token_id: string;
-	amount: string;
-	from:
-		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	to:
-		| { tag: "Account"; Account: [string] }
-		| {
-				tag: "Contract";
-				Contract: [{ index: number; subindex: number }, string];
-		  };
-	data: string;
-}[];
-export const forcedTransferErrorJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Forced Transfer Error",
-	properties: {
-		tag: {
-			type: "string",
-			enum: [
-				"ParseError",
-				"LogError",
-				"InvalidTokenId",
-				"InsufficientFunds",
-				"InsufficientRewardFunds",
-				"Unauthorized",
-				"UnVerifiedIdentity",
-				"InCompliantTransfer",
-				"CallContractError",
-				"PausedToken",
-				"InvalidAmount",
-				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
-				"RecoveredAddress",
-				"InvalidRewardTokenId",
-			],
-		},
-	},
-	required: ["tag"],
-	dependencies: {
-		tag: {
-			oneOf: [
-				{
-					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: {
-							type: "object",
-							title: "InvalidTokenId",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: {
-							type: "object",
-							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Unauthorized"] },
-						Unauthorized: {
-							type: "object",
-							title: "Unauthorized",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: {
-							type: "object",
-							title: "UnVerifiedIdentity",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: {
-							type: "object",
-							title: "InCompliantTransfer",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CallContractError"] },
-						CallContractError: {
-							type: "object",
-							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["PausedToken"] },
-						PausedToken: {
-							type: "object",
-							title: "PausedToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: {
-							type: "object",
-							title: "InvalidAmount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: {
-							type: "object",
-							title: "InvalidAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["RecoveredAddress"] },
-						RecoveredAddress: {
-							type: "object",
-							title: "RecoveredAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
-							type: "object",
-							title: "InvalidRewardTokenId",
-							properties: {},
-						},
-					},
-				},
-			],
-		},
-	},
-};
-export type ForcedTransferErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
-	| { tag: "InvalidTokenId"; InvalidTokenId: never }
-	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
-	| { tag: "Unauthorized"; Unauthorized: never }
-	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
-	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
-	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "PausedToken"; PausedToken: never }
-	| { tag: "InvalidAmount"; InvalidAmount: never }
-	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
-	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
 export const freezeRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Freeze Request",
@@ -3209,7 +2109,6 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -3217,14 +2116,8 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -3260,16 +2153,6 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -3346,66 +2229,6 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -3416,10 +2239,10 @@ export const freezeErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -3433,7 +2256,6 @@ export type FreezeErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -3441,14 +2263,8 @@ export type FreezeErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const identityRegistryResponseJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Identity Registry Response",
@@ -3519,7 +2335,9 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 							"HolderRecovery",
 							"Pause",
 							"UnPause",
-							"Rewarder",
+							"AddToken",
+							"Operator",
+							"RemoveToken",
 						],
 					},
 				},
@@ -3623,10 +2441,30 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 							},
 							{
 								properties: {
-									tag: { enum: ["Rewarder"] },
-									Rewarder: {
+									tag: { enum: ["AddToken"] },
+									AddToken: {
 										type: "object",
-										title: "Rewarder",
+										title: "AddToken",
+										properties: {},
+									},
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["Operator"] },
+									Operator: {
+										type: "object",
+										title: "Operator",
+										properties: {},
+									},
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["RemoveToken"] },
+									RemoveToken: {
+										type: "object",
+										title: "RemoveToken",
 										properties: {},
 									},
 								},
@@ -3655,7 +2493,9 @@ export type IsAgentRequestUi = {
 		| { tag: "HolderRecovery"; HolderRecovery: never }
 		| { tag: "Pause"; Pause: never }
 		| { tag: "UnPause"; UnPause: never }
-		| { tag: "Rewarder"; Rewarder: never }[];
+		| { tag: "AddToken"; AddToken: never }
+		| { tag: "Operator"; Operator: never }
+		| { tag: "RemoveToken"; RemoveToken: never }[];
 };
 export const isAgentResponseJsonSchema: RJSFSchema = {
 	type: "boolean",
@@ -3673,7 +2513,6 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -3681,14 +2520,8 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -3724,16 +2557,6 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -3810,66 +2633,6 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -3880,10 +2643,10 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -3897,7 +2660,6 @@ export type IsAgentErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -3905,14 +2667,8 @@ export type IsAgentErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const isPausedRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Is Paused Request",
@@ -3959,7 +2715,6 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -3967,14 +2722,8 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -4010,16 +2759,6 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -4096,66 +2835,6 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -4166,10 +2845,10 @@ export const isPausedErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -4183,7 +2862,6 @@ export type IsPausedErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -4191,14 +2869,8 @@ export type IsPausedErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const mintRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Mint Request",
@@ -4215,8 +2887,56 @@ export const mintRequestJsonSchema: RJSFSchema = {
 				type: "object",
 				title: "",
 				properties: {
-					address: { type: "string", title: "Address" },
-					amount: { type: "string", title: "Amount" },
+					address: {
+						type: "object",
+						title: "Address",
+						properties: {
+							tag: { type: "string", enum: ["Account", "Contract"] },
+						},
+						required: ["tag"],
+						dependencies: {
+							tag: {
+								oneOf: [
+									{
+										properties: {
+											tag: { enum: ["Account"] },
+											Account: {
+												type: "array",
+												items: { type: "string", title: "" },
+											},
+										},
+									},
+									{
+										properties: {
+											tag: { enum: ["Contract"] },
+											Contract: {
+												type: "array",
+												items: [
+													{
+														type: "object",
+														title: "",
+														properties: {
+															index: { type: "integer", minimum: 0 },
+															subindex: { type: "integer", minimum: 0 },
+														},
+													},
+													{ type: "string", title: "", default: "" },
+												],
+											},
+										},
+									},
+								],
+							},
+						},
+					},
+					amount: {
+						type: "object",
+						title: "Amount",
+						properties: {
+							frozen: { type: "string", title: "Frozen" },
+							un_frozen: { type: "string", title: "Un Frozen" },
+						},
+					},
 				},
 			},
 			title: "Owners",
@@ -4225,7 +2945,15 @@ export const mintRequestJsonSchema: RJSFSchema = {
 };
 export type MintRequestUi = {
 	token_id: string;
-	owners: { address: string; amount: string }[];
+	owners: {
+		address:
+			| { tag: "Account"; Account: [string] }
+			| {
+					tag: "Contract";
+					Contract: [{ index: number; subindex: number }, string];
+			  };
+		amount: { frozen: string; un_frozen: string };
+	}[];
 };
 export const mintErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -4238,7 +2966,6 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -4246,14 +2973,8 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -4289,16 +3010,6 @@ export const mintErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -4375,66 +3086,6 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -4445,10 +3096,10 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -4462,7 +3113,6 @@ export type MintErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -4470,14 +3120,8 @@ export type MintErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const operatorOfRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -4587,7 +3231,6 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -4595,14 +3238,8 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -4638,16 +3275,6 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -4724,66 +3351,6 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -4794,10 +3361,10 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -4811,7 +3378,6 @@ export type OperatorOfErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -4819,14 +3385,8 @@ export type OperatorOfErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const pauseRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Pause Request",
@@ -4861,7 +3421,6 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -4869,14 +3428,8 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -4912,16 +3465,6 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -4998,66 +3541,6 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -5068,10 +3551,10 @@ export const pauseErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -5085,7 +3568,6 @@ export type PauseErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -5093,377 +3575,8 @@ export type PauseErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
-export const receiveAddRewardRequestJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Receive Add Reward Request",
-	properties: {
-		token_id: {
-			type: "string",
-			title: "Token Id",
-			default: "",
-			format: "byte",
-		},
-		amount: { type: "string", title: "Amount" },
-		from: {
-			type: "object",
-			title: "From",
-			properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-			required: ["tag"],
-			dependencies: {
-				tag: {
-					oneOf: [
-						{
-							properties: {
-								tag: { enum: ["Account"] },
-								Account: {
-									type: "array",
-									items: { type: "string", title: "" },
-								},
-							},
-						},
-						{
-							properties: {
-								tag: { enum: ["Contract"] },
-								Contract: {
-									type: "array",
-									items: {
-										type: "object",
-										title: "",
-										properties: {
-											index: { type: "integer", minimum: 0 },
-											subindex: { type: "integer", minimum: 0 },
-										},
-									},
-								},
-							},
-						},
-					],
-				},
-			},
-		},
-		data: {
-			type: "object",
-			title: "Data",
-			properties: {
-				metadata_url: {
-					type: "object",
-					title: "Metadata Url",
-					properties: {
-						url: { type: "string", title: "Url", default: "" },
-						hash: {
-							type: "object",
-							title: "Hash",
-							properties: { tag: { type: "string", enum: ["None", "Some"] } },
-							required: ["tag"],
-							dependencies: {
-								tag: {
-									oneOf: [
-										{
-											properties: {
-												tag: { enum: ["None"] },
-												None: { type: "object", title: "None", properties: {} },
-											},
-										},
-										{
-											properties: {
-												tag: { enum: ["Some"] },
-												Some: {
-													type: "array",
-													items: { type: "string", title: "", default: "" },
-												},
-											},
-										},
-									],
-								},
-							},
-						},
-					},
-				},
-				rate: {
-					type: "object",
-					title: "Rate",
-					properties: {
-						numerator: { type: "integer", minimum: 0, title: "Numerator" },
-						denominator: { type: "integer", minimum: 0, title: "Denominator" },
-					},
-				},
-			},
-		},
-	},
-};
-export type ReceiveAddRewardRequestUi = {
-	token_id: string;
-	amount: string;
-	from:
-		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	data: {
-		metadata_url: {
-			url: string;
-			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
-		};
-		rate: { numerator: number; denominator: number };
-	};
-};
-export const receiveAddRewardErrorJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Receive Add Reward Error",
-	properties: {
-		tag: {
-			type: "string",
-			enum: [
-				"ParseError",
-				"LogError",
-				"InvalidTokenId",
-				"InsufficientFunds",
-				"InsufficientRewardFunds",
-				"Unauthorized",
-				"UnVerifiedIdentity",
-				"InCompliantTransfer",
-				"CallContractError",
-				"PausedToken",
-				"InvalidAmount",
-				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
-				"RecoveredAddress",
-				"InvalidRewardTokenId",
-			],
-		},
-	},
-	required: ["tag"],
-	dependencies: {
-		tag: {
-			oneOf: [
-				{
-					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: {
-							type: "object",
-							title: "InvalidTokenId",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: {
-							type: "object",
-							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Unauthorized"] },
-						Unauthorized: {
-							type: "object",
-							title: "Unauthorized",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: {
-							type: "object",
-							title: "UnVerifiedIdentity",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: {
-							type: "object",
-							title: "InCompliantTransfer",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CallContractError"] },
-						CallContractError: {
-							type: "object",
-							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["PausedToken"] },
-						PausedToken: {
-							type: "object",
-							title: "PausedToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: {
-							type: "object",
-							title: "InvalidAmount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: {
-							type: "object",
-							title: "InvalidAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["RecoveredAddress"] },
-						RecoveredAddress: {
-							type: "object",
-							title: "RecoveredAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
-							type: "object",
-							title: "InvalidRewardTokenId",
-							properties: {},
-						},
-					},
-				},
-			],
-		},
-	},
-};
-export type ReceiveAddRewardErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
-	| { tag: "InvalidTokenId"; InvalidTokenId: never }
-	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
-	| { tag: "Unauthorized"; Unauthorized: never }
-	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
-	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
-	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "PausedToken"; PausedToken: never }
-	| { tag: "InvalidAmount"; InvalidAmount: never }
-	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
-	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const recoverRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Recover Request",
@@ -5563,7 +3676,6 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -5571,14 +3683,8 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -5614,16 +3720,6 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -5700,66 +3796,6 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -5770,10 +3806,10 @@ export const recoverErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -5787,7 +3823,6 @@ export type RecoverErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -5795,14 +3830,8 @@ export type RecoverErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const recoveryAddressRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Recovery Address Request",
@@ -5925,7 +3954,6 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -5933,14 +3961,8 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -5976,16 +3998,6 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -6062,66 +4074,6 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -6132,10 +4084,10 @@ export const recoveryAddressErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -6149,7 +4101,6 @@ export type RecoveryAddressErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -6157,14 +4108,8 @@ export type RecoveryAddressErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const removeAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Remove Agent Request",
@@ -6213,7 +4158,6 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -6221,14 +4165,8 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -6264,16 +4202,6 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -6350,60 +4278,174 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
+						tag: { enum: ["RecoveredAddress"] },
+						RecoveredAddress: {
 							type: "object",
-							title: "AgentNotFound",
+							title: "RecoveredAddress",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "OnlyAccount",
+							title: "SecurityNotSet",
+							properties: {},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type RemoveAgentErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "InvalidTokenId"; InvalidTokenId: never }
+	| { tag: "InsufficientFunds"; InsufficientFunds: never }
+	| { tag: "Unauthorized"; Unauthorized: never }
+	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
+	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
+	| { tag: "CallContractError"; CallContractError: never }
+	| { tag: "PausedToken"; PausedToken: never }
+	| { tag: "InvalidAmount"; InvalidAmount: never }
+	| { tag: "InvalidAddress"; InvalidAddress: never }
+	| { tag: "RecoveredAddress"; RecoveredAddress: never }
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
+export const removeTokenRequestJsonSchema: RJSFSchema = {
+	type: "string",
+	title: "Remove Token Request",
+	default: "",
+	format: "byte",
+};
+export type RemoveTokenRequestUi = string;
+export const removeTokenErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Remove Token Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"InvalidTokenId",
+				"InsufficientFunds",
+				"Unauthorized",
+				"UnVerifiedIdentity",
+				"InCompliantTransfer",
+				"CallContractError",
+				"PausedToken",
+				"InvalidAmount",
+				"InvalidAddress",
+				"RecoveredAddress",
+				"SecurityNotSet",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidTokenId"] },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
+						tag: { enum: ["InsufficientFunds"] },
+						InsufficientFunds: {
 							type: "object",
-							title: "InvalidDepositData",
+							title: "InsufficientFunds",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
+						tag: { enum: ["Unauthorized"] },
+						Unauthorized: {
 							type: "object",
-							title: "Cis2WithdrawError",
+							title: "Unauthorized",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
+						tag: { enum: ["UnVerifiedIdentity"] },
+						UnVerifiedIdentity: {
 							type: "object",
-							title: "InsufficientDeposits",
+							title: "UnVerifiedIdentity",
 							properties: {},
 						},
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
+						tag: { enum: ["InCompliantTransfer"] },
+						InCompliantTransfer: {
 							type: "object",
-							title: "InvalidRewardRate",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractError"] },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["PausedToken"] },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAmount"] },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAddress"] },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
 							properties: {},
 						},
 					},
@@ -6420,10 +4462,10 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -6432,12 +4474,11 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 		},
 	},
 };
-export type RemoveAgentErrorUi =
+export type RemoveTokenErrorUi =
 	| { tag: "ParseError"; ParseError: never }
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -6445,14 +4486,8 @@ export type RemoveAgentErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const setComplianceRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Set Compliance Request",
@@ -6473,7 +4508,6 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -6481,14 +4515,8 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -6524,16 +4552,6 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -6610,66 +4628,6 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -6680,10 +4638,10 @@ export const setComplianceErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -6697,7 +4655,6 @@ export type SetComplianceErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -6705,14 +4662,8 @@ export type SetComplianceErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const setIdentityRegistryRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Set Identity Registry Request",
@@ -6733,7 +4684,6 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -6741,14 +4691,8 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -6784,16 +4728,6 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -6870,66 +4804,6 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -6940,10 +4814,10 @@ export const setIdentityRegistryErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -6957,7 +4831,6 @@ export type SetIdentityRegistryErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -6965,14 +4838,8 @@ export type SetIdentityRegistryErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const supportsRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: { type: "string", title: "", default: "" },
@@ -7044,7 +4911,6 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -7052,14 +4918,8 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -7095,16 +4955,6 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -7181,66 +5031,6 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -7251,10 +5041,10 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -7268,7 +5058,6 @@ export type SupportsErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -7276,14 +5065,8 @@ export type SupportsErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const tokenMetadataRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: { type: "string", title: "", default: "", format: "byte" },
@@ -7348,7 +5131,6 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -7356,14 +5138,8 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -7399,16 +5175,6 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -7485,66 +5251,6 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -7555,10 +5261,10 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -7572,7 +5278,6 @@ export type TokenMetadataErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -7580,14 +5285,8 @@ export type TokenMetadataErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const transferRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -7708,7 +5407,6 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -7716,14 +5414,8 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -7759,16 +5451,6 @@ export const transferErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -7845,66 +5527,6 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -7915,10 +5537,10 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -7932,7 +5554,6 @@ export type TransferErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -7940,351 +5561,8 @@ export type TransferErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
-export const transferAddRewardRequestJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Transfer Add Reward Request",
-	properties: {
-		reward_token_contract: {
-			type: "object",
-			title: "Reward Token Contract",
-			properties: {
-				index: { type: "integer", minimum: 0 },
-				subindex: { type: "integer", minimum: 0 },
-			},
-		},
-		reward_token_id: {
-			type: "string",
-			title: "Reward Token Id",
-			default: "",
-			format: "byte",
-		},
-		data: {
-			type: "object",
-			title: "Data",
-			properties: {
-				metadata_url: {
-					type: "object",
-					title: "Metadata Url",
-					properties: {
-						url: { type: "string", title: "Url", default: "" },
-						hash: {
-							type: "object",
-							title: "Hash",
-							properties: { tag: { type: "string", enum: ["None", "Some"] } },
-							required: ["tag"],
-							dependencies: {
-								tag: {
-									oneOf: [
-										{
-											properties: {
-												tag: { enum: ["None"] },
-												None: { type: "object", title: "None", properties: {} },
-											},
-										},
-										{
-											properties: {
-												tag: { enum: ["Some"] },
-												Some: {
-													type: "array",
-													items: { type: "string", title: "", default: "" },
-												},
-											},
-										},
-									],
-								},
-							},
-						},
-					},
-				},
-				rate: {
-					type: "object",
-					title: "Rate",
-					properties: {
-						numerator: { type: "integer", minimum: 0, title: "Numerator" },
-						denominator: { type: "integer", minimum: 0, title: "Denominator" },
-					},
-				},
-			},
-		},
-		token_id: {
-			type: "string",
-			title: "Token Id",
-			default: "",
-			format: "byte",
-		},
-	},
-};
-export type TransferAddRewardRequestUi = {
-	reward_token_contract: { index: number; subindex: number };
-	reward_token_id: string;
-	data: {
-		metadata_url: {
-			url: string;
-			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
-		};
-		rate: { numerator: number; denominator: number };
-	};
-	token_id: string;
-};
-export const transferAddRewardErrorJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Transfer Add Reward Error",
-	properties: {
-		tag: {
-			type: "string",
-			enum: [
-				"ParseError",
-				"LogError",
-				"InvalidTokenId",
-				"InsufficientFunds",
-				"InsufficientRewardFunds",
-				"Unauthorized",
-				"UnVerifiedIdentity",
-				"InCompliantTransfer",
-				"CallContractError",
-				"PausedToken",
-				"InvalidAmount",
-				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
-				"RecoveredAddress",
-				"InvalidRewardTokenId",
-			],
-		},
-	},
-	required: ["tag"],
-	dependencies: {
-		tag: {
-			oneOf: [
-				{
-					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: {
-							type: "object",
-							title: "InvalidTokenId",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: {
-							type: "object",
-							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Unauthorized"] },
-						Unauthorized: {
-							type: "object",
-							title: "Unauthorized",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["UnVerifiedIdentity"] },
-						UnVerifiedIdentity: {
-							type: "object",
-							title: "UnVerifiedIdentity",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InCompliantTransfer"] },
-						InCompliantTransfer: {
-							type: "object",
-							title: "InCompliantTransfer",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CallContractError"] },
-						CallContractError: {
-							type: "object",
-							title: "CallContractError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["PausedToken"] },
-						PausedToken: {
-							type: "object",
-							title: "PausedToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: {
-							type: "object",
-							title: "InvalidAmount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: {
-							type: "object",
-							title: "InvalidAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["RecoveredAddress"] },
-						RecoveredAddress: {
-							type: "object",
-							title: "RecoveredAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
-							type: "object",
-							title: "InvalidRewardTokenId",
-							properties: {},
-						},
-					},
-				},
-			],
-		},
-	},
-};
-export type TransferAddRewardErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
-	| { tag: "InvalidTokenId"; InvalidTokenId: never }
-	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
-	| { tag: "Unauthorized"; Unauthorized: never }
-	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
-	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
-	| { tag: "CallContractError"; CallContractError: never }
-	| { tag: "PausedToken"; PausedToken: never }
-	| { tag: "InvalidAmount"; InvalidAmount: never }
-	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
-	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const unFreezeRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Un Freeze Request",
@@ -8362,7 +5640,6 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -8370,14 +5647,8 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -8413,16 +5684,6 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -8499,66 +5760,6 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -8569,10 +5770,10 @@ export const unFreezeErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -8586,7 +5787,6 @@ export type UnFreezeErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -8594,14 +5794,8 @@ export type UnFreezeErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const unPauseRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Un Pause Request",
@@ -8636,7 +5830,6 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -8644,14 +5837,8 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -8687,16 +5874,6 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -8773,66 +5950,6 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -8843,10 +5960,10 @@ export const unPauseErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -8860,7 +5977,6 @@ export type UnPauseErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -8868,14 +5984,8 @@ export type UnPauseErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const updateOperatorRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -8964,7 +6074,6 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				"LogError",
 				"InvalidTokenId",
 				"InsufficientFunds",
-				"InsufficientRewardFunds",
 				"Unauthorized",
 				"UnVerifiedIdentity",
 				"InCompliantTransfer",
@@ -8972,14 +6081,8 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				"PausedToken",
 				"InvalidAmount",
 				"InvalidAddress",
-				"AgentNotFound",
-				"OnlyAccount",
-				"InvalidDepositData",
-				"Cis2WithdrawError",
-				"InsufficientDeposits",
-				"InvalidRewardRate",
 				"RecoveredAddress",
-				"InvalidRewardTokenId",
+				"SecurityNotSet",
 			],
 		},
 	},
@@ -9015,16 +6118,6 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 						InsufficientFunds: {
 							type: "object",
 							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientRewardFunds"] },
-						InsufficientRewardFunds: {
-							type: "object",
-							title: "InsufficientRewardFunds",
 							properties: {},
 						},
 					},
@@ -9101,66 +6194,6 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["AgentNotFound"] },
-						AgentNotFound: {
-							type: "object",
-							title: "AgentNotFound",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["OnlyAccount"] },
-						OnlyAccount: {
-							type: "object",
-							title: "OnlyAccount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidDepositData"] },
-						InvalidDepositData: {
-							type: "object",
-							title: "InvalidDepositData",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Cis2WithdrawError"] },
-						Cis2WithdrawError: {
-							type: "object",
-							title: "Cis2WithdrawError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientDeposits"] },
-						InsufficientDeposits: {
-							type: "object",
-							title: "InsufficientDeposits",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardRate"] },
-						InvalidRewardRate: {
-							type: "object",
-							title: "InvalidRewardRate",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["RecoveredAddress"] },
 						RecoveredAddress: {
 							type: "object",
@@ -9171,10 +6204,10 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardTokenId"] },
-						InvalidRewardTokenId: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
 							type: "object",
-							title: "InvalidRewardTokenId",
+							title: "SecurityNotSet",
 							properties: {},
 						},
 					},
@@ -9188,7 +6221,6 @@ export type UpdateOperatorErrorUi =
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
 	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "InsufficientRewardFunds"; InsufficientRewardFunds: never }
 	| { tag: "Unauthorized"; Unauthorized: never }
 	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
 	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
@@ -9196,14 +6228,8 @@ export type UpdateOperatorErrorUi =
 	| { tag: "PausedToken"; PausedToken: never }
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "AgentNotFound"; AgentNotFound: never }
-	| { tag: "OnlyAccount"; OnlyAccount: never }
-	| { tag: "InvalidDepositData"; InvalidDepositData: never }
-	| { tag: "Cis2WithdrawError"; Cis2WithdrawError: never }
-	| { tag: "InsufficientDeposits"; InsufficientDeposits: never }
-	| { tag: "InvalidRewardRate"; InvalidRewardRate: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
-	| { tag: "InvalidRewardTokenId"; InvalidRewardTokenId: never };
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
 	uiSchema?: UiSchema;
@@ -9241,6 +6267,24 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.addAgentRequestSchemaBase64,
 			errorJsonSchema: addAgentErrorJsonSchema,
 			errorSchemaBase64: types.addAgentErrorSchemaBase64,
+		}),
+	addToken: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.AddTokenRequest,
+			AddTokenRequestUi,
+			types.AddTokenError,
+			AddTokenErrorUi
+		>({
+			...props,
+			method: client.addToken,
+			requestJsonSchema: addTokenRequestJsonSchema,
+			requestSchemaBase64: types.addTokenRequestSchemaBase64,
+			errorJsonSchema: addTokenErrorJsonSchema,
+			errorSchemaBase64: types.addTokenErrorSchemaBase64,
 		}),
 	balanceOf: (props: {
 		contract: ContractAddress.Type;
@@ -9326,24 +6370,6 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: burnErrorJsonSchema,
 			errorSchemaBase64: types.burnErrorSchemaBase64,
 		}),
-	claimRewards: (props: {
-		contract: ContractAddress.Type;
-		uiSchema?: UiSchema;
-		uiWidgets?: RegistryWidgetsType;
-	}) =>
-		GenericUpdate<
-			types.ClaimRewardsRequest,
-			ClaimRewardsRequestUi,
-			types.ClaimRewardsError,
-			ClaimRewardsErrorUi
-		>({
-			...props,
-			method: client.claimRewards,
-			requestJsonSchema: claimRewardsRequestJsonSchema,
-			requestSchemaBase64: types.claimRewardsRequestSchemaBase64,
-			errorJsonSchema: claimRewardsErrorJsonSchema,
-			errorSchemaBase64: types.claimRewardsErrorSchemaBase64,
-		}),
 	compliance: (props: {
 		contract: ContractAddress.Type;
 		uiSchema?: UiSchema;
@@ -9361,42 +6387,6 @@ export const ENTRYPOINTS_UI: {
 			method: client.compliance,
 			responseJsonSchema: complianceResponseJsonSchema,
 			responseSchemaBase64: types.complianceResponseSchemaBase64,
-		}),
-	forcedBurn: (props: {
-		contract: ContractAddress.Type;
-		uiSchema?: UiSchema;
-		uiWidgets?: RegistryWidgetsType;
-	}) =>
-		GenericUpdate<
-			types.ForcedBurnRequest,
-			ForcedBurnRequestUi,
-			types.ForcedBurnError,
-			ForcedBurnErrorUi
-		>({
-			...props,
-			method: client.forcedBurn,
-			requestJsonSchema: forcedBurnRequestJsonSchema,
-			requestSchemaBase64: types.forcedBurnRequestSchemaBase64,
-			errorJsonSchema: forcedBurnErrorJsonSchema,
-			errorSchemaBase64: types.forcedBurnErrorSchemaBase64,
-		}),
-	forcedTransfer: (props: {
-		contract: ContractAddress.Type;
-		uiSchema?: UiSchema;
-		uiWidgets?: RegistryWidgetsType;
-	}) =>
-		GenericUpdate<
-			types.ForcedTransferRequest,
-			ForcedTransferRequestUi,
-			types.ForcedTransferError,
-			ForcedTransferErrorUi
-		>({
-			...props,
-			method: client.forcedTransfer,
-			requestJsonSchema: forcedTransferRequestJsonSchema,
-			requestSchemaBase64: types.forcedTransferRequestSchemaBase64,
-			errorJsonSchema: forcedTransferErrorJsonSchema,
-			errorSchemaBase64: types.forcedTransferErrorSchemaBase64,
 		}),
 	freeze: (props: {
 		contract: ContractAddress.Type;
@@ -9536,24 +6526,6 @@ export const ENTRYPOINTS_UI: {
 			errorJsonSchema: pauseErrorJsonSchema,
 			errorSchemaBase64: types.pauseErrorSchemaBase64,
 		}),
-	receiveAddReward: (props: {
-		contract: ContractAddress.Type;
-		uiSchema?: UiSchema;
-		uiWidgets?: RegistryWidgetsType;
-	}) =>
-		GenericUpdate<
-			types.ReceiveAddRewardRequest,
-			ReceiveAddRewardRequestUi,
-			types.ReceiveAddRewardError,
-			ReceiveAddRewardErrorUi
-		>({
-			...props,
-			method: client.receiveAddReward,
-			requestJsonSchema: receiveAddRewardRequestJsonSchema,
-			requestSchemaBase64: types.receiveAddRewardRequestSchemaBase64,
-			errorJsonSchema: receiveAddRewardErrorJsonSchema,
-			errorSchemaBase64: types.receiveAddRewardErrorSchemaBase64,
-		}),
 	recover: (props: {
 		contract: ContractAddress.Type;
 		uiSchema?: UiSchema;
@@ -9611,6 +6583,24 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.removeAgentRequestSchemaBase64,
 			errorJsonSchema: removeAgentErrorJsonSchema,
 			errorSchemaBase64: types.removeAgentErrorSchemaBase64,
+		}),
+	removeToken: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.RemoveTokenRequest,
+			RemoveTokenRequestUi,
+			types.RemoveTokenError,
+			RemoveTokenErrorUi
+		>({
+			...props,
+			method: client.removeToken,
+			requestJsonSchema: removeTokenRequestJsonSchema,
+			requestSchemaBase64: types.removeTokenRequestSchemaBase64,
+			errorJsonSchema: removeTokenErrorJsonSchema,
+			errorSchemaBase64: types.removeTokenErrorSchemaBase64,
 		}),
 	setCompliance: (props: {
 		contract: ContractAddress.Type;
@@ -9709,24 +6699,6 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.transferRequestSchemaBase64,
 			errorJsonSchema: transferErrorJsonSchema,
 			errorSchemaBase64: types.transferErrorSchemaBase64,
-		}),
-	transferAddReward: (props: {
-		contract: ContractAddress.Type;
-		uiSchema?: UiSchema;
-		uiWidgets?: RegistryWidgetsType;
-	}) =>
-		GenericUpdate<
-			types.TransferAddRewardRequest,
-			TransferAddRewardRequestUi,
-			types.TransferAddRewardError,
-			TransferAddRewardErrorUi
-		>({
-			...props,
-			method: client.transferAddReward,
-			requestJsonSchema: transferAddRewardRequestJsonSchema,
-			requestSchemaBase64: types.transferAddRewardRequestSchemaBase64,
-			errorJsonSchema: transferAddRewardErrorJsonSchema,
-			errorSchemaBase64: types.transferAddRewardErrorSchemaBase64,
 		}),
 	unFreeze: (props: {
 		contract: ContractAddress.Type;

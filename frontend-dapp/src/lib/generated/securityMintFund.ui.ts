@@ -18,21 +18,6 @@ export const initRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Init Request",
 	properties: {
-		token: {
-			type: "object",
-			title: "Token",
-			properties: {
-				contract: {
-					type: "object",
-					title: "Contract",
-					properties: {
-						index: { type: "integer", minimum: 0 },
-						subindex: { type: "integer", minimum: 0 },
-					},
-				},
-				id: { type: "string", title: "Id", default: "", format: "byte" },
-			},
-		},
 		currency_token: {
 			type: "object",
 			title: "Currency Token",
@@ -48,128 +33,135 @@ export const initRequestJsonSchema: RJSFSchema = {
 				id: { type: "string", title: "Id", default: "", format: "byte" },
 			},
 		},
-		investment_token: {
-			type: "object",
-			title: "Investment Token",
-			properties: {
-				contract: {
-					type: "object",
-					title: "Contract",
-					properties: {
-						index: { type: "integer", minimum: 0 },
-						subindex: { type: "integer", minimum: 0 },
-					},
-				},
-				id: { type: "string", title: "Id", default: "", format: "byte" },
-			},
-		},
-		rate: {
-			type: "object",
-			title: "Rate",
-			properties: {
-				numerator: { type: "integer", minimum: 0, title: "Numerator" },
-				denominator: { type: "integer", minimum: 0, title: "Denominator" },
-			},
-		},
-		fund_state: {
-			type: "object",
-			title: "Fund State",
-			properties: {
-				tag: { type: "string", enum: ["Open", "Success", "Fail"] },
-			},
-			required: ["tag"],
-			dependencies: {
-				tag: {
-					oneOf: [
-						{
-							properties: {
-								tag: { enum: ["Open"] },
-								Open: { type: "object", title: "Open", properties: {} },
-							},
+		agents: {
+			type: "array",
+			items: {
+				type: "object",
+				title: "",
+				properties: {
+					address: {
+						type: "object",
+						title: "Address",
+						properties: {
+							tag: { type: "string", enum: ["Account", "Contract"] },
 						},
-						{
-							properties: {
-								tag: { enum: ["Success"] },
-								Success: {
-									type: "array",
-									items: {
-										type: "object",
-										title: "",
+						required: ["tag"],
+						dependencies: {
+							tag: {
+								oneOf: [
+									{
 										properties: {
-											tag: { type: "string", enum: ["Account", "Contract"] },
-										},
-										required: ["tag"],
-										dependencies: {
-											tag: {
-												oneOf: [
-													{
-														properties: {
-															tag: { enum: ["Account"] },
-															Account: {
-																type: "array",
-																items: { type: "string", title: "" },
-															},
-														},
-													},
-													{
-														properties: {
-															tag: { enum: ["Contract"] },
-															Contract: {
-																type: "array",
-																items: [
-																	{
-																		type: "object",
-																		title: "",
-																		properties: {
-																			index: { type: "integer", minimum: 0 },
-																			subindex: { type: "integer", minimum: 0 },
-																		},
-																	},
-																	{ type: "string", title: "", default: "" },
-																],
-															},
-														},
-													},
-												],
+											tag: { enum: ["Account"] },
+											Account: {
+												type: "array",
+												items: { type: "string", title: "" },
 											},
 										},
 									},
+									{
+										properties: {
+											tag: { enum: ["Contract"] },
+											Contract: {
+												type: "array",
+												items: {
+													type: "object",
+													title: "",
+													properties: {
+														index: { type: "integer", minimum: 0 },
+														subindex: { type: "integer", minimum: 0 },
+													},
+												},
+											},
+										},
+									},
+								],
+							},
+						},
+					},
+					roles: {
+						type: "array",
+						items: {
+							type: "object",
+							title: "",
+							properties: {
+								tag: {
+									type: "string",
+									enum: [
+										"AddFund",
+										"RemoveFund",
+										"UpdateFundState",
+										"Operator",
+									],
+								},
+							},
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["AddFund"] },
+												AddFund: {
+													type: "object",
+													title: "AddFund",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["RemoveFund"] },
+												RemoveFund: {
+													type: "object",
+													title: "RemoveFund",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["UpdateFundState"] },
+												UpdateFundState: {
+													type: "object",
+													title: "UpdateFundState",
+													properties: {},
+												},
+											},
+										},
+										{
+											properties: {
+												tag: { enum: ["Operator"] },
+												Operator: {
+													type: "object",
+													title: "Operator",
+													properties: {},
+												},
+											},
+										},
+									],
 								},
 							},
 						},
-						{
-							properties: {
-								tag: { enum: ["Fail"] },
-								Fail: { type: "object", title: "Fail", properties: {} },
-							},
-						},
-					],
+						title: "Roles",
+					},
 				},
 			},
+			title: "Agents",
 		},
 	},
 };
 export type initRequestUi = {
-	token: { contract: { index: number; subindex: number }; id: string };
 	currency_token: { contract: { index: number; subindex: number }; id: string };
-	investment_token: {
-		contract: { index: number; subindex: number };
-		id: string;
-	};
-	rate: { numerator: number; denominator: number };
-	fund_state:
-		| { tag: "Open"; Open: never }
-		| {
-				tag: "Success";
-				Success: [
-					| { tag: "Account"; Account: [string] }
-					| {
-							tag: "Contract";
-							Contract: [{ index: number; subindex: number }, string];
-					  },
-				];
-		  }
-		| { tag: "Fail"; Fail: never };
+	agents: {
+		address:
+			| { tag: "Account"; Account: [string] }
+			| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+		roles:
+			| { tag: "AddFund"; AddFund: never }
+			| { tag: "RemoveFund"; RemoveFund: never }
+			| { tag: "UpdateFundState"; UpdateFundState: never }
+			| { tag: "Operator"; Operator: never }[];
+	}[];
 };
 export const initErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -185,9 +177,14 @@ export const initErrorJsonSchema: RJSFSchema = {
 				"InvalidConversion",
 				"InvalidFundState",
 				"TokenMint",
-				"TokenFreeze",
-				"TokenForceBurn",
+				"TokenBurn",
 				"TokenBalance",
+				"TokenUnFreeze",
+				"InvalidFundId",
+				"InvalidInvestor",
+				"NonExistentToken",
+				"AgentExists",
+				"FundExists",
 			],
 		},
 	},
@@ -255,22 +252,8 @@ export const initErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["TokenFreeze"] },
-						TokenFreeze: {
-							type: "object",
-							title: "TokenFreeze",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["TokenForceBurn"] },
-						TokenForceBurn: {
-							type: "object",
-							title: "TokenForceBurn",
-							properties: {},
-						},
+						tag: { enum: ["TokenBurn"] },
+						TokenBurn: { type: "object", title: "TokenBurn", properties: {} },
 					},
 				},
 				{
@@ -281,6 +264,62 @@ export const initErrorJsonSchema: RJSFSchema = {
 							title: "TokenBalance",
 							properties: {},
 						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TokenUnFreeze"] },
+						TokenUnFreeze: {
+							type: "object",
+							title: "TokenUnFreeze",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidFundId"] },
+						InvalidFundId: {
+							type: "object",
+							title: "InvalidFundId",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidInvestor"] },
+						InvalidInvestor: {
+							type: "object",
+							title: "InvalidInvestor",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["NonExistentToken"] },
+						NonExistentToken: {
+							type: "object",
+							title: "NonExistentToken",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["AgentExists"] },
+						AgentExists: {
+							type: "object",
+							title: "AgentExists",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["FundExists"] },
+						FundExists: { type: "object", title: "FundExists", properties: {} },
 					},
 				},
 			],
@@ -295,29 +334,172 @@ export type initErrorUi =
 	| { tag: "InvalidConversion"; InvalidConversion: never }
 	| { tag: "InvalidFundState"; InvalidFundState: never }
 	| { tag: "TokenMint"; TokenMint: never }
-	| { tag: "TokenFreeze"; TokenFreeze: never }
-	| { tag: "TokenForceBurn"; TokenForceBurn: never }
-	| { tag: "TokenBalance"; TokenBalance: never };
-export const cancelInvestmentRequestJsonSchema: RJSFSchema = {
+	| { tag: "TokenBurn"; TokenBurn: never }
+	| { tag: "TokenBalance"; TokenBalance: never }
+	| { tag: "TokenUnFreeze"; TokenUnFreeze: never }
+	| { tag: "InvalidFundId"; InvalidFundId: never }
+	| { tag: "InvalidInvestor"; InvalidInvestor: never }
+	| { tag: "NonExistentToken"; NonExistentToken: never }
+	| { tag: "AgentExists"; AgentExists: never }
+	| { tag: "FundExists"; FundExists: never };
+export const addAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
-	title: "Cancel Investment Request",
+	title: "Add Agent Request",
 	properties: {
-		investments: {
+		address: {
+			type: "object",
+			title: "Address",
+			properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
+			required: ["tag"],
+			dependencies: {
+				tag: {
+					oneOf: [
+						{
+							properties: {
+								tag: { enum: ["Account"] },
+								Account: {
+									type: "array",
+									items: { type: "string", title: "" },
+								},
+							},
+						},
+						{
+							properties: {
+								tag: { enum: ["Contract"] },
+								Contract: {
+									type: "array",
+									items: {
+										type: "object",
+										title: "",
+										properties: {
+											index: { type: "integer", minimum: 0 },
+											subindex: { type: "integer", minimum: 0 },
+										},
+									},
+								},
+							},
+						},
+					],
+				},
+			},
+		},
+		roles: {
 			type: "array",
 			items: {
 				type: "object",
 				title: "",
 				properties: {
-					investor: { type: "string", title: "Investor" },
-					amount: { type: "string", title: "Amount" },
+					tag: {
+						type: "string",
+						enum: ["AddFund", "RemoveFund", "UpdateFundState", "Operator"],
+					},
+				},
+				required: ["tag"],
+				dependencies: {
+					tag: {
+						oneOf: [
+							{
+								properties: {
+									tag: { enum: ["AddFund"] },
+									AddFund: { type: "object", title: "AddFund", properties: {} },
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["RemoveFund"] },
+									RemoveFund: {
+										type: "object",
+										title: "RemoveFund",
+										properties: {},
+									},
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["UpdateFundState"] },
+									UpdateFundState: {
+										type: "object",
+										title: "UpdateFundState",
+										properties: {},
+									},
+								},
+							},
+							{
+								properties: {
+									tag: { enum: ["Operator"] },
+									Operator: {
+										type: "object",
+										title: "Operator",
+										properties: {},
+									},
+								},
+							},
+						],
+					},
 				},
 			},
-			title: "Investments",
+			title: "Roles",
 		},
 	},
 };
-export type CancelInvestmentRequestUi = {
-	investments: { investor: string; amount: string }[];
+export type AddAgentRequestUi = {
+	address:
+		| { tag: "Account"; Account: [string] }
+		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+	roles:
+		| { tag: "AddFund"; AddFund: never }
+		| { tag: "RemoveFund"; RemoveFund: never }
+		| { tag: "UpdateFundState"; UpdateFundState: never }
+		| { tag: "Operator"; Operator: never }[];
+};
+export const addFundRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Add Fund Request",
+	properties: {
+		token: {
+			type: "object",
+			title: "Token",
+			properties: {
+				contract: {
+					type: "object",
+					title: "Contract",
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
+				},
+				id: { type: "string", title: "Id", default: "", format: "byte" },
+			},
+		},
+		rate: {
+			type: "object",
+			title: "Rate",
+			properties: {
+				numerator: { type: "integer", minimum: 0, title: "Numerator" },
+				denominator: { type: "integer", minimum: 0, title: "Denominator" },
+			},
+		},
+		security_token: {
+			type: "object",
+			title: "Security Token",
+			properties: {
+				contract: {
+					type: "object",
+					title: "Contract",
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
+				},
+				id: { type: "string", title: "Id", default: "", format: "byte" },
+			},
+		},
+	},
+};
+export type AddFundRequestUi = {
+	token: { contract: { index: number; subindex: number }; id: string };
+	rate: { numerator: number; denominator: number };
+	security_token: { contract: { index: number; subindex: number }; id: string };
 };
 export const claimInvestmentRequestJsonSchema: RJSFSchema = {
 	type: "object",
@@ -328,13 +510,38 @@ export const claimInvestmentRequestJsonSchema: RJSFSchema = {
 			items: {
 				type: "object",
 				title: "",
-				properties: { investor: { type: "string", title: "Investor" } },
+				properties: {
+					security_token: {
+						type: "object",
+						title: "Security Token",
+						properties: {
+							contract: {
+								type: "object",
+								title: "Contract",
+								properties: {
+									index: { type: "integer", minimum: 0 },
+									subindex: { type: "integer", minimum: 0 },
+								},
+							},
+							id: { type: "string", title: "Id", default: "", format: "byte" },
+						},
+					},
+					investor: { type: "string", title: "Investor" },
+				},
 			},
 			title: "Investments",
 		},
 	},
 };
-export type ClaimInvestmentRequestUi = { investments: { investor: string }[] };
+export type ClaimInvestmentRequestUi = {
+	investments: {
+		security_token: {
+			contract: { index: number; subindex: number };
+			id: string;
+		};
+		investor: string;
+	}[];
+};
 export const investRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Invest Request",
@@ -383,7 +590,21 @@ export const investRequestJsonSchema: RJSFSchema = {
 				},
 			},
 		},
-		data: { type: "string", title: "Data", default: "", format: "byte" },
+		data: {
+			type: "object",
+			title: "Data",
+			properties: {
+				contract: {
+					type: "object",
+					title: "Contract",
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
+				},
+				id: { type: "string", title: "Id", default: "", format: "byte" },
+			},
+		},
 	},
 };
 export type InvestRequestUi = {
@@ -392,101 +613,194 @@ export type InvestRequestUi = {
 	from:
 		| { tag: "Account"; Account: [string] }
 		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	data: string;
+	data: { contract: { index: number; subindex: number }; id: string };
 };
-export const transferInvestRequestJsonSchema: RJSFSchema = {
+export const removeAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
-	title: "Transfer Invest Request",
-	properties: { amount: { type: "string", title: "Amount" } },
-};
-export type TransferInvestRequestUi = { amount: string };
-export const updateFundStateRequestJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Update Fund State Request",
-	properties: { tag: { type: "string", enum: ["Open", "Success", "Fail"] } },
+	title: "Remove Agent Request",
+	properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
 	required: ["tag"],
 	dependencies: {
 		tag: {
 			oneOf: [
 				{
 					properties: {
-						tag: { enum: ["Open"] },
-						Open: { type: "object", title: "Open", properties: {} },
+						tag: { enum: ["Account"] },
+						Account: { type: "array", items: { type: "string", title: "" } },
 					},
 				},
 				{
 					properties: {
-						tag: { enum: ["Success"] },
-						Success: {
+						tag: { enum: ["Contract"] },
+						Contract: {
 							type: "array",
 							items: {
 								type: "object",
 								title: "",
 								properties: {
-									tag: { type: "string", enum: ["Account", "Contract"] },
-								},
-								required: ["tag"],
-								dependencies: {
-									tag: {
-										oneOf: [
-											{
-												properties: {
-													tag: { enum: ["Account"] },
-													Account: {
-														type: "array",
-														items: { type: "string", title: "" },
-													},
-												},
-											},
-											{
-												properties: {
-													tag: { enum: ["Contract"] },
-													Contract: {
-														type: "array",
-														items: [
-															{
-																type: "object",
-																title: "",
-																properties: {
-																	index: { type: "integer", minimum: 0 },
-																	subindex: { type: "integer", minimum: 0 },
-																},
-															},
-															{ type: "string", title: "", default: "" },
-														],
-													},
-												},
-											},
-										],
-									},
+									index: { type: "integer", minimum: 0 },
+									subindex: { type: "integer", minimum: 0 },
 								},
 							},
 						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Fail"] },
-						Fail: { type: "object", title: "Fail", properties: {} },
 					},
 				},
 			],
 		},
 	},
 };
-export type UpdateFundStateRequestUi =
-	| { tag: "Open"; Open: never }
-	| {
-			tag: "Success";
-			Success: [
-				| { tag: "Account"; Account: [string] }
-				| {
-						tag: "Contract";
-						Contract: [{ index: number; subindex: number }, string];
-				  },
-			];
-	  }
-	| { tag: "Fail"; Fail: never };
+export type RemoveAgentRequestUi =
+	| { tag: "Account"; Account: [string] }
+	| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
+export const removeFundRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Remove Fund Request",
+	properties: {
+		contract: {
+			type: "object",
+			title: "Contract",
+			properties: {
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
+			},
+		},
+		id: { type: "string", title: "Id", default: "", format: "byte" },
+	},
+};
+export type RemoveFundRequestUi = {
+	contract: { index: number; subindex: number };
+	id: string;
+};
+export const transferInvestRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Transfer Invest Request",
+	properties: {
+		amount: { type: "string", title: "Amount" },
+		security_token: {
+			type: "object",
+			title: "Security Token",
+			properties: {
+				contract: {
+					type: "object",
+					title: "Contract",
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
+				},
+				id: { type: "string", title: "Id", default: "", format: "byte" },
+			},
+		},
+	},
+};
+export type TransferInvestRequestUi = {
+	amount: string;
+	security_token: { contract: { index: number; subindex: number }; id: string };
+};
+export const updateFundStateRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Update Fund State Request",
+	properties: {
+		security_token: {
+			type: "object",
+			title: "Security Token",
+			properties: {
+				contract: {
+					type: "object",
+					title: "Contract",
+					properties: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
+				},
+				id: { type: "string", title: "Id", default: "", format: "byte" },
+			},
+		},
+		state: {
+			type: "object",
+			title: "State",
+			properties: { tag: { type: "string", enum: ["Success", "Fail"] } },
+			required: ["tag"],
+			dependencies: {
+				tag: {
+					oneOf: [
+						{
+							properties: {
+								tag: { enum: ["Success"] },
+								Success: {
+									type: "array",
+									items: {
+										type: "object",
+										title: "",
+										properties: {
+											tag: { type: "string", enum: ["Account", "Contract"] },
+										},
+										required: ["tag"],
+										dependencies: {
+											tag: {
+												oneOf: [
+													{
+														properties: {
+															tag: { enum: ["Account"] },
+															Account: {
+																type: "array",
+																items: { type: "string", title: "" },
+															},
+														},
+													},
+													{
+														properties: {
+															tag: { enum: ["Contract"] },
+															Contract: {
+																type: "array",
+																items: [
+																	{
+																		type: "object",
+																		title: "",
+																		properties: {
+																			index: { type: "integer", minimum: 0 },
+																			subindex: { type: "integer", minimum: 0 },
+																		},
+																	},
+																	{ type: "string", title: "", default: "" },
+																],
+															},
+														},
+													},
+												],
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							properties: {
+								tag: { enum: ["Fail"] },
+								Fail: { type: "object", title: "Fail", properties: {} },
+							},
+						},
+					],
+				},
+			},
+		},
+	},
+};
+export type UpdateFundStateRequestUi = {
+	security_token: { contract: { index: number; subindex: number }; id: string };
+	state:
+		| {
+				tag: "Success";
+				Success: [
+					| { tag: "Account"; Account: [string] }
+					| {
+							tag: "Contract";
+							Contract: [{ index: number; subindex: number }, string];
+					  },
+				];
+		  }
+		| { tag: "Fail"; Fail: never };
+};
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
 	uiSchema?: UiSchema;
@@ -507,21 +821,27 @@ export const ENTRYPOINTS_UI: {
 		uiWidgets?: RegistryWidgetsType;
 	}) => React.JSX.Element;
 } = {
-	cancelInvestment: (props: {
+	addAgent: (props: {
 		contract: ContractAddress.Type;
 		uiSchema?: UiSchema;
 		uiWidgets?: RegistryWidgetsType;
 	}) =>
-		GenericUpdate<
-			types.CancelInvestmentRequest,
-			CancelInvestmentRequestUi,
-			never,
-			never
-		>({
+		GenericUpdate<types.AddAgentRequest, AddAgentRequestUi, never, never>({
 			...props,
-			method: client.cancelInvestment,
-			requestJsonSchema: cancelInvestmentRequestJsonSchema,
-			requestSchemaBase64: types.cancelInvestmentRequestSchemaBase64,
+			method: client.addAgent,
+			requestJsonSchema: addAgentRequestJsonSchema,
+			requestSchemaBase64: types.addAgentRequestSchemaBase64,
+		}),
+	addFund: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<types.AddFundRequest, AddFundRequestUi, never, never>({
+			...props,
+			method: client.addFund,
+			requestJsonSchema: addFundRequestJsonSchema,
+			requestSchemaBase64: types.addFundRequestSchemaBase64,
 		}),
 	claimInvestment: (props: {
 		contract: ContractAddress.Type;
@@ -549,6 +869,30 @@ export const ENTRYPOINTS_UI: {
 			method: client.invest,
 			requestJsonSchema: investRequestJsonSchema,
 			requestSchemaBase64: types.investRequestSchemaBase64,
+		}),
+	removeAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<types.RemoveAgentRequest, RemoveAgentRequestUi, never, never>(
+			{
+				...props,
+				method: client.removeAgent,
+				requestJsonSchema: removeAgentRequestJsonSchema,
+				requestSchemaBase64: types.removeAgentRequestSchemaBase64,
+			},
+		),
+	removeFund: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<types.RemoveFundRequest, RemoveFundRequestUi, never, never>({
+			...props,
+			method: client.removeFund,
+			requestJsonSchema: removeFundRequestJsonSchema,
+			requestSchemaBase64: types.removeFundRequestSchemaBase64,
 		}),
 	transferInvest: (props: {
 		contract: ContractAddress.Type;

@@ -1,13 +1,13 @@
 .not-found {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 70vh;
-    text-align: center;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	height: 70vh;
+	text-align: center;
 }
 
 .not-found-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+	font-size: 3rem;
+	margin-bottom: 1rem;
 }

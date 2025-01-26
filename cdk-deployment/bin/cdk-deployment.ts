@@ -174,10 +174,9 @@ new BackendApiStack(app, "BackendApiStack", {
 		? parseInt(process.env.API_DB_POOL_MAX_SIZE)
 		: BACKEND_DB_POOL_MAX_SIZE,
 	containerCount: 1,
-	userChallengeExpiryDurationMins: 1,
 	treeNftAgentWalletJsonStr: cdk.SecretValue.unsafePlainText(
 		process.env.TREE_NFT_AGENT_WALLET_JSON_STR ||
-			TREE_NFT_AGENT_WALLET_JSON_STR,
+		TREE_NFT_AGENT_WALLET_JSON_STR,
 	),
 	memoryReservationSoftMiB: 50,
 });
