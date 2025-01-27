@@ -26,13 +26,20 @@ export default function Register() {
 				</div>
 			</div>
 			<div className="field mrbottom">
-				<Button text={"CONTINUE WITH DIGITAL WALLET CREATION"} link="/register/download-wallet" active={true} />
+				<Button
+					style={"style3"}
+					radius16={true}
+					text={"CONTINUE WITH DIGITAL WALLET CREATION"}
+					link={""}
+					active={false}
+					call={() => {}}
+				/>
 			</div>
 			<div className="or">
 				<span>OR</span>
 			</div>
 			<div className="field mrbottom">
-				<Button style={"style3"} text={"CONNECT IF YOU HAVE CONCORDIUM WALLET"} link={""} active={false} />
+				<Button style={"style3"} radius16={true} text={"CONNECT IF YOU HAVE CONCORDIUM WALLET"} link={""} active={false} />
 			</div>
 			<div className="divider"></div>
 		</div>

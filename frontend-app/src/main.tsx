@@ -13,6 +13,8 @@ import "./styles/newsCard.css";
 import "./styles/newsDetail.css";
 import "./styles/wallet.css";
 import "./styles/investmentportfolio.css";
+import "./styles/contract.css";
+import "./styles/settings.css";
 import "./styles/responsive.css";
 import App from "./App";
 import { BrowserRouter } from "react-router";

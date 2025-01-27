@@ -494,15 +494,11 @@ impl ForestProjectSupply {
     pub fn list_by_forest_project_ids(
         conn: &mut DbConn,
         project_ids: &[Uuid],
-        page: i64,
-        page_size: i64,
     ) -> QueryResult<Vec<Self>> {
         use crate::schema_manual::forest_project_supply::dsl::*;
 
         let records = forest_project_supply
             .filter(forest_project_id.eq_any(project_ids))
-            .limit(page_size)
-            .offset(page * page_size)
             .load::<Self>(conn)?;
 
         Ok(records)
@@ -586,15 +582,11 @@ impl ForestProjectCurrentTokenFundMarkets {
     pub fn list_by_forest_project_ids(
         conn: &mut DbConn,
         project_ids: &[Uuid],
-        page: i64,
-        page_size: i64,
     ) -> QueryResult<Vec<Self>> {
         use crate::schema_manual::forest_project_current_token_fund_markets::dsl::*;
 
         let records = forest_project_current_token_fund_markets
             .filter(forest_project_id.eq_any(project_ids))
-            .limit(page_size)
-            .offset(page * page_size)
             .load::<Self>(conn)?;
 
         Ok(records)

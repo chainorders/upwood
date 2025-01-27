@@ -121,6 +121,9 @@ body {
 	color: initial;
 	background: transparent;
 }
+.button.radius16 {
+	border-radius: 16px;
+}
 .button.disabled {
 	cursor: not-allowed;
 }
@@ -128,6 +131,9 @@ body {
 	background: rgba(15, 180, 4, 1);
 	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
 	color: #fff;
+}
+.button.danger {
+	background: red;
 }
 .button.active.disabled {
 	background: #9ad78a;
@@ -140,10 +146,32 @@ body {
 	border: 1px solid rgba(15, 180, 4, 1);
 	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
 }
-.button img {
+.button.style4 {
+	border: 0;
+	box-shadow: none;
+	font-weight: 600;
+}
+.button.style5 {
+	border: 0;
+	box-shadow: none;
+	color: rgba(15, 180, 4, 1);
+	font-weight: 600;
+}
+.button.text-align-left-on-mob {
+	text-align: left;
+}
+.button img.left {
 	margin-right: 10px;
 	position: relative;
 	top: 2px;
+}
+.button img.right {
+	margin-left: 10px;
+	position: relative;
+	top: 2px;
+}
+.space-15 {
+	height: 15px;
 }
 .space-20 {
 	height: 20px;
@@ -156,7 +184,7 @@ body {
 	top: 0;
 	left: 0;
 	width: 100%;
-	z-index: -1;
+	z-index: 1;
 }
 .header .menuopen-bar {
 	display: none;
@@ -429,4 +457,24 @@ body {
 }
 .cels.last {
 	padding-right: 30px;
+}
+.cels.last {
+	padding-right: 30px;
+}
+.Successful {
+	color: rgba(15, 180, 4, 1);
+}
+.Pending {
+	color: var(--Orange, rgba(255, 138, 0, 1));
+}
+.Failed {
+	color: rgba(255, 0, 0, 1);
+}
+.genp {
+	color: initial;
+	line-height: 24px;
+}
+.genp a {
+	color: rgba(15, 180, 4, 1);
+	text-decoration: none;
 }

@@ -1600,6 +1600,17 @@ pub fn deploy_upwood_contracts(
         })
         .map(SftMultiYielderTestClient)
         .expect("Failed to init yeilder contract");
+    admin
+    .transact(|sender| {
+        chain.update(
+            sender,
+            euro_e_contract.update_operator_single_payload(UpdateOperator {
+                update:   OperatorUpdate::Add,
+                operator: yielder_contract.0.into(),
+            }),
+        )
+    })
+    .expect("Failed to update euroe operator for yielder contract");
     let identity_registry = admin
         .transact(|account| chain.init(account, IdentityRegistryTestClient::init_payload(&())))
         .map(IdentityRegistryTestClient)
@@ -1687,17 +1698,7 @@ pub fn deploy_upwood_contracts(
         .map(OffchainRewardsTestClient)
         .expect("Failed to init offchain rewards contract");
 
-    admin
-        .transact(|sender| {
-            chain.update(
-                sender,
-                euro_e_contract.update_operator_single_payload(UpdateOperator {
-                    update:   OperatorUpdate::Add,
-                    operator: yielder_contract.0.into(),
-                }),
-            )
-        })
-        .expect("Failed to update euroe operator for yielder contract");
+
 
     (
         carbon_credits,

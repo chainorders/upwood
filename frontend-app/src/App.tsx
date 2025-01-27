@@ -16,6 +16,12 @@ import NotFound from "./pages/NotFound.tsx";
 import UnAuthLayout from "./UnAuthLayout.tsx";
 import RegisterDownloadWallet from "./pages/RegisterDownloadWallet.tsx";
 import LoginInviteSuccess from "./pages/LoginInviteSuccess.tsx";
+import FundedForestProjectsList from "./pages/FundedForestProjectsList.tsx";
+import FundedForestProjectDetails from "./pages/FundedForestProjectDetails.tsx";
+import Contracts from "./pages/Contracts.tsx";
+import ContractsDetails from "./pages/ContractsDetails.tsx";
+import Settings from "./pages/Settings.tsx";
+
 export default function App() {
 	const [user, setUser] = useState<LoginRes>();
 	const navigate = useNavigate();
@@ -43,11 +49,16 @@ export default function App() {
 				<Route index path="/" element={<ActiveForestProjectsList />} />
 				<Route path="projects/active" element={<ActiveForestProjectsList />} />
 				<Route path="projects/active/:id" element={<ActiveForestProjectDetails />} />
+				<Route path="projects/funded" element={<FundedForestProjectsList />} />
+				<Route path="projects/funded/:id" element={<FundedForestProjectDetails />} />
 				<Route path="portfolio" element={<InvestmentPortfolio />} />
 				<Route path="wallet" element={<Wallet />} />
 				<Route path="news" element={<News />} />
 				<Route path="news/:id" element={<NewsDetails />} />
+				<Route path="contracts" element={<Contracts />} />
+				<Route path="contracts/:id" element={<ContractsDetails />} />
 				<Route path="support" element={<Support />} />
+				<Route path="settings" element={<Settings />} />
 				<Route path="*" element={<NotFound />} />
 			</Route>
 		</Routes>

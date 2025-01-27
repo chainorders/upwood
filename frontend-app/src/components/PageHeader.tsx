@@ -13,9 +13,9 @@ export default function PageHeader(props: { parts: { name: string; link?: string
 						<h1 className="breadcrumb">
 							{props.parts.map((part, index) => {
 								return (
-									<span>
+									<span key={index}>
 										{part.link ? (
-											<Link type="text" to={part.link} key={index}>
+											<Link type="text" to={part.link}>
 												{part.name}
 											</Link>
 										) : (

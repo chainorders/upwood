@@ -60,6 +60,9 @@
 	font-weight: 500;
 	font-size: 18px;
 }
+.popup-overlay .resu .center {
+	text-align: center;
+}
 .popup-overlay .resu .left {
 	padding-left: 20px;
 }

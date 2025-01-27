@@ -178,3 +178,172 @@
 		width: 1300px;
 	}
 }
+body {
+	padding-left: 0;
+	padding-top: 0;
+}
+.header {
+	position: relative;
+	margin-bottom: 20px;
+	z-index: 999;
+}
+.header .logout {
+	right: 10px;
+	bottom: 10px;
+	left: auto;
+	display: none;
+}
+.header .menuopen-bar {
+	display: block;
+}
+body.menuopen .verticle-navigation {
+	display: block;
+}
+body.menuopen .header .logout {
+	display: block;
+	padding: 0 20px 0 40px;
+}
+.header .logout span.text {
+	display: none;
+}
+body.menuopen .username {
+	display: block;
+}
+body.menuopen .menuopen-bar {
+	display: none;
+}
+body.menuopen .menuclose-bar {
+	display: block;
+}
+.col-m-full {
+	width: 100% !important;
+}
+.col-m-half {
+	width: 50% !important;
+}
+.col-mr-bottom-30 {
+	margin-bottom: 30px;
+}
+.col-mr-bottom-20 {
+	margin-bottom: 20px;
+}
+.col-mr-bottom-10 {
+	margin-bottom: 10px;
+}
+.col-m-padding-right-0 {
+	padding-right: 0;
+}
+.col-20-percent {
+	width: 50%;
+}
+.project-card .colb {
+	font-size: 11px;
+}
+.popup-overlay .popup {
+	width: 94%;
+}
+.field label.no-center-mobile {
+	text-align: left;
+}
+.project-detail {
+	padding-right: 15px;
+	padding-left: 15px;
+}
+.news-detail {
+	padding-right: 15px;
+	padding-left: 15px;
+}
+.tabular {
+	overflow-y: hidden;
+	overflow-x: auto;
+	white-space: nowrap;
+}
+.field .checkbox label span {
+	background: url(./../assets/checkbox-plain.svg) top 3px left no-repeat;
+}
+.tabular li {
+	margin-right: 40px;
+}
+.breadcrumb li {
+	line-height: 34px;
+}
+.project-detail .image {
+	margin-top: -20px;
+}
+.popup-overlay .resu .left {
+	padding-left: 0;
+}
+.popup-overlay .resu .right {
+	padding-right: 0;
+}
+.authtextslider {
+	display: none;
+}
+.auth-work {
+	position: static;
+	width: 100%;
+	padding: 50px 15px 0;
+}
+.news-detail .news-name {
+	line-height: 34px;
+	margin-bottom: 0;
+}
+.text-align-left-mobile {
+	text-align: left;
+}
+.news-card .news-name {
+	line-height: 34px;
+}
+.pagignation {
+	text-align: center;
+	padding-top: 20px;
+}
+.table {
+	overflow-y: scroll;
+	padding: 0;
+}
+.table th {
+	white-space: nowrap;
+}
+.table td {
+	white-space: nowrap;
+}
+.walletmanagement .guides.margin {
+	margin: 0;
+	display: block;
+}
+.cl-area .cl-in {
+	padding: 20px 15%;
+}
+.chart {
+	overflow-x: scroll;
+}
+.chart .chart-in {
+	width: 1300px;
+}
+.contract-card .content {
+	margin-bottom: 10px;
+}
+.contract {
+	padding-left: 15px;
+	padding-right: 15px;
+}
+.setting-block .action {
+	padding: 0;
+}
+.lg {
+	font-size: 20px;
+	opacity: 0.8;
+}
+.text-align-center-mob {
+	text-align: center;
+	width: 100%;
+	display: inline-block;
+}
+.edo .boxt.withedit {
+	width: 90%;
+}
+.setting-block .action.pdtop {
+	padding-top: 0;
+	margin-bottom: 50px;
+}

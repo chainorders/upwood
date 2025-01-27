@@ -31,9 +31,10 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(state): Path<ForestProjectState>,
+        Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
-        let (projects, page_count) = ForestProject::list_by_state(conn, state, 0, i64::MAX)
+        let (projects, page_count) = ForestProject::list_by_state(conn, state, page, i64::MAX)
             .map_err(|e| {
                 error!("Failed to list projects: {}", e);
                 Error::InternalServer(PlainText(format!("Failed to list projects: {}", e)))
@@ -48,32 +49,26 @@ impl ForestProjectApi {
             .into_iter()
             .map(|balance| (balance.forest_project_id, balance.total_balance))
             .collect::<std::collections::HashMap<_, _>>();
-        let project_supplies =
-            ForestProjectSupply::list_by_forest_project_ids(conn, &project_ids, 0, i64::MAX)
+        let project_supplies = ForestProjectSupply::list_by_forest_project_ids(conn, &project_ids)
+            .map_err(|e| {
+                error!("Failed to list project supplies: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list project supplies: {}", e)))
+            })?
+            .into_iter()
+            .map(|supply| (supply.forest_project_id, supply))
+            .collect::<std::collections::HashMap<_, _>>();
+        let forest_project_tokens =
+            ForestProjectCurrentTokenFundMarkets::list_by_forest_project_ids(conn, &project_ids)
                 .map_err(|e| {
-                    error!("Failed to list project supplies: {}", e);
+                    error!("Failed to list project tokens: {}", e);
                     Error::InternalServer(PlainText(format!(
-                        "Failed to list project supplies: {}",
+                        "Failed to list project tokens: {}",
                         e
                     )))
                 })?
                 .into_iter()
-                .map(|supply| (supply.forest_project_id, supply))
+                .map(|token| ((token.forest_project_id, token.token_contract_type), token))
                 .collect::<std::collections::HashMap<_, _>>();
-        let forest_project_tokens =
-            ForestProjectCurrentTokenFundMarkets::list_by_forest_project_ids(
-                conn,
-                &project_ids,
-                0,
-                i64::MAX,
-            )
-            .map_err(|e| {
-                error!("Failed to list project tokens: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to list project tokens: {}", e)))
-            })?
-            .into_iter()
-            .map(|token| ((token.forest_project_id, token.token_contract_type), token))
-            .collect::<std::collections::HashMap<_, _>>();
 
         let mut data = Vec::with_capacity(projects.len());
         for project in projects {
@@ -295,32 +290,26 @@ impl ForestProjectApi {
             .into_iter()
             .map(|balance| (balance.forest_project_id, balance.total_balance))
             .collect::<std::collections::HashMap<_, _>>();
-        let project_supplies =
-            ForestProjectSupply::list_by_forest_project_ids(conn, &project_ids, 0, i64::MAX)
+        let project_supplies = ForestProjectSupply::list_by_forest_project_ids(conn, &project_ids)
+            .map_err(|e| {
+                error!("Failed to list project supplies: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list project supplies: {}", e)))
+            })?
+            .into_iter()
+            .map(|supply| (supply.forest_project_id, supply))
+            .collect::<std::collections::HashMap<_, _>>();
+        let forest_project_tokens =
+            ForestProjectCurrentTokenFundMarkets::list_by_forest_project_ids(conn, &project_ids)
                 .map_err(|e| {
-                    error!("Failed to list project supplies: {}", e);
+                    error!("Failed to list project tokens: {}", e);
                     Error::InternalServer(PlainText(format!(
-                        "Failed to list project supplies: {}",
+                        "Failed to list project tokens: {}",
                         e
                     )))
                 })?
                 .into_iter()
-                .map(|supply| (supply.forest_project_id, supply))
+                .map(|token| ((token.forest_project_id, token.token_contract_type), token))
                 .collect::<std::collections::HashMap<_, _>>();
-        let forest_project_tokens =
-            ForestProjectCurrentTokenFundMarkets::list_by_forest_project_ids(
-                conn,
-                &project_ids,
-                0,
-                i64::MAX,
-            )
-            .map_err(|e| {
-                error!("Failed to list project tokens: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to list project tokens: {}", e)))
-            })?
-            .into_iter()
-            .map(|token| ((token.forest_project_id, token.token_contract_type), token))
-            .collect::<std::collections::HashMap<_, _>>();
 
         let mut data = Vec::with_capacity(projects.len());
         for project in projects {
