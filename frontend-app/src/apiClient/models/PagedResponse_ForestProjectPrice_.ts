@@ -3,14 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ForestProjectPrice } from "./ForestProjectPrice";
+import type { ForestProjectPrice } from './ForestProjectPrice';
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
 export type PagedResponse_ForestProjectPrice_ = {
-	page_count: number;
-	page: number;
-	data: Array<ForestProjectPrice>;
+    page_count: number;
+    page: number;
+    data: Array<ForestProjectPrice>;
 };
+

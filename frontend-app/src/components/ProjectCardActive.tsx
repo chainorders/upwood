@@ -7,7 +7,7 @@ interface ItemProps {
 	item: ForestProjectAggApiModel;
 }
 
-export default function ProjectCard({ item }: ItemProps) {
+export default function ProjectCardActive({ item }: ItemProps) {
 	const [buyShare, setBuyShare] = useState(false);
 	const openBuyShare = () => {
 		setBuyShare(true);
@@ -18,7 +18,7 @@ export default function ProjectCard({ item }: ItemProps) {
 	const buyShareConfig = {
 		heading: "Buy shares",
 		title: item.forest_project.name,
-		share_price: BigInt(item.forest_project.latest_price),
+		share_price: BigInt(item.property_fund?.rate_numerator || 0) / BigInt(item.property_fund?.rate_denominator || 1),
 		share_available: BigInt(item.forest_project.shares_available),
 	};
 

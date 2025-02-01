@@ -3,10 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { User } from "./User";
+import type { User } from './User';
 
 export type ApiUser = {
-	user: User;
-	is_admin: boolean;
-	kyc_verified: boolean;
+    user: User;
+    is_admin: boolean;
+    kyc_verified: boolean;
 };
+

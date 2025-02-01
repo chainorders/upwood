@@ -50,9 +50,8 @@ async fn test_s3_public_files() {
 
     let email = format!("s3_files_{}@yopmail.com", Uuid::new_v4());
     let password = PASS_GENERATOR.generate_one().unwrap();
-    let admin = create_login_admin_user(
+    let (id_token_admin, _) = create_login_admin_user(
         &mut user_pool,
-        &api,
         &email,
         &password,
         AccountAddress([0; ACCOUNT_ADDRESS_SIZE])
@@ -61,7 +60,7 @@ async fn test_s3_public_files() {
     )
     .await;
     // create upload url
-    let create_url_res = api.admin_file_upload_url_s3(admin.id_token.clone()).await;
+    let create_url_res = api.admin_file_upload_url_s3(id_token_admin.clone()).await;
     println!("upload url: {}", create_url_res.presigned_url);
     // upload file
     let client = reqwest::Client::new();
@@ -75,7 +74,7 @@ async fn test_s3_public_files() {
     assert_eq!(res.status(), 200);
     println!("file uploaded");
     // clear test data
-    api.admin_delete_file_s3(admin.id_token.clone(), create_url_res.file_name)
+    api.admin_delete_file_s3(id_token_admin.clone(), create_url_res.file_name)
         .await;
     println!("file deleted");
     user_pool
@@ -126,9 +125,8 @@ async fn test_ipfs_public_files() {
 
     let email = format!("s3_files_{}@yopmail.com", Uuid::new_v4());
     let password = PASS_GENERATOR.generate_one().unwrap();
-    let admin = create_login_admin_user(
+    let (id_token_admin, _) = create_login_admin_user(
         &mut user_pool,
-        &api,
         &email,
         &password,
         AccountAddress([0; ACCOUNT_ADDRESS_SIZE])
@@ -137,7 +135,7 @@ async fn test_ipfs_public_files() {
     )
     .await;
     // create upload url
-    let create_url_res = api.admin_file_upload_url_ipfs(admin.id_token.clone()).await;
+    let create_url_res = api.admin_file_upload_url_ipfs(id_token_admin.clone()).await;
     println!("upload url: {}", create_url_res.presigned_url);
     // upload file
     let client = reqwest::Client::new();
@@ -151,7 +149,7 @@ async fn test_ipfs_public_files() {
     assert_eq!(res.status(), 200);
     println!("file uploaded");
     // clear test data
-    api.admin_delete_file_ipfs(admin.id_token.clone(), create_url_res.file_name)
+    api.admin_delete_file_ipfs(id_token_admin.clone(), create_url_res.file_name)
         .await;
     println!("file deleted");
     user_pool

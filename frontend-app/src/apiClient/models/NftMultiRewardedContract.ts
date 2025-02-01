@@ -4,9 +4,10 @@
 /* eslint-disable */
 
 export type NftMultiRewardedContract = {
-	contract_address: string;
-	reward_token_address: string;
-	reward_token_id: string;
-	create_time: string;
-	update_time: string;
+    contract_address: string;
+    reward_token_address: string;
+    reward_token_id: string;
+    create_time: string;
+    update_time: string;
 };
+

@@ -5,7 +5,7 @@ interface ItemProps {
 	item: ForestProjectAggApiModel;
 }
 
-export default function ProjectCard2({ item }: ItemProps) {
+export default function ProjectCardOwned({ item }: ItemProps) {
 	return (
 		<>
 			<div className="project-card">

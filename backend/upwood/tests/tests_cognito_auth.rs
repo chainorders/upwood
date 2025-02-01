@@ -1,14 +1,12 @@
 mod test_utils;
 
 use concordium_smart_contract_testing::AccountAddress;
-use poem::http::StatusCode;
-use rust_decimal::Decimal;
 use shared::db_app::users::User;
 use test_utils::test_api::ApiTestClient;
 use test_utils::{create_login_admin_user, create_login_user, PASS_GENERATOR};
 use tracing_test::traced_test;
 use upwood::api;
-use upwood::api::user::{ApiUser, LoginReq};
+use upwood::api::user::ApiUser;
 use upwood::utils::aws::cognito::UserPool;
 use uuid::Uuid;
 
@@ -55,65 +53,48 @@ async fn cognito_auth_test() {
 
     let email_admin = format!("cognito_auth_test_{}_admin@yopmail.com", Uuid::new_v4());
     let password_admin = PASS_GENERATOR.generate_one().unwrap();
-    let login_res_admin = create_login_admin_user(
+    let (id_token_admin, _) = create_login_admin_user(
         &mut user_pool,
-        &api,
         email_admin.as_str(),
         password_admin.as_str(),
         AccountAddress([0; 32]).to_string().as_str(),
     )
     .await;
-    assert_eq!(login_res_admin.user, ApiUser {
-        is_admin:     true,
-        kyc_verified: false,
-        user:         User {
-            account_address:           AccountAddress([0; 32]).to_string(),
-            cognito_user_id:           login_res_admin.user.user.cognito_user_id.clone(),
-            email:                     email_admin.clone(),
-            first_name:                "Admin".to_owned(),
-            last_name:                 "Admin".to_owned(),
-            nationality:               "".to_owned(),
-            affiliate_commission:      Decimal::ZERO,
-            desired_investment_amount: None,
-            affiliate_account_address: None
-        },
-    });
 
     // User Attributes
     let email = format!("cognito_auth_test_{}@yopmail.com", Uuid::new_v4());
-    let user_password = PASS_GENERATOR.generate_one().unwrap();
+    let password = PASS_GENERATOR.generate_one().unwrap();
 
     println!("logging in user");
-    let login_res = create_login_user(
+    let (_, user) = create_login_user(
+        &mut user_pool,
         &api,
-        &login_res_admin.id_token,
+        &id_token_admin,
         &email,
-        &user_password,
+        &password,
         AccountAddress([1; 32]).to_string().as_str(),
         None,
         None,
     )
     .await;
-    assert_eq!(login_res.user, ApiUser {
+    assert_eq!(user, ApiUser {
         is_admin:     false,
         kyc_verified: false,
         user:         User {
             account_address:           AccountAddress([1; 32]).to_string(),
-            cognito_user_id:           login_res.user.user.cognito_user_id.clone(),
+            cognito_user_id:           user.user.cognito_user_id.clone(),
             email:                     email.clone(),
             first_name:                "Test First Name".to_owned(),
             last_name:                 "Test Last Name".to_owned(),
             nationality:               "IN".to_owned(),
             affiliate_commission:      api_config.affiliate_commission,
             desired_investment_amount: Some(100),
-            affiliate_account_address: None
+            affiliate_account_address: None,
         },
     });
 
     println!("listing users");
-    let users = api
-        .admin_list_users(login_res_admin.id_token.clone(), 0)
-        .await;
+    let users = api.admin_list_users(id_token_admin.clone(), 0).await;
     assert_eq!(users.page_count, 1);
     assert_eq!(users.data.len(), 1);
     let user = users.data.first().expect("No user found");
@@ -122,14 +103,14 @@ async fn cognito_auth_test() {
         kyc_verified: false,
         user:         User {
             account_address:           AccountAddress([1; 32]).to_string(),
-            cognito_user_id:           login_res.user.user.cognito_user_id.clone(),
+            cognito_user_id:           user.user.cognito_user_id.clone(),
             email:                     email.clone(),
             first_name:                "Test First Name".to_owned(),
             last_name:                 "Test Last Name".to_owned(),
             nationality:               "IN".to_owned(),
             affiliate_commission:      api_config.affiliate_commission,
             desired_investment_amount: Some(100),
-            affiliate_account_address: None
+            affiliate_account_address: None,
         },
     });
 
@@ -138,10 +119,8 @@ async fn cognito_auth_test() {
         .disable_user(&user.user.cognito_user_id)
         .await
         .expect("Failed to disable user");
-    api.user_login_request(LoginReq {
-        email:    email.clone(),
-        password: user_password,
-    })
-    .await
-    .assert_status(StatusCode::BAD_REQUEST);
+    user_pool
+        .user_login(&email, &password)
+        .await
+        .expect_err("User should not be able to login after being disabled");
 }

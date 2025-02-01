@@ -49,11 +49,11 @@ impl Identity {
             .limit(page_size)
             .offset(page_size * page)
             .get_results(conn)?;
-        let count: i64 = identity_registry_identities::table
+        let total_count: i64 = identity_registry_identities::table
             .filter(select_filter)
             .count()
             .get_result(conn)?;
-        let page_count = (count + page_size - 1) / page_size;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((res, page_count))
     }
@@ -182,11 +182,11 @@ impl Issuer {
             .limit(page_size)
             .offset(page_size * page)
             .get_results(conn)?;
-        let count: i64 = identity_registry_issuers::table
+        let total_count: i64 = identity_registry_issuers::table
             .filter(select_filter)
             .count()
             .get_result(conn)?;
-        let page_count = (count + page_size - 1) / page_size;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((res, page_count))
     }
@@ -257,11 +257,11 @@ impl Agent {
             .limit(page_size)
             .offset(page_size * page)
             .get_results(conn)?;
-        let count: i64 = identity_registry_agents::table
+        let total_count: i64 = identity_registry_agents::table
             .filter(select_filter)
             .count()
             .get_result(conn)?;
-        let page_count = (count + page_size - 1) / page_size;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((res, page_count))
     }

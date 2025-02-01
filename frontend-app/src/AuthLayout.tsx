@@ -16,9 +16,9 @@ import navSupportNormal from "./assets/nav-support-normal.svg";
 import navSupportWhite from "./assets/nav-support-white.svg";
 import navWalletManagementNormal from "./assets/nav-wallet-management-normal.svg";
 import navWalletManagementWhite from "./assets/nav-wallet-management-white.svg";
-import { LoginRes } from "./apiClient";
+import { User } from "./lib/user";
 
-export default function AuthLayout(props: { user?: LoginRes; logout: () => void }) {
+export default function AuthLayout(props: { user?: User; logout: () => void }) {
 	const location = useLocation();
 	const pathname = location.pathname;
 	const navItems: NavItem[] = [
@@ -27,7 +27,7 @@ export default function AuthLayout(props: { user?: LoginRes; logout: () => void 
 			url: "/projects/active",
 			iconNormal: navActiveProjectNormal,
 			iconActive: navActiveProjectWhite,
-			isActive: pathname.startsWith("/projects/active"),
+			isActive: pathname.startsWith("/projects/active") || pathname === "/",
 		},
 		{
 			name: "FUNDED PROJECTS",
@@ -81,10 +81,10 @@ export default function AuthLayout(props: { user?: LoginRes; logout: () => void 
 	];
 
 	return props.user ? (
-		<>
+		<div className="auth-layout">
 			<Header navItems={navItems} logout={props.logout} />
 			<Outlet context={{ user: props.user! }} />
-		</>
+		</div>
 	) : (
 		<Navigate to="/login" replace state={{ from: location }} />
 	);

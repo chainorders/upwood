@@ -4,9 +4,10 @@
 /* eslint-disable */
 
 export type SupportQuestion = {
-	id: string;
-	cognito_user_id: string;
-	user_email: string;
-	message: string;
-	created_at: string;
+    id: string;
+    cognito_user_id: string;
+    user_email: string;
+    message: string;
+    created_at: string;
 };
+

@@ -3,13 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { MetadataUrl } from "./MetadataUrl";
+import type { MetadataUrl } from './MetadataUrl';
 
 export type AddMetadataRequest = {
-	metadata_url: MetadataUrl;
-	/**
-	 * The probability of the metadata to be chosen for minting
-	 * between 1 and 100
-	 */
-	probablity_percentage: number;
+    metadata_url: MetadataUrl;
+    /**
+     * The probability of the metadata to be chosen for minting
+     * between 1 and 100
+     */
+    probablity_percentage: number;
 };
+

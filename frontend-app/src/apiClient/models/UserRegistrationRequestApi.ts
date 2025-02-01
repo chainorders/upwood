@@ -4,6 +4,7 @@
 /* eslint-disable */
 
 export type UserRegistrationRequestApi = {
-	email: string;
-	affiliate_account_address?: string;
+    email: string;
+    affiliate_account_address?: string;
 };
+

@@ -10,7 +10,7 @@
 		"debug:listener": "cargo run --bin listener_server",
 		"watch:listener": "cargo watch -x 'run --bin listener_server'",
 		"generate:app-api-spec": "OUTPUT=app-api-specs.json && cargo  run --bin upwood_api_specs",
-		"generate:app-api-client": "openapi --input app-api-specs.json --output ../frontend-app/src/apiClient",
+		"generate:app-api-client": "yarn run generate:app-api-spec && openapi --input app-api-specs.json --output ../frontend-app/src/apiClient",
 		"debug:app-api": "cargo run --bin upwood_api_server",
 		"watch:app-api": "cargo watch -x 'run --bin upwood_api_server'"
 	},

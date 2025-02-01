@@ -25,6 +25,7 @@ use crate::schema::users;
 #[diesel(table_name = crate::schema::users)]
 #[diesel(primary_key(cognito_user_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct User {
     pub cognito_user_id:           String,
     pub email:                     String,
@@ -128,6 +129,7 @@ impl User {
 #[diesel(table_name = crate::schema::user_registration_requests)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct UserRegistrationRequest {
     pub id: Uuid,
     pub email: String,

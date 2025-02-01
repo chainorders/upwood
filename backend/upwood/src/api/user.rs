@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
 use aws::cognito::{
-    account_address_attribute, email_attribute, email_verified_attribute, first_name_attribute,
-    last_name_attribute, nationality_attribute,
+    account_address_attribute, affiliate_account_address_attribute, email_attribute,
+    email_verified_attribute, first_name_attribute, last_name_attribute, nationality_attribute,
 };
-use chrono::Utc;
+use aws_sdk_cognitoidentityprovider::types::MessageActionType;
 use concordium::account::Signer;
 use concordium::identity::{Presentation, VerifyPresentationResponse};
 use concordium_cis2::{TokenAmountU64, TokenIdUnit};
@@ -14,7 +14,6 @@ use concordium_rust_sdk::types::Address;
 use concordium_rust_sdk::v2::BlockIdentifier;
 use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
-use diesel::Connection;
 use poem::web::Data;
 use poem_openapi::param::Path;
 use poem_openapi::payload::{Json, PlainText};
@@ -23,6 +22,7 @@ use serde::Serialize;
 use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
 use shared::db::offchain_rewards::OffchainRewardee;
+use shared::db::security_mint_fund::SecurityMintFundContract;
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord,
 };
@@ -110,6 +110,8 @@ impl UserApi {
         Ok(Json(request))
     }
 
+    /// Accept or reject a user registration request.
+    /// If the request is accepted, the user is added to the Cognito user pool.
     #[oai(
         path = "/admin/registration-request/:id/accept/:is_accepted",
         method = "put",
@@ -118,49 +120,46 @@ impl UserApi {
     pub async fn admin_registration_request_accept(
         &self,
         Data(db_pool): Data<&DbPool>,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(id): Path<uuid::Uuid>,
         Path(is_accepted): Path<bool>,
     ) -> NoResResult {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let mut request = UserRegistrationRequest::find(&mut conn, id)?
+        let request = UserRegistrationRequest::find(&mut conn, id)?
             .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
-        if !is_accepted {
-            UserRegistrationRequest::delete(&mut conn, id)?;
-        } else {
-            // TODO send acceptance email via SES
-            request.is_accepted = true;
-            request.updated_at = Utc::now().naive_utc();
-            request.update(&mut conn)?;
+        if is_accepted {
+            // Add the user to the cognito user pool. This will trigger an invitation email to the user.
+            let mut attrs = vec![email_attribute(&request.email)];
+            if let Some(affiliate_account_address) = request.affiliate_account_address {
+                attrs.push(affiliate_account_address_attribute(
+                    &affiliate_account_address,
+                ));
+            }
+            user_pool
+                .admin_upsert_user(&request.email, attrs, MessageActionType::Resend)
+                .await
+                .map_err(|e| {
+                    error!("Error creating user in user pool: {:?}", e);
+                    e
+                })?;
         }
 
+        UserRegistrationRequest::delete(&mut conn, id)?;
         Ok(())
     }
 
-    #[oai(
-        path = "/user/register/:registration_request_id",
-        method = "get",
-        tag = "ApiTags::User"
-    )]
+    #[oai(path = "/user/register", method = "get", tag = "ApiTags::User")]
     pub async fn get_user_register(
         &self,
-        Data(db_pool): Data<&DbPool>,
-        Data(id_statement): Data<&concordium::identity::IdStatement>,
-        Path(registration_request_id): Path<uuid::Uuid>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(id_statement): Data<&IdStatement>,
     ) -> JsonResult<UserRegisterGetRes> {
-        let mut conn = db_pool.get()?;
-        let request = UserRegistrationRequest::find(&mut conn, registration_request_id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
-        if !request.is_accepted {
-            return Err(Error::BadRequest(PlainText(
-                "Request not accepted".to_string(),
-            )));
-        }
         let id_statement = serde_json::to_value(id_statement).map_err(|_| {
             Error::InternalServer(PlainText("Failed to serialize id statement".to_string()))
         })?;
-        let challenge = concordium::identity::generate_challenge(request.id.to_string().as_str());
+        let challenge = concordium::identity::generate_challenge(claims.sub.as_str());
         let challenge = hex::encode(challenge);
         Ok(Json(UserRegisterGetRes {
             challenge,
@@ -168,6 +167,7 @@ impl UserApi {
         }))
     }
 
+    /// Registers a user in the Cognito user pool and in the database.
     #[allow(clippy::too_many_arguments)]
     #[oai(
         path = "/user/register/:registration_request_id",
@@ -176,24 +176,16 @@ impl UserApi {
     )]
     pub async fn post_user_register(
         &self,
+        BearerAuthorization(claims): BearerAuthorization,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
         Data(global_context): Data<&concordium::identity::GlobalContext>,
         Data(network): Data<&web3id::did::Network>,
         Data(concordium_client): Data<&v2::Client>,
         Data(affiliate_commission): Data<&AffiliateCommission>,
-        Path(registration_request_id): Path<uuid::Uuid>,
         Json(req): Json<UserCreatePostReq>,
     ) -> JsonResult<ApiUser> {
         let mut conn = db_pool.get()?;
-        let request = UserRegistrationRequest::find(&mut conn, registration_request_id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
-        if !request.is_accepted {
-            return Err(Error::BadRequest(PlainText(
-                "Request not accepted".to_string(),
-            )));
-        }
-
         let verification_res = {
             let proof = req
                 .proof()?
@@ -202,8 +194,7 @@ impl UserApi {
                 .account_address
                 .parse()
                 .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))?;
-            let challenge =
-                concordium::identity::generate_challenge(request.id.to_string().as_str());
+            let challenge = concordium::identity::generate_challenge(claims.sub.as_str());
 
             verify_presentation(
                 &mut concordium_client.clone(),
@@ -215,10 +206,8 @@ impl UserApi {
             )
             .await?
         };
-
-        let user = user_pool
-            .admin_create_user(&request.email, &req.password, vec![
-                email_attribute(&request.email),
+        user_pool
+            .admin_update_user_attributes(&claims.email, vec![
                 email_verified_attribute(true),
                 account_address_attribute(&req.account_address),
                 first_name_attribute(&verification_res.first_name),
@@ -226,57 +215,41 @@ impl UserApi {
                 nationality_attribute(&verification_res.nationality),
             ])
             .await?;
+        user_pool
+            .admin_set_permament_password(&claims.email, &req.password)
+            .await?;
         let user = User {
             account_address:           req.account_address.to_string(),
-            cognito_user_id:           user
-                .attributes
-                .and_then(|a| a.iter().find(|a| a.name == "sub").unwrap().value.clone())
-                .ok_or_else(|| {
-                    Error::InternalServer(PlainText("Cognito user ID not found".to_string()))
-                })?,
-            email:                     request.email.clone(),
+            cognito_user_id:           claims.sub.clone(),
+            email:                     claims.email.clone(),
             first_name:                verification_res.first_name,
             last_name:                 verification_res.last_name,
             nationality:               verification_res.nationality,
             affiliate_commission:      affiliate_commission.commission,
             desired_investment_amount: req.desired_investment_amount,
-            affiliate_account_address: request.affiliate_account_address.clone(),
-        };
-        conn.transaction::<_, Error, _>(|conn| {
-            UserRegistrationRequest::delete(conn, registration_request_id)?;
-            user.upsert(conn)?;
-            Ok(())
-        })?;
-
+            affiliate_account_address: claims.affiliate_account.clone(),
+        }
+        .upsert(&mut conn)?;
         Ok(Json(ApiUser::new(user, false, false)))
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[oai(
-        path = "/admin/user/register/:registration_request_id",
-        method = "post",
-        tag = "ApiTags::User"
-    )]
+    #[oai(path = "/admin/user/register", method = "post", tag = "ApiTags::User")]
     pub async fn admin_user_register(
         &self,
+        BearerAuthorization(claims): BearerAuthorization,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
         Data(affiliate_commission): Data<&AffiliateCommission>,
-        Path(registration_request_id): Path<uuid::Uuid>,
+        Data(contracts): Data<&SystemContractsConfig>,
         Json(req): Json<UserCreatePostReqAdmin>,
     ) -> JsonResult<ApiUser> {
-        let mut conn = db_pool.get()?;
-        let request = UserRegistrationRequest::find(&mut conn, registration_request_id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
-        if !request.is_accepted {
-            return Err(Error::BadRequest(PlainText(
-                "Request not accepted".to_string(),
-            )));
-        }
+        ensure_is_admin(&claims)?;
 
+        let mut conn = db_pool.get()?;
         let user = user_pool
-            .admin_create_user(&request.email, &req.password, vec![
-                email_attribute(&request.email),
+            .admin_create_permanent_user(&req.email, &req.password, vec![
+                email_attribute(&req.email),
                 email_verified_attribute(true),
                 account_address_attribute(&req.account_address),
                 first_name_attribute(&req.first_name),
@@ -296,7 +269,7 @@ impl UserApi {
                 .ok_or_else(|| {
                     Error::InternalServer(PlainText("Cognito user ID not found".to_string()))
                 })?,
-            email:                     request.email.clone(),
+            email:                     req.email.clone(),
             first_name:                req.first_name,
             last_name:                 req.last_name,
             nationality:               req.nationality,
@@ -304,70 +277,15 @@ impl UserApi {
                 .affiliate_commission
                 .unwrap_or(affiliate_commission.commission),
             desired_investment_amount: req.desired_investment_amount,
-            affiliate_account_address: request.affiliate_account_address.clone(),
-        };
-        conn.transaction::<_, Error, _>(|conn| {
-            UserRegistrationRequest::delete(conn, registration_request_id)?;
-            user.upsert(conn)?;
-            Ok(())
-        })?;
-        Ok(Json(ApiUser::new(user, false, false)))
-    }
-
-    #[oai(path = "/user/login", method = "post", tag = "ApiTags::User")]
-    pub async fn user_login(
-        &self,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        Data(user_pool): Data<&aws::cognito::UserPool>,
-        Json(req): Json<LoginReq>,
-    ) -> JsonResult<LoginRes> {
-        let id_token = user_pool.user_login(&req.email, &req.password).await;
-        let id_token = match id_token {
-            Ok(id_token) => Ok(id_token),
-            Err(e) => {
-                error!("Error logging in user: {:?}", e);
-                match e {
-                    aws::cognito::Error::AuthInitError(e) => {
-                        Err(Error::BadRequest(PlainText(e.to_string())))
-                    }
-                    aws::cognito::Error::LoginError => Err(Error::BadRequest(PlainText(
-                        "Invalid email or password".to_string(),
-                    ))),
-                    _ => Err(Error::InternalServer(PlainText(
-                        "Failed to login user".to_string(),
-                    ))),
-                }
-            }
-        }?;
-        let claims = user_pool
-            .verify_decode_id_token(&id_token)
-            .await
-            .map_err(|_| Error::BadRequest(PlainText("Invalid id token".to_string())))?;
-        let is_admin = claims.is_admin();
-        let mut conn = db_pool.get()?;
-        let db_user = User::find(&mut conn, &claims.sub)?.unwrap_or_else(|| User {
-            account_address:           claims.account().map(|a| a.to_string()).unwrap_or_default(),
-            cognito_user_id:           claims.sub.clone(),
-            email:                     req.email.clone(),
-            first_name:                claims.first_name.unwrap_or_default(),
-            last_name:                 claims.last_name.unwrap_or_default(),
-            nationality:               claims.nationality.unwrap_or_default(),
-            affiliate_commission:      Decimal::ZERO,
-            desired_investment_amount: None,
-            affiliate_account_address: None,
-        });
+            affiliate_account_address: req.affiliate_account_address.clone(),
+        }
+        .upsert(&mut conn)?;
         let is_kyc_verified = Identity::exists(
             &mut conn,
             contracts.identity_registry_contract_index,
-            &db_user.account_address,
+            &user.account_address,
         )?;
-
-        Ok(Json(LoginRes {
-            id_token,
-            user: ApiUser::new(db_user, is_admin, is_kyc_verified),
-            contracts: contracts.clone(),
-        }))
+        Ok(Json(ApiUser::new(user, false, is_kyc_verified)))
     }
 
     /// Retrieves the current user's information based on the provided bearer authorization token.
@@ -406,7 +324,7 @@ impl UserApi {
                 nationality:               claims.nationality.unwrap_or_default(),
                 affiliate_commission:      Decimal::ZERO,
                 desired_investment_amount: None,
-                affiliate_account_address: None,
+                affiliate_account_address: claims.affiliate_account.clone(),
             });
         let is_kyc_verified = Identity::exists(
             &mut conn,
@@ -687,9 +605,48 @@ impl UserApi {
     pub async fn system_config(
         &self,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<SystemContractsConfig> {
-        Ok(Json(contracts.clone()))
+        Data(db_pool): Data<&DbPool>,
+    ) -> JsonResult<SystemContractsConfigApiModel> {
+        let mut conn = db_pool.get()?;
+        let mint_funds_contract =
+            SecurityMintFundContract::find(&mut conn, contracts.mint_funds_contract_index)?;
+        let trading_contract = P2PTradeContract::find(&mut conn, contracts.trading_contract_index)?;
+
+        Ok(Json(SystemContractsConfigApiModel {
+            identity_registry_contract_index: contracts.identity_registry_contract_index,
+            compliance_contract_index: contracts.compliance_contract_index,
+            carbon_credit_contract_index: contracts.carbon_credit_contract_index,
+            carbon_credit_token_id: contracts.carbon_credit_token_id,
+            euro_e_contract_index: contracts.euro_e_contract_index,
+            euro_e_token_id: contracts.euro_e_token_id,
+            tree_ft_contract_index: contracts.tree_ft_contract_index,
+            tree_nft_contract_index: contracts.tree_nft_contract_index,
+            offchain_rewards_contract_index: contracts.offchain_rewards_contract_index,
+            mint_funds_contract_index: contracts.mint_funds_contract_index,
+            trading_contract_index: contracts.trading_contract_index,
+            yielder_contract_index: contracts.yielder_contract_index,
+            mint_funds_contract,
+            trading_contract,
+        }))
     }
+}
+
+#[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SystemContractsConfigApiModel {
+    pub identity_registry_contract_index: Decimal,
+    pub compliance_contract_index:        Decimal,
+    pub carbon_credit_contract_index:     Decimal,
+    pub carbon_credit_token_id:           Decimal,
+    pub euro_e_contract_index:            Decimal,
+    pub euro_e_token_id:                  Decimal,
+    pub tree_ft_contract_index:           Decimal,
+    pub tree_nft_contract_index:          Decimal,
+    pub offchain_rewards_contract_index:  Decimal,
+    pub mint_funds_contract_index:        Decimal,
+    pub trading_contract_index:           Decimal,
+    pub yielder_contract_index:           Decimal,
+    pub mint_funds_contract:              Option<SecurityMintFundContract>,
+    pub trading_contract:                 Option<P2PTradeContract>,
 }
 
 #[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
@@ -896,6 +853,7 @@ impl UserCreatePostReq {
 
 #[derive(Object, serde::Serialize, serde::Deserialize)]
 pub struct UserCreatePostReqAdmin {
+    pub email:                     String,
     pub account_address:           String,
     pub desired_investment_amount: Option<i32>,
     pub password:                  String,
@@ -903,6 +861,7 @@ pub struct UserCreatePostReqAdmin {
     pub last_name:                 String,
     pub nationality:               String,
     pub affiliate_commission:      Option<Decimal>,
+    pub affiliate_account_address: Option<String>,
 }
 
 #[derive(Object, serde::Serialize, serde::Deserialize)]

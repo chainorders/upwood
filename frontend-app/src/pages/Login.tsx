@@ -1,16 +1,35 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
-import { LoginReq, LoginRes, OpenAPI, UserService } from "../apiClient";
+import { Link, useNavigate, useParams } from "react-router";
 import Button from "../components/Button";
 import { useTitle } from "../components/useTitle";
+import { AuthenticationDetails, CognitoUser, CognitoUserSession } from "amazon-cognito-identity-js";
+import cognitoUserPool from "../lib/cognitoUserPool";
+import { User } from "../lib/user";
+import { useEffect } from "react";
 
 export interface SliderData {
 	title: string;
 	description: string;
 }
+export interface LoginReq {
+	email: string;
+	password: string;
+}
 
-export default function Login(props: { setUser: (user: LoginRes) => void }) {
+export default function Login(props: { setUser: (user: User) => void }) {
 	useTitle("Login");
+	const { setUser } = props;
+	useEffect(() => {
+		const cognitoUser = cognitoUserPool.getCurrentUser();
+		if (cognitoUser) {
+			cognitoUser.getSession((err: Error | null, session: CognitoUserSession | null) => {
+				if (!err && session && session.isValid()) {
+					setUser(new User(session, cognitoUser));
+				}
+			});
+		}
+	}, [setUser]);
+
 	const {
 		register,
 		handleSubmit,
@@ -19,26 +38,35 @@ export default function Login(props: { setUser: (user: LoginRes) => void }) {
 	} = useForm<LoginReq>();
 	const onLoginFormSubmit: SubmitHandler<LoginReq> = (data, e) => {
 		e?.preventDefault();
-		UserService.postUserLogin(data)
-			.then((res) => {
-				console.log("User logged in");
-				props.setUser(res);
-				OpenAPI.TOKEN = res.id_token;
-				navigate(location.state?.from ? location.state.from : "/projects/active");
-			})
-			.catch(() => {
-				console.log("Invalid email or password");
-				setError("email", {
-					type: "custom",
-					message: "Invalid email or password",
-				});
-			});
+		const user = new CognitoUser({
+			Pool: cognitoUserPool,
+			Username: data.email,
+			Storage: localStorage,
+		});
+		user.authenticateUser(
+			new AuthenticationDetails({
+				Username: data.email,
+				Password: data.password,
+			}),
+			{
+				onSuccess(session, userConfirmationNecessary) {
+					if (userConfirmationNecessary) {
+						console.error("User confirmation necessary");
+						return;
+					}
+					props.setUser(new User(session, user));
+				},
+				onFailure(err) {
+					console.error(err);
+					setError("email", { message: "Invalid email or password" });
+				},
+			},
+		);
 	};
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const { affiliateAccountAddress } = useParams();
 	const navigate = useNavigate();
-	const location = useLocation();
 
 	const whenRequestInvitationButtonHit = () => {
 		console.log("Request invitation button hit");

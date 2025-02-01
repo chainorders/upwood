@@ -69,14 +69,15 @@ async fn signature_tests() {
     metadata_admin_api
         .admin_tree_nft_metadata_insert(
             BearerAuthorization(Claims {
-                sub:            "USER_ID".to_string(),
-                email:          "admin@example.com".to_string(),
-                cognito_groups: Some(vec!["admin".to_string()]),
-                email_verified: Some(true),
-                account:        None,
-                first_name:     None,
-                last_name:      None,
-                nationality:    None,
+                sub:               "USER_ID".to_string(),
+                email:             "admin@example.com".to_string(),
+                cognito_groups:    Some(vec!["admin".to_string()]),
+                email_verified:    Some(true),
+                account:           None,
+                first_name:        None,
+                last_name:         None,
+                nationality:       None,
+                affiliate_account: None,
             }),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
@@ -272,14 +273,15 @@ async fn signature_tests() {
         })),
     };
     let api_user_claims = BearerAuthorization(Claims {
-        sub:            "NORMAL_USER_ID".to_string(),
-        cognito_groups: None,
-        email_verified: Some(true),
-        email:          "normal_user@example.com".to_string(),
-        account:        Some(holder.address.to_string()),
-        first_name:     None,
-        last_name:      None,
-        nationality:    None,
+        sub:               "NORMAL_USER_ID".to_string(),
+        cognito_groups:    None,
+        email_verified:    Some(true),
+        email:             "normal_user@example.com".to_string(),
+        account:           Some(holder.address.to_string()),
+        first_name:        None,
+        last_name:         None,
+        nationality:       None,
+        affiliate_account: None,
     });
 
     let poem_openapi::payload::Json(random_metadata) = tree_nft::Api

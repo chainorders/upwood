@@ -4,6 +4,7 @@
 /* eslint-disable */
 
 export type PortfolioValue = {
-	portfolio_value: string;
-	at: string;
+    portfolio_value: string;
+    at: string;
 };
+

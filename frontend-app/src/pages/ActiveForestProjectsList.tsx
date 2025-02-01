@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ForestProjectAggApiModel } from "../apiClient/models/ForestProjectAggApiModel";
 import { ForestProjectService, ForestProjectState, LoginRes } from "../apiClient";
-import ProjectCard from "../components/ProjectCard";
+import ProjectCardActive from "../components/ProjectCardActive";
 import PageHeader from "../components/PageHeader";
 import { useOutletContext } from "react-router";
 
@@ -23,7 +23,7 @@ export default function ActiveForestProjectsList() {
 					<div className="container-in">
 						{projects.map((project, index) => (
 							<div className="col-6 col-m-full fl" key={index}>
-								<ProjectCard item={project} />
+								<ProjectCardActive item={project} />
 							</div>
 						))}
 						<div className="clr"></div>

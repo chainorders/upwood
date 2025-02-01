@@ -4,12 +4,13 @@
 /* eslint-disable */
 
 export type NewsArticle = {
-	id: string;
-	title: string;
-	label: string;
-	content: string;
-	image_url: string;
-	article_url: string;
-	created_at: string;
-	order_index: number;
+    id: string;
+    title: string;
+    label: string;
+    content: string;
+    image_url: string;
+    article_url: string;
+    created_at: string;
+    order_index: number;
 };
+

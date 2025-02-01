@@ -18,7 +18,7 @@ use futures::TryStreamExt;
 use rust_decimal::Decimal;
 use shared::db::txn_listener::ListenerBlock;
 use shared::db_shared::DbConn;
-use tracing::{debug, info, instrument, trace, warn};
+use tracing::{debug, info, instrument, warn};
 
 use crate::processors::cis2_utils::ContractAddressToDecimal;
 use crate::processors::{ProcessorError, Processors};
@@ -217,48 +217,52 @@ impl Listener {
             .await?;
 
         loop {
-            let (error, finalized_blocks) = finalized_block_stream
-                .next_chunk_timeout(1000, Duration::from_millis(10000))
+            while let Ok((error, finalized_blocks)) = finalized_block_stream
+                .next_chunk_timeout(100, Duration::from_millis(5000))
                 .await
-                .map_err(|_| ListenerError::FinalizedBlockTimeout)?;
+            {
+                debug!("Received chunk of {} blocks", finalized_blocks.len());
+                for block in &finalized_blocks {
+                    let block = self
+                        .concordium_client
+                        .get_block_info(block.height)
+                        .await?
+                        .response;
+                    if block.transaction_count.eq(&0u64) {
+                        debug!("Block {block:?} has no transactions");
+                        continue;
+                    }
 
-            for block in &finalized_blocks {
-                let block = self
-                    .concordium_client
-                    .get_block_info(block.height)
-                    .await?
-                    .response;
-                if block.transaction_count.eq(&0u64) {
-                    trace!("Block {block:?} has no transactions");
-                    continue;
+                    let txns = self
+                        .concordium_client
+                        .get_block_transaction_events(block.block_hash)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?
+                        .into_iter()
+                        .filter_map(parse_block_item_summary)
+                        .collect();
+                    let block = ParsedBlock {
+                        block:        ListenerBlock {
+                            block_hash:      block.block_hash.bytes.into(),
+                            block_height:    block.block_height.height.into(),
+                            block_slot_time: block.block_slot_time.naive_utc(),
+                        },
+                        transactions: txns,
+                    };
+
+                    self.processors.process_block(&mut conn, &block).await?;
                 }
+                info!("Processed chunk of {} blocks", finalized_blocks.len());
 
-                let txns = self
-                    .concordium_client
-                    .get_block_transaction_events(block.block_hash)
-                    .await?
-                    .response
-                    .try_collect::<Vec<_>>()
-                    .await?
-                    .into_iter()
-                    .filter_map(parse_block_item_summary)
-                    .collect();
-                let block = ParsedBlock {
-                    block:        ListenerBlock {
-                        block_hash:      block.block_hash.bytes.into(),
-                        block_height:    block.block_height.height.into(),
-                        block_slot_time: block.block_slot_time.naive_utc(),
-                    },
-                    transactions: txns,
-                };
-
-                self.processors.process_block(&mut conn, &block).await?;
+                if error {
+                    return Err(ListenerError::FinalizedBlockStreamEnded);
+                }
             }
 
-            debug!("Processed chunk of {} blocks", finalized_blocks.len());
-            if error {
-                return Err(ListenerError::FinalizedBlockStreamEnded);
-            }
+            warn!("Finalized block stream timed out, retrying");
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
 }
@@ -274,7 +278,7 @@ async fn get_block_height_or(
     conn: &mut DbConn,
     default_block_height: AbsoluteBlockHeight,
 ) -> Result<AbsoluteBlockHeight, ListenerError> {
-    let block_height = shared::db::txn_listener::ListenerBlock::find_last(conn)?
+    let block_height = shared::db::txn_listener::ListenerBlock::find_last_height(conn)?
         .map(|b| b.next())
         .unwrap_or(default_block_height);
 

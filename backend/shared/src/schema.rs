@@ -178,8 +178,10 @@ diesel::table! {
         fund_token_id -> Nullable<Numeric>,
         market_token_id -> Nullable<Numeric>,
         #[max_length = 10]
-        symbol -> Nullable<Varchar>,
-        decimals -> Nullable<Int4>,
+        symbol -> Varchar,
+        decimals -> Int4,
+        metadata_url -> Varchar,
+        metadata_hash -> Nullable<Varchar>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

@@ -35,9 +35,6 @@
 	font-weight: 500;
 	color: rgba(51, 51, 51, 1);
 	margin-bottom: 10px;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	overflow: hidden;
 }
 .walletmanagement .walletclms button {
 	font-weight: 600;

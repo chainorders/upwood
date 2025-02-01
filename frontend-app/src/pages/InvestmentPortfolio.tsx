@@ -8,7 +8,7 @@ import {
 	PortfolioValue,
 } from "../apiClient";
 import PageHeader from "../components/PageHeader";
-import ProjectCard2 from "../components/ProjectCard2";
+import ProjectCardOwned from "../components/ProjectCardOwned";
 import PortfolioValueChart from "../components/PortfolioValueChart";
 import { useOutletContext } from "react-router";
 
@@ -94,7 +94,7 @@ export default function InvestmentPortfolio() {
 					<div className="container-in">
 						{projects.map((project, index) => (
 							<div className="col-6 col-m-full fl" key={index}>
-								<ProjectCard2 item={project} />
+								<ProjectCardOwned item={project} />
 							</div>
 						))}
 						<div className="clr"></div>

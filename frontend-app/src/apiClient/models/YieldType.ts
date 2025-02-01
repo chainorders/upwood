@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type LoginReq = {
-	email: string;
-	password: string;
-};
+export enum YieldType {
+    QUANTITY = 'Quantity',
+    SIMPLE_INTREST = 'SimpleIntrest',
+}

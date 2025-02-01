@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ForestProjectAggApiModel, ForestProjectService, LoginRes } from "../apiClient";
 import PageHeader from "../components/PageHeader";
 import { useOutletContext } from "react-router";
-import ProjectCard2 from "../components/ProjectCard2";
+import ProjectCardOwned from "../components/ProjectCardOwned";
 import ClaimPopup from "../components/ClaimPopup";
 import { Link } from "react-router";
 export default function Wallet() {
@@ -297,7 +297,7 @@ export default function Wallet() {
 					<div className="container-in">
 						{projects.map((project, index) => (
 							<div className="col-6 col-m-full fl" key={index}>
-								<ProjectCard2 item={project} />
+								<ProjectCardOwned item={project} />
 							</div>
 						))}
 						<div className="clr"></div>

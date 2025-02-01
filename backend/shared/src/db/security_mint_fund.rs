@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -38,6 +38,7 @@ pub enum SecurityMintFundState {
     PartialEq,
     Object,
     Serialize,
+    Deserialize,
     AsChangeset,
 )]
 #[diesel(table_name = security_mint_fund_contracts)]
@@ -104,7 +105,9 @@ impl SecurityMintFundContract {
     PartialEq,
     Object,
     Serialize,
+    Deserialize,
     AsChangeset,
+    Clone,
 )]
 #[diesel(table_name = security_mint_funds)]
 #[diesel(primary_key(
@@ -113,6 +116,7 @@ impl SecurityMintFundContract {
     investment_token_contract_address
 ))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct SecurityMintFund {
     pub contract_address: Decimal,
     pub investment_token_id: Decimal,
@@ -132,6 +136,26 @@ pub struct SecurityMintFund {
 }
 
 impl SecurityMintFund {
+    #[instrument(skip_all)]
+    pub fn list(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        investment_token_contract_address: Decimal,
+        limit: i64,
+        offset: i64,
+    ) -> DbResult<Vec<Self>> {
+        let funds = security_mint_funds::table
+            .filter(security_mint_funds::contract_address.eq(contract_address))
+            .filter(
+                security_mint_funds::investment_token_contract_address
+                    .eq(investment_token_contract_address),
+            )
+            .limit(limit)
+            .offset(offset)
+            .load(conn)?;
+        Ok(funds)
+    }
+
     #[instrument(skip_all)]
     pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
         let fund = diesel::insert_into(security_mint_funds::table)

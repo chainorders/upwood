@@ -20,8 +20,8 @@ use upwood::api::forest_project::{
 };
 use upwood::api::investment_portfolio::{InvestmentPortfolioUserAggregate, PortfolioValue};
 use upwood::api::user::{
-    ApiUser, ClaimRequest, LoginReq, LoginRes, UserCreatePostReq, UserCreatePostReqAdmin,
-    UserRegisterGetRes, UserRegistrationRequestApi,
+    ApiUser, ClaimRequest, UserCreatePostReq, UserCreatePostReqAdmin, UserRegisterGetRes,
+    UserRegistrationRequestApi,
 };
 use uuid::Uuid;
 
@@ -218,13 +218,8 @@ impl ApiTestClient {
             .await
     }
 
-    pub async fn get_user_register(&self, registration_request_id: Uuid) -> UserRegisterGetRes {
-        let res = self
-            .client
-            .get(format!("/user/register/{}", registration_request_id))
-            .send()
-            .await
-            .0;
+    pub async fn get_user_register(&self) -> UserRegisterGetRes {
+        let res = self.client.get("/user/register").send().await.0;
         assert_eq!(res.status(), StatusCode::OK);
         res.into_body()
             .into_json()
@@ -254,12 +249,11 @@ impl ApiTestClient {
     pub async fn admin_user_register(
         &self,
         id_token: String,
-        registration_request_id: Uuid,
         req: UserCreatePostReqAdmin,
     ) -> ApiUser {
         let res = self
             .client
-            .post(format!("/admin/user/register/{}", registration_request_id))
+            .post("/admin/user/register")
             .header("Authorization", format!("Bearer {}", id_token))
             .body_json(&req)
             .send()
@@ -270,19 +264,6 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse admin user register response")
-    }
-
-    pub async fn user_login_request(&self, req: LoginReq) -> TestResponse {
-        self.client.post("/user/login").body_json(&req).send().await
-    }
-
-    pub async fn user_login(&self, req: LoginReq) -> LoginRes {
-        let res = self.user_login_request(req).await.0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse user login response")
     }
 }
 
@@ -838,7 +819,7 @@ impl ApiTestClient {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    pub async fn forest_project_token_contract_find(
+    pub async fn admin_forest_project_token_contract_find_by_type(
         &self,
         id_token: String,
         project_id: Uuid,

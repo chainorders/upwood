@@ -4,9 +4,10 @@
 /* eslint-disable */
 
 export type TreeNftMetadata = {
-	id: string;
-	metadata_url: string;
-	metadata_hash?: string;
-	probablity_percentage: number;
-	created_at: string;
+    id: string;
+    metadata_url: string;
+    metadata_hash?: string;
+    probablity_percentage: number;
+    created_at: string;
 };
+

@@ -55,23 +55,10 @@ export default function BuyShare({ config, close }: BuyProps) {
 		<div className="popup-overlay" onClick={handleOverlayClick}>
 			{thankyou ? (
 				<div className="popup" onClick={(e) => e.stopPropagation()}>
-					<img
-						src="/Close.svg"
-						alt="Close icon"
-						// layout="intrinsic"
-						width={32}
-						height={32}
-						className="close"
-						onClick={close}
-					/>
+					<img src="/Close.svg" alt="Close icon" width={32} height={32} className="close" onClick={close} />
 					<div className="heading">Congratulations!</div>
 					<div className="message">
-						<img
-							src="/Group-1000003068.svg"
-							// layout="intrinsic"
-							width={100}
-							height={100}
-						/>
+						<img src="/Group-1000003068.svg" width={100} height={100} />
 						You have successfully invested in <span>5 shares</span> of the &quot;Oaktree House&quot; forest plantation.
 					</div>
 					<div className="space-30"></div>

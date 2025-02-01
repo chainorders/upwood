@@ -3,14 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { MaintenanceMessage } from "./MaintenanceMessage";
+import type { MaintenanceMessage } from './MaintenanceMessage';
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
 export type PagedResponse_MaintenanceMessage_ = {
-	page_count: number;
-	page: number;
-	data: Array<MaintenanceMessage>;
+    page_count: number;
+    page: number;
+    data: Array<MaintenanceMessage>;
 };
+

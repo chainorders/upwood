@@ -4,7 +4,7 @@
 /* eslint-disable */
 
 export enum InvestmentRecordType {
-	INVESTED = "Invested",
-	CANCELLED = "Cancelled",
-	CLAIMED = "Claimed",
+    INVESTED = 'Invested',
+    CANCELLED = 'Cancelled',
+    CLAIMED = 'Claimed',
 }

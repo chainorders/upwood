@@ -4,9 +4,10 @@
 /* eslint-disable */
 
 export type UserRegisterGetRes = {
-	id_statement: any;
-	/**
-	 * The hex of the challenge
-	 */
-	challenge: string;
+    id_statement: any;
+    /**
+     * The hex of the challenge
+     */
+    challenge: string;
 };
+

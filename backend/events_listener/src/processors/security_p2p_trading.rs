@@ -94,6 +94,7 @@ pub fn process_events(
                     update_time: block_time,
                 }
                 .insert(conn)?;
+                info!("Market added: {:?}", market);
             }
             Event::MarketRemoved(market) => {
                 Market::delete(
@@ -102,6 +103,7 @@ pub fn process_events(
                     market.id.to_decimal(),
                     market.contract.to_decimal(),
                 )?;
+                info!("Market removed: {:?}", market);
             }
             Event::Exchanged(ExchangeEvent {
                 token_amount,
@@ -115,8 +117,8 @@ pub fn process_events(
                 let market = Market::find(
                     conn,
                     contract.to_decimal(),
-                    token_id.to_decimal(),
                     token_contract.to_decimal(),
+                    token_id.to_decimal(),
                 )?
                 .map(|mut market| {
                     market.total_sell_currency_amount += currency_amount.to_decimal();
@@ -203,6 +205,10 @@ pub fn process_events(
                     rate: rate.to_decimal(),
                 }
                 .insert(conn)?;
+                info!(
+                    "Exchanged: {:?}",
+                    (seller, buyer, token_amount, currency_amount)
+                );
             }
         }
     }

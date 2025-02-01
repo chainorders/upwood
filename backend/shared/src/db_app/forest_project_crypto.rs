@@ -92,14 +92,17 @@ impl ForestProjectFundsAffiliateRewardRecord {
 #[diesel(belongs_to(ForestProject, foreign_key = forest_project_id))]
 #[diesel(primary_key(forest_project_id, contract_type))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct ForestProjectTokenContract {
     pub contract_address:  Decimal,
     pub forest_project_id: Uuid,
     pub contract_type:     SecurityTokenContractType,
     pub fund_token_id:     Option<Decimal>,
     pub market_token_id:   Option<Decimal>,
-    pub symbol:            Option<String>,
-    pub decimals:          Option<i32>,
+    pub symbol:            String,
+    pub decimals:          i32,
+    pub metadata_url:      String,
+    pub metadata_hash:     Option<String>,
     pub created_at:        chrono::NaiveDateTime,
     pub updated_at:        chrono::NaiveDateTime,
 }
@@ -108,9 +111,7 @@ impl ForestProjectTokenContract {
     pub fn update(&self, conn: &mut DbConn) -> QueryResult<Self> {
         use crate::schema::forest_project_token_contracts::dsl::*;
         diesel::update(
-            forest_project_token_contracts
-                .filter(forest_project_id.eq(self.forest_project_id))
-                .filter(contract_type.eq(self.contract_type)),
+            forest_project_token_contracts.filter(contract_address.eq(self.contract_address)),
         )
         .set(self)
         .get_result(conn)
@@ -137,7 +138,7 @@ impl ForestProjectTokenContract {
         .execute(conn)
     }
 
-    pub fn find(
+    pub fn find_by_type(
         conn: &mut DbConn,
         project_id: Uuid,
         token_contract_type: SecurityTokenContractType,
@@ -146,6 +147,14 @@ impl ForestProjectTokenContract {
         forest_project_token_contracts
             .filter(forest_project_id.eq(project_id))
             .filter(contract_type.eq(token_contract_type))
+            .first(conn)
+            .optional()
+    }
+
+    pub fn find(conn: &mut DbConn, contract_addr: Decimal) -> QueryResult<Option<Self>> {
+        use crate::schema::forest_project_token_contracts::dsl::*;
+        forest_project_token_contracts
+            .filter(contract_address.eq(contract_addr))
             .first(conn)
             .optional()
     }
@@ -750,6 +759,7 @@ impl ForestProjectUserYieldDistribution {
 #[diesel(table_name = crate::schema::token_metadatas)]
 #[diesel(primary_key(contract_address, token_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct TokenMetadata {
     pub contract_address: Decimal,
     pub token_id:         Decimal,

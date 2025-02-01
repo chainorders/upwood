@@ -7,6 +7,7 @@
 	z-index: 9999;
 	background: rgba(0, 0, 0, 0.6);
 }
+
 .popup-overlay .popup {
 	width: 572px;
 	height: auto;
@@ -21,12 +22,14 @@
 	left: 50%;
 	transform: translate(-50%, -50%);
 }
+
 .popup-overlay .popup .close {
 	position: absolute;
 	top: 25px;
 	right: 20px;
 	cursor: pointer;
 }
+
 .popup-overlay .heading {
 	text-align: center;
 	font-size: 24px;
@@ -34,6 +37,7 @@
 	padding: 10px 0 20px;
 	border-bottom: 1px solid #ccc;
 }
+
 .popup-overlay .title {
 	text-align: center;
 	font-size: 24px;
@@ -41,37 +45,46 @@
 	padding: 20px 0;
 	margin-bottom: 20px;
 }
+
 .popup-overlay .vis {
 	text-align: center;
 }
+
 .popup-overlay .vis .colc {
 	font-size: 16px;
 	font-weight: 500;
 	margin-bottom: 10px;
 	display: block;
 }
+
 .popup-overlay .vis .colb {
 	font-size: 40px;
 	font-weight: 600;
 	display: block;
 	color: rgba(0, 147, 0, 1);
 }
+
 .popup-overlay .resu {
 	font-weight: 500;
 	font-size: 18px;
 }
+
 .popup-overlay .resu .center {
 	text-align: center;
 }
+
 .popup-overlay .resu .left {
 	padding-left: 20px;
 }
+
 .popup-overlay .resu .right {
 	padding-right: 20px;
 }
+
 .popup-overlay .resu span {
 	color: rgba(0, 147, 0, 1);
 }
+
 .popup-overlay .message {
 	text-align: center;
 	font-size: 18px;
@@ -79,11 +92,13 @@
 	padding: 20px 10%;
 	line-height: 28px;
 }
+
 .popup-overlay .message img {
 	display: block;
 	margin: auto;
 	margin-bottom: 20px;
 }
+
 .popup-overlay .message span {
 	color: rgba(0, 147, 0, 1);
 }
@@ -93,16 +108,19 @@
 	text-align: center;
 	padding-top: 20px;
 }
+
 .cl-area .cl-in .tag {
 	font-weight: 500;
 	margin-bottom: 20px;
 }
+
 .cl-area .cl-in .display {
 	font-weight: 500;
 	font-size: 28px;
 	margin-bottom: 20px;
 	color: rgba(0, 147, 0, 1);
 }
+
 .cl-area .auto {
 	margin: auto;
 	float: none;

@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use poem_openapi::Object;
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -22,6 +22,8 @@ use crate::schema::{
     Object,
     AsChangeset,
     Serialize,
+    Deserialize,
+    Clone,
 )]
 #[diesel(table_name = security_p2p_trading_contracts)]
 #[diesel(primary_key(contract_address))]
@@ -88,6 +90,7 @@ impl P2PTradeContract {
     PartialEq,
     Object,
     Serialize,
+    Deserialize,
     AsChangeset,
 )]
 #[diesel(table_name = security_p2p_trading_markets)]
@@ -111,6 +114,23 @@ pub struct Market {
 }
 
 impl Market {
+    #[instrument(skip_all)]
+    pub fn list(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_contract_address: Decimal,
+        limit: i64,
+        offset: i64,
+    ) -> DbResult<Vec<Self>> {
+        let markets = security_p2p_trading_markets::table
+            .filter(security_p2p_trading_markets::contract_address.eq(contract_address))
+            .filter(security_p2p_trading_markets::token_contract_address.eq(token_contract_address))
+            .limit(limit)
+            .offset(offset)
+            .load(conn)?;
+        Ok(markets)
+    }
+
     #[instrument(skip_all)]
     pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
         let market = diesel::insert_into(security_p2p_trading_markets::table)
@@ -140,8 +160,8 @@ impl Market {
     pub fn find(
         conn: &mut DbConn,
         contract_address: Decimal,
-        token_id: Decimal,
         token_contract_address: Decimal,
+        token_id: Decimal,
     ) -> DbResult<Option<Self>> {
         let market = security_p2p_trading_markets::table
             .filter(security_p2p_trading_markets::contract_address.eq(contract_address))

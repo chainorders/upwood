@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import Button from "../components/Button";
-import { LoginRes } from "../apiClient";
 import { useOutletContext } from "react-router";
 import PageHeader from "../components/PageHeader";
 import { Link } from "react-router";
+import { User } from "../lib/user";
+
 export default function Support() {
-	const { user } = useOutletContext<{ user: LoginRes }>();
+	const { user } = useOutletContext<{ user: User }>();
 
 	const [showAll, setShowAll] = useState(false);
 	const links = [

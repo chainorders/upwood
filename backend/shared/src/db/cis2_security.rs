@@ -85,11 +85,11 @@ impl Agent {
             .limit(page_size)
             .offset(page_size * page)
             .get_results(conn)?;
-        let count: i64 = cis2_agents::table
+        let total_count: i64 = cis2_agents::table
             .filter(select_filter)
             .count()
             .get_result(conn)?;
-        let page_count = (count + page_size - 1) / page_size;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((res, page_count))
     }
@@ -481,7 +481,7 @@ impl TokenHolderBalanceUpdate {
             .offset(page * page_size)
             .limit(page_size)
             .get_results(conn)?;
-        let count_total = cis2_token_holder_balance_updates::table
+        let total_count = cis2_token_holder_balance_updates::table
             .filter(
                 cis2_token_holder_balance_updates::cis2_address
                     .eq(cis2_address)
@@ -495,7 +495,7 @@ impl TokenHolderBalanceUpdate {
             .count()
             .get_result::<i64>(conn)?;
 
-        let page_count = (count_total + page_size - 1) / page_size;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
         Ok((updates, page_count))
     }
 }
@@ -533,9 +533,9 @@ pub fn list_tokens_by_holder(
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
-    let count_total: i64 = query.count().get_result(conn)?;
+    let total_count: i64 = query.count().get_result(conn)?;
 
-    let page_count = (count_total + page_size - 1) / page_size;
+    let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
     Ok((tokens, page_count))
 }
 
@@ -565,8 +565,8 @@ pub fn list_holders_by_token_metadata_url(
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
-    let count_total: i64 = query.count().get_result(conn)?;
-    let page_count = (count_total + page_size - 1) / page_size;
+    let total_count: i64 = query.count().get_result(conn)?;
+    let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
     Ok((tokens, page_count))
 }
 
@@ -589,9 +589,9 @@ pub fn list_holders_by_token(
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
-    let count_total: i64 = query.count().get_result(conn)?;
+    let total_count: i64 = query.count().get_result(conn)?;
 
-    let page_count = (count_total + page_size - 1) / page_size;
+    let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
     Ok((tokens, page_count))
 }
 
@@ -622,6 +622,7 @@ pub fn holders_count_by_token(
     Debug,
     PartialEq,
     Serialize,
+    Deserialize
 )]
 #[diesel(table_name = cis2_tokens)]
 #[diesel(primary_key(cis2_address, token_id))]
@@ -784,6 +785,26 @@ impl Token {
         assert_eq!(deleted_rows, 1, "error {} rows were deleted", deleted_rows);
         Ok(())
     }
+
+    #[instrument(skip(conn))]
+    pub fn list(
+        conn: &mut DbConn,
+        cis2_address: Decimal,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Token>, i64)> {
+        let query = cis2_tokens::table.filter(cis2_tokens::cis2_address.eq(cis2_address));
+        let tokens = query
+            .select(Token::as_select())
+            .order(cis2_tokens::create_time)
+            .offset(page * page_size)
+            .limit(page_size)
+            .get_results(conn)?;
+        let total_count: i64 = query.count().get_result(conn)?;
+
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((tokens, page_count))
+    }
 }
 
 #[instrument(skip(conn))]
@@ -800,9 +821,9 @@ pub fn list_tokens_for_contract(
         .offset(page * page_size)
         .limit(page_size)
         .get_results(conn)?;
-    let count_total: i64 = query.count().get_result(conn)?;
+    let total_count: i64 = query.count().get_result(conn)?;
 
-    let page_count = (count_total + page_size - 1) / page_size;
+    let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
     Ok((tokens, page_count))
 }
 

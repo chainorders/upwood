@@ -3,11 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { MetadataUrl } from "./MetadataUrl";
+import type { MetadataUrl } from './MetadataUrl';
 
 export type SignedMetadata = {
-	contract_address: string;
-	metadata_url: MetadataUrl;
-	account: string;
-	account_nonce: number;
+    contract_address: string;
+    metadata_url: MetadataUrl;
+    account: string;
+    account_nonce: number;
 };
+

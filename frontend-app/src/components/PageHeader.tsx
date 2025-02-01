@@ -1,9 +1,8 @@
 import { Link } from "react-router";
-import { LoginRes } from "../apiClient";
+import { User } from "../lib/user";
 
-export default function PageHeader(props: { parts: { name: string; link?: string }[]; user: LoginRes }) {
-	const fullName = props.user.user.user.first_name + " " + props.user.user.user.last_name;
-	const initials = props.user.user.user.first_name[0] + props.user.user.user.last_name[0];
+export default function PageHeader(props: { parts: { name: string; link?: string }[]; user: User }) {
+	const { fullName, initialis } = props.user;
 
 	return (
 		<>
@@ -26,7 +25,7 @@ export default function PageHeader(props: { parts: { name: string; link?: string
 								);
 							})}
 							<div className="username fr" style={{ marginTop: "-0.5em" }}>
-								<span>{initials}</span>
+								<span>{initialis}</span>
 								{fullName}
 							</div>
 						</h1>

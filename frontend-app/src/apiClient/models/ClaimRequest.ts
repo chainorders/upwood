@@ -3,13 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ClaimInfo } from "./ClaimInfo";
+import type { ClaimInfo } from './ClaimInfo';
 
 export type ClaimRequest = {
-	claim: ClaimInfo;
-	signer: string;
-	/**
-	 * Json serialized `AccountSignatures`
-	 */
-	signature: any;
+    claim: ClaimInfo;
+    signer: string;
+    /**
+     * Json serialized `AccountSignatures`
+     */
+    signature: any;
 };
+

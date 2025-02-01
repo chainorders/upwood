@@ -4,7 +4,7 @@
 /* eslint-disable */
 
 export enum SecurityMintFundState {
-	OPEN = "Open",
-	SUCCESS = "Success",
-	FAIL = "Fail",
+    OPEN = 'Open',
+    SUCCESS = 'Success',
+    FAIL = 'Fail',
 }

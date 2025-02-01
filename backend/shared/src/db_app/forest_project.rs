@@ -26,6 +26,7 @@ pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
 #[diesel(table_name = crate::schema::forest_projects)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
 pub struct ForestProject {
     pub id:                    uuid::Uuid,
     pub name:                  String,

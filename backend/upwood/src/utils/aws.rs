@@ -111,25 +111,25 @@ pub mod cognito {
 
         /// Create a new user in the Cognito user pool and sets the permanent password.
         #[instrument(skip_all)]
-        pub async fn admin_create_user(
+        pub async fn admin_create_permanent_user(
             &self,
             username: &str,
             password: &str,
             attributes: Vec<AttributeType>,
         ) -> Result<UserType> {
             let user = self
-                .cognito_client
-                .admin_create_user()
-                .user_pool_id(self.user_pool_id.clone())
-                .username(username)
-                .set_user_attributes(Some(attributes))
-                .temporary_password(password)
-                .force_alias_creation(true)
-                .message_action(MessageActionType::Suppress) // TODO: Change to "RESEND" for production
-                .send()
-                .await?
-                .user
-                .ok_or(Error::UserCreateRes)?;
+                .admin_upsert_user(username, attributes, MessageActionType::Suppress)
+                .await?;
+            self.admin_set_permament_password(username, password)
+                .await?;
+            Ok(user)
+        }
+
+        pub async fn admin_set_permament_password(
+            &self,
+            username: &str,
+            password: &str,
+        ) -> Result<()> {
             self.cognito_client
                 .admin_set_user_password()
                 .user_pool_id(&self.user_pool_id)
@@ -138,6 +138,43 @@ pub mod cognito {
                 .password(password)
                 .send()
                 .await?;
+            Ok(())
+        }
+
+        pub async fn admin_update_user_attributes(
+            &self,
+            username: &str,
+            attributes: Vec<AttributeType>,
+        ) -> Result<()> {
+            self.cognito_client
+                .admin_update_user_attributes()
+                .user_pool_id(self.user_pool_id.clone())
+                .username(username)
+                .set_user_attributes(Some(attributes))
+                .send()
+                .await?;
+            Ok(())
+        }
+
+        /// Create a new user in the Cognito user pool
+        pub async fn admin_upsert_user(
+            &self,
+            username: &str,
+            attributes: Vec<AttributeType>,
+            message_action: MessageActionType,
+        ) -> Result<UserType> {
+            let user = self
+                .cognito_client
+                .admin_create_user()
+                .user_pool_id(self.user_pool_id.clone())
+                .username(username)
+                .set_user_attributes(Some(attributes))
+                .force_alias_creation(true)
+                .message_action(message_action)
+                .send()
+                .await?
+                .user
+                .ok_or(Error::UserCreateRes)?;
             Ok(user)
         }
 
@@ -257,23 +294,25 @@ pub mod cognito {
     #[derive(Serialize, Deserialize, Debug, Clone, Object)]
     pub struct Claims {
         /// Cognito user id
-        pub sub:            String,
+        pub sub:               String,
         #[serde(rename = "cognito:groups")]
-        pub cognito_groups: Option<Vec<String>>,
+        pub cognito_groups:    Option<Vec<String>>,
         /// Is the email address marked verified in Cognito
         /// When the user registers with Cognito, the email address is not verified by default.
         /// When the user registers via the API the email address in cognito is marked verified.
-        pub email_verified: Option<bool>,
-        pub email:          String,
+        pub email_verified:    Option<bool>,
+        pub email:             String,
         /// Concordium account address for the user
         #[serde(rename = "custom:con_accnt")]
-        pub account:        Option<String>,
+        pub account:           Option<String>,
+        #[serde(rename = "custom:affiliate_con_accnt")]
+        pub affiliate_account: Option<String>,
         #[serde(rename = "given_name")]
-        pub first_name:     Option<String>,
+        pub first_name:        Option<String>,
         #[serde(rename = "family_name")]
-        pub last_name:      Option<String>,
+        pub last_name:         Option<String>,
         #[serde(rename = "custom:nationallity")]
-        pub nationality:    Option<String>,
+        pub nationality:       Option<String>,
     }
 
     impl Claims {
@@ -316,6 +355,17 @@ pub mod cognito {
     ) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
         aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
             .name("custom:con_accnt".to_string())
+            .value(address)
+            .build()
+            .unwrap()
+    }
+
+    #[inline]
+    pub fn affiliate_account_address_attribute(
+        address: &str,
+    ) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
+        aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
+            .name("custom:affiliate_con_accnt".to_string())
             .value(address)
             .build()
             .unwrap()

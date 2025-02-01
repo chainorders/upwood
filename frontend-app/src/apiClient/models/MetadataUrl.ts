@@ -4,6 +4,7 @@
 /* eslint-disable */
 
 export type MetadataUrl = {
-	url: string;
-	hash?: string;
+    url: string;
+    hash?: string;
 };
+

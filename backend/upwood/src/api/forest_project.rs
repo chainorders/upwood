@@ -4,6 +4,7 @@ use poem_openapi::types::ToJSON;
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db::security_mint_fund::SecurityMintFundState;
+use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
 };
@@ -396,7 +397,7 @@ impl ForestProjectApi {
     }
 
     #[oai(
-        path = "/forest_projects/token_contract/list/owned",
+        path = "/forest_projects/contract/list/owned",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
@@ -552,7 +553,7 @@ impl ForestProjectApi {
     }
 
     #[oai(
-        path = "/forest_projects/:project_id/token_contract/list",
+        path = "/forest_projects/:project_id/contract/list",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
@@ -978,11 +979,31 @@ impl ForestProjectAdminApi {
     }
 
     #[oai(
-        path = "/admin/forest_projects/:project_id/token_contract/:contract_type",
+        path = "/admin/forest_projects/contract/:contract_address",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
-    pub async fn forest_project_token_contract_find(
+    pub async fn admin_forest_project_token_contract(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(contract_address): Path<Decimal>,
+    ) -> JsonResult<ForestProjectTokenContract> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let contract =
+            ForestProjectTokenContract::find(conn, contract_address)?.ok_or(Error::NotFound(
+                PlainText(format!("Token contract not found: {}", contract_address)),
+            ))?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/:project_id/contract_by_type/:contract_type",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_forest_project_token_contract_find_by_type(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -991,18 +1012,17 @@ impl ForestProjectAdminApi {
     ) -> JsonResult<ForestProjectTokenContract> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let contract = ForestProjectTokenContract::find(conn, project_id, contract_type)?.ok_or(
-            Error::NotFound(PlainText(format!(
-                "Token contract not found: {}, {}",
-                project_id,
-                contract_type.to_json_string()
-            ))),
-        )?;
+        let contract = ForestProjectTokenContract::find_by_type(conn, project_id, contract_type)?
+            .ok_or(Error::NotFound(PlainText(format!(
+            "Token contract not found: {}, {}",
+            project_id,
+            contract_type.to_json_string()
+        ))))?;
         Ok(Json(contract))
     }
 
     #[oai(
-        path = "/admin/forest_projects/token_contract",
+        path = "/admin/forest_projects/contract",
         method = "post",
         tag = "ApiTags::ForestProject"
     )]
@@ -1024,7 +1044,7 @@ impl ForestProjectAdminApi {
     }
 
     #[oai(
-        path = "/admin/forest_projects/token_contract",
+        path = "/admin/forest_projects/contract",
         method = "put",
         tag = "ApiTags::ForestProject"
     )]
@@ -1045,7 +1065,7 @@ impl ForestProjectAdminApi {
     }
 
     #[oai(
-        path = "/admin/forest_projects/:project_id/token_contract/:contract_type",
+        path = "/admin/forest_projects/:project_id/contract/:contract_type",
         method = "delete",
         tag = "ApiTags::ForestProject"
     )]
@@ -1063,6 +1083,39 @@ impl ForestProjectAdminApi {
             Error::InternalServer(PlainText(format!("Failed to delete token contract: {}", e)))
         })?;
         Ok(())
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/:project_id/contract/:contract_address/token/:token_id/\
+                yeild/list",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_forest_project_token_yield_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Path(contract_address): Path<Decimal>,
+        Path(token_id): Path<Decimal>,
+    ) -> JsonResult<Vec<ForestProjectTokenYieldListApiModel>> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let yields = Yield::list_for_token(
+            conn,
+            contracts.yielder_contract_index,
+            contract_address,
+            token_id,
+        )?
+        .into_iter()
+        .map(
+            |(yield_data, token_metadata)| ForestProjectTokenYieldListApiModel {
+                yield_data,
+                token_metadata,
+            },
+        )
+        .collect::<Vec<_>>();
+        Ok(Json(yields))
     }
 
     #[oai(
@@ -1169,4 +1222,10 @@ impl ForestProjectAdminApi {
         })?;
         Ok(())
     }
+}
+
+#[derive(Object, serde::Serialize, serde::Deserialize)]
+pub struct ForestProjectTokenYieldListApiModel {
+    pub yield_data:     Yield,
+    pub token_metadata: Option<TokenMetadata>,
 }

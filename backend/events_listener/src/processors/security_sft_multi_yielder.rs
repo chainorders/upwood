@@ -12,7 +12,7 @@ use security_sft_multi_yielder::{
 use shared::db::cis2_security::Agent;
 use shared::db::security_sft_multi_yielder::{Yield, YieldDistribution, YieldType};
 use shared::db_shared::DbConn;
-use tracing::instrument;
+use tracing::{info, instrument};
 use uuid::Uuid;
 
 use super::cis2_utils::{ContractAddressToDecimal, TokenAmountToDecimal, TokenIdToDecimal};
@@ -71,7 +71,7 @@ pub fn process_events(
                         let (yield_type, rate) = match y.calculation {
                             YieldCalculation::Quantity(rate) => (YieldType::Quantity, rate),
                             YieldCalculation::SimpleInterest(rate) => {
-                                (YieldType::SimpleInterest, rate)
+                                (YieldType::SimpleIntrest, rate)
                             }
                         };
 
@@ -89,16 +89,22 @@ pub fn process_events(
                     })
                     .collect::<Vec<_>>();
                 Yield::insert_batch(conn, &yields)?;
+                yields
+                    .iter()
+                    .for_each(|yield_| info!("Yield added: {:?}", yield_));
             }
             Event::YieldRemoved(YieldRemovedEvent {
                 token_contract,
                 token_id,
-            }) => Yield::delete_batch(
-                conn,
-                contract.to_decimal(),
-                token_contract.to_decimal(),
-                token_id.to_decimal(),
-            )?,
+            }) => {
+                Yield::delete_batch(
+                    conn,
+                    contract.to_decimal(),
+                    token_contract.to_decimal(),
+                    token_id.to_decimal(),
+                )?;
+                info!("Yield removed: {:?}", (contract, token_contract, token_id));
+            }
             Event::YieldDistributed(YieldDistributedEvent {
                 from_token,
                 to_token,
@@ -135,6 +141,9 @@ pub fn process_events(
                 })
                 .collect::<Vec<_>>();
                 YieldDistribution::insert_batch(conn, &yield_distributions)?;
+                yield_distributions.iter().for_each(|yield_distribution| {
+                    info!("Yield distributed: {:?}", yield_distribution)
+                });
             }
         }
     }
@@ -168,7 +177,7 @@ fn calculate_yield_amount(
 
     match yeild_type {
         YieldType::Quantity => YieldCalculation::Quantity(rate),
-        YieldType::SimpleInterest => YieldCalculation::SimpleInterest(rate),
+        YieldType::SimpleIntrest => YieldCalculation::SimpleInterest(rate),
     }
     .calculate_amount(
         &concordium_cis2::TokenAmountU64(amount.to_u64().expect("Failed to convert amount")),

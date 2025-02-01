@@ -4,9 +4,10 @@
 /* eslint-disable */
 
 export type Guide = {
-	id: string;
-	title: string;
-	label: string;
-	created_at: string;
-	order_index: number;
+    id: string;
+    title: string;
+    label: string;
+    created_at: string;
+    order_index: number;
 };
+

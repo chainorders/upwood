@@ -22,7 +22,16 @@ use crate::schema::{
     self, listener_blocks, listener_contract_calls, listener_contracts, listener_transactions,
 };
 
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug)]
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    Object,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[diesel(table_name = schema::listener_blocks)]
 #[diesel(primary_key(block_height))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -44,9 +53,9 @@ impl ListenerBlock {
         Ok(created_id)
     }
 
-    /// Retrieves the last processed block from the database.
+    /// Retrieves the last processed block height from the database.
     #[instrument(skip_all)]
-    pub fn find_last(
+    pub fn find_last_height(
         conn: &mut DbConn,
     ) -> Result<Option<AbsoluteBlockHeight>, diesel::result::Error> {
         let config = listener_blocks::table
@@ -62,6 +71,21 @@ impl ListenerBlock {
             });
 
         Ok(config)
+    }
+
+    /// Retrieves the last processed block from the database.
+    #[instrument(skip_all)]
+    pub fn find_last(
+        conn: &mut DbConn,
+    ) -> Result<Option<ListenerBlock>, diesel::result::Error> {
+        let block = listener_blocks::table
+            .order(listener_blocks::block_height.desc())
+            .limit(1)
+            .select(listener_blocks::all_columns)
+            .first(conn)
+            .optional()?;
+
+        Ok(block)
     }
 }
 

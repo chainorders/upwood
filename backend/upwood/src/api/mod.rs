@@ -2,6 +2,7 @@ pub mod carbon_credits;
 pub mod files;
 pub mod forest_project;
 pub mod identity_registry;
+pub mod indexer;
 pub mod investment_portfolio;
 pub mod tree_nft;
 pub mod user;
@@ -12,6 +13,7 @@ use std::time::Duration;
 
 use aws::s3;
 use concordium::chain::concordium_global_context;
+use concordium::identity::IdStatement;
 use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
 use concordium_rust_sdk::web3id::did::Network;
 use concordium_rust_sdk::{cis2, v2};
@@ -22,19 +24,20 @@ use poem::middleware::{AddData, Cors, Tracing};
 use poem::{EndpointExt, Route};
 use poem_openapi::auth::Bearer;
 use poem_openapi::payload::{Json, PlainText};
-use poem_openapi::{ApiResponse, Object, SecurityScheme};
+use poem_openapi::{ApiResponse, Object, OpenApiService, SecurityScheme};
 use r2d2::Pool;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use secure_string::SecureString;
 use serde::Deserialize;
 use sha2::Digest;
+use shared::db::security_p2p_trading::P2PTradeContract;
 use shared::db_setup;
 use shared::db_shared::DbPool;
 use tracing::error;
 
 use crate::utils::{self, *};
-pub type OpenApiServiceType = poem_openapi::OpenApiService<
+pub type OpenApiServiceType = OpenApiService<
     (
         user::UserApi,
         tree_nft::Api,
@@ -45,6 +48,7 @@ pub type OpenApiServiceType = poem_openapi::OpenApiService<
         forest_project::ForestProjectAdminApi,
         investment_portfolio::Api,
         user_communication::Api,
+        indexer::Api,
     ),
     (),
 >;
@@ -84,6 +88,7 @@ pub struct Config {
     pub filebase_bucket_name: String,
     /// Default commission for affiliates
     pub affiliate_commission: Decimal,
+    pub id_statement: String,
 }
 
 impl Config {
@@ -224,6 +229,10 @@ impl Config {
             commission: self.affiliate_commission,
         }
     }
+
+    pub fn id_statement(&self) -> IdStatement {
+        serde_json::from_str(&self.id_statement).expect("Failed to parse Identity Statement JSON")
+    }
 }
 
 pub async fn create_web_app(config: Config) -> Route {
@@ -280,6 +289,7 @@ pub fn create_service() -> OpenApiServiceType {
             forest_project::ForestProjectAdminApi,
             investment_portfolio::Api,
             user_communication::Api,
+            indexer::Api,
         ),
         "Upwood API",
         "1.0.0",
@@ -407,11 +417,15 @@ enum ApiTags {
     TreeNft,
     /// Operations about tree nft metadata
     TreeNftMetadata,
-    //// Operations about forest project & contract
+    /// Operations about forest project & contract
     ForestProject,
+    /// Operations about reading user investment portfolio
     InvestmentPortfolio,
+    /// Operations about user communication
     UserCommunication,
     Wallet,
+    /// Operations reading data from indexer / events listener
+    Indexer,
 }
 
 #[derive(Clone, Object, serde::Serialize, serde::Deserialize)]
@@ -427,7 +441,7 @@ pub struct SystemContractsConfig {
     pub offchain_rewards_contract_index:  Decimal,
     pub mint_funds_contract_index:        Decimal,
     pub trading_contract_index:           Decimal,
-    pub yielder_contract_index:           Decimal,
+    pub yielder_contract_index:           Decimal
 }
 
 impl SystemContractsConfig {

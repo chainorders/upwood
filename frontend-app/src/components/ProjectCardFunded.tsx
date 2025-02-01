@@ -2,14 +2,13 @@ import { useState } from "react";
 import Button from "./Button";
 import NotifyShare from "./NotifyShare";
 import NotifyNon from "../assets/notify-non.svg";
-import NotifySuccess from "../assets/notify-success.svg";
 import { ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
 
 interface ItemProps {
 	item: ForestProjectAggApiModel;
 }
 
-export default function ProjectCard3({ item }: ItemProps) {
+export default function ProjectCardFunded({ item }: ItemProps) {
 	const [notifyShare, setNotifyShare] = useState(false);
 	const openNotifyShare = () => {
 		setNotifyShare(true);
@@ -20,7 +19,7 @@ export default function ProjectCard3({ item }: ItemProps) {
 	const notifyShareConfig = {
 		heading: "Notify of available tokens",
 		title: item.forest_project.name,
-		share_price: BigInt(item.forest_project.latest_price),
+		share_price: BigInt(item.property_fund?.rate_numerator || 0) / BigInt(item.property_fund?.rate_denominator || 1),
 		share_available: BigInt(item.forest_project.shares_available),
 	};
 
@@ -65,7 +64,6 @@ export default function ProjectCard3({ item }: ItemProps) {
 					<div className="container-in">
 						<div className="col-4 col-m-full fl">
 							<Button icon={NotifyNon} style={"style4"} text={"NOTIFY ME"} link={""} active={false} call={openNotifyShare} />
-							{/* <Button icon={NotifySuccess} style={'style5'} text={'NOTIFY ME'} link={''} active={false} /> */}
 						</div>
 						<div className="col-8 col-m-full col-mr-bottom-20 fl">
 							<Button text={"VIEW DETAILS"} link={`/projects/funded/${item.forest_project.id}`} active={false} />

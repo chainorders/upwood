@@ -2,12 +2,14 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use crate::db_app::forest_project_crypto::TokenMetadata;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     security_sft_multi_yielder_yeild_distributions, security_sft_multi_yielder_yields,
+    token_metadatas,
 };
 
 #[derive(
@@ -21,10 +23,10 @@ use crate::schema::{
     Copy,
 )]
 #[ExistingTypePath = "crate::schema::sql_types::SecuritySftMultiYielderYieldType"]
-
 pub enum YieldType {
     Quantity,
-    SimpleInterest,
+    #[db_rename = "simple_intrest"]
+    SimpleIntrest,
 }
 
 #[derive(
@@ -34,9 +36,10 @@ pub enum YieldType {
     Insertable,
     Debug,
     PartialEq,
+    AsChangeset,
     Object,
     Serialize,
-    AsChangeset,
+    Deserialize,
 )]
 #[diesel(table_name = security_sft_multi_yielder_yields)]
 #[diesel(primary_key(
@@ -60,6 +63,34 @@ pub struct Yield {
 }
 
 impl Yield {
+    #[instrument(skip_all)]
+    pub fn list_for_token(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_contract_address: Decimal,
+        token_id: Decimal,
+    ) -> DbResult<Vec<(Self, Option<TokenMetadata>)>> {
+        let yields = security_sft_multi_yielder_yields::table
+            .left_join(
+                token_metadatas::table.on(
+                    security_sft_multi_yielder_yields::yield_contract_address
+                        .eq(token_metadatas::contract_address)
+                        .and(
+                            security_sft_multi_yielder_yields::yield_token_id
+                                .eq(token_metadatas::token_id),
+                        ),
+                ),
+            )
+            .filter(security_sft_multi_yielder_yields::contract_address.eq(contract_address))
+            .filter(
+                security_sft_multi_yielder_yields::token_contract_address
+                    .eq(token_contract_address),
+            )
+            .filter(security_sft_multi_yielder_yields::token_id.eq(token_id))
+            .load(conn)?;
+        Ok(yields)
+    }
+
     #[instrument(skip_all)]
     pub fn find_batch(
         conn: &mut DbConn,

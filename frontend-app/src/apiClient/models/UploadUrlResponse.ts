@@ -8,6 +8,7 @@
  * presigned URL for uploading the file and the generated file name.
  */
 export type UploadUrlResponse = {
-	presigned_url: string;
-	file_name: string;
+    presigned_url: string;
+    file_name: string;
 };
+

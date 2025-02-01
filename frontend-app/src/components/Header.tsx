@@ -35,10 +35,12 @@ function VerticalNav(props: { closeMenu: () => void; navItems: NavItem[] }) {
 
 export default function Header(props: { navItems: NavItem[]; logout: () => void }) {
 	const openMenu = () => {
-		document.body.classList.toggle("menuopen");
+		document.querySelector(".auth-layout")?.classList.toggle("menuopen");
+		// document.body.classList.toggle("menuopen");
 	};
 
 	const closeMenu = () => {
+		document.querySelector(".auth-layout")?.classList.remove("menuopen");
 		document.body.classList.remove("menuopen");
 	};
 

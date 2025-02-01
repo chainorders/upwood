@@ -4,8 +4,8 @@
 /* eslint-disable */
 
 export enum SecurityTokenContractType {
-	PROPERTY = "Property",
-	BOND = "Bond",
-	PROPERTY_PRE_SALE = "PropertyPreSale",
-	BOND_PRE_SALE = "BondPreSale",
+    PROPERTY = 'Property',
+    BOND = 'Bond',
+    PROPERTY_PRE_SALE = 'PropertyPreSale',
+    BOND_PRE_SALE = 'BondPreSale',
 }

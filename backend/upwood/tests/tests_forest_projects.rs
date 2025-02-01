@@ -186,24 +186,31 @@ pub async fn test_forest_projects() {
     let offchain_agent_account_address = api_config.offchain_rewards_agent_wallet().address;
     let offchain_agent_account_keys = api_config.offchain_rewards_agent_wallet().keys;
     let admin_password = PASS_GENERATOR.generate_one().unwrap();
-    let admin = create_login_admin_user(
+    let email_admin = format!("admin_{}@yopmail.com", test_id);
+    let (id_token_admin, admin_cognito) = create_login_admin_user(
         &mut user_pool,
-        &api,
-        format!("admin_{}@yopmail.com", test_id).as_str(),
+        email_admin.as_str(),
         admin_password.as_str(),
         admin.address_str().as_str(),
     )
     .await;
+    let cognito_user_id = admin_cognito
+        .attributes()
+        .iter()
+        .find_map(|a| {
+            if a.name == "sub" {
+                Some(a.value.clone())
+            } else {
+                None
+            }
+        })
+        .flatten()
+        .expect("Failed to get cognito user id");
     let admin = UserTestClient {
-        account_address: admin
-            .user
-            .user
-            .account_address
-            .parse()
-            .expect("Failed to parse account address"),
-        email:           admin.user.user.email,
-        id_token:        admin.id_token,
-        id:              admin.user.user.cognito_user_id,
+        account_address: admin.address().to_string(),
+        email:           email_admin.to_string(),
+        id_token:        id_token_admin,
+        id:              cognito_user_id,
         password:        admin_password,
     };
 
@@ -256,6 +263,7 @@ pub async fn test_forest_projects() {
     let user_1 = create_user(
         &test_id,
         &mut chain,
+        &mut user_pool,
         &mut api,
         &admin,
         None,
@@ -267,6 +275,7 @@ pub async fn test_forest_projects() {
     let user_2 = create_user(
         &test_id,
         &mut chain,
+        &mut user_pool,
         &mut api,
         &admin,
         Some(user_1.account_address.clone()),
@@ -463,7 +472,7 @@ pub async fn test_forest_projects() {
 
         let mut property_token_contract = admin
             .call_api(|token| {
-                api.forest_project_token_contract_find(
+                api.admin_forest_project_token_contract_find_by_type(
                     token,
                     fp_1.id,
                     SecurityTokenContractType::Property,
@@ -1601,16 +1610,16 @@ pub fn deploy_upwood_contracts(
         .map(SftMultiYielderTestClient)
         .expect("Failed to init yeilder contract");
     admin
-    .transact(|sender| {
-        chain.update(
-            sender,
-            euro_e_contract.update_operator_single_payload(UpdateOperator {
-                update:   OperatorUpdate::Add,
-                operator: yielder_contract.0.into(),
-            }),
-        )
-    })
-    .expect("Failed to update euroe operator for yielder contract");
+        .transact(|sender| {
+            chain.update(
+                sender,
+                euro_e_contract.update_operator_single_payload(UpdateOperator {
+                    update:   OperatorUpdate::Add,
+                    operator: yielder_contract.0.into(),
+                }),
+            )
+        })
+        .expect("Failed to update euroe operator for yielder contract");
     let identity_registry = admin
         .transact(|account| chain.init(account, IdentityRegistryTestClient::init_payload(&())))
         .map(IdentityRegistryTestClient)
@@ -1697,8 +1706,6 @@ pub fn deploy_upwood_contracts(
         })
         .map(OffchainRewardsTestClient)
         .expect("Failed to init offchain rewards contract");
-
-
 
     (
         carbon_credits,
@@ -1835,8 +1842,10 @@ async fn create_forest_project(
             fund_token_id:     None,
             market_token_id:   None,
             contract_type:     SecurityTokenContractType::Property,
-            symbol:            Some("FP1".to_string()),
-            decimals:          Some(0),
+            symbol:            "FP1".to_string(),
+            decimals:          0,
+            metadata_url:      "https://metadata.com/fp1".to_string(),
+            metadata_hash:     None,
             created_at:        chrono::Utc::now().naive_utc(),
             updated_at:        chrono::Utc::now().naive_utc(),
         };
@@ -1852,8 +1861,10 @@ async fn create_forest_project(
             fund_token_id:     None,
             market_token_id:   None,
             contract_type:     SecurityTokenContractType::PropertyPreSale,
-            symbol:            Some("FP-PRE".to_string()),
-            decimals:          Some(0),
+            symbol:            "FP-PRE".to_string(),
+            decimals:          0,
+            metadata_url:      "https://metadata.com/fp2".to_string(),
+            metadata_hash:     None,
             created_at:        chrono::Utc::now().naive_utc(),
             updated_at:        chrono::Utc::now().naive_utc(),
         };
@@ -1908,6 +1919,7 @@ pub fn deploy_modules(chain: &mut Chain, chain_admin: &Account) {
 pub async fn create_user(
     test_id: &str,
     chain: &mut Chain,
+    user_pool: &mut UserPool,
     api: &mut ApiTestClient,
     admin: &UserTestClient,
     affiliate_account_address: Option<String>,
@@ -1917,7 +1929,8 @@ pub async fn create_user(
     let user_account =
         chain.create_account(AccountAddress([100 + index; 32]), DEFAULT_ACCOUNT_BALANCE);
     let pass = PASS_GENERATOR.generate_one().unwrap();
-    let user = create_login_user(
+    let (token, user) = create_login_user(
+        user_pool,
         api,
         &admin.id_token,
         format!("user_{}_{}@yopmail.com", index, test_id).as_str(),
@@ -1928,10 +1941,10 @@ pub async fn create_user(
     )
     .await;
     let user = UserTestClient {
-        account_address: user.user.user.account_address.parse().unwrap(),
-        email:           user.user.user.email,
-        id:              user.user.user.cognito_user_id,
-        id_token:        user.id_token,
+        account_address: user.user.account_address.parse().unwrap(),
+        email:           user.user.email,
+        id:              user.user.cognito_user_id,
+        id_token:        token,
         password:        pass.to_string(),
     };
 
