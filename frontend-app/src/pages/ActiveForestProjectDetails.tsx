@@ -1,26 +1,59 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "../components/Button";
-import BuyShare, { BuyShareConfig } from "../components/BuyShare";
+import FundInvest from "../components/FundInvest";
 import {
 	ForestProjectAggApiModel,
-	ForestProjectPrice,
+	ForestProjectMedia,
 	ForestProjectService,
 	ForestProjectState,
-	LoginRes,
+	PagedResponse_ForestProjectMedia_,
+	SecurityMintFundState,
+	SystemContractsConfigApiModel,
+	UserService,
 } from "../apiClient";
 import { useOutletContext, useParams } from "react-router";
-import MultiImageLayout from "../components/MultiImageLayout";
 import SingleImageLayout from "../components/SingleImageLayout";
 import PageHeader from "../components/PageHeader";
 import { useTitle } from "../components/useTitle";
+import { User } from "../lib/user";
+
+function ForestProjectMediaSection({
+	project,
+	medias,
+}: {
+	project: ForestProjectAggApiModel;
+	medias: ForestProjectMedia[];
+}) {
+	return (
+		<>
+			<div className="title">Property Media</div>
+			<div className="description">{project.forest_project.property_media_header}</div>
+			<div className="images">
+				<div className="container">
+					<div className="container-in">
+						{medias.map((im, index) => (
+							<div className="col-3 col-m-full col-mr-bottom-10 fl" key={index}>
+								<div className="im">
+									<img src={im.image_url} width={100} height={100} />
+								</div>
+							</div>
+						))}
+						<div className="clr"></div>
+					</div>
+				</div>
+			</div>
+			<div className="description">{project.forest_project.property_media_footer}</div>
+		</>
+	);
+}
 
 export default function ActiveForestProjectDetails() {
 	const { id } = useParams<{ id: string }>();
-	const { user } = useOutletContext<{ user: LoginRes }>();
+	const { user } = useOutletContext<{ user: User }>();
 	const [project, setProject] = useState<ForestProjectAggApiModel>();
-	const [projectPrice, setProjectPrice] = useState<ForestProjectPrice>();
-	const [buyShareConfig, setBuyShareConfig] = useState<BuyShareConfig>();
-	const [comingSoon, setComingSoon] = useState(false);
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia_>();
+	const [tabIndex, setTabIndex] = useState(0);
 
 	const [buyShare, setBuyShare] = useState(false);
 	const openBuyShare = () => {
@@ -30,73 +63,12 @@ export default function ActiveForestProjectDetails() {
 		setBuyShare(false);
 	};
 	useEffect(() => {
-		ForestProjectService.getForestProjects(id!).then((response) => {
-			setProject(response);
-		});
-		ForestProjectService.getAdminForestProjectsPriceLatest(id!).then((response) => {
-			setProjectPrice(response);
-		});
+		UserService.getSystemConfig().then(setContracts);
+		ForestProjectService.getForestProjects(id!).then(setProject);
+		ForestProjectService.getForestProjectsMediaList(id!, 0).then(setMedias);
 	}, [id]);
-	useEffect(() => {
-		if (project?.forest_project.state === ForestProjectState.DRAFT) {
-			setComingSoon(true);
-		} else {
-			setComingSoon(false);
-		}
-
-		if (project && projectPrice) {
-			setBuyShareConfig({
-				heading: "Buy shares",
-				title: project.forest_project.name,
-				share_price: BigInt(projectPrice.price || 0),
-				share_available: BigInt(project.forest_project.shares_available),
-			});
-		} else {
-			setBuyShareConfig(undefined);
-		}
-	}, [project, projectPrice]);
 	useTitle(project?.forest_project.name);
-
-	const tabs_data = [
-		{
-			name: "OFFERING DOCUMENTATION",
-			active: true,
-		},
-		{
-			name: "FINANCIAL PROJECTIONS",
-			active: false,
-		},
-		{
-			name: "PROPERTY MEDIA",
-			active: false,
-		},
-		{
-			name: "GEOSPATIAL DATA",
-			active: false,
-		},
-	];
-
-	const [tabs, setTabs] = useState(tabs_data);
 	const contentRef = useRef<HTMLDivElement>(null);
-	function changeTab(index: number) {
-		setTabs((prevTabs) =>
-			prevTabs.map((tab, i) => ({
-				...tab,
-				active: i === index,
-			})),
-		);
-		if (contentRef.current) {
-			contentRef.current.scrollIntoView({ behavior: "smooth" });
-		}
-	}
-	const multiimagedata = {
-		title: "Property media",
-		short:
-			"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-		large:
-			"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-		images: ["/Photo2.jpg", "/Photo2.jpg", "/Photo2.jpg", "/Photo2.jpg"],
-	};
 	const singleimagedata = {
 		title: "Title 2",
 		short:
@@ -106,13 +78,7 @@ export default function ActiveForestProjectDetails() {
 		image: "/Photo2.jpg",
 	};
 
-	useEffect(() => {
-		const hash = window.location.hash;
-		if (hash) {
-			const id = hash.substring(1);
-			console.log(id);
-		}
-	}, []);
+	const comingSoon = project?.forest_project.state === ForestProjectState.DRAFT;
 	return (
 		<>
 			<div className="project-detail">
@@ -124,12 +90,7 @@ export default function ActiveForestProjectDetails() {
 					]}
 				/>
 				<div className="image">
-					<img
-						src={project?.forest_project.image_large_url}
-						// layout="responsive"
-						width={100}
-						height={100}
-					/>
+					<img src={project?.forest_project.image_large_url} width={100} height={100} />
 					<div className="caption">{project?.forest_project.label}</div>
 				</div>
 				<div className="space-30"></div>
@@ -139,7 +100,13 @@ export default function ActiveForestProjectDetails() {
 							<div className="project-name">{comingSoon ? "To be announced" : project?.forest_project.name}</div>
 						</div>
 						<div className="col-3 col-m-full fr">
-							<Button text={"INVEST"} link={""} active={true} call={openBuyShare} />
+							<Button
+								text={"INVEST"}
+								link={""}
+								active={true}
+								call={openBuyShare}
+								disabled={!project?.property_fund || project.property_fund.fund_state != SecurityMintFundState.OPEN}
+							/>
 						</div>
 						<div className="clr"></div>
 					</div>
@@ -177,26 +144,51 @@ export default function ActiveForestProjectDetails() {
 				</div>
 				<div className="space-30" ref={contentRef}></div>
 				<ul className="tabular">
-					{tabs.map((item_s, index) => (
-						<li key={index} className={`${item_s.active ? "active" : ""}`} onClick={() => changeTab(index)}>
-							{item_s.name}
-						</li>
-					))}
+					<li className={tabIndex === 0 ? "active" : ""} onClick={() => setTabIndex(0)}>
+						PROPERTY MEDIA
+					</li>
+					<li className={tabIndex === 1 ? "active" : ""} onClick={() => setTabIndex(1)}>
+						OFFERING DOCUMENTATION
+					</li>
+					<li className={tabIndex === 2 ? "active" : ""} onClick={() => setTabIndex(2)}>
+						FINANCIAL PROJECTIONS
+					</li>
+					<li className={tabIndex === 3 ? "active" : ""} onClick={() => setTabIndex(3)}>
+						GEOSPATIAL DATA
+					</li>
 				</ul>
 				<div className="clr"></div>
-				{tabs.map((item_s, index) => (
-					<div key={index}>
-						{item_s.active ? (
-							<div className="tabular-content">
-								<MultiImageLayout data={multiimagedata} />
-								<div className="space-30"></div>
-								<SingleImageLayout data={singleimagedata} />
-							</div>
-						) : null}
+				<div>
+					<div className="tabular-content">
+						<div className="multiimage">
+							{
+								{
+									0: project && <ForestProjectMediaSection project={project!} medias={medias?.data || []} />,
+									1: <SingleImageLayout data={singleimagedata} />,
+									2: <SingleImageLayout data={singleimagedata} />,
+									3: <SingleImageLayout data={singleimagedata} />,
+								}[tabIndex]
+							}
+						</div>
+						<div className="space-30"></div>
 					</div>
-				))}
+				</div>
 			</div>
-			{buyShare && buyShareConfig ? <BuyShare config={buyShareConfig} close={closeBuyShare} /> : null}
+			{buyShare && project?.property_fund && contracts ? (
+				<FundInvest
+					close={closeBuyShare}
+					user={user}
+					contracts={contracts}
+					fund={project.property_fund}
+					tokenContract={project.property_contract}
+					currencyMetadata={project.property_fund_currency_metadata}
+					project={project.forest_project}
+					supply={project.supply}
+					legalContractSigned={project.contract_signed}
+				/>
+			) : (
+				<></>
+			)}
 		</>
 	);
 }

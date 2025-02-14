@@ -20,7 +20,6 @@ export default function MultiImageLayout({ data }: MultiImageProps) {
 								<div className="im">
 									<img
 										src={im}
-										//   layout="responsive"
 										width={100}
 										height={100}
 									/>

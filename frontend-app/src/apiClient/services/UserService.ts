@@ -2,12 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiUser } from '../models/ApiUser';
-import type { PagedResponse_ApiUser_ } from '../models/PagedResponse_ApiUser_';
+import type { Notification } from '../models/Notification';
+import type { PagedResponse_UserKYCModel_ } from '../models/PagedResponse_UserKYCModel_';
 import type { PagedResponse_UserRegistrationRequest_ } from '../models/PagedResponse_UserRegistrationRequest_';
 import type { SystemContractsConfigApiModel } from '../models/SystemContractsConfigApiModel';
 import type { UserCreatePostReq } from '../models/UserCreatePostReq';
 import type { UserCreatePostReqAdmin } from '../models/UserCreatePostReqAdmin';
+import type { UserKYCModel } from '../models/UserKYCModel';
 import type { UserRegisterGetRes } from '../models/UserRegisterGetRes';
 import type { UserRegistrationRequest } from '../models/UserRegistrationRequest';
 import type { UserRegistrationRequestApi } from '../models/UserRegistrationRequestApi';
@@ -36,17 +37,20 @@ export class UserService {
 
     /**
      * @param page
+     * @param pageSize
      * @returns PagedResponse_UserRegistrationRequest_
      * @throws ApiError
      */
     public static getAdminRegistrationRequestList(
-        page: number,
+        page?: number,
+        pageSize?: number,
     ): CancelablePromise<PagedResponse_UserRegistrationRequest_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/registration-request/list/{page}',
-            path: {
+            url: '/admin/registration-request/list',
+            query: {
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }
@@ -104,15 +108,15 @@ export class UserService {
     /**
      * Registers a user in the Cognito user pool and in the database.
      * @param requestBody
-     * @returns ApiUser
+     * @returns UserKYCModel
      * @throws ApiError
      */
     public static postUserRegister(
         requestBody: UserCreatePostReq,
-    ): CancelablePromise<ApiUser> {
+    ): CancelablePromise<UserKYCModel> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/user/register/{registration_request_id}',
+            url: '/user/register',
             body: requestBody,
             mediaType: 'application/json; charset=utf-8',
         });
@@ -120,12 +124,12 @@ export class UserService {
 
     /**
      * @param requestBody
-     * @returns ApiUser
+     * @returns UserKYCModel
      * @throws ApiError
      */
     public static postAdminUserRegister(
         requestBody: UserCreatePostReqAdmin,
-    ): CancelablePromise<ApiUser> {
+    ): CancelablePromise<UserKYCModel> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/admin/user/register',
@@ -147,69 +151,13 @@ export class UserService {
      *
      * # Returns
      * A `JsonResult` containing the user's information.
-     * @returns ApiUser
+     * @returns UserKYCModel
      * @throws ApiError
      */
-    public static getUser(): CancelablePromise<ApiUser> {
+    public static getUser(): CancelablePromise<UserKYCModel> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/user',
-        });
-    }
-
-    /**
-     * Get a user by their Cognito user ID.
-     * This endpoint is only accessible to admin users.
-     *
-     * # Arguments
-     * - `db_pool`: A reference to the database connection pool.
-     * - `identity_registry`: A reference to the identity registry.
-     * - `claims`: The authorization claims of the requesting user.
-     * - `cognito_user_id`: The Cognito user ID of the user to retrieve.
-     *
-     * # Returns
-     * A JSON response containing the `AdminUser` for the specified Cognito user ID.
-     * @param cognitoUserId
-     * @returns ApiUser
-     * @throws ApiError
-     */
-    public static getAdminUser(
-        cognitoUserId: string,
-    ): CancelablePromise<ApiUser> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/user/{cognito_user_id}',
-            path: {
-                'cognito_user_id': cognitoUserId,
-            },
-        });
-    }
-
-    /**
-     * Get a user by their account address.
-     * This endpoint is only accessible to admin users.
-     *
-     * # Arguments
-     * - `db_pool`: A reference to the database connection pool.
-     * - `identity_registry`: A reference to the identity registry.
-     * - `claims`: The authorization claims of the requesting user.
-     * - `account_address`: The account address of the user to retrieve.
-     *
-     * # Returns
-     * A JSON response containing the `AdminUser` for the specified account address.
-     * @param accountAddress
-     * @returns ApiUser
-     * @throws ApiError
-     */
-    public static getAdminUserAccountAddress(
-        accountAddress: string,
-    ): CancelablePromise<ApiUser> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/admin/user/account_address/{account_address}',
-            path: {
-                'account_address': accountAddress,
-            },
         });
     }
 
@@ -226,17 +174,20 @@ export class UserService {
      * # Returns
      * A JSON response containing a paged list of `AdminUser` objects.
      * @param page
-     * @returns PagedResponse_ApiUser_
+     * @param pageSize
+     * @returns PagedResponse_UserKYCModel_
      * @throws ApiError
      */
     public static getAdminUserList(
-        page: number,
-    ): CancelablePromise<PagedResponse_ApiUser_> {
+        page?: number,
+        pageSize?: number,
+    ): CancelablePromise<PagedResponse_UserKYCModel_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/user/list/{page}',
-            path: {
+            url: '/admin/user/list',
+            query: {
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }
@@ -249,6 +200,22 @@ export class UserService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/system_config',
+        });
+    }
+
+    /**
+     * @param requestBody
+     * @returns Notification
+     * @throws ApiError
+     */
+    public static postUserNotifications(
+        requestBody: string,
+    ): CancelablePromise<Notification> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/user/notifications',
+            body: requestBody,
+            mediaType: 'application/json; charset=utf-8',
         });
     }
 

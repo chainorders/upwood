@@ -1,0 +1,8 @@
+.address-ellipsis {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%; /* Adjust the width as needed */
+	vertical-align: bottom;
+	text-align: center;
+}

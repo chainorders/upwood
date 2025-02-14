@@ -4,6 +4,8 @@
 /* eslint-disable */
 
 export type UserCreatePostReq = {
+    email: string;
+    temp_password: string;
     account_address: string;
     desired_investment_amount?: number;
     proof?: any;

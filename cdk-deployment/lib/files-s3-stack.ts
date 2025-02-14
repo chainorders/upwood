@@ -14,13 +14,13 @@ export class FilesS3Stack extends Stack {
 					? RemovalPolicy.RETAIN
 					: RemovalPolicy.DESTROY,
 			publicReadAccess: true,
-            bucketName: constructName(props, "files-bucket"),
-            blockPublicAccess: {
-                blockPublicAcls: false,
-                ignorePublicAcls: true,
-                blockPublicPolicy: false,
-                restrictPublicBuckets: false,
-            }
+			bucketName: constructName(props, "files-bucket"),
+			blockPublicAccess: {
+				blockPublicAcls: false,
+				ignorePublicAcls: true,
+				blockPublicPolicy: false,
+				restrictPublicBuckets: false,
+			},
 		});
 		Tags.of(filesBucket).add("organization", props.organization);
 		Tags.of(filesBucket).add("environment", props.organization_env);

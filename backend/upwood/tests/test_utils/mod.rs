@@ -3,7 +3,8 @@
 use aws_sdk_cognitoidentityprovider::types::UserType;
 use passwords::PasswordGenerator;
 use rust_decimal::Decimal;
-use upwood::api::user::{ApiUser, UserCreatePostReqAdmin};
+use shared::db_app::users::UserKYCModel;
+use upwood::api::user::{UserCreatePostReqAdmin};
 use upwood::utils::aws::cognito::{
     account_address_attribute, email_attribute, email_verified_attribute, first_name_attribute,
     last_name_attribute, nationality_attribute, UserPool,
@@ -50,7 +51,7 @@ pub async fn create_login_user(
     account_address: &str,
     affiliate_account_address: Option<String>,
     affiliate_commission: Option<Decimal>,
-) -> (String, ApiUser) {
+) -> (String, UserKYCModel) {
     // Enhancement: mock the broswer wallet in order to create identity proofs
     let user = api
         .admin_user_register(id_token_admin.to_string(), UserCreatePostReqAdmin {

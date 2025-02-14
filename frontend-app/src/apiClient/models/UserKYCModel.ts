@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type User = {
+export type UserKYCModel = {
     cognito_user_id: string;
     email: string;
     account_address: string;
@@ -13,5 +13,6 @@ export type User = {
     desired_investment_amount?: number;
     affiliate_commission: string;
     affiliate_account_address?: string;
+    kyc_verified: boolean;
 };
 

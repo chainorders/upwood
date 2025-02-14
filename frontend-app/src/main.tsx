@@ -16,6 +16,8 @@ import "./styles/investmentportfolio.css";
 import "./styles/contract.css";
 import "./styles/settings.css";
 import "./styles/responsive.css";
+import "./styles/button.css";
+
 import App from "./App";
 import { BrowserRouter } from "react-router";
 

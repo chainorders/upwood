@@ -4,7 +4,7 @@ import ActiveForestProjectsList from "./pages/ActiveForestProjectsList.tsx";
 import ActiveForestProjectDetails from "./pages/ActiveForestProjectDetails.tsx";
 import InvestmentPortfolio from "./pages/InvestmentPortfolio.tsx";
 import Login from "./pages/Login.tsx";
-import { ApiUser, OpenAPI } from "./apiClient/index.ts";
+import { OpenAPI } from "./apiClient/index.ts";
 import { useCallback, useState } from "react";
 import Wallet from "./pages/Wallet.tsx";
 import News from "./pages/News.tsx";
@@ -28,11 +28,11 @@ import ProjectDetails from "./adminSection/pages/ProjectDetails.tsx";
 import ProjectContractCreate from "./adminSection/pages/ProjectContractCreate.tsx";
 import { User } from "./lib/user.ts";
 import ProjectContractDetails from "./adminSection/pages/ProjectContractDetails.tsx";
-import ProjectTokenList from "./adminSection/pages/ProjectTokenList.tsx";
 import ProjectContractUpdate from "./adminSection/pages/ProjectContractUpdate.tsx";
 import ProjectTokenDetails from "./adminSection/pages/ProjectTokenDetails.tsx";
+import UserList from "./adminSection/pages/UserList.tsx";
+import UserInvitations from "./adminSection/pages/UserInvitations.tsx";
 
-export type LoginRes = { id_token: string; user: ApiUser };
 export default function App() {
 	OpenAPI.BASE = import.meta.env.VITE_API_BASE_URL;
 	const location = useLocation();
@@ -43,6 +43,7 @@ export default function App() {
 		(user: User) => {
 			setUser(user);
 			OpenAPI.TOKEN = user.idToken;
+			console.log("login", location.state?.from);
 			navigate(location.state?.from ? location.state.from : "/projects/active");
 		},
 		[location.state?.from, navigate],
@@ -94,7 +95,6 @@ export default function App() {
 								<Route path="details" element={<ProjectContractDetails />} />
 								<Route path="update" element={<ProjectContractUpdate />} />
 								<Route path="token">
-									<Route path="list" element={<ProjectTokenList />} />
 									<Route path=":token_id">
 										<Route path="details" element={<ProjectTokenDetails />} />
 									</Route>
@@ -103,6 +103,11 @@ export default function App() {
 						</Route>
 						<Route path="media">{/* <Route path="create" element={<ProjectMediaCreate />} /> */}</Route>
 					</Route>
+				</Route>
+				<Route path="users/*">
+					<Route index element={<UserList />} />
+					<Route path="list" element={<UserList />} />
+					<Route path="invitations" element={<UserInvitations />} />
 				</Route>
 			</Route>
 		</Routes>

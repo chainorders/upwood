@@ -235,7 +235,7 @@ impl Processors {
             warn!("block {} already processed", block.block_height);
         }
 
-        let lag = Utc::now() - block.block_slot_time.and_utc();
+        let lag = Utc::now().naive_utc() - block.block_slot_time;
         info!(
             "Processed block {}, lag: days:{}, hours:{}, mins: {}",
             block.block_height,

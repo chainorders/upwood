@@ -11,6 +11,7 @@ import { BackendApiStack } from "../lib/backend-api-stack";
 import * as path from "path";
 import * as fs from "fs";
 import { FilesS3Stack } from "../lib/files-s3-stack";
+import { FrontendAppWebsiteStack } from "../lib/frontend-app-website-stack";
 
 const ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT!;
 const REGION = process.env.CDK_DEFAULT_REGION || "eu-west-2";
@@ -30,6 +31,10 @@ const DB_NAME = "postgres";
 const DB_BACKUP_RETENTION_DAYS = 1;
 const LISTENER_DB_POOL_MAX_SIZE = 10;
 const BACKEND_DB_POOL_MAX_SIZE = 10;
+const APP_DOMAIN_NAME = "app.upwood.digital";
+const API_DOMAIN_NAME = "api.upwood.digital";
+const CERTIFICATE_ARN =
+	"arn:aws:acm:us-east-1:905418235674:certificate/94d23db3-e08d-40e1-9465-0fc6a3ec229f";
 
 // TODO: use a secure secret
 const DB_PASSWORD = "postgres";
@@ -38,6 +43,8 @@ const TREE_NFT_AGENT_WALLET_JSON_STR = fs.readFileSync(
 	path.join(__dirname, "../tree-nft-agent-wallet.json"),
 	"utf8",
 );
+const FILEBASE_ACCESS_KEY_ID = "A7BE3DBD8AE67556C4C0";
+const FILEBASE_SECRET_ACCESS_KEY = "WUVWJiW3zvrCLK5g15UqRC2GwZcPH7lcmOBxdeVj";
 
 const app = new cdk.App({
 	autoSynth: true,
@@ -141,6 +148,7 @@ const filesStack = new FilesS3Stack(app, "FilesS3Stack", {
 		environment: ORGANIZATION_ENV,
 	},
 });
+
 new BackendApiStack(app, "BackendApiStack", {
 	env: {
 		account: ACCOUNT,
@@ -159,9 +167,10 @@ new BackendApiStack(app, "BackendApiStack", {
 	logGroup: infraStack.logGroup,
 	apiSocketAddress: "0.0.0.0",
 	apiSocketPort: 3000,
-	awsUserPoolId: cognitoStack.userPool.userPoolId,
-	awsUserPoolClientId: cognitoStack.userPoolClient.userPoolClientId,
-	awsUserPoolRegion: cognitoStack.userPool.env.region,
+	userPoolId: cognitoStack.userPool.userPoolId,
+	userPoolClientId: cognitoStack.userPoolClient.userPoolClientId,
+	userPoolArn: cognitoStack.userPool.userPoolArn,
+	userPoolRegion: cognitoStack.userPool.env.region,
 	filesBucket: filesStack.filesBucket,
 	concordiumNodeUri: "http://node.testnet.concordium.com:20000",
 	concordiumNetwork: "testnet",
@@ -176,9 +185,31 @@ new BackendApiStack(app, "BackendApiStack", {
 	containerCount: 1,
 	treeNftAgentWalletJsonStr: cdk.SecretValue.unsafePlainText(
 		process.env.TREE_NFT_AGENT_WALLET_JSON_STR ||
-		TREE_NFT_AGENT_WALLET_JSON_STR,
+			TREE_NFT_AGENT_WALLET_JSON_STR,
 	),
 	memoryReservationSoftMiB: 50,
+	domainName: API_DOMAIN_NAME,
+	filebaseAccessKeyId: cdk.SecretValue.unsafePlainText(
+		process.env.FILEBASE_ACCESS_KEY_ID || FILEBASE_ACCESS_KEY_ID,
+	),
+	filebaseSecretAccessKey: cdk.SecretValue.unsafePlainText(
+		process.env.FILEBASE_SECRET_ACCESS_KEY || FILEBASE_SECRET_ACCESS_KEY,
+	),
+});
+
+new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
+	env: {
+		account: ACCOUNT,
+		region: REGION,
+	},
+	organization: ORGANIZATION,
+	organization_env: ORGANIZATION_ENV,
+	tags: {
+		organization: ORGANIZATION,
+		environment: ORGANIZATION_ENV,
+	},
+	domainName: APP_DOMAIN_NAME,
+	certificateArn: CERTIFICATE_ARN,
 });
 
 app.synth();

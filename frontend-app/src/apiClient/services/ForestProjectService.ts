@@ -8,8 +8,9 @@ import type { ForestProjectMedia } from '../models/ForestProjectMedia';
 import type { ForestProjectPrice } from '../models/ForestProjectPrice';
 import type { ForestProjectState } from '../models/ForestProjectState';
 import type { ForestProjectTokenContract } from '../models/ForestProjectTokenContract';
-import type { ForestProjectTokenUserYield } from '../models/ForestProjectTokenUserYield';
+import type { ForestProjectTokenUserYieldClaim } from '../models/ForestProjectTokenUserYieldClaim';
 import type { ForestProjectTokenYieldListApiModel } from '../models/ForestProjectTokenYieldListApiModel';
+import type { LegalContractUserSignature } from '../models/LegalContractUserSignature';
 import type { PagedResponse_ForestProject_ } from '../models/PagedResponse_ForestProject_';
 import type { PagedResponse_ForestProjectAggApiModel_ } from '../models/PagedResponse_ForestProjectAggApiModel_';
 import type { PagedResponse_ForestProjectFundInvestor_ } from '../models/PagedResponse_ForestProjectFundInvestor_';
@@ -76,13 +77,22 @@ export class ForestProjectService {
     }
 
     /**
+     * @param page
+     * @param pageSize
      * @returns PagedResponse_ForestProjectTokenContractAggApiModel_
      * @throws ApiError
      */
-    public static getForestProjectsContractListOwned(): CancelablePromise<PagedResponse_ForestProjectTokenContractAggApiModel_> {
+    public static getForestProjectsContractListOwned(
+        page?: number,
+        pageSize?: number,
+    ): CancelablePromise<PagedResponse_ForestProjectTokenContractAggApiModel_> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/forest_projects/contract/list/owned',
+            query: {
+                'page': page,
+                'page_size': pageSize,
+            },
         });
     }
 
@@ -94,13 +104,15 @@ export class ForestProjectService {
      */
     public static getForestProjectsMediaList(
         projectId: string,
-        page: number,
+        page?: number,
     ): CancelablePromise<PagedResponse_ForestProjectMedia_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/forest_projects/{project_id}/media/list/{page}',
+            url: '/forest_projects/{project_id}/media/list',
             path: {
                 'project_id': projectId,
+            },
+            query: {
                 'page': page,
             },
         });
@@ -155,13 +167,34 @@ export class ForestProjectService {
     }
 
     /**
-     * @returns ForestProjectTokenUserYield
+     * @returns ForestProjectTokenUserYieldClaim
      * @throws ApiError
      */
-    public static getForestProjectsYieldsClaimable(): CancelablePromise<Array<ForestProjectTokenUserYield>> {
+    public static getForestProjectsYieldsClaimable(): CancelablePromise<Array<ForestProjectTokenUserYieldClaim>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/forest_projects/yields/claimable',
+        });
+    }
+
+    /**
+     * @param projectId
+     * @param requestBody
+     * @returns LegalContractUserSignature
+     * @throws ApiError
+     */
+    public static postForestProjectsLegalContractSign(
+        projectId: string,
+        requestBody: Record<string, Record<string, string>>,
+    ): CancelablePromise<LegalContractUserSignature> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/forest_projects/{project_id}/legal_contract/sign',
+            path: {
+                'project_id': projectId,
+            },
+            body: requestBody,
+            mediaType: 'application/json; charset=utf-8',
         });
     }
 
@@ -346,19 +379,24 @@ export class ForestProjectService {
     /**
      * @param projectId
      * @param page
+     * @param pageSize
      * @returns PagedResponse_ForestProjectPrice_
      * @throws ApiError
      */
     public static getAdminForestProjectsPriceList(
         projectId: string,
-        page: number,
+        page?: number,
+        pageSize?: number,
     ): CancelablePromise<PagedResponse_ForestProjectPrice_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/forest_projects/{project_id}/price/list/{page}',
+            url: '/admin/forest_projects/{project_id}/price/list',
             path: {
                 'project_id': projectId,
+            },
+            query: {
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }
@@ -385,21 +423,30 @@ export class ForestProjectService {
     }
 
     /**
-     * @param projectId
      * @param page
+     * @param projectId
+     * @param investmentTokenId
+     * @param investmentTokenContractAddress
+     * @param pageSize
      * @returns PagedResponse_ForestProjectFundInvestor_
      * @throws ApiError
      */
     public static getAdminForestProjectsFundInvestorList(
-        projectId: string,
         page: number,
+        projectId?: string,
+        investmentTokenId?: string,
+        investmentTokenContractAddress?: string,
+        pageSize?: number,
     ): CancelablePromise<PagedResponse_ForestProjectFundInvestor_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/admin/forest_projects/{project_id}/fund/investor/list/{page}',
-            path: {
+            url: '/admin/forest_projects/fund/investor/list',
+            query: {
                 'project_id': projectId,
+                'investment_token_id': investmentTokenId,
+                'investment_token_contract_address': investmentTokenContractAddress,
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }

@@ -1,90 +1,76 @@
-"use client";
-import { useState } from "react";
-import PageHeader from "../components/PageHeader";
+import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { ApiUser } from "../apiClient";
-import Button from "../components/Button";
+
+import {
+	PagedResponse_ForestProjectFundsAffiliateRewardRecord_,
+	PagedResponse_UserTransaction_,
+	SystemContractsConfigApiModel,
+	UserService,
+	WalletService,
+} from "../apiClient";
 import AccountCross from "../assets/account-not-protected.svg";
+import Button from "../components/Button";
 import ClaimPopup from "../components/ClaimPopup";
-import EditProfile from "../components/EditProfile";
 import CreateCompany from "../components/CreateCompany";
 import EditCompany from "../components/EditCompany";
+import EditProfile from "../components/EditProfile";
+import PageHeader from "../components/PageHeader";
+import { User } from "../lib/user";
+import { toDisplayAmount } from "../lib/conversions";
+
+function Pagination({
+	pageCount,
+	currentPage,
+	onPageChange,
+}: {
+	pageCount: number;
+	currentPage: number;
+	onPageChange: (page: number) => void;
+}) {
+	return (
+		<div className="pagignation">
+			<ul>
+				<li className={currentPage <= 0 ? "disabled" : ""} onClick={() => onPageChange(Math.max(currentPage - 1, 0))}>
+					{"<"}
+				</li>
+				{[...Array(pageCount).keys()].map((i) => (
+					<li key={i} className={i === currentPage ? "active" : ""} onClick={() => onPageChange(i)}>
+						{i + 1}
+					</li>
+				))}
+				<li
+					className={currentPage >= pageCount - 1 ? "disabled" : ""}
+					onClick={() => onPageChange(Math.min(currentPage + 1, pageCount - 1))}
+				>
+					{">"}
+				</li>
+			</ul>
+		</div>
+	);
+}
+
 export default function Settings() {
-	const { user } = useOutletContext<{ user: ApiUser }>();
+	const { user } = useOutletContext<{ user: User }>();
+	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction_>();
+	const [trasactionsPage, setTransactionsPage] = useState(0);
+	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord_>();
+	const [affiliateRewardsPage, setAffiliateRewardsPage] = useState(0);
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+
 	const [claim_popup, setClaimPopup] = useState(false);
 	const [edit_profile_popup, setEditProfilePopup] = useState(false);
 	const [create_company_popup, setCreateCompanyPopup] = useState(false);
 	const [edit_company_popup, setEditCompanyPopup] = useState(false);
-	const table_data = [
-		{
-			transaction_hash: "765192..",
-			type: "Share purchase",
-			sender: "35CJPZ..",
-			amount: "500 EuroE",
-			status: "Successful",
-		},
-		{
-			transaction_hash: "765192..",
-			type: "Share purchase",
-			sender: "35CJPZ..",
-			amount: "500 EuroE",
-			status: "Pending",
-		},
-		{
-			transaction_hash: "765192..",
-			type: "Share purchase",
-			sender: "35CJPZ..",
-			amount: "500 EuroE",
-			status: "Failed",
-		},
-		{
-			transaction_hash: "765192..",
-			type: "Share purchase",
-			sender: "35CJPZ..",
-			amount: "500 EuroE",
-			status: "Successful",
-		},
-		{
-			transaction_hash: "765192..",
-			type: "Share purchase",
-			sender: "35CJPZ..",
-			amount: "500 EuroE",
-			status: "Pending",
-		},
-		{
-			transaction_hash: "765192..",
-			type: "Share purchase",
-			sender: "35CJPZ..",
-			amount: "500 EuroE",
-			status: "Failed",
-		},
-	];
-	const table_data2 = [
-		{
-			number: "1",
-			wallet_address: "sfbdsfdsye3267rgdfehsh",
-			amount_invested: "5000€",
-			your_commission: "3%",
-			amount: "150€",
-			status: "150€",
-		},
-		{
-			number: "1",
-			wallet_address: "sfbdsfdsye3267rgdfehsh",
-			amount_invested: "5000€",
-			your_commission: "3%",
-			amount: "150€",
-			status: "150€",
-		},
-		{
-			number: "1",
-			wallet_address: "sfbdsfdsye3267rgdfehsh",
-			amount_invested: "5000€",
-			your_commission: "3%",
-			amount: "150€",
-			status: "150€",
-		},
-	];
+
+	useEffect(() => {
+		UserService.getSystemConfig().then(setContracts);
+	}, [user]);
+	useEffect(() => {
+		WalletService.getUserTransactionsList(trasactionsPage).then(setTransactions);
+	}, [user, trasactionsPage]);
+	useEffect(() => {
+		WalletService.getUserAffiliateRewardsList(affiliateRewardsPage).then(setAffiliateRewards);
+	}, [user, affiliateRewardsPage]);
 	const links = [
 		{ title: "Portfolio", description: "How to manage your investments portfolio", link: "" },
 		{ title: "Wallet", description: "How to manage your wallet", link: "" },
@@ -103,16 +89,16 @@ export default function Settings() {
 		<>
 			<div className="clr"></div>
 			<div className="settings">
-				<PageHeader userFullName={user.fullName} initials={user.initials} parts={[{ name: "Settings" }]} />
+				<PageHeader user={user} parts={[{ name: "Settings" }]} />
 				<div className="outerboxshadow">
 					<div className="container">
 						<div className="container-in">
 							<div className="col-6 fl col-m-full">
 								<div className="setting-block text-align-center">
 									<div className="heading">Profile settings</div>
-									<div className="letter">J</div>
-									<div className="name">John Carter</div>
-									<div className="email mr">Jonh@gmail.com</div>
+									<div className="letter">{user.initialis}</div>
+									<div className="name">{user.fullName}</div>
+									<div className="email mr">{user.email}</div>
 									<div className="action">
 										<Button
 											style={`style3`}
@@ -194,35 +180,30 @@ export default function Settings() {
 												<th>Type</th>
 												<th>Sender</th>
 												<th>Amount</th>
-												<th>Status</th>
 											</tr>
 										</thead>
 										<tbody>
-											{table_data.map((item, index) => (
-												<tr key={index}>
-													<td>{item.transaction_hash}</td>
-													<td>{item.type}</td>
-													<td>{item.sender}</td>
-													<td>{item.amount}</td>
+											{transactions?.data.map((item) => (
+												<tr key={item.transaction_hash + item.transaction_type}>
+													<td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "6ch" }}>
+														{item.transaction_hash}
+													</td>
+													<td>{item.transaction_type}</td>
+													<td>{item.account_address}</td>
 													<td>
-														<span className={item.status}>{item.status}</span>
+														{toDisplayAmount(item.currency_amount, contracts?.euro_e_metadata.decimals || 6, 2)}
+														{contracts?.euro_e_metadata.symbol}
 													</td>
 												</tr>
 											))}
 										</tbody>
 									</table>
 								</div>
-								<div className="pagignation">
-									<ul>
-										<li className="disabled">{"<"}</li>
-										<li className="active">{"1"}</li>
-										<li>{"2"}</li>
-										<li>{"3"}</li>
-										<li>{"4"}</li>
-										<li>{"5"}</li>
-										<li>{">"}</li>
-									</ul>
-								</div>
+								<Pagination
+									pageCount={transactions?.page_count ?? 0}
+									currentPage={trasactionsPage}
+									onPageChange={setTransactionsPage}
+								/>
 								<div className="space-30"></div>
 							</div>
 						</div>
@@ -236,7 +217,11 @@ export default function Settings() {
 							<div className="col-8 col-m-full fl">
 								<div className="heading">Affiliate settings</div>
 								<p className="genp hideonmobile">
-									Your unique link : <Link to="upwood.io/jsdhdsjsdhc1234">upwood.io/jsdhdsjsdhc1234</Link>
+									Your unique link :{" "}
+									<a
+										href={`${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`}
+										target="_blank"
+									>{`${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`}</a>
 								</p>
 							</div>
 							<div className="col-4 text-align-right fr hideonmobile">
@@ -263,14 +248,14 @@ export default function Settings() {
 											</tr>
 										</thead>
 										<tbody>
-											{table_data2.map((item, index) => (
+											{affiliateRewards?.data.map((item, index) => (
 												<tr key={index}>
-													<td>{item.number}</td>
-													<td>{item.wallet_address}</td>
-													<td>{item.amount_invested}</td>
-													<td>{item.your_commission}</td>
-													<td>{item.amount}</td>
-													<td>{item.status}</td>
+													<td>{item.investment_record_id}</td>
+													<td>{item.investor_account_address}</td>
+													<td>{toDisplayAmount(item.currency_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
+													<td>{item.affiliate_commission}%</td>
+													<td>{toDisplayAmount(item.reward_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
+													<td>{toDisplayAmount(item.remaining_reward_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
 												</tr>
 											))}
 										</tbody>
@@ -289,17 +274,11 @@ export default function Settings() {
 							</div>
 
 							<div className="fr col-m-full">
-								<div className="pagignation">
-									<ul>
-										<li className="disabled">{"<"}</li>
-										<li className="active">{"1"}</li>
-										<li>{"2"}</li>
-										<li>{"3"}</li>
-										<li>{"4"}</li>
-										<li>{"5"}</li>
-										<li>{">"}</li>
-									</ul>
-								</div>
+								<Pagination
+									pageCount={affiliateRewards?.page_count ?? 0}
+									currentPage={affiliateRewardsPage}
+									onPageChange={setAffiliateRewardsPage}
+								/>
 							</div>
 							<div className="col-2 text-align-right fr hideonmobile">
 								<Button text={"CLAIM EARNINGS"} link={""} active={true} call={() => setClaimPopup(true)} />

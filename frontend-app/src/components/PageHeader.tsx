@@ -24,7 +24,7 @@ export default function PageHeader(props: { parts: { name: string; link?: string
 									</span>
 								);
 							})}
-							<div className="username fr" style={{ marginTop: "-0.5em" }}>
+							<div className="username fr" style={{ marginTop: "-0.5em" }} title={props.user.concordiumAccountAddress}>
 								<span>{initialis}</span>
 								{fullName}
 							</div>

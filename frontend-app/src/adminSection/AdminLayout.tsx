@@ -39,6 +39,13 @@ export default function AdminLayout(props: { user?: User; logout: () => void }) 
 			iconActive: navActiveProjectWhite,
 			isActive: pathname.startsWith("/admin/projects"),
 		},
+		{
+			name: "Users",
+			url: "/admin/users",
+			iconNormal: navActiveProjectNormal,
+			iconActive: navActiveProjectWhite,
+			isActive: pathname.startsWith("/admin/users"),
+		},
 	];
 
 	return props.user && props.user.isAdmin ? (

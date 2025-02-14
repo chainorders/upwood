@@ -3,11 +3,11 @@ import { Construct } from "constructs";
 import { constructName, OrganizationEnv, StackProps } from "./shared";
 import {
 	AccountRecovery,
-	BooleanAttribute,
 	CfnUserPoolGroup,
 	ClientAttributes,
 	IUserPool,
 	IUserPoolClient,
+	Mfa,
 	StringAttribute,
 	UserPool,
 	UserPoolClient,
@@ -22,10 +22,12 @@ export class CognitoStack extends cdk.Stack {
 		super(scope, id, props);
 		const userPool = new UserPool(this, constructName(props, "user-pool"), {
 			userPoolName: constructName(props, "user-pool"),
+			mfa: Mfa.OPTIONAL,
 			standardAttributes: {
-				email: { required: true, mutable: false },
-				familyName: { required: true, mutable: true },
-				givenName: { required: true, mutable: true },
+				email: { required: true, mutable: true },
+				familyName: { required: false, mutable: true },
+				givenName: { required: false, mutable: true },
+				profilePicture: { required: false, mutable: true },
 			},
 			customAttributes: {
 				con_accnt: new StringAttribute({

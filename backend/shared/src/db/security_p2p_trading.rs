@@ -92,6 +92,7 @@ impl P2PTradeContract {
     Serialize,
     Deserialize,
     AsChangeset,
+    Clone,
 )]
 #[diesel(table_name = security_p2p_trading_markets)]
 #[diesel(primary_key(contract_address, token_id, token_contract_address))]
@@ -118,17 +119,39 @@ impl Market {
     pub fn list(
         conn: &mut DbConn,
         contract_address: Decimal,
-        token_contract_address: Decimal,
-        limit: i64,
-        offset: i64,
-    ) -> DbResult<Vec<Self>> {
-        let markets = security_p2p_trading_markets::table
+        token_contract_addresses: Option<&[Decimal]>,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        let query = security_p2p_trading_markets::table
             .filter(security_p2p_trading_markets::contract_address.eq(contract_address))
-            .filter(security_p2p_trading_markets::token_contract_address.eq(token_contract_address))
-            .limit(limit)
-            .offset(offset)
-            .load(conn)?;
-        Ok(markets)
+            .into_boxed();
+        let count_query = security_p2p_trading_markets::table
+            .filter(security_p2p_trading_markets::contract_address.eq(contract_address))
+            .into_boxed();
+        let (query, count_query) = match token_contract_addresses {
+            Some(token_contract_addresses) => {
+                let query = query.filter(
+                    security_p2p_trading_markets::token_contract_address
+                        .eq_any(token_contract_addresses),
+                );
+                let count_query = count_query.filter(
+                    security_p2p_trading_markets::token_contract_address
+                        .eq_any(token_contract_addresses),
+                );
+                (query, count_query)
+            }
+            None => (query, count_query),
+        };
+
+        let markets = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Market>(conn)?;
+        let total_count: i64 = count_query.count().get_result(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((markets, page_count))
     }
 
     #[instrument(skip_all)]
@@ -200,15 +223,6 @@ impl Market {
             .filter(security_p2p_trading_markets::token_contract_address.eq(token_contract_address))
             .execute(conn)?;
         Ok(())
-    }
-
-    #[instrument(skip_all)]
-    pub fn list_all(conn: &mut DbConn, limit: i64, offset: i64) -> DbResult<Vec<Self>> {
-        let markets = security_p2p_trading_markets::table
-            .limit(limit)
-            .offset(offset)
-            .load(conn)?;
-        Ok(markets)
     }
 }
 

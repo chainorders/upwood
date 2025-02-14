@@ -25,8 +25,13 @@ export function AddProjectTokenPopup({ token_contract, token_id, onDone }: AddPr
 		handleSubmit,
 		setValue,
 		formState: { errors },
-		watch,
-	} = useForm<Token>();
+	} = useForm<Token>({
+		defaultValues: {
+			metadata_url: token_contract.metadata_url,
+			metadata_hash: token_contract.metadata_hash,
+			token_id: token_id,
+		},
+	});
 
 	const onTokenIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const tokenId = e.target.value;
@@ -57,9 +62,6 @@ export function AddProjectTokenPopup({ token_contract, token_id, onDone }: AddPr
 		}
 	};
 
-	const tokenIdWatch = watch("token_id", token_id);
-	const metadataUrlWatch = watch("metadata_url", token_contract.metadata_url);
-
 	return (
 		<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
 			<Typography variant="h4" gutterBottom>
@@ -67,12 +69,10 @@ export function AddProjectTokenPopup({ token_contract, token_id, onDone }: AddPr
 			</Typography>
 			<TextField
 				label="Token Id"
-				defaultValue={token_id}
 				{...register("token_id", { required: true, valueAsNumber: true })}
 				onChange={onTokenIdChange}
 				error={!!errors.token_id}
 				helperText={errors.token_id ? "This field is required" : ""}
-				value={tokenIdWatch || ""}
 				type="number"
 			/>
 			<TextField
@@ -87,15 +87,12 @@ export function AddProjectTokenPopup({ token_contract, token_id, onDone }: AddPr
 				{...register("metadata_url", { required: true })}
 				error={!!errors.metadata_url}
 				helperText={errors.metadata_url ? "This field is required" : ""}
-				value={metadataUrlWatch || ""}
-				defaultValue={token_contract.metadata_url}
 			/>
 			<TextField
 				label="Metadata Hash"
 				InputProps={{
 					readOnly: true,
 				}}
-				defaultValue={token_contract.metadata_hash}
 			/>
 			<TransactionButton
 				type="submit"

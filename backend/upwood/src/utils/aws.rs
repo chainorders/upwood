@@ -2,14 +2,18 @@ pub mod cognito {
     use aws_sdk_cognitoidentityprovider::error::SdkError;
     use aws_sdk_cognitoidentityprovider::operation::admin_create_user::AdminCreateUserError;
     use aws_sdk_cognitoidentityprovider::operation::admin_disable_user::AdminDisableUserError;
+    use aws_sdk_cognitoidentityprovider::operation::admin_get_user::{
+        AdminGetUserError, AdminGetUserOutput,
+    };
     use aws_sdk_cognitoidentityprovider::operation::admin_set_user_password::AdminSetUserPasswordError;
     use aws_sdk_cognitoidentityprovider::operation::admin_update_user_attributes::AdminUpdateUserAttributesError;
+    use aws_sdk_cognitoidentityprovider::operation::confirm_sign_up::ConfirmSignUpError;
     use aws_sdk_cognitoidentityprovider::operation::initiate_auth::{
         InitiateAuthError, InitiateAuthOutput,
     };
     use aws_sdk_cognitoidentityprovider::operation::list_users::ListUsersError;
     use aws_sdk_cognitoidentityprovider::types::{
-        AttributeType, AuthFlowType, MessageActionType, UserType,
+        AttributeType, AuthFlowType, UserStatusType, UserType,
     };
     use concordium_rust_sdk::id::types::AccountAddress;
     use jsonwebtokens_cognito::KeySet;
@@ -56,6 +60,10 @@ pub mod cognito {
         LoginError,
         #[error("Auth initiate error: {0}")]
         AuthInitError(#[from] SdkError<InitiateAuthError>),
+        #[error("ConfirmSignUp error: {0}")]
+        ConfirmSignUpError(#[from] SdkError<ConfirmSignUpError>),
+        #[error("AdminGetUserError: {0}")]
+        AdminGetUserError(#[from] SdkError<AdminGetUserError>),
     }
     pub type Result<T> = std::result::Result<T, Error>;
 
@@ -117,9 +125,7 @@ pub mod cognito {
             password: &str,
             attributes: Vec<AttributeType>,
         ) -> Result<UserType> {
-            let user = self
-                .admin_upsert_user(username, attributes, MessageActionType::Suppress)
-                .await?;
+            let user = self.admin_create_temp_user(username, attributes).await?;
             self.admin_set_permament_password(username, password)
                 .await?;
             Ok(user)
@@ -156,12 +162,57 @@ pub mod cognito {
             Ok(())
         }
 
+        /// Confirm the user sign up
+        /// * Updates the user attributes
+        /// * Confirms the user sign up
+        /// * Sets the permanent password
+        /// * Returns the user
+        pub async fn confirm_user(
+            &self,
+            username: &str,
+            temp_password: &str,
+            password: &str,
+            attributes: Vec<AttributeType>,
+        ) -> Result<AdminGetUserOutput> {
+            self.cognito_client
+                .admin_update_user_attributes()
+                .user_pool_id(self.user_pool_id.clone())
+                .username(username)
+                .set_user_attributes(Some(attributes))
+                .send()
+                .await?;
+            let user = self
+                .cognito_client
+                .admin_get_user()
+                .user_pool_id(self.user_pool_id.clone())
+                .username(username)
+                .send()
+                .await?;
+            if let Some(UserStatusType::Unconfirmed) = user.user_status {
+                self.cognito_client
+                    .confirm_sign_up()
+                    .client_id(&self.user_pool_client_id)
+                    .confirmation_code(temp_password)
+                    .username(username)
+                    .send()
+                    .await?;
+            }
+            self.cognito_client
+                .admin_set_user_password()
+                .user_pool_id(&self.user_pool_id)
+                .username(username)
+                .permanent(true)
+                .password(password)
+                .send()
+                .await?;
+            Ok(user)
+        }
+
         /// Create a new user in the Cognito user pool
-        pub async fn admin_upsert_user(
+        pub async fn admin_create_temp_user(
             &self,
             username: &str,
             attributes: Vec<AttributeType>,
-            message_action: MessageActionType,
         ) -> Result<UserType> {
             let user = self
                 .cognito_client
@@ -170,7 +221,6 @@ pub mod cognito {
                 .username(username)
                 .set_user_attributes(Some(attributes))
                 .force_alias_creation(true)
-                .message_action(message_action)
                 .send()
                 .await?
                 .user
@@ -330,8 +380,8 @@ pub mod cognito {
     }
 
     #[inline]
-    pub fn email_attribute(email: &str) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
-        aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
+    pub fn email_attribute(email: &str) -> AttributeType {
+        AttributeType::builder()
             .name("email".to_string())
             .value(email.to_string())
             .build()
@@ -339,10 +389,8 @@ pub mod cognito {
     }
 
     #[inline]
-    pub fn email_verified_attribute(
-        is_verified: bool,
-    ) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
-        aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
+    pub fn email_verified_attribute(is_verified: bool) -> AttributeType {
+        AttributeType::builder()
             .name("email_verified".to_string())
             .value(is_verified.to_string())
             .build()
@@ -350,10 +398,8 @@ pub mod cognito {
     }
 
     #[inline]
-    pub fn account_address_attribute(
-        address: &str,
-    ) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
-        aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
+    pub fn account_address_attribute(address: &str) -> AttributeType {
+        AttributeType::builder()
             .name("custom:con_accnt".to_string())
             .value(address)
             .build()
@@ -361,10 +407,8 @@ pub mod cognito {
     }
 
     #[inline]
-    pub fn affiliate_account_address_attribute(
-        address: &str,
-    ) -> aws_sdk_cognitoidentityprovider::types::AttributeType {
-        aws_sdk_cognitoidentityprovider::types::AttributeType::builder()
+    pub fn affiliate_account_address_attribute(address: &str) -> AttributeType {
+        AttributeType::builder()
             .name("custom:affiliate_con_accnt".to_string())
             .value(address)
             .build()

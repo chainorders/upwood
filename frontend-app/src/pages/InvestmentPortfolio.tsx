@@ -1,33 +1,34 @@
 import { useEffect, useState } from "react";
 import {
-	ForestProjectAggApiModel,
 	ForestProjectService,
 	InvestmentPortfolioService,
 	InvestmentPortfolioUserAggregate,
-	LoginRes,
+	PagedResponse_ForestProjectAggApiModel_,
 	PortfolioValue,
+	SystemContractsConfigApiModel,
+	UserService,
 } from "../apiClient";
 import PageHeader from "../components/PageHeader";
 import ProjectCardOwned from "../components/ProjectCardOwned";
 import PortfolioValueChart from "../components/PortfolioValueChart";
 import { useOutletContext } from "react-router";
+import { User } from "../lib/user";
+import { toDisplayAmount } from "../lib/conversions";
 
 export default function InvestmentPortfolio() {
-	const { user } = useOutletContext<{ user: LoginRes }>();
-	const [projects, setProjects] = useState<ForestProjectAggApiModel[]>([]);
+	const { user } = useOutletContext<{ user: User }>();
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
 	const [portfolioValues, setPortfolioValues] = useState<PortfolioValue[]>([]);
 	const [portfolioAgg, setPortfolioAgg] = useState<InvestmentPortfolioUserAggregate>();
 	useEffect(() => {
-		ForestProjectService.getForestProjectsListOwned().then((response) => {
-			setProjects(response.data);
+		ForestProjectService.getForestProjectsListOwned().then(setProjects);
+		InvestmentPortfolioService.getPortfolioValueLastNMonths(6).then((response) => {
+			setPortfolioValues(response.reverse());
 		});
-		InvestmentPortfolioService.getPortfolioValueLastNMonths(24).then((response) => {
-			setPortfolioValues(response);
-		});
-		InvestmentPortfolioService.getPortfolioAggregate().then((response) => {
-			setPortfolioAgg(response);
-		});
-	}, []);
+		InvestmentPortfolioService.getPortfolioAggregate().then(setPortfolioAgg);
+		UserService.getSystemConfig().then(setContracts);
+	}, [user]);
 
 	return (
 		<>
@@ -39,15 +40,28 @@ export default function InvestmentPortfolio() {
 						<div className="container-in">
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Locked token value</div>
-								<div className="value">{portfolioAgg?.locked_mint_fund_euro_e_amount} €</div>
+								<div className="value">
+									{toDisplayAmount(
+										portfolioAgg?.locked_mint_fund_euro_e_amount || "0",
+										contracts?.euro_e_metadata.decimals || 6,
+										0,
+									)}{" "}
+									{contracts?.euro_e_metadata.symbol}
+								</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Portfolio value</div>
-								<div className="value">{portfolioAgg?.current_portfolio_value} €</div>
+								<div className="value">
+									{toDisplayAmount(portfolioAgg?.current_portfolio_value || "0", contracts?.euro_e_metadata.decimals || 6, 0)}{" "}
+									{contracts?.euro_e_metadata.symbol}
+								</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Yearly portfolio growth</div>
-								<div className="value">{portfolioAgg?.yearly_return} €</div>
+								<div className="value">
+									{toDisplayAmount(portfolioAgg?.yearly_return || "0", contracts?.euro_e_metadata.decimals || 6, 0)}{" "}
+									{contracts?.euro_e_metadata.symbol}
+								</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Return on investment</div>
@@ -92,11 +106,12 @@ export default function InvestmentPortfolio() {
 			<div className="projects">
 				<div className="container">
 					<div className="container-in">
-						{projects.map((project, index) => (
-							<div className="col-6 col-m-full fl" key={index}>
-								<ProjectCardOwned item={project} />
-							</div>
-						))}
+						{contracts &&
+							projects?.data.map((project) => (
+								<div className="col-6 col-m-full fl" key={project.forest_project.id}>
+									<ProjectCardOwned project={project} user={user} contracts={contracts} />
+								</div>
+							))}
 						<div className="clr"></div>
 					</div>
 				</div>

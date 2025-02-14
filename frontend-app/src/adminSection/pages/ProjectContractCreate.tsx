@@ -120,6 +120,9 @@ export default function ProjectContractCreate() {
 						{
 							Operator: {},
 						},
+						{
+							ForcedBurn: {},
+						}
 					],
 				},
 				{
@@ -160,7 +163,6 @@ export default function ProjectContractCreate() {
 				},
 			],
 		});
-		console.log(`Transaction hash: ${txnHash}`);
 		setTxnStatus("waiting");
 		const outcome = await concordiumNodeClient.waitForTransactionFinalization(TransactionHash.fromHexString(txnHash));
 		const txnResult = parseFinalizedInit(outcome);

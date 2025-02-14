@@ -137,13 +137,14 @@ export const parseFinalizedUpdate: (
 	}
 };
 
-export function toDisplayAmount(amount: string, decimals: number) {
-	const amountBigInt = BigInt(amount);
-	const amountString = amountBigInt.toString();
-	const amountLength = amountString.length;
-	const integerPart = amountString.slice(0, amountLength - decimals);
-	const decimalPart = amountString.slice(amountLength - decimals);
-	return `${integerPart || 0}.${decimalPart || "0"}`;
+export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2) {
+	const amountNum = BigInt(amount);
+	const amountStr = amountNum.toString();
+	const amountStrLen = amountStr.length;
+	const integerPart = amountStr.slice(0, amountStrLen - decimals);
+	const decimalPart = amountStr.slice(amountStrLen - decimals);
+	const displayAmount = `${integerPart}.${decimalPart}`;
+	return parseFloat(displayAmount).toFixed(roundToDecimal);
 }
 
 export function daysSince(date: Date | string) {
@@ -151,4 +152,19 @@ export function daysSince(date: Date | string) {
 	const now = new Date();
 	const diff = now.getTime() - dateObj.getTime();
 	return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+export function toDisplayRate(
+	numerator: string,
+	denominator: string,
+	tokenDecimals: number,
+	currencyDecimals: number,
+	roundToDecimal = 2,
+) {
+	const numeratorNum = parseFloat(numerator);
+	const numeratorNumWithDecimals = numeratorNum / Math.pow(10, currencyDecimals);
+	const denominatorNum = parseFloat(denominator);
+	const denominatorNumWithDecimals = denominatorNum / Math.pow(10, tokenDecimals);
+	const rate = numeratorNumWithDecimals / denominatorNumWithDecimals;
+	return rate.toFixed(roundToDecimal);
 }

@@ -44,7 +44,7 @@ export default function ProjectList() {
 		setFilters({ ...filters, state: value ? value : undefined });
 	};
 
-	const handlePageChange = (event: React.ChangeEvent<unknown>, newPage: number) => {
+	const handlePageChange = (_event: React.ChangeEvent<unknown>, newPage: number) => {
 		setFilters({ ...filters, page: newPage - 1 });
 	};
 

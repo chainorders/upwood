@@ -423,7 +423,7 @@ CREATE FUNCTION user_token_manual_transfer_profits (
     END;
 $$;
 
-CREATE VIEW user_transactions AS (
+CREATE OR REPLACE VIEW user_transactions AS (
     SELECT
         *
     FROM
@@ -439,7 +439,8 @@ CREATE VIEW user_transactions AS (
                     COALESCE(token_metadata.symbol, '') AS currency_token_symbol,
                     COALESCE(token_metadata.decimals, 0) AS currency_token_decimals,
                     usr.cognito_user_id,
-                    investment_record.investment_record_type::TEXT AS transaction_type
+                    investment_record.investment_record_type::TEXT AS transaction_type,
+                    investment_record.investor AS account_address
                 FROM
                     forest_projects project
                     JOIN forest_project_token_contracts token_contract ON project.id = token_contract.forest_project_id
@@ -462,7 +463,8 @@ CREATE VIEW user_transactions AS (
                     COALESCE(token_metadata.symbol, '') AS currency_token_symbol,
                     COALESCE(token_metadata.decimals, 0) AS currency_token_decimals,
                     usr.cognito_user_id,
-                    'buy' AS transaction_type
+                    'buy' AS transaction_type,
+                    exchange_record.buyer AS account_address
                 FROM
                     forest_projects project
                     JOIN forest_project_token_contracts token_contract ON project.id = token_contract.forest_project_id
@@ -485,7 +487,8 @@ CREATE VIEW user_transactions AS (
                     COALESCE(token_metadata.symbol, '') AS currency_token_symbol,
                     COALESCE(token_metadata.decimals, 0) AS currency_token_decimals,
                     usr.cognito_user_id,
-                    'sell' AS transaction_type
+                    'sell' AS transaction_type,
+                    exchange_record.seller AS account_address
                 FROM
                     forest_projects project
                     JOIN forest_project_token_contracts token_contract ON project.id = token_contract.forest_project_id

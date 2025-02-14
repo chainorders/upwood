@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
-import { ForestProjectAggApiModel } from "../apiClient/models/ForestProjectAggApiModel";
-import { ForestProjectService, ForestProjectState, LoginRes } from "../apiClient";
+import {
+	ForestProjectService,
+	ForestProjectState,
+	PagedResponse_ForestProjectAggApiModel_,
+	SystemContractsConfigApiModel,
+	UserService,
+} from "../apiClient";
 import ProjectCardActive from "../components/ProjectCardActive";
 import PageHeader from "../components/PageHeader";
 import { useOutletContext } from "react-router";
+import { User } from "../lib/user";
 
 export default function ActiveForestProjectsList() {
-	const { user } = useOutletContext<{ user: LoginRes }>();
-	const [projects, setProjects] = useState<ForestProjectAggApiModel[]>([]);
+	const { user } = useOutletContext<{ user: User }>();
+	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+
 	useEffect(() => {
-		ForestProjectService.getForestProjectsList(ForestProjectState.ACTIVE, 0).then((response) => {
-			setProjects(response.data);
-		});
-	}, []);
+		ForestProjectService.getForestProjectsList(ForestProjectState.ACTIVE, 0).then(setProjects);
+		UserService.getSystemConfig().then(setContracts);
+	}, [user]);
 
 	return (
 		<>
@@ -21,11 +28,12 @@ export default function ActiveForestProjectsList() {
 				<PageHeader user={user} parts={[{ name: "Active Projects" }]} />
 				<div className="container">
 					<div className="container-in">
-						{projects.map((project, index) => (
-							<div className="col-6 col-m-full fl" key={index}>
-								<ProjectCardActive item={project} />
-							</div>
-						))}
+						{contracts &&
+							projects?.data.map((project, index) => (
+								<div className="col-6 col-m-full fl" key={index}>
+									<ProjectCardActive project={project} user={user} contracts={contracts} />
+								</div>
+							))}
 						<div className="clr"></div>
 					</div>
 				</div>

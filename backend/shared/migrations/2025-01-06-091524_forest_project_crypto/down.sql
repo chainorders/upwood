@@ -1,9 +1,5 @@
 /* plpgsql-language-server:disable validation */
 -- Drop views in reverse dependency order
-DROP VIEW IF EXISTS forest_project_token_contract_user_yield_distribution_agg CASCADE;
-
-DROP VIEW IF EXISTS forest_project_user_yield_distributions CASCADE;
-
 DROP VIEW IF EXISTS user_yields_aggregate CASCADE;
 
 DROP VIEW IF EXISTS forest_project_token_contract_user_yields CASCADE;

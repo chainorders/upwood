@@ -1,22 +1,30 @@
+use std::collections::HashMap;
+
+use itertools::Itertools;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::types::ToJSON;
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
-use shared::db::security_mint_fund::SecurityMintFundState;
+use shared::db::security_mint_fund::{SecurityMintFund, SecurityMintFundContract};
+use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
+    LegalContractUserSignature, Notification,
 };
 use shared::db_app::forest_project_crypto::{
-    ForestProjectCurrentTokenFundMarkets, ForestProjectFundInvestor, ForestProjectSupply,
-    ForestProjectTokenContract, ForestProjectTokenContractUserBalanceAgg,
-    ForestProjectTokenContractUserYields, ForestProjectTokenUserYield, ForestProjectUserBalanceAgg,
+    ForestProjectFundInvestor, ForestProjectSupply, ForestProjectTokenContract,
+    ForestProjectTokenContractUserBalanceAgg, ForestProjectTokenContractUserYields,
+    ForestProjectTokenUserYieldClaim, ForestProjectUserBalanceAgg,
     SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
 };
+use shared::db_shared::DbConn;
 use tracing::{debug, info};
+use uuid::Uuid;
 
 use super::*;
+use crate::utils::concordium::account::{verify_account_signature, AccountSignatures};
 pub const MEDIA_LIMIT: i64 = 4;
 pub struct ForestProjectApi;
 
@@ -31,125 +39,19 @@ impl ForestProjectApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
         Path(state): Path<ForestProjectState>,
         Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
-        let (projects, page_count) = ForestProject::list_by_state(conn, state, page, i64::MAX)
-            .map_err(|e| {
-                error!("Failed to list projects: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to list projects: {}", e)))
+        let (project_ids, page_count) =
+            ForestProject::list_ids(conn, Some(&[state]), page, i64::MAX).map_err(|e| {
+                error!("Failed to list projects ids: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list projects ids: {}", e)))
             })?;
-        let project_ids = projects.iter().map(|p| p.id).collect::<Vec<_>>();
-        let project_user_balances =
-            ForestProjectUserBalanceAgg::list_by_user_id_and_forest_project_ids(
-                conn,
-                &claims.sub,
-                &project_ids,
-            )?
-            .into_iter()
-            .map(|balance| (balance.forest_project_id, balance.total_balance))
-            .collect::<std::collections::HashMap<_, _>>();
-        let project_supplies = ForestProjectSupply::list_by_forest_project_ids(conn, &project_ids)
-            .map_err(|e| {
-                error!("Failed to list project supplies: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to list project supplies: {}", e)))
-            })?
-            .into_iter()
-            .map(|supply| (supply.forest_project_id, supply))
-            .collect::<std::collections::HashMap<_, _>>();
-        let forest_project_tokens =
-            ForestProjectCurrentTokenFundMarkets::list_by_forest_project_ids(conn, &project_ids)
-                .map_err(|e| {
-                    error!("Failed to list project tokens: {}", e);
-                    Error::InternalServer(PlainText(format!(
-                        "Failed to list project tokens: {}",
-                        e
-                    )))
-                })?
-                .into_iter()
-                .map(|token| ((token.forest_project_id, token.token_contract_type), token))
-                .collect::<std::collections::HashMap<_, _>>();
-
-        let mut data = Vec::with_capacity(projects.len());
-        for project in projects {
-            let supply = project_supplies
-                .get(&project.id)
-                .and_then(|supply| supply.supply)
-                .unwrap_or(Decimal::ZERO);
-            let user_balance = project_user_balances
-                .get(&project.id)
-                .cloned()
-                .unwrap_or(Decimal::ZERO);
-            let property_market = forest_project_tokens
-                .get(&(project.id, SecurityTokenContractType::Property))
-                .and_then(|token| {
-                    if token.market_liquidity_provider.is_some() {
-                        Some(ForestProjectMarketApiModel {
-                            contract_address:       token.market_contract_address.unwrap(),
-                            token_id:               token.market_token_id.unwrap(),
-                            token_contract_address: token.token_contract_address,
-                            sell_rate_numerator:    token.market_sell_rate_numerator.unwrap(),
-                            sell_rate_denominator:  token.market_sell_rate_denominator.unwrap(),
-                            buy_rate_numerator:     token.market_buy_rate_numerator.unwrap(),
-                            buy_rate_denominator:   token.market_buy_rate_denominator.unwrap(),
-                            liquidity_provider:     token
-                                .market_liquidity_provider
-                                .clone()
-                                .unwrap_or_default(),
-                        })
-                    } else {
-                        None
-                    }
-                });
-            let property_fund = forest_project_tokens
-                .get(&(project.id, SecurityTokenContractType::Property))
-                .and_then(|token| {
-                    if token.fund_state.is_some() {
-                        Some(ForestProjectFundApiModel {
-                            contract_address: token.fund_contract_address.unwrap(),
-                            rate_numerator: token.fund_rate_numerator.unwrap(),
-                            rate_denominator: token.fund_rate_denominator.unwrap(),
-                            state: token.fund_state.unwrap(),
-                            investment_token_id: token.token_id.unwrap(),
-                            investment_token_contract_address: token.token_contract_address,
-                            token_id: token.fund_token_id.unwrap(),
-                            token_contract_address: token.fund_token_contract_address.unwrap(),
-                        })
-                    } else {
-                        None
-                    }
-                });
-            let bond_fund = forest_project_tokens
-                .get(&(project.id, SecurityTokenContractType::Bond))
-                .and_then(|token| {
-                    if token.fund_state.is_some() {
-                        Some(ForestProjectFundApiModel {
-                            contract_address: token.fund_contract_address.unwrap(),
-                            rate_numerator: token.fund_rate_numerator.unwrap(),
-                            rate_denominator: token.fund_rate_denominator.unwrap(),
-                            state: token.fund_state.unwrap(),
-                            investment_token_id: token.token_id.unwrap(),
-                            investment_token_contract_address: token.token_contract_address,
-                            token_id: token.fund_token_id.unwrap(),
-                            token_contract_address: token.fund_token_contract_address.unwrap(),
-                        })
-                    } else {
-                        None
-                    }
-                });
-            data.push(ForestProjectAggApiModel {
-                forest_project: project,
-                supply,
-                property_market,
-                property_fund,
-                bond_fund,
-                user_balance,
-            });
-        }
-
+        let projects = ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub)?;
         Ok(Json(PagedResponse {
-            data,
+            data: projects,
             page_count,
             page: 0,
         }))
@@ -164,101 +66,17 @@ impl ForestProjectApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
         Path(project_id): Path<uuid::Uuid>,
     ) -> JsonResult<ForestProjectAggApiModel> {
         let conn = &mut db_pool.get()?;
-        let project = ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-            format!("Forest project not found: {}", project_id),
-        )))?;
-        let supply = ForestProjectSupply::find_by_forest_project_id(conn, project_id)?
-            .and_then(|supply| supply.supply)
-            .unwrap_or(Decimal::ZERO);
-        let user_balance = ForestProjectUserBalanceAgg::find(conn, &claims.sub, project_id)
-            .map_err(|e| {
-                error!("Failed to find user balance: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to find user balance: {}", e)))
-            })?
-            .map(|balance| balance.total_balance)
-            .unwrap_or(Decimal::ZERO);
-
-        let (contracts, _) = ForestProjectCurrentTokenFundMarkets::list_by_forest_project_id(
-            conn,
-            project_id,
-            0,
-            i64::MAX,
-        )
-        .map_err(|e| {
-            error!("Failed to list project tokens: {}", e);
-            Error::InternalServer(PlainText(format!("Failed to list project tokens: {}", e)))
-        })?;
-        let property_market = contracts
-            .iter()
-            .find(|token| token.token_contract_type == SecurityTokenContractType::Property)
-            .and_then(|token| {
-                if token.market_liquidity_provider.is_some() {
-                    Some(ForestProjectMarketApiModel {
-                        contract_address:       token.market_contract_address.unwrap(),
-                        token_id:               token.market_token_id.unwrap(),
-                        token_contract_address: token.token_contract_address,
-                        sell_rate_numerator:    token.market_sell_rate_numerator.unwrap(),
-                        sell_rate_denominator:  token.market_sell_rate_denominator.unwrap(),
-                        buy_rate_numerator:     token.market_buy_rate_numerator.unwrap(),
-                        buy_rate_denominator:   token.market_buy_rate_denominator.unwrap(),
-                        liquidity_provider:     token
-                            .market_liquidity_provider
-                            .clone()
-                            .unwrap_or_default(),
-                    })
-                } else {
-                    None
-                }
-            });
-        let property_fund = contracts
-            .iter()
-            .find(|token| token.token_contract_type == SecurityTokenContractType::Property)
-            .and_then(|token| {
-                if token.fund_state.is_some() {
-                    Some(ForestProjectFundApiModel {
-                        contract_address: token.fund_contract_address.unwrap(),
-                        rate_numerator: token.fund_rate_numerator.unwrap(),
-                        rate_denominator: token.fund_rate_denominator.unwrap(),
-                        state: token.fund_state.unwrap(),
-                        investment_token_id: token.token_id.unwrap(),
-                        investment_token_contract_address: token.token_contract_address,
-                        token_id: token.fund_token_id.unwrap(),
-                        token_contract_address: token.fund_token_contract_address.unwrap(),
-                    })
-                } else {
-                    None
-                }
-            });
-        let bond_fund = contracts
-            .iter()
-            .find(|token| token.token_contract_type == SecurityTokenContractType::Bond)
-            .and_then(|token| {
-                if token.fund_state.is_some() {
-                    Some(ForestProjectFundApiModel {
-                        contract_address: token.fund_contract_address.unwrap(),
-                        rate_numerator: token.fund_rate_numerator.unwrap(),
-                        rate_denominator: token.fund_rate_denominator.unwrap(),
-                        state: token.fund_state.unwrap(),
-                        investment_token_id: token.token_id.unwrap(),
-                        investment_token_contract_address: token.token_contract_address,
-                        token_id: token.fund_token_id.unwrap(),
-                        token_contract_address: token.fund_token_contract_address.unwrap(),
-                    })
-                } else {
-                    None
-                }
-            });
-        Ok(Json(ForestProjectAggApiModel {
-            forest_project: project,
-            supply,
-            property_market,
-            property_fund,
-            bond_fund,
-            user_balance,
-        }))
+        let project = ForestProjectAggApiModel::list(conn, contracts, &[project_id], &claims.sub)?
+            .pop()
+            .ok_or(Error::NotFound(PlainText(format!(
+                "Project not found: {}",
+                project_id
+            ))))?;
+        Ok(Json(project))
     }
 
     #[oai(
@@ -270,9 +88,10 @@ impl ForestProjectApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
     ) -> JsonResult<PagedResponse<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
-        let (user_owned_projects, _) =
+        let (user_owned_projects, page_count) =
             ForestProjectUserBalanceAgg::list_by_user_id(conn, &claims.sub, 0, i64::MAX).map_err(
                 |e| {
                     error!("Failed to list user owned projects: {}", e);
@@ -286,112 +105,10 @@ impl ForestProjectApi {
             .iter()
             .map(|p| p.forest_project_id)
             .collect::<Vec<_>>();
-        let projects = ForestProject::list_by_ids(conn, &project_ids)?;
-        let project_user_balances = user_owned_projects
-            .into_iter()
-            .map(|balance| (balance.forest_project_id, balance.total_balance))
-            .collect::<std::collections::HashMap<_, _>>();
-        let project_supplies = ForestProjectSupply::list_by_forest_project_ids(conn, &project_ids)
-            .map_err(|e| {
-                error!("Failed to list project supplies: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to list project supplies: {}", e)))
-            })?
-            .into_iter()
-            .map(|supply| (supply.forest_project_id, supply))
-            .collect::<std::collections::HashMap<_, _>>();
-        let forest_project_tokens =
-            ForestProjectCurrentTokenFundMarkets::list_by_forest_project_ids(conn, &project_ids)
-                .map_err(|e| {
-                    error!("Failed to list project tokens: {}", e);
-                    Error::InternalServer(PlainText(format!(
-                        "Failed to list project tokens: {}",
-                        e
-                    )))
-                })?
-                .into_iter()
-                .map(|token| ((token.forest_project_id, token.token_contract_type), token))
-                .collect::<std::collections::HashMap<_, _>>();
-
-        let mut data = Vec::with_capacity(projects.len());
-        for project in projects {
-            let supply = project_supplies
-                .get(&project.id)
-                .and_then(|supply| supply.supply)
-                .unwrap_or(Decimal::ZERO);
-            let user_balance = project_user_balances
-                .get(&project.id)
-                .cloned()
-                .unwrap_or(Decimal::ZERO);
-            let property_market = forest_project_tokens
-                .get(&(project.id, SecurityTokenContractType::Property))
-                .and_then(|token| {
-                    if token.market_liquidity_provider.is_some() {
-                        Some(ForestProjectMarketApiModel {
-                            contract_address:       token.market_contract_address.unwrap(),
-                            token_id:               token.market_token_id.unwrap(),
-                            token_contract_address: token.token_contract_address,
-                            sell_rate_numerator:    token.market_sell_rate_numerator.unwrap(),
-                            sell_rate_denominator:  token.market_sell_rate_denominator.unwrap(),
-                            buy_rate_numerator:     token.market_buy_rate_numerator.unwrap(),
-                            buy_rate_denominator:   token.market_buy_rate_denominator.unwrap(),
-                            liquidity_provider:     token
-                                .market_liquidity_provider
-                                .clone()
-                                .unwrap_or_default(),
-                        })
-                    } else {
-                        None
-                    }
-                });
-            let property_fund = forest_project_tokens
-                .get(&(project.id, SecurityTokenContractType::Property))
-                .and_then(|token| {
-                    if token.fund_state.is_some() {
-                        Some(ForestProjectFundApiModel {
-                            contract_address: token.fund_contract_address.unwrap(),
-                            rate_numerator: token.fund_rate_numerator.unwrap(),
-                            rate_denominator: token.fund_rate_denominator.unwrap(),
-                            state: token.fund_state.unwrap(),
-                            investment_token_id: token.token_id.unwrap(),
-                            investment_token_contract_address: token.token_contract_address,
-                            token_id: token.fund_token_id.unwrap(),
-                            token_contract_address: token.fund_token_contract_address.unwrap(),
-                        })
-                    } else {
-                        None
-                    }
-                });
-            let bond_fund = forest_project_tokens
-                .get(&(project.id, SecurityTokenContractType::Bond))
-                .and_then(|token| {
-                    if token.fund_state.is_some() {
-                        Some(ForestProjectFundApiModel {
-                            contract_address: token.fund_contract_address.unwrap(),
-                            rate_numerator: token.fund_rate_numerator.unwrap(),
-                            rate_denominator: token.fund_rate_denominator.unwrap(),
-                            state: token.fund_state.unwrap(),
-                            investment_token_id: token.token_id.unwrap(),
-                            investment_token_contract_address: token.token_contract_address,
-                            token_id: token.fund_token_id.unwrap(),
-                            token_contract_address: token.fund_token_contract_address.unwrap(),
-                        })
-                    } else {
-                        None
-                    }
-                });
-            data.push(ForestProjectAggApiModel {
-                forest_project: project,
-                supply,
-                property_market,
-                property_fund,
-                bond_fund,
-                user_balance,
-            });
-        }
-
+        let projects = ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub)?;
         Ok(Json(PagedResponse {
-            data,
-            page_count: 1,
+            data: projects,
+            page_count,
             page: 0,
         }))
     }
@@ -406,6 +123,8 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectTokenContractAggApiModel>> {
         let conn = &mut db_pool.get()?;
         let euro_e_metadata = TokenMetadata::find(
@@ -417,8 +136,8 @@ impl ForestProjectApi {
             ForestProjectTokenContractUserBalanceAgg::list_by_user_id(
                 conn,
                 &claims.sub,
-                0,
-                i64::MAX,
+                page.unwrap_or(0),
+                page_size.unwrap_or(PAGE_SIZE),
             )
             .map_err(|e| {
                 error!("Failed to list owned token contracts: {}", e);
@@ -505,12 +224,12 @@ impl ForestProjectApi {
         Ok(Json(PagedResponse {
             data: ret,
             page_count,
-            page: 0,
+            page: page.unwrap_or(0),
         }))
     }
 
     #[oai(
-        path = "/forest_projects/:project_id/media/list/:page",
+        path = "/forest_projects/:project_id/media/list",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
@@ -519,9 +238,10 @@ impl ForestProjectApi {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-        Path(page): Path<i64>,
+        Query(page): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectMedia>> {
         let conn = &mut db_pool.get()?;
+        let page = page.unwrap_or(0);
         let (media, page_count) = ForestProjectMedia::list(conn, project_id, page, PAGE_SIZE)?;
         Ok(Json(PagedResponse {
             data: media,
@@ -564,7 +284,8 @@ impl ForestProjectApi {
         Path(project_id): Path<uuid::Uuid>,
     ) -> JsonResult<Vec<ForestProjectTokenContract>> {
         let conn = &mut db_pool.get()?;
-        let (contracts, _) = ForestProjectTokenContract::list(conn, project_id, 0, i64::MAX)?;
+        let (contracts, _) =
+            ForestProjectTokenContract::list(conn, Some(&[project_id]), 0, i64::MAX)?;
         Ok(Json(contracts))
     }
 
@@ -604,9 +325,9 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<Vec<ForestProjectTokenUserYield>> {
+    ) -> JsonResult<Vec<ForestProjectTokenUserYieldClaim>> {
         let conn = &mut db_pool.get()?;
-        let (yields, _) = ForestProjectTokenUserYield::list(
+        let yields = ForestProjectTokenUserYieldClaim::list(
             conn,
             &claims.sub,
             contracts.yielder_contract_index,
@@ -619,40 +340,311 @@ impl ForestProjectApi {
         })?;
         Ok(Json(yields))
     }
+
+    #[oai(
+        path = "/forest_projects/:project_id/legal_contract/sign",
+        method = "post",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_legal_contract_sign(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(concordium_client): Data<&v2::Client>,
+        Path(project_id): Path<uuid::Uuid>,
+        Json(signatures): Json<AccountSignatures>,
+    ) -> JsonResult<LegalContractUserSignature> {
+        let now = chrono::Utc::now().naive_utc();
+        let user_account = claims.account().ok_or(Error::BadRequest(PlainText(
+            "Account not found in claims".to_string(),
+        )))?;
+
+        let is_verified = verify_account_signature(
+            concordium_client.clone(),
+            user_account,
+            &signatures,
+            &project_id.to_string(),
+            v2::BlockIdentifier::LastFinal,
+        )
+        .await
+        .map_err(|e| {
+            error!("Failed to verify account signature: {}", e);
+            Error::BadRequest(PlainText(format!(
+                "Failed to verify account signature: {}",
+                e
+            )))
+        })?;
+
+        if !is_verified {
+            return Err(Error::BadRequest(PlainText(
+                "Failed to verify account signature".to_string(),
+            )));
+        }
+
+        let conn = &mut db_pool.get()?;
+        let signature = LegalContractUserSignature {
+            project_id,
+            cognito_user_id: claims.sub.clone(),
+            user_account: user_account.to_string(),
+            user_signature: serde_json::to_string(&signatures)
+                .expect("Failed to serialize signature"),
+            created_at: now,
+            updated_at: now,
+        }
+        .upsert(conn)?;
+        Ok(Json(signature))
+    }
 }
 
-#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
-pub struct ForestProjectMarketApiModel {
-    pub contract_address:       Decimal,
-    pub token_id:               Decimal,
-    pub token_contract_address: Decimal,
-    pub sell_rate_numerator:    Decimal,
-    pub sell_rate_denominator:  Decimal,
-    pub buy_rate_numerator:     Decimal,
-    pub buy_rate_denominator:   Decimal,
-    pub liquidity_provider:     String,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
-pub struct ForestProjectFundApiModel {
-    pub contract_address: Decimal,
-    pub rate_numerator: Decimal,
-    pub rate_denominator: Decimal,
-    pub state: SecurityMintFundState,
-    pub token_contract_address: Decimal,
-    pub token_id: Decimal,
-    pub investment_token_id: Decimal,
-    pub investment_token_contract_address: Decimal,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Object, serde::Serialize, serde::Deserialize)]
 pub struct ForestProjectAggApiModel {
-    pub forest_project:  ForestProject,
-    pub supply:          Decimal,
-    pub property_market: Option<ForestProjectMarketApiModel>,
-    pub property_fund:   Option<ForestProjectFundApiModel>,
-    pub bond_fund:       Option<ForestProjectFundApiModel>,
-    pub user_balance:    Decimal,
+    pub forest_project: ForestProject,
+    pub supply: Decimal,
+    pub user_balance: Decimal,
+    pub property_contract: Option<ForestProjectTokenContract>,
+    pub property_market: Option<Market>,
+    pub property_market_currency_metadata: Option<TokenMetadata>,
+    pub property_fund: Option<SecurityMintFund>,
+    pub property_fund_currency_metadata: Option<TokenMetadata>,
+    pub bond_contract: Option<ForestProjectTokenContract>,
+    pub bond_fund: Option<SecurityMintFund>,
+    pub bond_fund_currency_metadata: Option<TokenMetadata>,
+    pub contract_signed: bool,
+    pub user_notified: bool,
+}
+
+impl ForestProjectAggApiModel {
+    pub fn list(
+        conn: &mut DbConn,
+        contracts: &SystemContractsConfig,
+        project_ids: &[Uuid],
+        user_id: &str,
+    ) -> Result<Vec<Self>> {
+        let (projects, _) = ForestProject::list(conn, Some(project_ids), None, 0, i64::MAX)
+            .map_err(|e| {
+                error!("Failed to list projects: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list projects: {}", e)))
+            })?;
+        let (user_signatures, _) = LegalContractUserSignature::list_for_user(
+            conn,
+            Some(project_ids),
+            user_id,
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list user signatures: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list user signatures: {}", e)))
+        })?;
+        let user_signed_contracts = user_signatures
+            .iter()
+            .map(|signature| signature.0)
+            .collect::<std::collections::HashSet<_>>();
+        let (user_notifications, _) =
+            Notification::list_for_user(conn, Some(project_ids), user_id, 0, i64::MAX).map_err(
+                |e| {
+                    error!("Failed to list user notifications: {}", e);
+                    Error::InternalServer(PlainText(format!(
+                        "Failed to list user notifications: {}",
+                        e
+                    )))
+                },
+            )?;
+        let user_notified_projects = user_notifications
+            .iter()
+            .map(|notification| notification.0)
+            .collect::<std::collections::HashSet<_>>();
+        let project_user_balances =
+            ForestProjectUserBalanceAgg::list_by_user_id_and_forest_project_ids(
+                conn,
+                user_id,
+                project_ids,
+            )?
+            .into_iter()
+            .map(|balance| (balance.forest_project_id, balance.total_balance))
+            .collect::<std::collections::HashMap<_, _>>();
+        let project_supplies = ForestProjectSupply::list_by_forest_project_ids(conn, project_ids)
+            .map_err(|e| {
+                error!("Failed to list project supplies: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list project supplies: {}", e)))
+            })?
+            .into_iter()
+            .chunk_by(|supply| supply.forest_project_id)
+            .into_iter()
+            .map(|(id, chunks)| {
+                (
+                    id,
+                    chunks.filter_map(|supply| supply.supply).sum::<Decimal>(),
+                )
+            })
+            .collect::<std::collections::HashMap<_, _>>();
+        let fund_contract =
+            SecurityMintFundContract::find(conn, contracts.mint_funds_contract_index).map_err(
+                |e| {
+                    error!("Failed to find fund contract: {}", e);
+                    Error::InternalServer(PlainText(format!("Failed to find fund contract: {}", e)))
+                },
+            )?;
+        let fund_currency_metadata = match fund_contract {
+            Some(fund_contract) => TokenMetadata::find(
+                conn,
+                fund_contract.currency_token_contract_address,
+                fund_contract.currency_token_id,
+            )
+            .map_err(|e| {
+                error!("Failed to find fund currency metadata: {}", e);
+                Error::InternalServer(PlainText(format!(
+                    "Failed to find fund currency metadata: {}",
+                    e
+                )))
+            })?,
+            None => None,
+        };
+        let market_contract = P2PTradeContract::find(conn, contracts.trading_contract_index)
+            .map_err(|e| {
+                error!("Failed to find market contract: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to find market contract: {}", e)))
+            })?;
+        let market_currency_metadata = match market_contract {
+            Some(market_contract) => TokenMetadata::find(
+                conn,
+                market_contract.currency_token_contract_address,
+                market_contract.currency_token_id,
+            )
+            .map_err(|e| {
+                error!("Failed to find market currency metadata: {}", e);
+                Error::InternalServer(PlainText(format!(
+                    "Failed to find market currency metadata: {}",
+                    e
+                )))
+            })?,
+            None => None,
+        };
+        let (project_token_contracts, _) =
+            ForestProjectTokenContract::list(conn, Some(project_ids), 0, i64::MAX).map_err(
+                |e| {
+                    error!("Failed to list project token contracts: {}", e);
+                    Error::InternalServer(PlainText(format!(
+                        "Failed to list project token contracts: {}",
+                        e
+                    )))
+                },
+            )?;
+        let project_contract_addresses = project_token_contracts
+            .iter()
+            .map(|contract| contract.contract_address)
+            .collect::<Vec<_>>();
+        info!("All Contracts Addresses: {:?}", project_contract_addresses);
+        let (funds, _) = SecurityMintFund::list(
+            conn,
+            contracts.mint_funds_contract_index,
+            Some(&project_contract_addresses),
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list funds: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list funds: {}", e)))
+        })?;
+        let funds = funds
+            .into_iter()
+            .map(|fund| {
+                (
+                    (
+                        fund.investment_token_contract_address,
+                        fund.investment_token_id,
+                    ),
+                    fund,
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        let (markets, _) = Market::list(
+            conn,
+            contracts.trading_contract_index,
+            Some(&project_contract_addresses),
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list markets: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list markets: {}", e)))
+        })?;
+        let markets = markets
+            .into_iter()
+            .map(|market| ((market.token_contract_address, market.token_id), market))
+            .collect::<HashMap<_, _>>();
+        let project_token_contracts = project_token_contracts
+            .into_iter()
+            .map(|contract| {
+                (
+                    (contract.forest_project_id, contract.contract_type),
+                    contract,
+                )
+            })
+            .collect::<std::collections::HashMap<_, _>>();
+
+        let mut data = Vec::with_capacity(projects.len());
+        for project in projects {
+            let supply = project_supplies
+                .get(&project.id)
+                .cloned()
+                .unwrap_or(Decimal::ZERO);
+            let user_balance = project_user_balances
+                .get(&project.id)
+                .cloned()
+                .unwrap_or(Decimal::ZERO);
+            let property_contract =
+                project_token_contracts.get(&(project.id, SecurityTokenContractType::Property));
+            let property_fund = match property_contract {
+                Some(property_contract) => match property_contract.fund_token_id {
+                    Some(fund_token_id) => funds
+                        .get(&(property_contract.contract_address, fund_token_id))
+                        .cloned(),
+                    None => None,
+                },
+                None => None,
+            };
+            let property_market = match property_contract {
+                Some(property_contract) => match property_contract.market_token_id {
+                    Some(market_token_id) => markets
+                        .get(&(property_contract.contract_address, market_token_id))
+                        .cloned(),
+                    None => None,
+                },
+                None => None,
+            };
+            let bond_contract =
+                project_token_contracts.get(&(project.id, SecurityTokenContractType::Bond));
+            let bond_fund = match bond_contract {
+                Some(bond_contract) => match bond_contract.fund_token_id {
+                    Some(fund_token_id) => funds
+                        .get(&(bond_contract.contract_address, fund_token_id))
+                        .cloned(),
+                    None => None,
+                },
+                None => None,
+            };
+            let contract_signed = user_signed_contracts.contains(&project.id);
+            let user_notified = user_notified_projects.contains(&project.id);
+            data.push(ForestProjectAggApiModel {
+                forest_project: project,
+                supply,
+                property_market,
+                property_fund,
+                bond_fund,
+                user_balance,
+                bond_contract: bond_contract.cloned(),
+                property_contract: property_contract.cloned(),
+                bond_fund_currency_metadata: fund_currency_metadata.clone(),
+                property_fund_currency_metadata: fund_currency_metadata.clone(),
+                property_market_currency_metadata: market_currency_metadata.clone(),
+                contract_signed,
+                user_notified,
+            });
+        }
+
+        Ok(data)
+    }
 }
 
 #[derive(Object, serde::Serialize, serde::Deserialize, Clone, PartialEq, Debug)]
@@ -719,8 +711,13 @@ impl ForestProjectAdminApi {
         Query(state): Query<Option<ForestProjectState>>,
     ) -> JsonResult<PagedResponse<ForestProject>> {
         ensure_is_admin(&claims)?;
-        let (projects, page_count) =
-            ForestProject::list_by_state_optional(&mut db_pool.get()?, state, page, PAGE_SIZE)?;
+        let (projects, page_count) = ForestProject::list(
+            &mut db_pool.get()?,
+            None,
+            state.as_ref().map(std::slice::from_ref),
+            page,
+            PAGE_SIZE,
+        )?;
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
@@ -886,7 +883,7 @@ impl ForestProjectAdminApi {
     }
 
     #[oai(
-        path = "/admin/forest_projects/:project_id/price/list/:page",
+        path = "/admin/forest_projects/:project_id/price/list",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
@@ -895,11 +892,14 @@ impl ForestProjectAdminApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-        Path(page): Path<i64>,
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectPrice>> {
         ensure_is_admin(&claims)?;
+        let page = page.unwrap_or_default();
         let conn = &mut db_pool.get()?;
-        let (prices, page_count) = ForestProjectPrice::list(conn, project_id, page, PAGE_SIZE)?;
+        let (prices, page_count) =
+            ForestProjectPrice::list(conn, project_id, page, page_size.unwrap_or(PAGE_SIZE))?;
         Ok(Json(PagedResponse {
             data: prices,
             page_count,
@@ -950,17 +950,21 @@ impl ForestProjectAdminApi {
     }
 
     #[oai(
-        path = "/admin/forest_projects/:project_id/fund/investor/list/:page",
+        path = "/admin/forest_projects/fund/investor/list",
         method = "get",
         tag = "ApiTags::ForestProject"
     )]
+    #[allow(clippy::too_many_arguments)]
     pub async fn admin_forest_project_investor_list(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
-        Path(project_id): Path<uuid::Uuid>,
-        Path(page): Path<i64>,
+        Query(project_id): Query<Option<uuid::Uuid>>,
+        Query(investment_token_id): Query<Option<Decimal>>,
+        Query(investment_token_contract_address): Query<Option<Decimal>>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectFundInvestor>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
@@ -968,8 +972,11 @@ impl ForestProjectAdminApi {
             conn,
             contracts.mint_funds_contract_index,
             project_id,
+            Some((contracts.euro_e_token_id, contracts.euro_e_contract_index)),
+            investment_token_id,
+            investment_token_contract_address,
             page,
-            PAGE_SIZE,
+            page_size.unwrap_or(PAGE_SIZE),
         )?;
         Ok(Json(PagedResponse {
             data: investors,

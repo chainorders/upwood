@@ -3,15 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ApiUser } from './ApiUser';
+import type { UserKYCModel } from './UserKYCModel';
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_ApiUser_ = {
+export type PagedResponse_UserKYCModel_ = {
     page_count: number;
     page: number;
-    data: Array<ApiUser>;
+    data: Array<UserKYCModel>;
 };
 

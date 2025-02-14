@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use diesel::pg::upsert::excluded;
 use diesel::prelude::*;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
@@ -74,20 +75,32 @@ impl ForestProject {
             .optional()
     }
 
-    pub fn list_by_state_optional(
+    pub fn list(
         conn: &mut DbConn,
-        state: Option<ForestProjectState>,
+        project_ids: Option<&[Uuid]>,
+        states: Option<&[ForestProjectState]>,
         page: i64,
         page_size: i64,
-    ) -> DbResult<(Vec<Self>, i64)> {
+    ) -> QueryResult<(Vec<Self>, i64)> {
         let query = schema::forest_projects::table.into_boxed();
         let count_query = schema::forest_projects::table.into_boxed();
-        let (query, count_query) = match state {
-            Some(state) => (
-                query.filter(schema::forest_projects::state.eq(state)),
-                count_query.filter(schema::forest_projects::state.eq(state)),
-            ),
-            None => (query, count_query),
+        let query = match project_ids {
+            Some(project_ids) => query.filter(schema::forest_projects::id.eq_any(project_ids)),
+            None => query,
+        };
+        let query = match states {
+            Some(states) => query.filter(schema::forest_projects::state.eq_any(states)),
+            None => query,
+        };
+        let count_query = match project_ids {
+            Some(project_ids) => {
+                count_query.filter(schema::forest_projects::id.eq_any(project_ids))
+            }
+            None => count_query,
+        };
+        let count_query = match states {
+            Some(states) => count_query.filter(schema::forest_projects::state.eq_any(states)),
+            None => count_query,
         };
 
         let projects = query
@@ -103,37 +116,34 @@ impl ForestProject {
         Ok((projects, page_count))
     }
 
-    pub fn list_by_state(
+    pub fn list_ids(
         conn: &mut DbConn,
-        forest_project_state: ForestProjectState,
+        states: Option<&[ForestProjectState]>,
         page: i64,
         page_size: i64,
-    ) -> DbResult<(Vec<Self>, i64)> {
-        let projects = schema::forest_projects::table
-            .filter(schema::forest_projects::state.eq(forest_project_state))
-            .select(ForestProject::as_select())
+    ) -> QueryResult<(Vec<Uuid>, i64)> {
+        let query = schema::forest_projects::table.into_boxed();
+        let count_query = schema::forest_projects::table.into_boxed();
+        let query = match states {
+            Some(states) => query.filter(schema::forest_projects::state.eq_any(states)),
+            None => query,
+        };
+        let count_query = match states {
+            Some(states) => count_query.filter(schema::forest_projects::state.eq_any(states)),
+            None => count_query,
+        };
+
+        let projects = query
+            .select(schema::forest_projects::id)
             .order(schema::forest_projects::created_at.desc())
             .limit(page_size)
             .offset(page * page_size)
-            .get_results(conn)?;
+            .get_results::<Uuid>(conn)?;
 
-        let total_count = schema::forest_projects::table
-            .filter(schema::forest_projects::state.eq(forest_project_state))
-            .count()
-            .get_result::<i64>(conn)?;
+        let total_count = count_query.count().get_result::<i64>(conn)?;
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((projects, page_count))
-    }
-
-    pub fn list_by_ids(conn: &mut DbConn, project_ids: &[Uuid]) -> DbResult<Vec<Self>> {
-        let projects = schema::forest_projects::table
-            .filter(schema::forest_projects::id.eq_any(project_ids))
-            .select(ForestProject::as_select())
-            .order(schema::forest_projects::created_at.desc())
-            .get_results(conn)?;
-
-        Ok(projects)
     }
 
     pub fn user_notification_exists(
@@ -369,10 +379,16 @@ impl ForestProjectPrice {
                 schema::forest_project_prices::project_id
                     .eq_any(project_ids)
                     .and(schema::forest_project_prices::currency_token_id.eq(currency_token_id))
-                    .and(schema::forest_project_prices::currency_token_contract_address.eq(currency_token_contract_address))
+                    .and(
+                        schema::forest_project_prices::currency_token_contract_address
+                            .eq(currency_token_contract_address),
+                    ),
             )
             .select(ForestProjectPrice::as_select())
-            .order_by((schema::forest_project_prices::project_id, schema::forest_project_prices::price_at.desc()))
+            .order_by((
+                schema::forest_project_prices::project_id,
+                schema::forest_project_prices::price_at.desc(),
+            ))
             .distinct_on(schema::forest_project_prices::project_id)
             .get_results(conn)?;
 
@@ -411,21 +427,87 @@ impl ForestProjectPrice {
 #[diesel(primary_key(project_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LegalContractUserSignature {
-    project_id:      uuid::Uuid,
-    cognito_user_id: String,
-    user_account:    String,
-    user_signature:  String,
-    created_at:      NaiveDateTime,
-    updated_at:      NaiveDateTime,
+    pub project_id:      uuid::Uuid,
+    pub cognito_user_id: String,
+    pub user_account:    String,
+    pub user_signature:  String,
+    pub created_at:      NaiveDateTime,
+    pub updated_at:      NaiveDateTime,
 }
 
 impl LegalContractUserSignature {
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<LegalContractUserSignature> {
+        let signature =
+            diesel::insert_into(schema::forest_project_legal_contract_user_signatures::table)
+                .values(self)
+                .returning(LegalContractUserSignature::as_returning())
+                .get_result(conn)?;
+        Ok(signature)
+    }
+
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<LegalContractUserSignature> {
+        use crate::schema::forest_project_legal_contract_user_signatures::dsl::*;
+        let signature = diesel::insert_into(forest_project_legal_contract_user_signatures)
+            .values(self)
+            .on_conflict((project_id, cognito_user_id))
+            .do_update()
+            .set((
+                user_account.eq(excluded(user_account)),
+                user_signature.eq(excluded(user_signature)),
+                updated_at.eq(excluded(updated_at)),
+            ))
+            .returning(LegalContractUserSignature::as_returning())
+            .get_result(conn)?;
+        Ok(signature)
+    }
+
     pub fn find(conn: &mut DbConn, id: Uuid, user_id: &str) -> DbResult<Option<Self>> {
         use crate::schema::forest_project_legal_contract_user_signatures::dsl::*;
         forest_project_legal_contract_user_signatures
             .filter(project_id.eq(id).and(cognito_user_id.eq(user_id)))
             .first::<Self>(conn)
             .optional()
+    }
+
+    pub fn list_for_user(
+        conn: &mut DbConn,
+        project_ids: Option<&[Uuid]>,
+        user_id: &str,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<(Uuid, bool)>, i64)> {
+        use crate::schema::forest_project_legal_contract_user_signatures::dsl::*;
+
+        let query = forest_project_legal_contract_user_signatures
+            .filter(cognito_user_id.eq(user_id))
+            .into_boxed();
+        let count_query = forest_project_legal_contract_user_signatures
+            .filter(cognito_user_id.eq(user_id))
+            .into_boxed();
+
+        let query = match project_ids {
+            Some(ids) => query.filter(project_id.eq_any(ids)),
+            None => query,
+        };
+        let count_query = match project_ids {
+            Some(ids) => count_query.filter(project_id.eq_any(ids)),
+            None => count_query,
+        };
+
+        let results = query
+            .select((
+                project_id,
+                diesel::dsl::sql::<diesel::sql_types::Bool>("true"),
+            ))
+            .order(created_at.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results::<(Uuid, bool)>(conn)?;
+
+        let total_count = count_query.count().get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((results, page_count))
     }
 }
 
@@ -513,5 +595,54 @@ impl Notification {
             .optional()?;
 
         Ok(res)
+    }
+
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Notification> {
+        let notification = diesel::insert_into(schema::forest_project_notifications::table)
+            .values(self)
+            .returning(Notification::as_returning())
+            .get_result(conn)?;
+        Ok(notification)
+    }
+
+    pub fn list_for_user(
+        conn: &mut DbConn,
+        project_ids: Option<&[Uuid]>,
+        user_id: &str,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<(Uuid, bool)>, i64)> {
+        use crate::schema::forest_project_notifications::dsl::*;
+
+        let query = forest_project_notifications
+            .filter(cognito_user_id.eq(user_id))
+            .into_boxed();
+        let count_query = forest_project_notifications
+            .filter(cognito_user_id.eq(user_id))
+            .into_boxed();
+
+        let query = match project_ids {
+            Some(ids) => query.filter(project_id.eq_any(ids)),
+            None => query,
+        };
+        let count_query = match project_ids {
+            Some(ids) => count_query.filter(project_id.eq_any(ids)),
+            None => count_query,
+        };
+
+        let results = query
+            .select((
+                project_id,
+                diesel::dsl::sql::<diesel::sql_types::Bool>("true"),
+            ))
+            .order(created_at.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results::<(Uuid, bool)>(conn)?;
+
+        let total_count = count_query.count().get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((results, page_count))
     }
 }

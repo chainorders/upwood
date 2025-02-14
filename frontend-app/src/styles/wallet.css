@@ -44,3 +44,8 @@
 	border: 0;
 	background: transparent;
 }
+
+.walletmanagement .walletclms button:disabled {
+	cursor: not-allowed;
+	color: rgba(107, 107, 107, 1);
+}

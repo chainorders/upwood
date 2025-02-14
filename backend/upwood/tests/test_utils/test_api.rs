@@ -9,20 +9,18 @@ use shared::db_app::forest_project::{
 };
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundInvestor, ForestProjectFundsAffiliateRewardRecord, ForestProjectTokenContract,
-    ForestProjectTokenUserYield, SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
+    ForestProjectTokenUserYieldClaim, SecurityTokenContractType, TokenMetadata,
+    UserYieldsAggregate,
 };
 use shared::db_app::portfolio::UserTransaction;
-use shared::db_app::users::UserRegistrationRequest;
+use shared::db_app::users::UserKYCModel;
 use upwood::api;
 use upwood::api::files::UploadUrlResponse;
 use upwood::api::forest_project::{
     ForestProjectAggApiModel, ForestProjectTokenContractAggApiModel,
 };
 use upwood::api::investment_portfolio::{InvestmentPortfolioUserAggregate, PortfolioValue};
-use upwood::api::user::{
-    ApiUser, ClaimRequest, UserCreatePostReq, UserCreatePostReqAdmin, UserRegisterGetRes,
-    UserRegistrationRequestApi,
-};
+use upwood::api::user::{ClaimRequest, UserCreatePostReqAdmin};
 use uuid::Uuid;
 
 pub struct ApiTestClient {
@@ -47,11 +45,11 @@ impl ApiTestClient {
             .await
     }
 
-    pub async fn user_self(&self, id_token: String) -> ApiUser {
+    pub async fn user_self(&self, id_token: String) -> UserKYCModel {
         let mut res = self.user_self_req(id_token).await.0;
         match res.status() {
             StatusCode::OK => {
-                let res: ApiUser = res
+                let res: UserKYCModel = res
                     .into_body()
                     .into_json()
                     .await
@@ -69,11 +67,18 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn admin_list_users(&self, id_token: String, page: i64) -> PagedResponse<ApiUser> {
+    pub async fn admin_user_list(
+        &self,
+        id_token: String,
+        page: Option<i64>,
+        page_size: Option<i64>,
+    ) -> PagedResponse<UserKYCModel> {
         let res = self
             .client
-            .get(format!("/admin/user/list/{}", page))
+            .get("/admin/user/list")
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.unwrap_or(0).to_string())
+            .query("page_size", &page_size.unwrap_or(10).to_string())
             .send()
             .await
             .0;
@@ -87,12 +92,13 @@ impl ApiTestClient {
     pub async fn user_affiliate_rewards_list(
         &self,
         id_token: String,
-        page: i64,
+        page: Option<i64>,
     ) -> PagedResponse<ForestProjectFundsAffiliateRewardRecord> {
         let res = self
             .client
-            .get(format!("/user/affiliate/rewards/list/{}", page))
+            .get("/user/affiliate/rewards/list")
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.unwrap_or(0).to_string())
             .send()
             .await
             .0;
@@ -128,12 +134,13 @@ impl ApiTestClient {
     pub async fn user_transactions_list(
         &self,
         id_token: String,
-        page: i64,
+        page: Option<i64>,
     ) -> PagedResponse<UserTransaction> {
         let res = self
             .client
-            .get(format!("/user/transactions/list/{}", page))
+            .get("/user/transactions/list")
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.unwrap_or(0).to_string())
             .send()
             .await
             .0;
@@ -156,101 +163,11 @@ impl ApiTestClient {
 
 // User Registration Request Implementation
 impl ApiTestClient {
-    pub async fn user_registration_request(&self, req: UserRegistrationRequestApi) -> TestResponse {
-        self.client
-            .post("/user/registration-request")
-            .body_json(&req)
-            .send()
-            .await
-    }
-
-    pub async fn admin_registration_request_list(
-        &self,
-        id_token: String,
-        page: i64,
-    ) -> PagedResponse<UserRegistrationRequest> {
-        let res = self
-            .client
-            .get(format!("/admin/registration-request/list/{}", page))
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-            .0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse list registration requests response")
-    }
-
-    pub async fn admin_registration_request_get(
-        &self,
-        id_token: String,
-        request_id: Uuid,
-    ) -> UserRegistrationRequest {
-        let res = self
-            .client
-            .get(format!("/admin/registration-request/{}", request_id))
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-            .0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse get registration request response")
-    }
-
-    pub async fn admin_registration_request_accept(
-        &self,
-        id_token: String,
-        request_id: Uuid,
-        is_accepted: bool,
-    ) -> TestResponse {
-        self.client
-            .put(format!(
-                "/admin/registration-request/{}/accept/{}",
-                request_id, is_accepted
-            ))
-            .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-    }
-
-    pub async fn get_user_register(&self) -> UserRegisterGetRes {
-        let res = self.client.get("/user/register").send().await.0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse get user register response")
-    }
-
-    pub async fn post_user_register(
-        &self,
-        registration_request_id: Uuid,
-        req: UserCreatePostReq,
-    ) -> ApiUser {
-        let res = self
-            .client
-            .post(format!("/user/register/{}", registration_request_id))
-            .body_json(&req)
-            .send()
-            .await
-            .0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse post user register response")
-    }
-
     pub async fn admin_user_register(
         &self,
         id_token: String,
         req: UserCreatePostReqAdmin,
-    ) -> ApiUser {
+    ) -> UserKYCModel {
         let res = self
             .client
             .post("/admin/user/register")
@@ -413,15 +330,13 @@ impl ApiTestClient {
         &self,
         id_token: String,
         project_id: Uuid,
-        page: i64,
+        page: Option<i64>,
     ) -> PagedResponse<ForestProjectMedia> {
         let res = self
             .client
-            .get(format!(
-                "/forest_projects/{}/media/list/{}",
-                project_id, page
-            ))
+            .get(format!("/forest_projects/{}/media/list", project_id))
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.unwrap_or(0).to_string())
             .send()
             .await
             .0;
@@ -473,7 +388,7 @@ impl ApiTestClient {
     pub async fn forest_project_yields_claimable(
         &self,
         id_token: String,
-    ) -> Vec<ForestProjectTokenUserYield> {
+    ) -> Vec<ForestProjectTokenUserYieldClaim> {
         let res = self
             .client
             .get("/forest_projects/yields/claimable")
@@ -491,11 +406,15 @@ impl ApiTestClient {
     pub async fn forest_project_token_contracts_list_owned(
         &self,
         id_token: String,
+        page: Option<i32>,
+        page_size: Option<i32>,
     ) -> PagedResponse<ForestProjectTokenContractAggApiModel> {
         let res = self
             .client
-            .get("/forest_projects/token_contract/list/owned")
+            .get("/forest_projects/contract/list/owned")
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.unwrap_or(0).to_string())
+            .query("page_size", &page_size.unwrap_or(10).to_string())
             .send()
             .await
             .0;
@@ -676,19 +595,19 @@ impl ApiTestClient {
             .expect("Failed to parse find forest project price response")
     }
 
-    pub async fn admin_list_forest_project_prices(
+    pub async fn admin_forest_project_list_price(
         &self,
         id_token: String,
         project_id: Uuid,
-        page: i64,
+        page: Option<i64>,
+        page_size: Option<i64>,
     ) -> PagedResponse<ForestProjectPrice> {
         let res = self
             .client
-            .get(format!(
-                "/admin/forest_projects/{}/price/list/{}",
-                project_id, page
-            ))
+            .get(format!("/admin/forest_projects/{}/price/list", project_id))
             .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.unwrap_or(0).to_string())
+            .query("page_size", &page_size.unwrap_or(10).to_string())
             .send()
             .await
             .0;
@@ -739,19 +658,35 @@ impl ApiTestClient {
     pub async fn admin_forest_project_investor_list(
         &self,
         id_token: String,
-        project_id: Uuid,
+        project_id: Option<Uuid>,
+        investment_token_id: Option<Decimal>,
+        investment_token_contract_address: Option<Decimal>,
         page: i64,
+        page_size: Option<i64>,
     ) -> PagedResponse<ForestProjectFundInvestor> {
-        let res = self
+        let mut request = self
             .client
-            .get(format!(
-                "/admin/forest_projects/{}/fund/investor/list/{}",
-                project_id, page
-            ))
+            .get("/admin/forest_projects/fund/investor/list")
             .header("Authorization", format!("Bearer {}", id_token))
-            .send()
-            .await
-            .0;
+            .query("page", &page.to_string());
+
+        if let Some(page_size) = page_size {
+            request = request.query("page_size", &page_size.to_string());
+        }
+        if let Some(project_id) = project_id {
+            request = request.query("project_id", &project_id.to_string());
+        }
+        if let Some(investment_token_id) = investment_token_id {
+            request = request.query("investment_token_id", &investment_token_id.to_string());
+        }
+        if let Some(investment_token_contract_address) = investment_token_contract_address {
+            request = request.query(
+                "investment_token_contract_address",
+                &investment_token_contract_address.to_string(),
+            );
+        }
+
+        let res = request.send().await.0;
         assert_eq!(res.status(), StatusCode::OK);
         res.into_body()
             .into_json()
@@ -766,7 +701,7 @@ impl ApiTestClient {
     ) -> ForestProjectTokenContract {
         let res = self
             .client
-            .post("/admin/forest_projects/token_contract")
+            .post("/admin/forest_projects/contract")
             .header("Authorization", format!("Bearer {}", id_token))
             .body_json(contract)
             .send()
@@ -786,7 +721,7 @@ impl ApiTestClient {
     ) -> ForestProjectTokenContract {
         let res = self
             .client
-            .put("/admin/forest_projects/token_contract")
+            .put("/admin/forest_projects/contract")
             .header("Authorization", format!("Bearer {}", id_token))
             .body_json(contract)
             .send()
@@ -808,7 +743,7 @@ impl ApiTestClient {
         let res = self
             .client
             .delete(format!(
-                "/admin/forest_projects/{}/token_contract/{}",
+                "/admin/forest_projects/{}/contract/{}",
                 project_id,
                 contract_type.to_json_string()
             ))
@@ -828,7 +763,7 @@ impl ApiTestClient {
         let res = self
             .client
             .get(format!(
-                "/admin/forest_projects/{}/token_contract/{}",
+                "/admin/forest_projects/{}/contract_by_type/{}",
                 project_id, contract_type
             ))
             .header("Authorization", format!("Bearer {}", id_token))

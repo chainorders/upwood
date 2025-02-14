@@ -122,10 +122,16 @@ diesel::table! {
 diesel::table! {
     user_transactions (transaction_hash) {
         transaction_hash -> Varchar,
+        block_height -> Numeric,
         forest_project_id -> Uuid,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
         currency_amount -> Numeric,
+        currency_token_symbol -> Varchar,
+        currency_token_decimals -> Integer,
         cognito_user_id -> Varchar,
         transaction_type -> Varchar,
+        account_address -> Varchar,
     }
 }
 
@@ -242,30 +248,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_user_yield_distributions (yield_distribution_id) {
-        forest_project_id -> Uuid,
-        forest_project_name -> Varchar,
-        token_contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        cognito_user_id -> Varchar,
-        yield_distribution_id -> Uuid,
-        yielder_contract_address -> Numeric,
-        token_contract_address -> Numeric,
-        from_token_version -> Numeric,
-        to_token_version -> Numeric,
-        token_amount -> Numeric,
-        yield_contract_address -> Numeric,
-        yield_token_id -> Numeric,
-        yield_amount -> Numeric,
-        yield_token_symbol -> Varchar,
-        yield_token_decimals -> Integer,
-        token_symbol -> Varchar,
-        token_decimals -> Integer,
-        to_address -> Varchar,
-        create_time -> Timestamp,
-    }
-}
-
-diesel::table! {
     forest_project_token_contract_user_balance_agg (forest_project_id, cognito_user_id, contract_address) {
         forest_project_id -> Uuid,
         forest_project_state -> crate::schema::sql_types::ForestProjectState,
@@ -277,21 +259,6 @@ diesel::table! {
         token_decimals -> Integer,
         total_balance -> Numeric,
         un_frozen_balance -> Numeric,
-    }
-}
-
-diesel::table! {
-    forest_project_token_contract_user_yield_distribution_agg (cognito_user_id, forest_project_id, contract_address, yielder_contract_address, yield_contract_address, yield_token_id) {
-        cognito_user_id -> Varchar,
-        forest_project_id -> Uuid,
-        contract_address -> Numeric,
-        contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        token_symbol -> Varchar,
-        token_decimals -> Integer,
-        yielder_contract_address -> Numeric,
-        yield_contract_address -> Numeric,
-        yield_token_id -> Numeric,
-        total_yield_amount -> Numeric,
     }
 }
 

@@ -43,11 +43,17 @@ impl ForestProjectUserInvestmentAmount {
 #[diesel(primary_key(transaction_hash))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct UserTransaction {
-    pub transaction_hash:  String,
-    pub forest_project_id: uuid::Uuid,
-    pub currency_amount:   rust_decimal::Decimal,
-    pub cognito_user_id:   String,
-    pub transaction_type:  String,
+    pub transaction_hash:                String,
+    pub block_height:                    Decimal,
+    pub forest_project_id:               uuid::Uuid,
+    pub currency_token_id:               Decimal,
+    pub currency_token_contract_address: Decimal,
+    pub currency_amount:                 Decimal,
+    pub currency_token_symbol:           String,
+    pub currency_token_decimals:         i32,
+    pub cognito_user_id:                 String,
+    pub transaction_type:                String,
+    pub account_address:                 String,
 }
 
 impl UserTransaction {
@@ -63,10 +69,12 @@ impl UserTransaction {
             .limit(page_size)
             .offset(page_size * page)
             .load::<UserTransaction>(conn)?;
-        let count = user_transactions
+        let total_count: i64 = user_transactions
             .filter(cognito_user_id.eq(user_id))
             .count()
             .get_result(conn)?;
-        Ok((transactions, count))
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((transactions, page_count))
     }
 }

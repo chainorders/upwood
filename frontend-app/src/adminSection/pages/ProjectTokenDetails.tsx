@@ -13,6 +13,9 @@ import {
 	Dialog,
 	DialogTitle,
 	DialogContent,
+	Accordion,
+	AccordionSummary,
+	AccordionDetails,
 } from "@mui/material";
 import {
 	ForestProjectService,
@@ -36,6 +39,7 @@ import AddMarketPopup from "./components/AddMarketPopup";
 import AddFundPopup from "./components/AddFundPopup";
 import TokenDetails from "./components/TokenDetails";
 import { AddProjectTokenPopup } from "./components/AddProjectTokenPopup";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export default function ProjectTokenDetails() {
 	const { id, contract_address, token_id } = useParams<{ id: string; token_id: string; contract_address: string }>();
@@ -89,73 +93,47 @@ export default function ProjectTokenDetails() {
 	};
 
 	useEffect(() => {
+		setLoading(true);
 		IndexerService.getAdminIndexerCis2Token(contract_address!, token_id!)
-			.then((data) => {
-				setToken(data);
-				setLoading(false);
-			})
-			.catch(() => {
-				alert("Failed to fetch token details");
-				setLoading(false);
-			});
-		ForestProjectService.getAdminForestProjectsContract(contract_address!).then((data) => {
-			setTokenContract(data);
-		});
+			.then(setToken)
+			.catch(() => alert("Failed to fetch token details"))
+			.finally(() => setLoading(false));
+		ForestProjectService.getAdminForestProjectsContract(contract_address!).then(setTokenContract);
 	}, [contract_address, token_id]);
+
 	useEffect(() => {
-		IndexerService.getAdminIndexerCis2TokenMarket(contract_address!, token_id!)
-			.then((market) => {
-				setMarket(market);
-			})
-			.catch(() => {
-				setMarket(undefined);
-			});
+		IndexerService.getAdminIndexerCis2TokenMarket(contract_address!, token_id!).then(setMarket);
 	}, [contract_address, token_id]);
+
 	useEffect(() => {
 		if (market) {
-			ForestProjectService.getAdminTokenMetadata(market.currency_token_contract_address, market.currency_token_id)
-				.then((metadata) => {
-					setMarketCurrencyMetdata(metadata);
-				})
-				.catch(() => {
-					setMarketCurrencyMetdata(undefined);
-				});
+			ForestProjectService.getAdminTokenMetadata(market.currency_token_contract_address, market.currency_token_id).then(
+				setMarketCurrencyMetdata,
+			);
 		}
 	}, [market]);
+
 	useEffect(() => {
-		IndexerService.getAdminIndexerCis2TokenYieldsList(contract_address!, token_id!)
-			.then((data) => {
-				setYields(data);
-			})
-			.catch(() => {
-				setYields([]);
-			});
+		IndexerService.getAdminIndexerCis2TokenYieldsList(contract_address!, token_id!).then(setYields);
 	}, [contract_address, token_id]);
+
 	useEffect(() => {
-		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!)
-			.then((fund) => {
-				setFund(fund);
-			})
-			.catch(() => {
-				setFund(undefined);
-			});
+		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!).then(setFund);
 	}, [contract_address, token_id]);
+
 	useEffect(() => {
 		if (fund) {
-			ForestProjectService.getAdminTokenMetadata(fund.currency_token_contract_address, fund.currency_token_id)
-				.then((metadata) => {
-					setFundCurrencyMetdata(metadata);
-				})
-				.catch(() => {
-					setFundCurrencyMetdata(undefined);
-				});
+			ForestProjectService.getAdminTokenMetadata(fund.currency_token_contract_address, fund.currency_token_id).then(
+				setFundCurrencyMetdata,
+			);
 		}
 	}, [fund]);
+
 	useEffect(() => {
-		UserService.getSystemConfig().then((data) => {
-			setContracts(data);
-		});
+		UserService.getSystemConfig().then(setContracts);
 	}, [contract_address, token_id]);
+
+	// Pre Sale Token
 	useEffect(() => {
 		if (tokenContract) {
 			switch (tokenContract.contract_type) {
@@ -184,11 +162,10 @@ export default function ProjectTokenDetails() {
 			}
 		}
 	}, [tokenContract]);
+
 	useEffect(() => {
 		if (preSaleTokenContract) {
-			IndexerService.getAdminIndexerCis2Token(preSaleTokenContract.contract_address!, token_id!).then((data) => {
-				setPreSaleToken(data);
-			});
+			IndexerService.getAdminIndexerCis2Token(preSaleTokenContract.contract_address!, token_id!).then(setPreSaleToken);
 		}
 	}, [preSaleTokenContract, token_id]);
 
@@ -207,44 +184,64 @@ export default function ProjectTokenDetails() {
 					<Paper sx={{ padding: 2 }}>
 						<TokenDetails token={token} tokenContract={tokenContract} />
 					</Paper>
-					<Paper sx={{ padding: 2, marginTop: 2 }}>
-						{market ? (
-							<MarketDetails market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
-						) : (
-							<Typography>No market details available</Typography>
-						)}
-					</Paper>
-					<Paper sx={{ padding: 2, marginTop: 2 }}>
-						{preSaleToken ? (
-							<TokenDetails token={preSaleToken} tokenContract={preSaleTokenContract} />
-						) : (
-							<Typography>No Pre Sale Token Attached</Typography>
-						)}
-					</Paper>
-					<Paper sx={{ padding: 2, marginTop: 2 }}>
-						{fund ? (
-							<FundDetails
-								fund={fund}
-								tokenContract={preSaleTokenContract}
-								investmentTokenContract={tokenContract}
-								currencyMetadata={fundCurrencyMetdata}
-							/>
-						) : (
-							<Typography>No fund details available</Typography>
-						)}
-					</Paper>
-					<Paper sx={{ padding: 2, marginTop: 2 }}>
-						{yields.length > 0 && tokenContract && contracts ? (
-							<Yields
-								tokenId={token_id!}
-								tokenContract={tokenContract!}
-								yielderContract={contracts.yielder_contract_index}
-								yields={yields}
-							/>
-						) : (
-							<Typography>No yields available</Typography>
-						)}
-					</Paper>
+					<Accordion sx={{ marginTop: 2 }}>
+						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+							<Typography>Market Details</Typography>
+						</AccordionSummary>
+						<AccordionDetails>
+							{market ? (
+								<MarketDetails market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
+							) : (
+								<Typography>No market details available</Typography>
+							)}
+						</AccordionDetails>
+					</Accordion>
+					<Accordion sx={{ marginTop: 2 }}>
+						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+							<Typography>Pre Sale Token</Typography>
+						</AccordionSummary>
+						<AccordionDetails>
+							{preSaleToken ? (
+								<TokenDetails token={preSaleToken} tokenContract={preSaleTokenContract} />
+							) : (
+								<Typography>No Pre Sale Token Attached</Typography>
+							)}
+						</AccordionDetails>
+					</Accordion>
+					<Accordion sx={{ marginTop: 2 }}>
+						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+							<Typography>Fund Details</Typography>
+						</AccordionSummary>
+						<AccordionDetails>
+							{fund ? (
+								<FundDetails
+									fund={fund}
+									tokenContract={preSaleTokenContract}
+									investmentTokenContract={tokenContract}
+									currencyMetadata={fundCurrencyMetdata}
+								/>
+							) : (
+								<Typography>No fund details available</Typography>
+							)}
+						</AccordionDetails>
+					</Accordion>
+					<Accordion sx={{ marginTop: 2 }}>
+						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+							<Typography>Yields</Typography>
+						</AccordionSummary>
+						<AccordionDetails>
+							{yields.length > 0 && tokenContract && contracts ? (
+								<Yields
+									tokenId={token_id!}
+									tokenContract={tokenContract!}
+									yielderContract={contracts.yielder_contract_index}
+									yields={yields}
+								/>
+							) : (
+								<Typography>No yields available</Typography>
+							)}
+						</AccordionDetails>
+					</Accordion>
 				</Grid>
 				<Grid item xs={12} md={4}>
 					<Paper sx={{ padding: 2 }}>

@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
-    security_mint_fund_contracts, security_mint_fund_investment_records,
+    self, security_mint_fund_contracts, security_mint_fund_investment_records,
     security_mint_fund_investors, security_mint_funds,
 };
 
@@ -140,20 +140,34 @@ impl SecurityMintFund {
     pub fn list(
         conn: &mut DbConn,
         contract_address: Decimal,
-        investment_token_contract_address: Decimal,
-        limit: i64,
-        offset: i64,
-    ) -> DbResult<Vec<Self>> {
-        let funds = security_mint_funds::table
-            .filter(security_mint_funds::contract_address.eq(contract_address))
-            .filter(
-                security_mint_funds::investment_token_contract_address
-                    .eq(investment_token_contract_address),
-            )
-            .limit(limit)
-            .offset(offset)
-            .load(conn)?;
-        Ok(funds)
+        investment_contracts: Option<&[Decimal]>,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        let query = schema::security_mint_funds::table
+            .filter(schema::security_mint_funds::contract_address.eq(contract_address))
+            .into_boxed();
+        let count_query = schema::security_mint_funds::table
+            .filter(schema::security_mint_funds::contract_address.eq(contract_address))
+            .into_boxed();
+        let (query, count_query) = match investment_contracts {
+            Some(investment_contracts) => (
+                query.filter(
+                    schema::security_mint_funds::investment_token_contract_address
+                        .eq_any(investment_contracts),
+                ),
+                count_query.filter(
+                    schema::security_mint_funds::investment_token_contract_address
+                        .eq_any(investment_contracts),
+                ),
+            ),
+            None => (query, count_query),
+        };
+
+        let total_count = count_query.count().get_result::<i64>(conn)?;
+        let funds = query.limit(page_size).offset(page * page_size).load(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((funds, page_count))
     }
 
     #[instrument(skip_all)]
@@ -231,15 +245,6 @@ impl SecurityMintFund {
             )
             .execute(conn)?;
         Ok(())
-    }
-
-    #[instrument(skip_all)]
-    pub fn list_all(conn: &mut DbConn, limit: i64, offset: i64) -> DbResult<Vec<Self>> {
-        let funds = security_mint_funds::table
-            .limit(limit)
-            .offset(offset)
-            .load(conn)?;
-        Ok(funds)
     }
 }
 
@@ -352,15 +357,6 @@ impl Investor {
             .filter(security_mint_fund_investors::investor.eq(&self.investor))
             .execute(conn)?;
         Ok(())
-    }
-
-    #[instrument(skip_all)]
-    pub fn list_all(conn: &mut DbConn, limit: i64, offset: i64) -> DbResult<Vec<Self>> {
-        let investors = security_mint_fund_investors::table
-            .limit(limit)
-            .offset(offset)
-            .load(conn)?;
-        Ok(investors)
     }
 }
 

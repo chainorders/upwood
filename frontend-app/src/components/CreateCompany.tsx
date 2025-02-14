@@ -6,7 +6,7 @@ interface PopupProps {
 	close?: () => void;
 }
 export default function CreateCompany({ close = () => {} }: PopupProps) {
-	const [email_otp_screen, setEmailOtpScreen] = useState(false);
+	const [emailOtpScreen, setEmailOtpScreen] = useState(false);
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
 			if (e.key === "Escape" && close) {
@@ -99,7 +99,7 @@ export default function CreateCompany({ close = () => {} }: PopupProps) {
 				</>
 			</div>
 
-			{email_otp_screen && (
+			{emailOtpScreen && (
 				<div className="popup" onClick={(e) => e.stopPropagation()}>
 					<div className="heading">Email verification</div>
 					<div className="cl-area edo">

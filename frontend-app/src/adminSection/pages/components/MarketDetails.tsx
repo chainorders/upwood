@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { Paper, Typography } from "@mui/material";
 import { Market, TokenMetadata, ForestProjectService, ForestProjectTokenContract } from "../../../apiClient";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import securityP2PTrading from "../../../contractClients/generated/securityP2PTrading";
 import { User } from "../../../lib/user";
 import { useOutletContext } from "react-router";
-import { toTokenId } from "../../../lib/conversions";
+import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
+import euroeStablecoin from "../../../contractClients/generated/euroeStablecoin";
+import concordiumNodeClient from "../../../contractClients/ConcordiumNodeClient";
+import { ContractAddress } from "@concordium/web-sdk";
 
 interface MarketDetailsProps {
 	market: Market;
@@ -19,6 +24,7 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 	const { user } = useOutletContext<{ user: User }>();
 	const [marketCurrencyMetadata, setmarketCurrencyMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
+	const [isCurrencyOperator, setIsCurrencyOperator] = useState(false);
 
 	useEffect(() => {
 		if (market) {
@@ -29,8 +35,26 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 				.catch(() => {
 					setmarketCurrencyMetadata(undefined);
 				});
+			euroeStablecoin.operatorOf
+				.invoke(concordiumNodeClient, ContractAddress.create(Number(market.currency_token_contract_address)), [
+					{
+						owner: {
+							Account: [market.liquidity_provider],
+						},
+						address: {
+							Contract: [
+								{
+									index: Number(market.contract_address),
+									subindex: 0,
+								},
+							],
+						},
+					},
+				])
+				.then((res) => euroeStablecoin.operatorOf.parseReturnValue(res.returnValue!)!)
+				.then((res) => setIsCurrencyOperator(res[0]));
 		}
-	}, [market]);
+	}, [market, user]);
 
 	const deleteMarket = async () => {
 		if (!market) {
@@ -89,8 +113,22 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 			<Typography>
 				<strong>Currency Token Contract Address:</strong> {market.currency_token_contract_address}
 			</Typography>
-			<Typography>
-				<strong>Liquidity Provider:</strong> {market.liquidity_provider}
+			<Typography style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+				<span>
+					<strong>Liquidity Provider:</strong> {market.liquidity_provider}
+				</span>
+				{/* <span style={{ display: "flex", alignItems: "center" }}>
+					{isCurrencyOperator ? (
+						<CheckIcon style={{ color: "green" }} />
+					) : (
+						<span>
+							<CloseIcon style={{ color: "red" }} />
+							<Typography color="error" style={{ marginLeft: 4 }}>
+								Contract is not an Operator in currency contract
+							</Typography>
+						</span>
+					)}
+				</span> */}
 			</Typography>
 			<Typography>
 				<strong>Buy Rate:</strong> {market.buy_rate_numerator} / {market.buy_rate_denominator}
@@ -102,7 +140,9 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 				<strong>Total Sell Token Amount:</strong> {market.total_sell_token_amount}
 			</Typography>
 			<Typography>
-				<strong>Total Sell Currency Amount:</strong> {market.total_sell_currency_amount}
+				<strong>Total Sell Currency Amount:</strong> {market.total_sell_currency_amount} (
+				{toDisplayAmount(market.total_sell_currency_amount, marketCurrencyMetadata?.decimals || 6, 2)}
+				{marketCurrencyMetadata?.symbol})
 			</Typography>
 			{marketCurrencyMetadata && (
 				<>

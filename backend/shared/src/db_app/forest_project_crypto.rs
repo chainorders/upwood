@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::forest_project::ForestProjectState;
-use crate::db::security_mint_fund::{InvestmentRecordType, SecurityMintFundState};
+use crate::db::security_mint_fund::InvestmentRecordType;
 use crate::db_app::forest_project::ForestProject;
 use crate::db_shared::DbConn;
 
@@ -70,8 +70,8 @@ impl ForestProjectFundsAffiliateRewardRecord {
             .limit(page_size)
             .offset(page * page_size)
             .load::<Self>(conn)?;
-
-        Ok((records, total_count))
+        let pages_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((records, pages_count))
     }
 }
 
@@ -87,6 +87,7 @@ impl ForestProjectFundsAffiliateRewardRecord {
     Serialize,
     Deserialize,
     AsChangeset,
+    Clone,
 )]
 #[diesel(table_name = crate::schema::forest_project_token_contracts)]
 #[diesel(belongs_to(ForestProject, foreign_key = forest_project_id))]
@@ -161,24 +162,27 @@ impl ForestProjectTokenContract {
 
     pub fn list(
         conn: &mut DbConn,
-        project_id: Uuid,
+        project_ids: Option<&[Uuid]>,
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
         use crate::schema::forest_project_token_contracts::dsl::*;
 
-        let total_count = forest_project_token_contracts
-            .filter(forest_project_id.eq(project_id))
-            .count()
-            .get_result::<i64>(conn)?;
+        let mut query = forest_project_token_contracts.into_boxed();
+        let mut total_count_query = forest_project_token_contracts.into_boxed();
 
-        let records = forest_project_token_contracts
-            .filter(forest_project_id.eq(project_id))
+        if let Some(project_ids) = project_ids {
+            query = query.filter(forest_project_id.eq_any(project_ids));
+            total_count_query = total_count_query.filter(forest_project_id.eq_any(project_ids));
+        }
+
+        let total_count = total_count_query.count().get_result::<i64>(conn)?;
+        let records = query
             .limit(page_size)
             .offset(page * page_size)
             .load::<Self>(conn)?;
-
-        Ok((records, total_count))
+        let pages_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((records, pages_count))
     }
 }
 #[derive(
@@ -240,6 +244,89 @@ impl ForestProjectTokenUserYield {
     }
 }
 
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct ForestProjectTokenUserYieldClaim {
+    pub forest_project_id:        Uuid,
+    pub token_id:                 Decimal,
+    pub token_contract_address:   Decimal,
+    pub holder_address:           String,
+    pub token_balance:            Decimal,
+    pub cognito_user_id:          String,
+    pub yielder_contract_address: Decimal,
+    pub max_token_id:             Decimal,
+}
+
+impl ForestProjectTokenUserYieldClaim {
+    pub fn list(
+        conn: &mut DbConn,
+        user_id: &str,
+        yielder_address: Decimal,
+        page: i64,
+        page_size: i64,
+    ) -> QueryResult<Vec<Self>> {
+        use crate::schema_manual::forest_project_token_user_yields::dsl::*;
+        let res = forest_project_token_user_yields
+            .filter(cognito_user_id.eq(user_id))
+            .filter(yielder_contract_address.eq(yielder_address))
+            .select((
+                forest_project_id,
+                token_id,
+                token_contract_address,
+                holder_address,
+                token_balance,
+                cognito_user_id,
+                yielder_contract_address,
+                max_token_id,
+            ))
+            .distinct_on((
+                forest_project_id,
+                token_id,
+                token_contract_address,
+                holder_address,
+                token_balance,
+                cognito_user_id,
+                yielder_contract_address,
+                max_token_id,
+            ))
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<(
+                Uuid,
+                Decimal,
+                Decimal,
+                String,
+                Decimal,
+                String,
+                Decimal,
+                Decimal,
+            )>(conn)?
+            .into_iter()
+            .map(
+                |(
+                    forest_project_id_,
+                    token_id_,
+                    token_contract_address_,
+                    holder_address_,
+                    token_balance_,
+                    cognito_user_id_,
+                    yielder_contract_address_,
+                    max_token_id_,
+                )| ForestProjectTokenUserYieldClaim {
+                    forest_project_id:        forest_project_id_,
+                    token_id:                 token_id_,
+                    token_contract_address:   token_contract_address_,
+                    holder_address:           holder_address_,
+                    token_balance:            token_balance_,
+                    cognito_user_id:          cognito_user_id_,
+                    yielder_contract_address: yielder_contract_address_,
+                    max_token_id:             max_token_id_,
+                },
+            )
+            .collect::<Vec<_>>();
+        Ok(res)
+    }
+}
+
 #[derive(
     Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
 )]
@@ -257,6 +344,7 @@ pub struct UserYieldsAggregate {
     pub yield_token_id:           Decimal,
     pub yield_contract_address:   Decimal,
     pub yield_amount:             Decimal,
+    // TODO: Remove these fields
     pub yield_token_symbol:       String,
     pub yield_token_decimals:     i32,
 }
@@ -337,29 +425,61 @@ pub struct ForestProjectFundInvestor {
 }
 
 impl ForestProjectFundInvestor {
+    #[allow(clippy::too_many_arguments)]
     pub fn list(
         conn: &mut DbConn,
         fund_contract_addr: Decimal,
-        project_id: Uuid,
+        project_id: Option<Uuid>,
+        currency: Option<(Decimal, Decimal)>,
+        investment_token_id_filter: Option<Decimal>,
+        investment_token_contract_addr: Option<Decimal>,
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
         use crate::schema_manual::forest_project_fund_investor::dsl::*;
 
-        let total_count = forest_project_fund_investor
-            .filter(forest_project_id.eq(project_id))
+        let mut total_count_query = forest_project_fund_investor
             .filter(fund_contract_address.eq(fund_contract_addr))
-            .count()
-            .get_result::<i64>(conn)?;
+            .into_boxed();
 
-        let records = forest_project_fund_investor
-            .filter(forest_project_id.eq(project_id))
+        let mut records_query = forest_project_fund_investor
             .filter(fund_contract_address.eq(fund_contract_addr))
             .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
+            .into_boxed();
 
-        Ok((records, total_count))
+        if let Some(project_id) = project_id {
+            total_count_query = total_count_query.filter(forest_project_id.eq(project_id));
+            records_query = records_query.filter(forest_project_id.eq(project_id));
+        }
+
+        if let Some((currency_id, currency_contract_addr)) = currency {
+            total_count_query = total_count_query
+                .filter(currency_token_id.eq(currency_id))
+                .filter(currency_token_contract_address.eq(currency_contract_addr));
+
+            records_query = records_query
+                .filter(currency_token_id.eq(currency_id))
+                .filter(currency_token_contract_address.eq(currency_contract_addr));
+        }
+
+        if let Some(investment_token_id_filter) = investment_token_id_filter {
+            total_count_query =
+                total_count_query.filter(investment_token_id.eq(investment_token_id_filter));
+            records_query =
+                records_query.filter(investment_token_id.eq(investment_token_id_filter));
+        }
+
+        if let Some(investment_token_contract_addr) = investment_token_contract_addr {
+            total_count_query = total_count_query
+                .filter(investment_token_contract_address.eq(investment_token_contract_addr));
+            records_query = records_query
+                .filter(investment_token_contract_address.eq(investment_token_contract_addr));
+        }
+
+        Ok((
+            records_query.offset(page * page_size).load::<Self>(conn)?,
+            total_count_query.count().get_result::<i64>(conn)?,
+        ))
     }
 }
 
@@ -496,8 +616,8 @@ impl ForestProjectSupply {
             .limit(page_size)
             .offset(page * page_size)
             .load::<Self>(conn)?;
-
-        Ok((records, total_count))
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((records, page_count))
     }
 
     pub fn list_by_forest_project_ids(
@@ -532,95 +652,9 @@ impl ForestProjectSupply {
             .offset(page * page_size)
             .load::<Self>(conn)?;
 
-        Ok((records, total_count))
-    }
-}
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
-#[derive(
-    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
-)]
-#[diesel(table_name = crate::schema_manual::forest_project_current_token_fund_markets)]
-#[diesel(primary_key(forest_project_id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectCurrentTokenFundMarkets {
-    pub forest_project_id:            Uuid,
-    pub forest_project_state:         ForestProjectState,
-    pub token_contract_address:       Decimal,
-    pub token_id:                     Option<Decimal>,
-    pub token_contract_type:          SecurityTokenContractType,
-    pub market_token_id:              Option<Decimal>,
-    pub token_symbol:                 String,
-    pub token_decimals:               i32,
-    pub fund_contract_address:        Option<Decimal>,
-    pub fund_rate_numerator:          Option<Decimal>,
-    pub fund_rate_denominator:        Option<Decimal>,
-    pub fund_state:                   Option<SecurityMintFundState>,
-    pub fund_token_contract_address:  Option<Decimal>,
-    pub fund_token_id:                Option<Decimal>,
-    pub market_contract_address:      Option<Decimal>,
-    pub market_sell_rate_numerator:   Option<Decimal>,
-    pub market_sell_rate_denominator: Option<Decimal>,
-    pub market_buy_rate_numerator:    Option<Decimal>,
-    pub market_buy_rate_denominator:  Option<Decimal>,
-    pub market_liquidity_provider:    Option<String>,
-}
-
-impl ForestProjectCurrentTokenFundMarkets {
-    pub fn list_by_forest_project_state(
-        conn: &mut DbConn,
-        state: ForestProjectState,
-        page: i64,
-        page_size: i64,
-    ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_current_token_fund_markets::dsl::*;
-
-        let total_count = forest_project_current_token_fund_markets
-            .filter(forest_project_state.eq(state))
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let records = forest_project_current_token_fund_markets
-            .filter(forest_project_state.eq(state))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-
-        Ok((records, total_count))
-    }
-
-    pub fn list_by_forest_project_ids(
-        conn: &mut DbConn,
-        project_ids: &[Uuid],
-    ) -> QueryResult<Vec<Self>> {
-        use crate::schema_manual::forest_project_current_token_fund_markets::dsl::*;
-
-        let records = forest_project_current_token_fund_markets
-            .filter(forest_project_id.eq_any(project_ids))
-            .load::<Self>(conn)?;
-
-        Ok(records)
-    }
-
-    pub fn list_by_forest_project_id(
-        conn: &mut DbConn,
-        project_id: Uuid,
-        page: i64,
-        page_size: i64,
-    ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_current_token_fund_markets::dsl::*;
-
-        let total_count = forest_project_current_token_fund_markets
-            .filter(forest_project_id.eq(project_id))
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let records = forest_project_current_token_fund_markets
-            .filter(forest_project_id.eq(project_id))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-
-        Ok((records, total_count))
+        Ok((records, page_count))
     }
 }
 
@@ -679,66 +713,9 @@ impl ForestProjectUserBalanceAgg {
             .offset(page * page_size)
             .load::<Self>(conn)?;
 
-        Ok((records, total_count))
-    }
-}
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
-#[derive(
-    Selectable,
-    Queryable,
-    Identifiable,
-    Insertable,
-    Debug,
-    PartialEq,
-    Object,
-    Serialize,
-    AsChangeset,
-)]
-#[diesel(table_name = crate::schema_manual::forest_project_user_yield_distributions)]
-#[diesel(primary_key(yield_distribution_id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectUserYieldDistribution {
-    pub forest_project_id:        Uuid,
-    pub forest_project_name:      String,
-    pub token_contract_type:      SecurityTokenContractType,
-    pub cognito_user_id:          String,
-    pub yield_distribution_id:    Uuid,
-    pub yielder_contract_address: Decimal,
-    pub token_contract_address:   Decimal,
-    pub from_token_version:       Decimal,
-    pub to_token_version:         Decimal,
-    pub token_amount:             Decimal,
-    pub yield_contract_address:   Decimal,
-    pub yield_token_id:           Decimal,
-    pub yield_amount:             Decimal,
-    pub yield_token_symbol:       String,
-    pub yield_token_decimals:     i32,
-    pub token_symbol:             String,
-    pub token_decimals:           i32,
-    pub to_address:               String,
-    pub create_time:              chrono::NaiveDateTime,
-}
-impl ForestProjectUserYieldDistribution {
-    pub fn list_by_user_id(
-        conn: &mut DbConn,
-        user_id: &str,
-        page: i64,
-        page_size: i64,
-    ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_user_yield_distributions::dsl::*;
-
-        let total_count = forest_project_user_yield_distributions
-            .filter(cognito_user_id.eq(user_id))
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let records = forest_project_user_yield_distributions
-            .filter(cognito_user_id.eq(user_id))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-
-        Ok((records, total_count))
+        Ok((records, page_count))
     }
 }
 
@@ -868,7 +845,9 @@ impl ForestProjectTokenContractUserBalanceAgg {
             .offset(page * page_size)
             .load::<Self>(conn)?;
 
-        Ok((records, total_count))
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((records, page_count))
     }
 }
 

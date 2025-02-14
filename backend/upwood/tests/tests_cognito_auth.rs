@@ -1,12 +1,11 @@
 mod test_utils;
 
 use concordium_smart_contract_testing::AccountAddress;
-use shared::db_app::users::User;
+use shared::db_app::users::UserKYCModel;
 use test_utils::test_api::ApiTestClient;
 use test_utils::{create_login_admin_user, create_login_user, PASS_GENERATOR};
 use tracing_test::traced_test;
 use upwood::api;
-use upwood::api::user::ApiUser;
 use upwood::utils::aws::cognito::UserPool;
 use uuid::Uuid;
 
@@ -77,46 +76,42 @@ async fn cognito_auth_test() {
         None,
     )
     .await;
-    assert_eq!(user, ApiUser {
-        is_admin:     false,
-        kyc_verified: false,
-        user:         User {
-            account_address:           AccountAddress([1; 32]).to_string(),
-            cognito_user_id:           user.user.cognito_user_id.clone(),
-            email:                     email.clone(),
-            first_name:                "Test First Name".to_owned(),
-            last_name:                 "Test Last Name".to_owned(),
-            nationality:               "IN".to_owned(),
-            affiliate_commission:      api_config.affiliate_commission,
-            desired_investment_amount: Some(100),
-            affiliate_account_address: None,
-        },
+    assert_eq!(user, UserKYCModel {
+        kyc_verified:              false,
+        account_address:           AccountAddress([1; 32]).to_string(),
+        cognito_user_id:           user.cognito_user_id.clone(),
+        email:                     email.clone(),
+        first_name:                "Test First Name".to_owned(),
+        last_name:                 "Test Last Name".to_owned(),
+        nationality:               "IN".to_owned(),
+        affiliate_commission:      api_config.affiliate_commission,
+        desired_investment_amount: Some(100),
+        affiliate_account_address: None,
     });
 
     println!("listing users");
-    let users = api.admin_list_users(id_token_admin.clone(), 0).await;
+    let users = api
+        .admin_user_list(id_token_admin.clone(), None, None)
+        .await;
     assert_eq!(users.page_count, 1);
     assert_eq!(users.data.len(), 1);
     let user = users.data.first().expect("No user found");
-    assert_eq!(user, &ApiUser {
-        is_admin:     false,
-        kyc_verified: false,
-        user:         User {
-            account_address:           AccountAddress([1; 32]).to_string(),
-            cognito_user_id:           user.user.cognito_user_id.clone(),
-            email:                     email.clone(),
-            first_name:                "Test First Name".to_owned(),
-            last_name:                 "Test Last Name".to_owned(),
-            nationality:               "IN".to_owned(),
-            affiliate_commission:      api_config.affiliate_commission,
-            desired_investment_amount: Some(100),
-            affiliate_account_address: None,
-        },
+    assert_eq!(user, &UserKYCModel {
+        account_address:           AccountAddress([1; 32]).to_string(),
+        cognito_user_id:           user.cognito_user_id.clone(),
+        email:                     email.clone(),
+        first_name:                "Test First Name".to_owned(),
+        last_name:                 "Test Last Name".to_owned(),
+        nationality:               "IN".to_owned(),
+        affiliate_commission:      api_config.affiliate_commission,
+        desired_investment_amount: Some(100),
+        affiliate_account_address: None,
+        kyc_verified:              false,
     });
 
-    println!("deleteting user: {}", user.user.cognito_user_id);
+    println!("deleteting user: {}", user.cognito_user_id);
     user_pool
-        .disable_user(&user.user.cognito_user_id)
+        .disable_user(&user.cognito_user_id)
         .await
         .expect("Failed to disable user");
     user_pool

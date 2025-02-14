@@ -54,6 +54,7 @@ aws-credential-types = { version = "1.2.1", features = [
 ] }
 rust_decimal = { workspace = true, features = ["db-diesel-postgres"] }
 test-log = { version = "0.2.16", features = ["trace"] }
+itertools = "0.14.0"
 
 [dev-dependencies]
 shared_tests = { path = "../shared_tests" }

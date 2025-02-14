@@ -4,7 +4,6 @@ import {
 	ForestProjectTokenContract,
 	SystemContractsConfigApiModel,
 	TokenMetadata,
-	User,
 	UserService,
 } from "../../../apiClient";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
@@ -16,6 +15,7 @@ import { useOutletContext } from "react-router";
 import { useForm, Controller } from "react-hook-form";
 import { TextField, Checkbox, FormControlLabel, Box, Typography, Grid } from "@mui/material";
 import TransactionButton from "../../../components/TransactionButton";
+import { User } from "../../../lib/user";
 
 interface ProjectTokenAddYieldPopupProps {
 	contract_address: string;
@@ -132,9 +132,9 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 			});
 		}
 
-		try { 
+		try {
 			await updateContract(
-				user.account_address,
+				user.concordiumAccountAddress,
 				contracts.yielder_contract_index,
 				securitySftMultiYielder.upsertYield,
 				{
@@ -146,8 +146,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 			);
 			setTxnStatus("success");
 			onDone();
-		}
-		catch (e) {
+		} catch (e) {
 			console.error(e);
 			setTxnStatus("error");
 			onDone("Failed to add yield");

@@ -6,20 +6,20 @@ import saveRow from "../assets/saveRow.svg";
 import Avatar from "../assets/Avatar.svg";
 import Remove from "../assets/remove.svg";
 import OtpInput from "./OtpInput";
-interface PopupProps {
+interface EditCompanyProps {
 	close?: () => void;
 }
 interface Member {
 	email: string;
 	status: string;
 }
-export default function EditCompany({ close = () => {} }: PopupProps) {
-	const [company_name, setCompanyName] = useState("SIA Upwood");
-	const [company_name_edit, setCompanyNameEdit] = useState(false);
+export default function EditCompany({ close = () => {} }: EditCompanyProps) {
+	const [companyName, setCompanyName] = useState("SIA Upwood");
+	const [companyNameEdit, setCompanyNameEdit] = useState(false);
 	const [email, setEmail] = useState("Jonh@gmail.com");
-	const [email_edit, setEmailEdit] = useState(false);
-	const [email_edit_otp_screen, setEmailEditOtpScreen] = useState(false);
-	const [members_screen, setMembersScreen] = useState(false);
+	const [emailEdit, setEmailEdit] = useState(false);
+	const [emailEditOtpScreen, setEmailEditOtpScreen] = useState(false);
+	const [membersScreen, setMembersScreen] = useState(false);
 	const [memberemail, setMemberEmail] = useState("");
 	const [members, setMembers] = useState<Member[]>([]);
 	const handleKeyDown = useCallback(
@@ -81,12 +81,12 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 									<div className="boxl">Company name</div>
 								</div>
 								<div className="col-8 fr col-m-full">
-									{company_name_edit ? (
+									{companyNameEdit ? (
 										<div>
 											<input
 												type="text"
 												placeholder="Enter full name"
-												value={company_name}
+												value={companyName}
 												className="boxt withedit fl"
 												onChange={(e) => setCompanyName(e.target.value)}
 											/>
@@ -95,7 +95,7 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 										</div>
 									) : (
 										<div className="boxl lg">
-											{company_name}{" "}
+											{companyName}{" "}
 											<span className="fr">
 												<img src={editRow} onClick={() => setCompanyNameEdit(true)} />
 											</span>
@@ -109,7 +109,7 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 									<div className="boxl">Company email</div>
 								</div>
 								<div className="col-8 fr col-m-full">
-									{email_edit ? (
+									{emailEdit ? (
 										<div>
 											<input
 												type="text"
@@ -185,10 +185,10 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 								<div className="space-30"></div>
 								<div className="clr"></div>
 								<div className="col-5 fl col-m-full col-mr-bottom-20">
-									<Button text={"CLOSE"} link={""} active={false} call={() => close()} />
+									<Button text="CLOSE" call={() => close()} />
 								</div>
 								<div className="col-5 fr col-m-full">
-									<Button text={"SAVE"} link={""} active={true} />
+									<Button text="SAVE" active />
 								</div>
 								<div className="clr"></div>
 							</div>
@@ -197,7 +197,7 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 				</>
 			</div>
 
-			{email_edit_otp_screen && (
+			{emailEditOtpScreen && (
 				<div className="popup" onClick={(e) => e.stopPropagation()}>
 					<div className="heading">Change Email</div>
 					<div className="cl-area edo">
@@ -213,10 +213,10 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 								</div>
 								<div className="clr"></div>
 								<div className="col-5 fl col-m-full col-mr-bottom-20 ">
-									<Button text={"CANCEL"} link={""} active={false} call={() => setEmailEditOtpScreen(false)} />
+									<Button text="CANCEL" call={() => setEmailEditOtpScreen(false)} />
 								</div>
 								<div className="col-5 fr col-m-full">
-									<Button text={"CONFIRM"} link={""} active={true} />
+									<Button text="CONFIRM" active />
 								</div>
 								<div className="clr"></div>
 							</div>
@@ -225,7 +225,7 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 				</div>
 			)}
 
-			{members_screen && (
+			{membersScreen && (
 				<div className="popup" onClick={(e) => e.stopPropagation()}>
 					<div className="heading">Add members</div>
 					<div className="cl-area edo">
@@ -247,10 +247,10 @@ export default function EditCompany({ close = () => {} }: PopupProps) {
 								</div>
 								<div className="clr"></div>
 								<div className="col-5 fl col-m-full col-mr-bottom-20">
-									<Button text={"CANCEL"} link={""} active={false} call={() => setMembersScreen(false)} />
+									<Button text="CANCEL" call={() => setMembersScreen(false)} />
 								</div>
 								<div className="col-5 fr col-m-full">
-									<Button text={"SEND"} link={""} active={true} call={() => handleAddMember()} />
+									<Button text="SEND" active call={() => handleAddMember()} />
 								</div>
 								<div className="clr"></div>
 							</div>

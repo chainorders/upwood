@@ -1,163 +1,129 @@
 import { useEffect, useState } from "react";
-import { ForestProjectAggApiModel, ForestProjectService, LoginRes } from "../apiClient";
+import {
+	ForestProjectService,
+	ForestProjectTokenUserYieldClaim,
+	PagedResponse_ForestProjectAggApiModel_,
+	PagedResponse_ForestProjectTokenContractAggApiModel_,
+	SystemContractsConfigApiModel,
+	UserService,
+} from "../apiClient";
 import PageHeader from "../components/PageHeader";
 import { useOutletContext } from "react-router";
 import ProjectCardOwned from "../components/ProjectCardOwned";
 import ClaimPopup from "../components/ClaimPopup";
 import { Link } from "react-router";
+import { User } from "../lib/user";
+import "./Wallet.css"; // Add this line to import the CSS file
+import { toDisplayAmount, toTokenId } from "../lib/conversions";
+import { TxnStatus, updateContract } from "../lib/concordium";
+import securitySftMultiYielder from "../contractClients/generated/securitySftMultiYielder";
 export default function Wallet() {
-	const { user } = useOutletContext<{ user: LoginRes }>();
-	const carbon_credits = {
-		emissions: "15 Co2 TONS",
-		value: "750",
-	};
-	const dividends_details = "150 EUROe";
-	const etree_details = "1500";
+	const { user } = useOutletContext<{ user: User }>();
 	const [carbon_credits_popup, setCarbonCreditsPopup] = useState(false);
 	const [dividends_details_popup, setDividendsPopup] = useState(false);
 	const [etrees_popup, setEtreesPopup] = useState(false);
-	const [projects, setProjects] = useState<ForestProjectAggApiModel[]>([]);
+	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
+	const [yields, setYields] = useState<{
+		carbonCredits: string;
+		euroE: string;
+		eTrees: string;
+	}>();
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [ownedTokenContracts, setOwnedTokenContracts] = useState<PagedResponse_ForestProjectTokenContractAggApiModel_>();
+	const [ownedTokenContractsPages, setOwnedTokenContractsPages] = useState<{
+		onPreviousClick?: () => void;
+		pages: {
+			pageNum: number;
+			isActive: boolean;
+			onClick: (pageNum: number) => void;
+		}[];
+		onNextClick?: () => void;
+	}>({ pages: [] });
+	const [ownedTokenContractPage, setOwnedTokenContractPage] = useState(0);
+	const [yieldsClaimable, setYieldsClaimable] = useState<ForestProjectTokenUserYieldClaim[]>();
+	const [yieldTxnStatus, setYieldTxnStatus] = useState<TxnStatus>("none");
 
 	useEffect(() => {
-		ForestProjectService.getForestProjectsListOwned()
-			.then((response) => {
-				setProjects(response.data);
-			})
-			.catch((error) => {
-				console.error("Error fetching forest projects", error);
+		ForestProjectService.getForestProjectsListOwned().then(setProjects);
+		UserService.getSystemConfig().then(setContracts);
+	}, [user]);
+	useEffect(() => {
+		if (contracts) {
+			ForestProjectService.getForestProjectsYieldsTotal().then((response) => {
+				const carbon_credit_yield = response.find(
+					(r) =>
+						r.yield_token_id === contracts.carbon_credit_token_id &&
+						r.yield_contract_address === contracts.carbon_credit_contract_index,
+				);
+				const euro_e_yield = response.find(
+					(r) =>
+						r.yield_token_id === contracts.euro_e_token_id && r.yield_contract_address === contracts.euro_e_contract_index,
+				);
+				const etrees_yield = response.find((r) => r.yield_contract_address === contracts.tree_ft_contract_index);
+				setYields({
+					carbonCredits: carbon_credit_yield?.yield_amount || "0",
+					euroE: euro_e_yield?.yield_amount || "0",
+					eTrees: etrees_yield?.yield_amount || "0",
+				});
 			});
-		ForestProjectService.getForestProjectsTokenContractListOwned()
-			.then((response) => {
-				console.log("Forest projects token contract list", response.data);
-			})
-			.catch((error) => {
-				console.error("Error fetching forest projects token contract list", error);
-			});
-	}, []);
+			ForestProjectService.getForestProjectsYieldsClaimable().then(setYieldsClaimable);
+		}
+	}, [user, contracts]);
+	useEffect(() => {
+		ForestProjectService.getForestProjectsContractListOwned().then(setOwnedTokenContracts);
+	}, [user, ownedTokenContractPage]);
+	useEffect(() => {
+		const pages = [];
+		if (ownedTokenContracts) {
+			for (let index = 0; index < ownedTokenContracts.page_count; index++) {
+				pages.push({
+					pageNum: index,
+					isActive: index === ownedTokenContractPage,
+					onClick: () => setOwnedTokenContractPage(index),
+				});
+			}
 
-	const __carbon_credits_details = {
-		heading: "Claim carbon credits",
-		list: [
-			{
-				tag: "Offset your emissions",
-				display: carbon_credits.emissions,
-			},
-			{
-				tag: "Carbon credit dividends",
-				display: carbon_credits.value + " EUROe",
-			},
-		],
+			setOwnedTokenContractsPages({
+				pages,
+				onPreviousClick: ownedTokenContractPage > 0 ? () => setOwnedTokenContractPage((page) => page--) : undefined,
+				onNextClick:
+					ownedTokenContractPage < ownedTokenContracts.page_count - 1
+						? () => {
+								console.log("next page");
+								setOwnedTokenContractPage((page) => page++);
+							}
+						: undefined,
+			});
+		}
+	}, [ownedTokenContracts, ownedTokenContractPage]);
+
+	const claimYields = async () => {
+		if (!contracts || !yieldsClaimable) {
+			return;
+		}
+
+		try {
+			await updateContract(
+				user.concordiumAccountAddress,
+				contracts.yielder_contract_index,
+				securitySftMultiYielder.yieldFor,
+				{
+					owner: user.concordiumAccountAddress,
+					yields: yieldsClaimable.map((y) => ({
+						token_ver_from: toTokenId(BigInt(y.token_id), 8),
+						token_ver_to: toTokenId(BigInt(y.max_token_id), 8),
+						token_contract: { index: Number(y.token_contract_address), subindex: 0 },
+						amount: y.token_balance,
+					})),
+				},
+				setYieldTxnStatus,
+			);
+			alert("Yields claimed successfully");
+		} catch (e) {
+			console.error(e);
+			alert("Failed to claim yields");
+		}
 	};
-	const __dividends_details = {
-		heading: "Dividends",
-		list: [
-			{
-				tag: "Claim all dividends",
-				display: dividends_details,
-			},
-		],
-	};
-	const __etrees_details = {
-		heading: "E-trees",
-		list: [
-			{
-				tag: "Claim E-trees",
-				display: etree_details,
-			},
-		],
-	};
-	const table_data = [
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-		{
-			token_symbol: "UPW1",
-			asset_name: "Oak tree house forest plantation",
-			smart_contact: "tdgsbha37326dnsajkjd8",
-			share_amount: "5",
-			share_value: "500€",
-			carbon_credits: "3",
-			dividends_earned: "150 €",
-		},
-	];
 
 	return (
 		<>
@@ -187,8 +153,8 @@ export default function Wallet() {
 						<div className="container-in">
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Wallet</div>
-								<div className="value">{user.user.user.account_address || "NA"}</div>
-								<span>Change</span>
+								<div className="value address-ellipsis">{user.concordiumAccountAddress || "NA"}</div>
+								<button onClick={() => setCarbonCreditsPopup(true)}>Change</button>
 							</div>
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Entity</div>
@@ -197,19 +163,28 @@ export default function Wallet() {
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Carbon credits</div>
 								<div className="value">
-									{carbon_credits.emissions} = {carbon_credits.value}€
+									{toDisplayAmount(yields?.carbonCredits || "0", contracts?.carbon_credit_metadata.decimals || 0, 0)} = {0}€
 								</div>
-								<button onClick={() => setCarbonCreditsPopup(true)}>Claim</button>
+							</div>
+							<div className="col-10-percent fl walletclms col-m-full col-mr-bottom-30">
+								<div className="tag">Dividends</div>
+								<div className="value">
+									{toDisplayAmount(yields?.euroE || "0", contracts?.euro_e_metadata.decimals || 0, 2)}
+								</div>
 							</div>
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
-								<div className="tag">Dividends</div>
-								<div className="value">{dividends_details}</div>
-								<button onClick={() => setDividendsPopup(true)}>Claim</button>
-							</div>
-							<div className="col-20-percent fl walletclms col-m-full">
 								<div className="tag">E-trees</div>
-								<div className="value">{etree_details}</div>
-								<button onClick={() => setEtreesPopup(true)}>Claim</button>
+								<div className="value">
+									{toDisplayAmount(yields?.eTrees || "0", contracts?.tree_ft_metadata.decimals || 0, 0)}
+								</div>
+							</div>
+							<div className="col-10-percent fl walletclms col-m-full">
+								<div className="tag">Claim Rewards</div>
+								<div className="value"></div>
+								<button onClick={claimYields} disabled={yieldsClaimable?.length === 0}>
+									Claim <br />
+									All
+								</button>
 							</div>
 							<div className="clr"></div>
 						</div>
@@ -251,15 +226,17 @@ export default function Wallet() {
 											</tr>
 										</thead>
 										<tbody>
-											{table_data.map((item, index) => (
-												<tr key={index}>
-													<td>{item.token_symbol}</td>
-													<td>{item.asset_name}</td>
-													<td>{item.smart_contact}</td>
-													<td>{item.share_amount}</td>
-													<td>{item.share_value}</td>
-													<td>{item.carbon_credits}</td>
-													<td>{item.dividends_earned}</td>
+											{ownedTokenContracts?.data.map((item) => (
+												<tr key={item.token_contract_address}>
+													<td>{item.forest_project_id}</td>
+													<td>{item.forest_project_name}</td>
+													<td>
+														{item.token_contract_address}({item.token_contract_type})
+													</td>
+													<td>{item.user_balance}</td>
+													<td>{item.user_balance_price}</td>
+													<td>{item.carbon_credit_yield_balance}</td>
+													<td>{item.euro_e_yields_balance}</td>
 												</tr>
 											))}
 										</tbody>
@@ -267,13 +244,23 @@ export default function Wallet() {
 								</div>
 								<div className="pagignation">
 									<ul>
-										<li className="disabled">{"<"}</li>
-										<li className="active">{"1"}</li>
-										<li>{"2"}</li>
-										<li>{"3"}</li>
-										<li>{"4"}</li>
-										<li>{"5"}</li>
-										<li>{">"}</li>
+										<li
+											className={!ownedTokenContractsPages.onPreviousClick ? "disabled" : ""}
+											onClick={ownedTokenContractsPages.onPreviousClick}
+										>
+											{"<"}
+										</li>
+										{ownedTokenContractsPages.pages.map((page) => (
+											<li className={page.isActive ? "active" : ""} key={page.pageNum}>
+												{page.pageNum + 1}
+											</li>
+										))}
+										<li
+											className={!ownedTokenContractsPages.onNextClick ? "disabled" : ""}
+											onClick={ownedTokenContractsPages.onNextClick}
+										>
+											{">"}
+										</li>
 									</ul>
 								</div>
 								<div className="space-30"></div>
@@ -295,20 +282,21 @@ export default function Wallet() {
 			<div className="projects">
 				<div className="container">
 					<div className="container-in">
-						{projects.map((project, index) => (
-							<div className="col-6 col-m-full fl" key={index}>
-								<ProjectCardOwned item={project} />
-							</div>
-						))}
+						{contracts &&
+							projects?.data.map((project) => (
+								<div className="col-6 col-m-full fl" key={project.forest_project.id}>
+									<ProjectCardOwned project={project} user={user} contracts={contracts} />
+								</div>
+							))}
 						<div className="clr"></div>
 					</div>
 				</div>
 			</div>
-			{carbon_credits_popup ? (
+			{/* {carbon_credits_popup ? (
 				<ClaimPopup config={__carbon_credits_details} close={() => setCarbonCreditsPopup(false)} />
-			) : null}
-			{dividends_details_popup ? <ClaimPopup config={__dividends_details} close={() => setDividendsPopup(false)} /> : null}
-			{etrees_popup ? <ClaimPopup config={__etrees_details} close={() => setEtreesPopup(false)} /> : null}
+			) : null} */}
+			{/* {dividends_details_popup ? <ClaimPopup config={__dividends_details} close={() => setDividendsPopup(false)} /> : null} */}
+			{/* {etrees_popup ? <ClaimPopup config={__etrees_details} close={() => setEtreesPopup(false)} /> : null} */}
 		</>
 	);
 }

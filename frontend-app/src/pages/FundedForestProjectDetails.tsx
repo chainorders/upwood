@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import Button from "../components/Button";
-import NotifyShare, { NotifyShareConfig } from "../components/NotifyShare";
-import { ForestProjectAggApiModel, ForestProjectState, LoginRes } from "../apiClient";
+import MarketBuy from "../components/MarketBuy";
+import {
+	ForestProjectAggApiModel,
+	ForestProjectService,
+	ForestProjectState,
+	SystemContractsConfigApiModel,
+	UserService,
+} from "../apiClient";
 import { useOutletContext, useParams } from "react-router";
-import NotifyNon from "../assets/notify-non.svg";
-import NotifySuccess from "../assets/notify-success.svg";
+// import NotifyNon from "../assets/notify-non.svg";
 import PageHeader from "../components/PageHeader";
 import { useTitle } from "../components/useTitle";
+import { User } from "../lib/user";
+import MultiImageLayout from "../components/MultiImageLayout";
+import SingleImageLayout from "../components/SingleImageLayout";
 
 export default function FundedForestProjectDetails() {
 	const { id } = useParams<{ id: string }>();
-	const { user } = useOutletContext<{ user: LoginRes }>();
+	const { user } = useOutletContext<{ user: User }>();
 	const [project, setProject] = useState<ForestProjectAggApiModel>();
-	const [notifyShareConfig, setNotifyShareConfig] = useState<NotifyShareConfig>();
-	const [comingSoon, setComingSoon] = useState(false);
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 
 	const [notifyShare, setNotifyShare] = useState(false);
 	const openNotifyShare = () => {
@@ -23,53 +30,22 @@ export default function FundedForestProjectDetails() {
 		setNotifyShare(false);
 	};
 	useEffect(() => {
-		const project = {
-			forest_project: {
-				area: "100",
-				carbon_credits: 100,
-				created_at: "2021-09-07T12:00:00Z",
-				desc_long: "This is a long description",
-				desc_short: "This is a short description",
-				id: id!,
-				image_small_url: "https://picsum.photos/id/237/400/200",
-				image_large_url: "https://picsum.photos/id/237/1080/600",
-				label: "Grow",
-				latest_price: "100",
-				name: "Project Name",
-				property_media_footer: "Property Media Footer",
-				property_media_header: "Property Media Header",
-				roi_percent: 100,
-				shares_available: 100,
-				state: ForestProjectState.ACTIVE,
-				updated_at: "2021-09-07T12:00:00Z",
-				geo_spatial_url: "https://via.placeholder.com/150",
-				offering_doc_link: "https://via.placeholder.com/150",
-			},
-			supply: "100",
-			user_balance: "100",
-		};
-		setProject(project);
-		setNotifyShareConfig({
-			heading: "Notify of available tokens",
-			title: project.forest_project.name,
-			share_price: BigInt(project.forest_project.latest_price),
-			share_available: BigInt(project.forest_project.shares_available),
-		});
-		setComingSoon(false);
+		UserService.getSystemConfig().then(setContracts);
+		ForestProjectService.getForestProjects(id!).then(setProject);
 	}, [id]);
 	useTitle(project?.forest_project.name);
 
 	const tabs_data = [
+		{
+			name: "PROPERTY MEDIA",
+			active: false,
+		},
 		{
 			name: "OFFERING DOCUMENTATION",
 			active: true,
 		},
 		{
 			name: "FINANCIAL PROJECTIONS",
-			active: false,
-		},
-		{
-			name: "PROPERTY MEDIA",
 			active: false,
 		},
 		{
@@ -108,13 +84,14 @@ export default function FundedForestProjectDetails() {
 		image: "/Photo2.jpg",
 	};
 
+	const comingSoon = project?.forest_project.state === ForestProjectState.DRAFT;
 	return (
 		<>
 			<div className="project-detail">
 				<PageHeader
 					user={user}
 					parts={[
-						{ name: "Funded Projects", link: "/projects/active" },
+						{ name: "Funded Projects", link: "/projects/funded" },
 						{ name: project?.forest_project.name || "", link: "" },
 					]}
 				/>
@@ -129,14 +106,7 @@ export default function FundedForestProjectDetails() {
 							<div className="project-name">{comingSoon ? "To be announced" : project?.forest_project.name}</div>
 						</div>
 						<div className="col-2 col-m-full fr">
-							<Button
-								icon={NotifyNon}
-								style={"style4 text-align-left-on-mob"}
-								text={"NOTIFY ME"}
-								link={""}
-								active={false}
-								call={openNotifyShare}
-							/>
+							<Button text={"BUY"} link={""} active={true} call={openNotifyShare} disabled={!project?.property_market} />
 						</div>
 						<div className="clr"></div>
 					</div>
@@ -171,9 +141,42 @@ export default function FundedForestProjectDetails() {
 						<span className="colc">{comingSoon ? "TBA" : project?.supply}</span>
 					</div>
 					<div className="clr"></div>
+					<div className="space-30" ref={contentRef}></div>
+					<ul className="tabular">
+						{tabs.map((item_s, index) => (
+							<li key={index} className={`${item_s.active ? "active" : ""}`} onClick={() => changeTab(index)}>
+								{item_s.name}
+							</li>
+						))}
+					</ul>
+					<div className="clr"></div>
+					{tabs.map((item_s, index) => (
+						<div key={index}>
+							{item_s.active ? (
+								<div className="tabular-content">
+									<MultiImageLayout data={multiimagedata} />
+									<div className="space-30"></div>
+									<SingleImageLayout data={singleimagedata} />
+								</div>
+							) : null}
+						</div>
+					))}
 				</div>
 			</div>
-			{notifyShare && notifyShareConfig ? <NotifyShare config={notifyShareConfig} close={closeNotifyShare} /> : null}
+			{notifyShare && project?.property_market && contracts ? (
+				<MarketBuy
+					close={closeNotifyShare}
+					user={user}
+					contracts={contracts}
+					market={project.property_market}
+					tokenContract={project.property_contract}
+					currencyMetadata={project.property_market_currency_metadata}
+					project={project.forest_project}
+					supply={project.supply}
+					legalContractSigned={project.contract_signed}
+					userNotified={project.user_notified}
+				/>
+			) : null}
 		</>
 	);
 }

@@ -1,43 +1,56 @@
-import React, { useState, useRef } from "react";
+import { useRef } from "react";
+import { useController, Control, FieldError } from "react-hook-form";
 
-const OtpInput: React.FC = () => {
-	// Initialize OTP state with an array of strings, each initialized to an empty string
-	const [otp, setOtp] = useState<string[]>(new Array(4).fill(""));
-	// Use useRef to hold a reference to the input elements
+interface OtpFormInputs {
+	otp: string;
+}
+
+interface OtpInputProps {
+	control: Control<OtpFormInputs>;
+	name: "otp";
+	length: number;
+	error: FieldError | undefined;
+}
+
+export default function OtpInput({ control, name, length, error }: OtpInputProps) {
+	const { field, fieldState } = useController({
+		name,
+		control,
+		defaultValue: "",
+	});
 	const inputs = useRef<HTMLInputElement[]>([]);
 
-	// Function to handle changes to each input
 	const handleChange = (element: HTMLInputElement, index: number): void => {
-		if (isNaN(Number(element.value))) return; // Ensure that the input is a number
-		const newOtp = [...otp];
+		if (isNaN(Number(element.value))) return;
+		const newOtp = field.value.trim().split("");
 		newOtp[index] = element.value;
-		setOtp(newOtp);
+		field.onChange(newOtp.join(""));
 
-		// Move focus to next input if the value is not empty and there is a next input element
-		if (element.value && index < otp.length - 1) {
+		if (element.value && index < 5) {
 			inputs.current[index + 1].focus();
 		}
 	};
 
 	return (
-		<div
-			style={{ display: "flex", justifyContent: "space-between", maxWidth: "296px", margin: "auto", marginBottom: "50px" }}
-		>
-			{otp.map((data, index) => (
-				<input
-					className="inputotp error"
-					key={index}
-					type="text"
-					value={data}
-					maxLength={1}
-					style={{ width: "64px", height: "64px", textAlign: "center" }}
-					onChange={(e) => handleChange(e.target, index)}
-					onFocus={(e) => e.target.select()}
-					ref={(ref) => (inputs.current[index] = ref!)} // Assert that ref is not null
-				/>
-			))}
-		</div>
+		<>
+			<div id="input-divs" style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: "296px", margin: "auto", marginBottom: "50px" }}>
+				<div style={{ display: "flex", justifyContent: "center" }}>
+					{new Array(length).fill("").map((_, index) => (
+						<input
+							className={`inputotp ${fieldState.invalid ? "error" : ""}`}
+							key={index}
+							type="text"
+							value={field.value[index] || ""}
+							maxLength={1}
+							style={{ width: "50px", height: "50px", textAlign: "center" }}
+							onChange={(e) => handleChange(e.target, index)}
+							onFocus={(e) => e.target.select()}
+							ref={(ref) => (inputs.current[index] = ref!)}
+						/>
+					))}
+				</div>
+				{error && <p className="error" style={{ textAlign: "center", marginTop: "10px" }}>{error.message?.toString()}</p>}
+			</div>
+		</>
 	);
-};
-
-export default OtpInput;
+}

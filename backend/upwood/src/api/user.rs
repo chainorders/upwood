@@ -1,21 +1,18 @@
-use std::collections::BTreeSet;
-
 use aws::cognito::{
     account_address_attribute, affiliate_account_address_attribute, email_attribute,
     email_verified_attribute, first_name_attribute, last_name_attribute, nationality_attribute,
 };
-use aws_sdk_cognitoidentityprovider::types::MessageActionType;
+use chrono::Utc;
 use concordium::account::Signer;
 use concordium::identity::{Presentation, VerifyPresentationResponse};
 use concordium_cis2::{TokenAmountU64, TokenIdUnit};
 use concordium_rust_sdk::base::contracts_common::AccountSignatures;
 use concordium_rust_sdk::id::types::AccountAddress;
-use concordium_rust_sdk::types::Address;
 use concordium_rust_sdk::v2::BlockIdentifier;
 use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
 use poem::web::Data;
-use poem_openapi::param::Path;
+use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use serde::Serialize;
@@ -23,11 +20,13 @@ use shared::api::PagedResponse;
 use shared::db::identity_registry::Identity;
 use shared::db::offchain_rewards::OffchainRewardee;
 use shared::db::security_mint_fund::SecurityMintFundContract;
+use shared::db_app::forest_project::Notification;
 use shared::db_app::forest_project_crypto::{
-    ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord,
+    ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord, TokenMetadata,
 };
 use shared::db_app::portfolio::UserTransaction;
-use shared::db_app::users::{User, UserRegistrationRequest};
+use shared::db_app::users::{User, UserKYCModel, UserRegistrationRequest};
+use uuid::Uuid;
 
 use crate::api::*;
 use crate::utils::*;
@@ -72,7 +71,7 @@ impl UserApi {
     }
 
     #[oai(
-        path = "/admin/registration-request/list/:page",
+        path = "/admin/registration-request/list",
         method = "get",
         tag = "ApiTags::User"
     )]
@@ -80,11 +79,14 @@ impl UserApi {
         &self,
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
-        Path(page): Path<i64>,
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<UserRegistrationRequest>> {
         ensure_is_admin(&claims)?;
+        let page = page.unwrap_or(0);
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
         let mut conn = db_pool.get()?;
-        let (requests, page_count) = UserRegistrationRequest::list(&mut conn, page, PAGE_SIZE)?;
+        let (requests, page_count) = UserRegistrationRequest::list(&mut conn, page, page_size)?;
         Ok(Json(PagedResponse {
             data: requests,
             page,
@@ -131,14 +133,17 @@ impl UserApi {
             .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
         if is_accepted {
             // Add the user to the cognito user pool. This will trigger an invitation email to the user.
-            let mut attrs = vec![email_attribute(&request.email)];
+            let mut attrs = vec![
+                email_attribute(&request.email),
+                email_verified_attribute(false),
+            ];
             if let Some(affiliate_account_address) = request.affiliate_account_address {
                 attrs.push(affiliate_account_address_attribute(
                     &affiliate_account_address,
                 ));
             }
             user_pool
-                .admin_upsert_user(&request.email, attrs, MessageActionType::Resend)
+                .admin_create_temp_user(&request.email, attrs)
                 .await
                 .map_err(|e| {
                     error!("Error creating user in user pool: {:?}", e);
@@ -169,22 +174,18 @@ impl UserApi {
 
     /// Registers a user in the Cognito user pool and in the database.
     #[allow(clippy::too_many_arguments)]
-    #[oai(
-        path = "/user/register/:registration_request_id",
-        method = "post",
-        tag = "ApiTags::User"
-    )]
+    #[oai(path = "/user/register", method = "post", tag = "ApiTags::User")]
     pub async fn post_user_register(
         &self,
-        BearerAuthorization(claims): BearerAuthorization,
         Data(user_pool): Data<&aws::cognito::UserPool>,
         Data(db_pool): Data<&DbPool>,
         Data(global_context): Data<&concordium::identity::GlobalContext>,
         Data(network): Data<&web3id::did::Network>,
         Data(concordium_client): Data<&v2::Client>,
         Data(affiliate_commission): Data<&AffiliateCommission>,
+        Data(contracts): Data<&SystemContractsConfig>,
         Json(req): Json<UserCreatePostReq>,
-    ) -> JsonResult<ApiUser> {
+    ) -> JsonResult<UserKYCModel> {
         let mut conn = db_pool.get()?;
         let verification_res = {
             let proof = req
@@ -194,7 +195,7 @@ impl UserApi {
                 .account_address
                 .parse()
                 .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))?;
-            let challenge = concordium::identity::generate_challenge(claims.sub.as_str());
+            let challenge = concordium::identity::generate_challenge(&req.email);
 
             verify_presentation(
                 &mut concordium_client.clone(),
@@ -206,31 +207,63 @@ impl UserApi {
             )
             .await?
         };
-        user_pool
-            .admin_update_user_attributes(&claims.email, vec![
+        let cognito_user = user_pool
+            .confirm_user(&req.email, &req.temp_password, &req.password, vec![
                 email_verified_attribute(true),
                 account_address_attribute(&req.account_address),
                 first_name_attribute(&verification_res.first_name),
                 last_name_attribute(&verification_res.last_name),
                 nationality_attribute(&verification_res.nationality),
             ])
-            .await?;
-        user_pool
-            .admin_set_permament_password(&claims.email, &req.password)
-            .await?;
+            .await
+            .map_err(|e| {
+                error!("Error confirming in user pool: {:?}", e);
+                Error::InternalServer(PlainText(
+                    "Failed to confirming user in user pool".to_string(),
+                ))
+            })?;
+        let cognito_user_id = cognito_user
+            .user_attributes()
+            .iter()
+            .find(|a| a.name == "sub")
+            .expect("Cognito user ID not found")
+            .value
+            .clone()
+            .expect("Cognito user ID not found");
+        let affiliate_account = cognito_user
+            .user_attributes()
+            .iter()
+            .find(|a| a.name == "custom:affiliate_con_accnt")
+            .and_then(|a| a.value.clone());
         let user = User {
-            account_address:           req.account_address.to_string(),
-            cognito_user_id:           claims.sub.clone(),
-            email:                     claims.email.clone(),
-            first_name:                verification_res.first_name,
-            last_name:                 verification_res.last_name,
-            nationality:               verification_res.nationality,
-            affiliate_commission:      affiliate_commission.commission,
+            account_address: req.account_address.to_string(),
+            cognito_user_id,
+            email: req.email.clone(),
+            first_name: verification_res.first_name,
+            last_name: verification_res.last_name,
+            nationality: verification_res.nationality,
+            affiliate_commission: affiliate_commission.commission,
             desired_investment_amount: req.desired_investment_amount,
-            affiliate_account_address: claims.affiliate_account.clone(),
+            affiliate_account_address: affiliate_account.clone(),
         }
         .upsert(&mut conn)?;
-        Ok(Json(ApiUser::new(user, false, false)))
+        let kyc_verified = Identity::exists(
+            &mut conn,
+            contracts.identity_registry_contract_index,
+            &user.account_address,
+        )?;
+        Ok(Json(UserKYCModel {
+            account_address: user.account_address,
+            cognito_user_id: user.cognito_user_id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            nationality: user.nationality,
+            affiliate_account_address: user.affiliate_account_address,
+            affiliate_commission: user.affiliate_commission,
+            desired_investment_amount: user.desired_investment_amount,
+            kyc_verified,
+        }))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -243,7 +276,7 @@ impl UserApi {
         Data(affiliate_commission): Data<&AffiliateCommission>,
         Data(contracts): Data<&SystemContractsConfig>,
         Json(req): Json<UserCreatePostReqAdmin>,
-    ) -> JsonResult<ApiUser> {
+    ) -> JsonResult<UserKYCModel> {
         ensure_is_admin(&claims)?;
 
         let mut conn = db_pool.get()?;
@@ -280,12 +313,24 @@ impl UserApi {
             affiliate_account_address: req.affiliate_account_address.clone(),
         }
         .upsert(&mut conn)?;
-        let is_kyc_verified = Identity::exists(
+        let kyc_verified = Identity::exists(
             &mut conn,
             contracts.identity_registry_contract_index,
             &user.account_address,
         )?;
-        Ok(Json(ApiUser::new(user, false, is_kyc_verified)))
+
+        Ok(Json(UserKYCModel {
+            account_address: user.account_address,
+            cognito_user_id: user.cognito_user_id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            nationality: user.nationality,
+            affiliate_account_address: user.affiliate_account_address,
+            affiliate_commission: user.affiliate_commission,
+            desired_investment_amount: user.desired_investment_amount,
+            kyc_verified,
+        }))
     }
 
     /// Retrieves the current user's information based on the provided bearer authorization token.
@@ -307,116 +352,41 @@ impl UserApi {
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
-    ) -> JsonResult<ApiUser> {
+    ) -> JsonResult<UserKYCModel> {
         let mut conn = db_pool.get()?;
-        let is_admin = claims.is_admin();
-        let user = User::find(&mut conn, &claims.sub)
-            .map_err(|_| Error::NotFound(PlainText("User not found".to_string())))?
-            .unwrap_or_else(|| User {
-                account_address:           claims
-                    .account()
-                    .map(|a| a.to_string())
-                    .unwrap_or_default(),
-                cognito_user_id:           claims.sub.clone(),
-                email:                     claims.email,
-                first_name:                claims.first_name.unwrap_or_default(),
-                last_name:                 claims.last_name.unwrap_or_default(),
-                nationality:               claims.nationality.unwrap_or_default(),
-                affiliate_commission:      Decimal::ZERO,
-                desired_investment_amount: None,
-                affiliate_account_address: claims.affiliate_account.clone(),
-            });
-        let is_kyc_verified = Identity::exists(
+        let user = UserKYCModel::find(
             &mut conn,
             contracts.identity_registry_contract_index,
-            &user.account_address,
-        )
-        .map_err(|_| Error::InternalServer(PlainText("Failed to check KYC status".to_string())))?;
+            &claims.sub,
+        )?;
+        let user = match user {
+            Some(user) => user,
+            None => {
+                let account_address = claims.account.unwrap_or_default();
+                let kyc_verified = Identity::exists(
+                    &mut conn,
+                    contracts.identity_registry_contract_index,
+                    &account_address,
+                )
+                .map_err(|_| {
+                    Error::InternalServer(PlainText("Failed to check KYC status".to_string()))
+                })?;
 
-        let user = ApiUser::new(user, is_admin, is_kyc_verified);
-        Ok(Json(user))
-    }
+                UserKYCModel {
+                    account_address,
+                    cognito_user_id: claims.sub.clone(),
+                    email: claims.email,
+                    first_name: claims.first_name.unwrap_or_default(),
+                    last_name: claims.last_name.unwrap_or_default(),
+                    nationality: claims.nationality.unwrap_or_default(),
+                    affiliate_commission: Decimal::ZERO,
+                    desired_investment_amount: None,
+                    affiliate_account_address: claims.affiliate_account.clone(),
+                    kyc_verified,
+                }
+            }
+        };
 
-    /// Get a user by their Cognito user ID.
-    ///
-    /// This endpoint is only accessible to admin users.
-    ///
-    /// # Arguments
-    /// - `db_pool`: A reference to the database connection pool.
-    /// - `identity_registry`: A reference to the identity registry.
-    /// - `claims`: The authorization claims of the requesting user.
-    /// - `cognito_user_id`: The Cognito user ID of the user to retrieve.
-    ///
-    /// # Returns
-    /// A JSON response containing the `AdminUser` for the specified Cognito user ID.
-    #[oai(
-        path = "/admin/user/:cognito_user_id",
-        method = "get",
-        tag = "ApiTags::User"
-    )]
-    pub async fn admin_get_by_cognito_user_id(
-        &self,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        BearerAuthorization(claims): BearerAuthorization,
-        Path(cognito_user_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ApiUser> {
-        ensure_is_admin(&claims)?;
-        let mut conn = db_pool.get()?;
-        let user = User::find(&mut conn, &cognito_user_id.to_string())?
-            .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-        let user = ApiUser::new(
-            user.clone(),
-            false,
-            Identity::exists(
-                &mut conn,
-                contracts.identity_registry_contract_index,
-                &user.account_address,
-            )?,
-        );
-        Ok(Json(user))
-    }
-
-    /// Get a user by their account address.
-    ///
-    /// This endpoint is only accessible to admin users.
-    ///
-    /// # Arguments
-    /// - `db_pool`: A reference to the database connection pool.
-    /// - `identity_registry`: A reference to the identity registry.
-    /// - `claims`: The authorization claims of the requesting user.
-    /// - `account_address`: The account address of the user to retrieve.
-    ///
-    /// # Returns
-    /// A JSON response containing the `AdminUser` for the specified account address.
-    #[oai(
-        path = "/admin/user/account_address/:account_address",
-        method = "get",
-        tag = "ApiTags::User"
-    )]
-    pub async fn admin_get_by_account_address(
-        &self,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        BearerAuthorization(claims): BearerAuthorization,
-        Path(account_address): Path<String>,
-    ) -> JsonResult<ApiUser> {
-        ensure_is_admin(&claims)?;
-        let account_address = account_address
-            .parse()
-            .map_err(|_| Error::BadRequest(PlainText("Invalid account address".to_string())))?;
-        let mut conn = db_pool.get()?;
-        let user = User::find_by_account_address(&mut conn, &account_address)?
-            .ok_or_else(|| Error::NotFound(PlainText("User not found".to_string())))?;
-        let user = ApiUser::new(
-            user.clone(),
-            false,
-            Identity::exists(
-                &mut conn,
-                contracts.identity_registry_contract_index,
-                &user.account_address,
-            )?,
-        );
         Ok(Json(user))
     }
 
@@ -432,39 +402,27 @@ impl UserApi {
     ///
     /// # Returns
     /// A JSON response containing a paged list of `AdminUser` objects.
-    #[oai(path = "/admin/user/list/:page", method = "get", tag = "ApiTags::User")]
-    pub async fn admin_list(
+    #[oai(path = "/admin/user/list", method = "get", tag = "ApiTags::User")]
+    pub async fn admin_user_list(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
-        Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<ApiUser>> {
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<UserKYCModel>> {
         ensure_is_admin(&claims)?;
-        let mut conn = db_pool.get()?;
-        let (users, page_count) = User::list(&mut conn, page, PAGE_SIZE)?;
-        let addresses = users
-            .iter()
-            .map(|user| user.account_address())
-            .map(Address::Account)
-            .collect::<Vec<_>>();
-        let registered = Identity::exists_batch(
-            &mut conn,
+        let page = page.unwrap_or(0);
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let conn = &mut db_pool.get()?;
+        let (users, page_count) = UserKYCModel::list(
+            conn,
             contracts.identity_registry_contract_index,
-            &addresses,
-        )?
-        .into_iter()
-        .collect::<BTreeSet<_>>();
-        let data = users
-            .into_iter()
-            .map(|user| ApiUser {
-                kyc_verified: registered.contains(&Address::Account(user.account_address())),
-                is_admin: false,
-                user,
-            })
-            .collect();
+            page,
+            page_size,
+        )?;
         Ok(Json(PagedResponse {
-            data,
+            data: users,
             page,
             page_count,
         }))
@@ -499,7 +457,7 @@ impl UserApi {
     }
 
     #[oai(
-        path = "/user/affiliate/rewards/list/:page",
+        path = "/user/affiliate/rewards/list",
         method = "get",
         tag = "ApiTags::Wallet"
     )]
@@ -507,8 +465,9 @@ impl UserApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectFundsAffiliateRewardRecord>> {
+        let page = page.unwrap_or(0);
         let mut conn = db_pool.get()?;
         let (users, page_count) =
             ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, page, PAGE_SIZE)
@@ -576,7 +535,7 @@ impl UserApi {
     }
 
     #[oai(
-        path = "/user/transactions/list/:page",
+        path = "/user/transactions/list",
         method = "get",
         tag = "ApiTags::Wallet"
     )]
@@ -584,8 +543,9 @@ impl UserApi {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<UserTransaction>> {
+        let page = page.unwrap_or(0);
         let mut conn = db_pool.get()?;
         let (users, page_count) =
             UserTransaction::list_by_cognito_user_id(&mut conn, &claims.sub, page, PAGE_SIZE)
@@ -607,19 +567,72 @@ impl UserApi {
         Data(contracts): Data<&SystemContractsConfig>,
         Data(db_pool): Data<&DbPool>,
     ) -> JsonResult<SystemContractsConfigApiModel> {
-        let mut conn = db_pool.get()?;
+        let conn = &mut db_pool.get()?;
         let mint_funds_contract =
-            SecurityMintFundContract::find(&mut conn, contracts.mint_funds_contract_index)?;
-        let trading_contract = P2PTradeContract::find(&mut conn, contracts.trading_contract_index)?;
+            SecurityMintFundContract::find(conn, contracts.mint_funds_contract_index)?.unwrap_or(
+                SecurityMintFundContract {
+                    contract_address:                contracts.mint_funds_contract_index,
+                    create_time:                     Utc::now().naive_utc(),
+                    currency_token_id:               contracts.euro_e_token_id,
+                    currency_token_contract_address: contracts.euro_e_contract_index,
+                },
+            );
+        let trading_contract = P2PTradeContract::find(conn, contracts.trading_contract_index)?
+            .unwrap_or(P2PTradeContract {
+                contract_address:                contracts.trading_contract_index,
+                create_time:                     Utc::now().naive_utc(),
+                currency_token_id:               contracts.euro_e_token_id,
+                currency_token_contract_address: contracts.euro_e_contract_index,
+                total_sell_currency_amount:      Decimal::ZERO,
+            });
+
+        let euro_e_metdata = TokenMetadata::find(
+            conn,
+            contracts.euro_e_contract_index,
+            contracts.euro_e_token_id,
+        )?
+        .unwrap_or(TokenMetadata {
+            contract_address: contracts.euro_e_contract_index,
+            token_id:         contracts.euro_e_token_id,
+            decimals:         Some(6),
+            symbol:           Some("€".to_string()),
+        });
+
+        let carbon_credit_metadata = TokenMetadata::find(
+            conn,
+            contracts.carbon_credit_contract_index,
+            contracts.carbon_credit_token_id,
+        )?
+        .unwrap_or(TokenMetadata {
+            contract_address: contracts.carbon_credit_contract_index,
+            token_id:         contracts.carbon_credit_token_id,
+            decimals:         Some(0),
+            symbol:           Some("CC".to_string()),
+        });
+
+        let tree_ft_metadata = TokenMetadata::find(
+            conn,
+            contracts.tree_ft_contract_index,
+            contracts.tree_nft_contract_index,
+        )?
+        .unwrap_or(TokenMetadata {
+            contract_address: contracts.tree_ft_contract_index,
+            token_id:         contracts.tree_nft_contract_index,
+            decimals:         Some(0),
+            symbol:           Some("ETrees".to_string()),
+        });
 
         Ok(Json(SystemContractsConfigApiModel {
             identity_registry_contract_index: contracts.identity_registry_contract_index,
             compliance_contract_index: contracts.compliance_contract_index,
             carbon_credit_contract_index: contracts.carbon_credit_contract_index,
             carbon_credit_token_id: contracts.carbon_credit_token_id,
+            carbon_credit_metadata,
             euro_e_contract_index: contracts.euro_e_contract_index,
             euro_e_token_id: contracts.euro_e_token_id,
+            euro_e_metadata: euro_e_metdata,
             tree_ft_contract_index: contracts.tree_ft_contract_index,
+            tree_ft_metadata,
             tree_nft_contract_index: contracts.tree_nft_contract_index,
             offchain_rewards_contract_index: contracts.offchain_rewards_contract_index,
             mint_funds_contract_index: contracts.mint_funds_contract_index,
@@ -629,6 +642,34 @@ impl UserApi {
             trading_contract,
         }))
     }
+
+    #[oai(path = "/user/notifications", method = "post", tag = "ApiTags::User")]
+    pub async fn user_notifications_create(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(project_id): Json<Uuid>,
+    ) -> JsonResult<Notification> {
+        let conn = &mut db_pool.get()?;
+        let now = Utc::now().naive_utc();
+        let notification = Notification::find(conn, project_id, &claims.sub)?;
+        let notification = match notification {
+            Some(notification) => notification,
+            None => Notification {
+                cognito_user_id: claims.sub.clone(),
+                id: Uuid::new_v4(),
+                project_id,
+                created_at: now,
+                updated_at: now,
+            }
+            .insert(conn)
+            .map_err(|e| {
+                error!("Error creating notification: {:?}", e);
+                Error::InternalServer(PlainText("Failed to create notification".to_string()))
+            })?,
+        };
+        Ok(Json(notification))
+    }
 }
 
 #[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
@@ -637,16 +678,19 @@ pub struct SystemContractsConfigApiModel {
     pub compliance_contract_index:        Decimal,
     pub carbon_credit_contract_index:     Decimal,
     pub carbon_credit_token_id:           Decimal,
+    pub carbon_credit_metadata:           TokenMetadata,
     pub euro_e_contract_index:            Decimal,
     pub euro_e_token_id:                  Decimal,
+    pub euro_e_metadata:                  TokenMetadata,
     pub tree_ft_contract_index:           Decimal,
+    pub tree_ft_metadata:                 TokenMetadata,
     pub tree_nft_contract_index:          Decimal,
     pub offchain_rewards_contract_index:  Decimal,
     pub mint_funds_contract_index:        Decimal,
     pub trading_contract_index:           Decimal,
     pub yielder_contract_index:           Decimal,
-    pub mint_funds_contract:              Option<SecurityMintFundContract>,
-    pub trading_contract:                 Option<P2PTradeContract>,
+    pub mint_funds_contract:              SecurityMintFundContract,
+    pub trading_contract:                 P2PTradeContract,
 }
 
 #[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
@@ -727,23 +771,6 @@ impl From<HashError> for Error {
 #[derive(Clone)]
 pub struct OffchainRewardsConfig {
     pub agent: Arc<OffchainRewardsAgent>,
-}
-
-#[derive(Object, Serialize, Deserialize, PartialEq, Debug)]
-pub struct ApiUser {
-    pub user:         User,
-    pub is_admin:     bool,
-    pub kyc_verified: bool,
-}
-
-impl ApiUser {
-    pub fn new(db_user: User, is_admin: bool, kyc_verified: bool) -> Self {
-        Self {
-            user: db_user,
-            is_admin,
-            kyc_verified,
-        }
-    }
 }
 
 #[derive(Serialize, Object)]
@@ -833,6 +860,8 @@ pub struct UserRegisterGetRes {
 
 #[derive(Object, serde::Serialize, serde::Deserialize)]
 pub struct UserCreatePostReq {
+    pub email:                     String,
+    pub temp_password:             String,
     pub account_address:           String,
     pub desired_investment_amount: Option<i32>,
     pub proof:                     Option<serde_json::Value>,
@@ -862,17 +891,4 @@ pub struct UserCreatePostReqAdmin {
     pub nationality:               String,
     pub affiliate_commission:      Option<Decimal>,
     pub affiliate_account_address: Option<String>,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize)]
-pub struct LoginReq {
-    pub email:    String,
-    pub password: String,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize)]
-pub struct LoginRes {
-    pub id_token:  String,
-    pub user:      ApiUser,
-    pub contracts: SystemContractsConfig,
 }

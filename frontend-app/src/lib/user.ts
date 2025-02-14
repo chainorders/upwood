@@ -10,6 +10,7 @@ export class User {
 	idToken: string;
 	isAdmin: boolean;
 	emailVerified: boolean;
+	mfaEnabled = false;
 
 	constructor(
 		public session: CognitoUserSession,
@@ -31,7 +32,7 @@ export class User {
 		this.email = email;
 		this.concordiumAccountAddress = concordium_account_address;
 		this.idToken = session.getIdToken().getJwtToken();
-		this.isAdmin = groups.includes("admin");
+		this.isAdmin = groups?.includes("admin");
 		this.emailVerified = email_verified === "true";
 	}
 }

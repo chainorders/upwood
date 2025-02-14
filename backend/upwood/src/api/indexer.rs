@@ -132,10 +132,10 @@ impl Api {
     ) -> JsonResult<Vec<Market>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let markets = Market::list(
+        let (markets, _) = Market::list(
             &mut conn,
             contracts.trading_contract_index,
-            contract_address,
+            Some(&[contract_address]),
             0,
             i64::MAX,
         )?;
@@ -181,10 +181,10 @@ impl Api {
     ) -> JsonResult<Vec<SecurityMintFund>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let funds = SecurityMintFund::list(
+        let (funds, _) = SecurityMintFund::list(
             &mut conn,
             contracts.mint_funds_contract_index,
-            contract_address,
+            Some(&[contract_address]),
             0,
             i64::MAX,
         )?;

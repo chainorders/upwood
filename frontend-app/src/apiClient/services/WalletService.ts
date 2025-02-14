@@ -36,12 +36,12 @@ export class WalletService {
      * @throws ApiError
      */
     public static getUserAffiliateRewardsList(
-        page: number,
+        page?: number,
     ): CancelablePromise<PagedResponse_ForestProjectFundsAffiliateRewardRecord_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/user/affiliate/rewards/list/{page}',
-            path: {
+            url: '/user/affiliate/rewards/list',
+            query: {
                 'page': page,
             },
         });
@@ -70,12 +70,12 @@ export class WalletService {
      * @throws ApiError
      */
     public static getUserTransactionsList(
-        page: number,
+        page?: number,
     ): CancelablePromise<PagedResponse_UserTransaction_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/user/transactions/list/{page}',
-            path: {
+            url: '/user/transactions/list',
+            query: {
                 'page': page,
             },
         });

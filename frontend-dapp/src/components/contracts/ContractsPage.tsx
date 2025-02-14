@@ -233,7 +233,7 @@ const ContractType = (props: {
 			/>
 			<Route
 				path=":index/:subIndex/*"
-				element={<ContractLayout contracts={props.contracts} />}
+				element={<ContractLayout contracts={props.contracts} contractType={contractType} />}
 			>
 				<Route
 					path="*"

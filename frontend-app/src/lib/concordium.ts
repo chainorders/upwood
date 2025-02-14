@@ -45,3 +45,8 @@ export const updateContract = async <T, TOut = never, E = never>(
 
     return txnHash;
 };
+
+export const signMessage = async (account: string, message: string) => {
+    const wallet = await detectConcordiumProvider();
+    return wallet.signMessage(account, message);
+}

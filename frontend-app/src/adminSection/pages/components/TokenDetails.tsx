@@ -28,12 +28,12 @@ export default function TokenDetails({ token, tokenContract }: TokenDetailsProps
 				setTxnStatus,
 			);
 			setTxnStatus("success");
-            alert("Deletion successfully");
-            window.location.reload();
+			alert("Deletion successfully");
+			window.location.reload();
 		} catch (e) {
 			console.error(e);
 			setTxnStatus("error");
-            alert("Failed to delete");
+			alert("Failed to delete");
 		}
 	};
 	return (
@@ -63,7 +63,7 @@ export default function TokenDetails({ token, tokenContract }: TokenDetailsProps
 				<strong>Decimals:</strong> {tokenContract?.decimals !== undefined ? tokenContract.decimals : "N/A"}
 			</Typography>
 			<Typography>
-				<strong>Token ID:</strong> {token.token_id}
+				<strong>Token ID:</strong> {token.token_id} ({toTokenId(BigInt(token.token_id), 8)})
 			</Typography>
 			<Typography>
 				<strong>Metadata URL:</strong> {token.metadata_url}
