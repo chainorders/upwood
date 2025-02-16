@@ -13,6 +13,7 @@ import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
 import { IVpc } from "aws-cdk-lib/aws-ec2";
 import {
 	CorsHttpMethod,
+	DomainName,
 	HttpApi,
 	IVpcLink,
 } from "aws-cdk-lib/aws-apigatewayv2";
@@ -22,8 +23,10 @@ import { ILogGroup } from "aws-cdk-lib/aws-logs";
 import { IParameter } from "aws-cdk-lib/aws-ssm";
 import { PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { IBucket } from "aws-cdk-lib/aws-s3";
+import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
 
 interface StackProps extends SP {
+	certificateArn: string;
 	userPoolArn: string;
 	filesBucket: IBucket;
 	domainName: string;
@@ -254,6 +257,22 @@ export class BackendApiStack extends Stack {
 		Tags.of(service).add("environment", props.organization_env);
 		Tags.of(service).add("service", "backend/api");
 
+		const domainName = new DomainName(
+			this,
+			constructName(props, "backend-api-domain-name"),
+			{
+				domainName: props.domainName,
+				certificate: Certificate.fromCertificateArn(
+					this,
+					constructName(props, "backend-api-certificate"),
+					props.certificateArn,
+				),
+			},
+		);
+		Tags.of(domainName).add("organization", props.organization);
+		Tags.of(domainName).add("environment", props.organization_env);
+		Tags.of(domainName).add("service", "backend/api");
+
 		const apiGateway = new HttpApi(
 			this,
 			constructName(props, "backend-api-gateway"),
@@ -272,6 +291,9 @@ export class BackendApiStack extends Stack {
 						vpcLink: props.vpcLink,
 					},
 				),
+				defaultDomainMapping: {
+					domainName,
+				},
 			},
 		);
 		apiGateway.applyRemovalPolicy(

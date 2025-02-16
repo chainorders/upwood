@@ -10,14 +10,13 @@ use shared::db::security_mint_fund::{SecurityMintFund, SecurityMintFundContract}
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
-    LegalContractUserSignature, Notification,
+    ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState, LegalContract, LegalContractUserModel, LegalContractUserSignature, Notification
 };
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundInvestor, ForestProjectSupply, ForestProjectTokenContract,
     ForestProjectTokenContractUserBalanceAgg, ForestProjectTokenContractUserYields,
-    ForestProjectTokenUserYieldClaim, ForestProjectUserBalanceAgg,
-    SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
+    ForestProjectTokenUserYieldClaim, ForestProjectUserBalanceAgg, SecurityTokenContractType,
+    TokenMetadata, UserYieldsAggregate,
 };
 use shared::db_shared::DbConn;
 use tracing::{debug, info};
@@ -393,6 +392,36 @@ impl ForestProjectApi {
         }
         .upsert(conn)?;
         Ok(Json(signature))
+    }
+
+    #[oai(
+        path = "/forest_projects/legal_contract/list",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_legal_contract_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<LegalContractUserModel>> {
+        let conn = &mut db_pool.get()?;
+        let (contracts, page_count) = LegalContractUserModel::list(
+            conn,
+            &claims.sub,
+            page.unwrap_or(0),
+            page_size.unwrap_or(PAGE_SIZE),
+        )
+        .map_err(|e| {
+            error!("Failed to list legal contracts: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to list legal contracts: {}", e)))
+        })?;
+        Ok(Json(PagedResponse {
+            data: contracts,
+            page_count,
+            page: page.unwrap_or(0),
+        }))
     }
 }
 
@@ -1228,6 +1257,91 @@ impl ForestProjectAdminApi {
             Error::InternalServer(PlainText(format!("Failed to delete token metadata: {}", e)))
         })?;
         Ok(())
+    }
+
+    #[oai(
+        path = "/admin/legal_contract/list",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_list_legal_contracts(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<LegalContract>> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let (contracts, page_count) =
+            LegalContract::list(conn, page, page_size.unwrap_or(PAGE_SIZE))?;
+        Ok(Json(PagedResponse {
+            data: contracts,
+            page_count,
+            page,
+        }))
+    }
+
+    #[oai(
+        path = "/admin/legal_contract/:project_id",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_find_legal_contract(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+    ) -> JsonResult<LegalContract> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let contract = LegalContract::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
+            format!("Legal contract not found: {}", project_id),
+        )))?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
+        path = "/admin/legal_contract",
+        method = "post",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_create_legal_contract(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(mut contract): Json<LegalContract>,
+    ) -> JsonResult<LegalContract> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        contract.created_at = chrono::Utc::now().naive_utc();
+        contract.updated_at = contract.created_at;
+        let contract = contract.insert(conn).map_err(|e| {
+            error!("Failed to insert legal contract: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to insert legal contract: {}", e)))
+        })?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
+        path = "/admin/legal_contract",
+        method = "put",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_update_legal_contract(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(mut contract): Json<LegalContract>,
+    ) -> JsonResult<LegalContract> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        contract.updated_at = chrono::Utc::now().naive_utc();
+        let contract = contract.update(conn).map_err(|e| {
+            error!("Failed to update legal contract: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to update legal contract: {}", e)))
+        })?;
+        Ok(Json(contract))
     }
 }
 

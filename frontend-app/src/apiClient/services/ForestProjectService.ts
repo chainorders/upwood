@@ -10,6 +10,7 @@ import type { ForestProjectState } from '../models/ForestProjectState';
 import type { ForestProjectTokenContract } from '../models/ForestProjectTokenContract';
 import type { ForestProjectTokenUserYieldClaim } from '../models/ForestProjectTokenUserYieldClaim';
 import type { ForestProjectTokenYieldListApiModel } from '../models/ForestProjectTokenYieldListApiModel';
+import type { LegalContract } from '../models/LegalContract';
 import type { LegalContractUserSignature } from '../models/LegalContractUserSignature';
 import type { PagedResponse_ForestProject_ } from '../models/PagedResponse_ForestProject_';
 import type { PagedResponse_ForestProjectAggApiModel_ } from '../models/PagedResponse_ForestProjectAggApiModel_';
@@ -17,6 +18,8 @@ import type { PagedResponse_ForestProjectFundInvestor_ } from '../models/PagedRe
 import type { PagedResponse_ForestProjectMedia_ } from '../models/PagedResponse_ForestProjectMedia_';
 import type { PagedResponse_ForestProjectPrice_ } from '../models/PagedResponse_ForestProjectPrice_';
 import type { PagedResponse_ForestProjectTokenContractAggApiModel_ } from '../models/PagedResponse_ForestProjectTokenContractAggApiModel_';
+import type { PagedResponse_LegalContract_ } from '../models/PagedResponse_LegalContract_';
+import type { PagedResponse_LegalContractUserModel_ } from '../models/PagedResponse_LegalContractUserModel_';
 import type { PagedResponse_TokenMetadata_ } from '../models/PagedResponse_TokenMetadata_';
 import type { SecurityTokenContractType } from '../models/SecurityTokenContractType';
 import type { TokenMetadata } from '../models/TokenMetadata';
@@ -195,6 +198,26 @@ export class ForestProjectService {
             },
             body: requestBody,
             mediaType: 'application/json; charset=utf-8',
+        });
+    }
+
+    /**
+     * @param page
+     * @param pageSize
+     * @returns PagedResponse_LegalContractUserModel_
+     * @throws ApiError
+     */
+    public static getForestProjectsLegalContractList(
+        page?: number,
+        pageSize?: number,
+    ): CancelablePromise<PagedResponse_LegalContractUserModel_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/forest_projects/legal_contract/list',
+            query: {
+                'page': page,
+                'page_size': pageSize,
+            },
         });
     }
 
@@ -646,6 +669,75 @@ export class ForestProjectService {
             path: {
                 'page': page,
             },
+        });
+    }
+
+    /**
+     * @param page
+     * @param pageSize
+     * @returns PagedResponse_LegalContract_
+     * @throws ApiError
+     */
+    public static getAdminLegalContractList(
+        page: number,
+        pageSize?: number,
+    ): CancelablePromise<PagedResponse_LegalContract_> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/legal_contract/list',
+            query: {
+                'page': page,
+                'page_size': pageSize,
+            },
+        });
+    }
+
+    /**
+     * @param projectId
+     * @returns LegalContract
+     * @throws ApiError
+     */
+    public static getAdminLegalContract(
+        projectId: string,
+    ): CancelablePromise<LegalContract> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/admin/legal_contract/{project_id}',
+            path: {
+                'project_id': projectId,
+            },
+        });
+    }
+
+    /**
+     * @param requestBody
+     * @returns LegalContract
+     * @throws ApiError
+     */
+    public static postAdminLegalContract(
+        requestBody: LegalContract,
+    ): CancelablePromise<LegalContract> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/admin/legal_contract',
+            body: requestBody,
+            mediaType: 'application/json; charset=utf-8',
+        });
+    }
+
+    /**
+     * @param requestBody
+     * @returns LegalContract
+     * @throws ApiError
+     */
+    public static putAdminLegalContract(
+        requestBody: LegalContract,
+    ): CancelablePromise<LegalContract> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/admin/legal_contract',
+            body: requestBody,
+            mediaType: 'application/json; charset=utf-8',
         });
     }
 

@@ -127,6 +127,8 @@ diesel::table! {
 diesel::table! {
     forest_project_legal_contracts (project_id) {
         project_id -> Uuid,
+        name -> Varchar,
+        tag -> Varchar,
         text_url -> Varchar,
         edoc_url -> Varchar,
         pdf_url -> Varchar,

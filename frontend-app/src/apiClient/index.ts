@@ -26,6 +26,8 @@ export type { ForestProjectTokenYieldListApiModel } from './models/ForestProject
 export type { Guide } from './models/Guide';
 export type { InvestmentPortfolioUserAggregate } from './models/InvestmentPortfolioUserAggregate';
 export { InvestmentRecordType } from './models/InvestmentRecordType';
+export type { LegalContract } from './models/LegalContract';
+export type { LegalContractUserModel } from './models/LegalContractUserModel';
 export type { LegalContractUserSignature } from './models/LegalContractUserSignature';
 export type { ListenerBlock } from './models/ListenerBlock';
 export type { ListenerContract } from './models/ListenerContract';
@@ -47,6 +49,8 @@ export type { PagedResponse_ForestProjectMedia_ } from './models/PagedResponse_F
 export type { PagedResponse_ForestProjectPrice_ } from './models/PagedResponse_ForestProjectPrice_';
 export type { PagedResponse_ForestProjectTokenContractAggApiModel_ } from './models/PagedResponse_ForestProjectTokenContractAggApiModel_';
 export type { PagedResponse_Guide_ } from './models/PagedResponse_Guide_';
+export type { PagedResponse_LegalContract_ } from './models/PagedResponse_LegalContract_';
+export type { PagedResponse_LegalContractUserModel_ } from './models/PagedResponse_LegalContractUserModel_';
 export type { PagedResponse_MaintenanceMessage_ } from './models/PagedResponse_MaintenanceMessage_';
 export type { PagedResponse_NewsArticle_ } from './models/PagedResponse_NewsArticle_';
 export type { PagedResponse_PlatformUpdate_ } from './models/PagedResponse_PlatformUpdate_';

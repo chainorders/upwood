@@ -2,10 +2,10 @@ import { useOutletContext } from "react-router";
 import PageHeader from "../components/PageHeader";
 import DownloadIcon from "../assets/Icon.svg";
 import Button from "../components/Button";
-import { LoginRes } from "../apiClient";
+import { User } from "../lib/user";
 
 export default function ContractsDetails() {
-	const { user } = useOutletContext<{ user: LoginRes }>();
+	const { user } = useOutletContext<{ user: User }>();
 	const data = {
 		id: "1256",
 		tag: "Subscription agreement Nicgales 29.06.2024",

@@ -40,6 +40,8 @@ CREATE TABLE forest_project_notifications (
 
 CREATE TABLE forest_project_legal_contracts (
        project_id uuid PRIMARY KEY NOT NULL REFERENCES forest_projects (id),
+       name VARCHAR NOT NULL,
+       tag VARCHAR NOT NULL,
        text_url VARCHAR NOT NULL,
        edoc_url VARCHAR NOT NULL,
        pdf_url VARCHAR NOT NULL,

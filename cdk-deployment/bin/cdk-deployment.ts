@@ -33,9 +33,10 @@ const LISTENER_DB_POOL_MAX_SIZE = 10;
 const BACKEND_DB_POOL_MAX_SIZE = 10;
 const APP_DOMAIN_NAME = "app.upwood.digital";
 const API_DOMAIN_NAME = "api.upwood.digital";
-const CERTIFICATE_ARN =
+const APP_FRONT_CERTIFICATE_ARN =
 	"arn:aws:acm:us-east-1:905418235674:certificate/94d23db3-e08d-40e1-9465-0fc6a3ec229f";
-
+const API_DOMAIN_CERTIFICATE_ARN =
+	"arn:aws:acm:eu-west-2:905418235674:certificate/fca32329-5046-402c-b823-09e182f93358";
 // TODO: use a secure secret
 const DB_PASSWORD = "postgres";
 const DB_USERNAME = "postgres";
@@ -185,7 +186,7 @@ new BackendApiStack(app, "BackendApiStack", {
 	containerCount: 1,
 	treeNftAgentWalletJsonStr: cdk.SecretValue.unsafePlainText(
 		process.env.TREE_NFT_AGENT_WALLET_JSON_STR ||
-			TREE_NFT_AGENT_WALLET_JSON_STR,
+		TREE_NFT_AGENT_WALLET_JSON_STR,
 	),
 	memoryReservationSoftMiB: 50,
 	domainName: API_DOMAIN_NAME,
@@ -195,6 +196,7 @@ new BackendApiStack(app, "BackendApiStack", {
 	filebaseSecretAccessKey: cdk.SecretValue.unsafePlainText(
 		process.env.FILEBASE_SECRET_ACCESS_KEY || FILEBASE_SECRET_ACCESS_KEY,
 	),
+	certificateArn: API_DOMAIN_CERTIFICATE_ARN,
 });
 
 new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
@@ -209,7 +211,7 @@ new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
 		environment: ORGANIZATION_ENV,
 	},
 	domainName: APP_DOMAIN_NAME,
-	certificateArn: CERTIFICATE_ARN,
+	certificateArn: APP_FRONT_CERTIFICATE_ARN,
 });
 
 app.synth();

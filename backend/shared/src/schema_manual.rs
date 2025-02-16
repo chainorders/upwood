@@ -1,3 +1,5 @@
+use crate::schema::{forest_project_legal_contract_user_signatures, forest_project_legal_contracts};
+
 diesel::table! {
     forest_project_funds_affiliate_reward_records (investment_record_id) {
         investment_record_id -> Uuid,
@@ -277,3 +279,13 @@ diesel::table! {
         yield_amount -> Numeric,
     }
 }
+
+diesel::allow_tables_to_appear_in_same_query!(
+    forest_project_legal_contracts,
+    forest_project_user_balance_agg
+);
+
+diesel::allow_tables_to_appear_in_same_query!(
+    forest_project_legal_contract_user_signatures,
+    forest_project_user_balance_agg,
+);

@@ -4,6 +4,7 @@ import {
 	ForestProject,
 	ForestProjectService,
 	ForestProjectTokenContract,
+	LegalContract,
 	PagedResponse_ForestProjectPrice_,
 	SystemContractsConfigApiModel,
 	UserService,
@@ -34,6 +35,10 @@ import { Link } from "react-router";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddPricePopup from "./components/AddPricePopup";
+import AddLegalContractPopup from "./components/AddLegalContractPopup";
+import UpdateLegalContractPopup from "./components/UpdateLegalContractPopup";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function ProjectDetails() {
 	const { id } = useParams<{ id: string }>();
@@ -44,6 +49,9 @@ export default function ProjectDetails() {
 	const [pricesPageSize, setPricesPageSize] = useState(10);
 	const [openAddPricePopup, setOpenAddPricePopup] = useState(false);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [legalContract, setLegalContract] = useState<LegalContract>();
+	const [openAddLegalContractPopup, setOpenAddLegalContractPopup] = useState(false);
+	const [openUpdateLegalContractPopup, setOpenUpdateLegalContractPopup] = useState(false);
 
 	const handleOpenAddPricePopup = () => {
 		setOpenAddPricePopup(true);
@@ -54,14 +62,24 @@ export default function ProjectDetails() {
 		setPricesPage(0);
 	};
 
+	const handleOpenLegalContractPopup = () => {
+		if (legalContract) {
+			setOpenUpdateLegalContractPopup(true);
+		} else {
+			setOpenAddLegalContractPopup(true);
+		}
+	};
+
+	const handleCloseLegalContractPopup = () => {
+		setOpenAddLegalContractPopup(false);
+		setOpenUpdateLegalContractPopup(false);
+	};
+
 	useEffect(() => {
-		ForestProjectService.getAdminForestProjects(id!).then((response) => {
-			setProject(response);
-		});
-		ForestProjectService.getForestProjectsContractList(id!).then((contracts) => {
-			setTokenContracts(contracts);
-		});
+		ForestProjectService.getAdminForestProjects(id!).then(setProject);
+		ForestProjectService.getForestProjectsContractList(id!).then(setTokenContracts);
 		UserService.getSystemConfig().then(setContracts);
+		ForestProjectService.getAdminLegalContract(id!).then(setLegalContract);
 	}, [id]);
 
 	useEffect(() => {
@@ -75,8 +93,6 @@ export default function ProjectDetails() {
 	const handlePriceChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setPricesPage(1);
 		setPricesPageSize(parseInt(event.target.value, 10));
-		// Assuming the API supports changing the number of items per page
-		// setRowsPerPage(parseInt(event.target.value, 10));
 	};
 
 	if (!project) {
@@ -235,6 +251,10 @@ export default function ProjectDetails() {
 								</ListItemIcon>
 								<ListItemText primary="Media" />
 							</ListItem>
+							<ListItem button onClick={handleOpenLegalContractPopup}>
+								<ListItemIcon>{legalContract ? <EditIcon /> : <AddIcon />}</ListItemIcon>
+								<ListItemText primary={legalContract ? "Update Legal Contract" : "Add Legal Contract"} />
+							</ListItem>
 						</List>
 					</Paper>
 					<Paper sx={{ padding: 2 }}>
@@ -251,6 +271,16 @@ export default function ProjectDetails() {
 				onClose={handleCloseAddPricePopup}
 				projectId={id!}
 				euroEMetadata={contracts?.euro_e_metadata}
+			/>
+			<AddLegalContractPopup
+				open={openAddLegalContractPopup}
+				onClose={handleCloseLegalContractPopup}
+				projectId={project.id}
+			/>
+			<UpdateLegalContractPopup
+				open={openUpdateLegalContractPopup}
+				onClose={handleCloseLegalContractPopup}
+				projectId={project.id}
 			/>
 		</Box>
 	);

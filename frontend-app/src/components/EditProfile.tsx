@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import closeIcon from "../assets/close.svg";
 import Button from "./Button";
-import { Link, useOutletContext } from "react-router";
+import { useOutletContext } from "react-router";
 import AccountCross from "../assets/account-not-protected.svg";
 import AccountProtected from "../assets/account-protected.svg";
 import editRow from "../assets/editRow.svg";
@@ -10,8 +10,6 @@ import saveRow from "../assets/saveRow.svg";
 import Avatar from "../assets/Avatar.svg";
 import OtpInput from "./OtpInput";
 import { User } from "../lib/user";
-import { CognitoUser } from "amazon-cognito-identity-js";
-import cognitoUserPool from "../lib/cognitoUserPool";
 
 interface PopupProps {
 	close?: () => void;
@@ -168,15 +166,14 @@ export default function EditProfile({ close = () => {} }: PopupProps) {
 
 	const onEnableMfaClicked = async () => {
 		console.log("Enabling MFA");
-		user.cognitoUser.setUserMfaPreference({
-		})
-		user.cognitoUser.enableMFA((err) => {
-			if (err) {
-				console.log(err);
-				return;
-			}
-			user.mfaEnabled = true;
-		});
+		// user.cognitoUser.setUserMfaPreference({});
+		// user.cognitoUser.enableMFA((err) => {
+		// 	if (err) {
+		// 		console.log(err);
+		// 		return;
+		// 	}
+		// 	user.mfaEnabled = true;
+		// });
 	};
 
 	const onDisableMfaClicked = async () => {

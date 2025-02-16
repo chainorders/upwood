@@ -521,18 +521,21 @@ impl LegalContractUserSignature {
     Insertable,
     Associations,
     Serialize,
+    AsChangeset,
 )]
 #[diesel(table_name = crate::schema::forest_project_legal_contracts)]
 #[diesel(belongs_to(ForestProject, foreign_key = project_id))]
 #[diesel(primary_key(project_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LegalContract {
-    project_id: uuid::Uuid,
-    text_url:   String,
-    edoc_url:   String,
-    pdf_url:    String,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+    pub project_id: uuid::Uuid,
+    pub name:       String,
+    pub tag:        String,
+    pub text_url:   String,
+    pub edoc_url:   String,
+    pub pdf_url:    String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 impl LegalContract {
@@ -540,8 +543,131 @@ impl LegalContract {
         use crate::schema::forest_project_legal_contracts::dsl::*;
         let contract = forest_project_legal_contracts
             .filter(project_id.eq(id))
-            .first::<Self>(conn)?;
-        Ok(Some(contract))
+            .first::<Self>(conn)
+            .optional()?;
+        Ok(contract)
+    }
+
+    pub fn list(conn: &mut DbConn, page: i64, page_size: i64) -> DbResult<(Vec<Self>, i64)> {
+        use crate::schema::forest_project_legal_contracts::dsl::*;
+
+        let contracts = forest_project_legal_contracts
+            .select(LegalContract::as_select())
+            .order(created_at.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+
+        let total_count = forest_project_legal_contracts
+            .count()
+            .get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((contracts, page_count))
+    }
+
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<LegalContract> {
+        let contract = diesel::insert_into(schema::forest_project_legal_contracts::table)
+            .values(self)
+            .returning(LegalContract::as_returning())
+            .get_result(conn)?;
+        Ok(contract)
+    }
+
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<LegalContract> {
+        let contract = diesel::update(schema::forest_project_legal_contracts::table)
+            .filter(schema::forest_project_legal_contracts::project_id.eq(self.project_id))
+            .set(self)
+            .returning(LegalContract::as_returning())
+            .get_result(conn)?;
+        Ok(contract)
+    }
+}
+
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LegalContractUserModel {
+    pub project_id:         uuid::Uuid,
+    pub name:               String,
+    pub tag:                String,
+    pub text_url:           String,
+    pub edoc_url:           String,
+    pub pdf_url:            String,
+    pub created_at:         NaiveDateTime,
+    pub cognito_user_id:    String,
+    pub signed_date:        NaiveDateTime,
+    pub user_token_balance: Decimal,
+}
+
+impl LegalContractUserModel {
+    pub fn list(
+        conn: &mut DbConn,
+        user_id: &str,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        use crate::schema::forest_project_legal_contract_user_signatures::dsl as signatures_dsl;
+        use crate::schema::forest_project_legal_contracts::dsl as contracts_dsl;
+        use crate::schema_manual::forest_project_user_balance_agg::dsl as balance_dsl;
+
+        let results = contracts_dsl::forest_project_legal_contracts
+            .inner_join(
+                signatures_dsl::forest_project_legal_contract_user_signatures
+                    .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
+            )
+            .inner_join(
+                balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
+                    .eq(balance_dsl::forest_project_id)
+                    .and(balance_dsl::cognito_user_id.eq(user_id))),
+            )
+            .select((
+                contracts_dsl::project_id,
+                contracts_dsl::name,
+                contracts_dsl::tag,
+                contracts_dsl::text_url,
+                contracts_dsl::edoc_url,
+                contracts_dsl::pdf_url,
+                contracts_dsl::created_at,
+                signatures_dsl::cognito_user_id,
+                signatures_dsl::updated_at,
+                balance_dsl::total_balance,
+            ))
+            .order(contracts_dsl::created_at.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .load(conn)?
+            .into_iter()
+            .map(|(project_id, name, tag, text_url, edoc_url, pdf_url, created_at, cognito_user_id, signed_date, user_token_balance)| {
+                LegalContractUserModel {
+                    project_id,
+                    name,
+                    tag,
+                    text_url,
+                    edoc_url,
+                    pdf_url,
+                    created_at,
+                    cognito_user_id,
+                    signed_date,
+                    user_token_balance,
+                }
+            })
+            .collect::<Vec<Self>>();
+
+        let total_count = contracts_dsl::forest_project_legal_contracts
+            .inner_join(
+                signatures_dsl::forest_project_legal_contract_user_signatures
+                    .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
+            )
+            .inner_join(
+                balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
+                    .eq(balance_dsl::forest_project_id)
+                    .and(balance_dsl::cognito_user_id.eq(user_id))),
+            )
+            .count()
+            .get_result::<i64>(conn)?;
+
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        Ok((results, page_count))
     }
 }
 
