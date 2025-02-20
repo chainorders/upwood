@@ -17,11 +17,12 @@ import "./Wallet.css"; // Add this line to import the CSS file
 import { toDisplayAmount, toTokenId } from "../lib/conversions";
 import { TxnStatus, updateContract } from "../lib/concordium";
 import securitySftMultiYielder from "../contractClients/generated/securitySftMultiYielder";
+
 export default function Wallet() {
 	const { user } = useOutletContext<{ user: User }>();
-	const [carbon_credits_popup, setCarbonCreditsPopup] = useState(false);
-	const [dividends_details_popup, setDividendsPopup] = useState(false);
-	const [etrees_popup, setEtreesPopup] = useState(false);
+	const [carbonCreditsPopup, setCarbonCreditsPopup] = useState(false);
+	const [dividendsDetailsPopup, setDividendsPopup] = useState(false);
+	const [eTreesPopup, setEtreesPopup] = useState(false);
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
 	const [yields, setYields] = useState<{
 		carbonCredits: string;
@@ -42,11 +43,12 @@ export default function Wallet() {
 	const [ownedTokenContractPage, setOwnedTokenContractPage] = useState(0);
 	const [yieldsClaimable, setYieldsClaimable] = useState<ForestProjectTokenUserYieldClaim[]>();
 	const [yieldTxnStatus, setYieldTxnStatus] = useState<TxnStatus>("none");
+	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	useEffect(() => {
 		ForestProjectService.getForestProjectsListOwned().then(setProjects);
 		UserService.getSystemConfig().then(setContracts);
-	}, [user]);
+	}, [user, refreshCounter]);
 	useEffect(() => {
 		if (contracts) {
 			ForestProjectService.getForestProjectsYieldsTotal().then((response) => {
@@ -68,10 +70,10 @@ export default function Wallet() {
 			});
 			ForestProjectService.getForestProjectsYieldsClaimable().then(setYieldsClaimable);
 		}
-	}, [user, contracts]);
+	}, [user, contracts, refreshCounter]);
 	useEffect(() => {
 		ForestProjectService.getForestProjectsContractListOwned().then(setOwnedTokenContracts);
-	}, [user, ownedTokenContractPage]);
+	}, [user, ownedTokenContractPage, refreshCounter]);
 	useEffect(() => {
 		const pages = [];
 		if (ownedTokenContracts) {
@@ -95,7 +97,7 @@ export default function Wallet() {
 						: undefined,
 			});
 		}
-	}, [ownedTokenContracts, ownedTokenContractPage]);
+	}, [ownedTokenContracts, ownedTokenContractPage, refreshCounter]);
 
 	const claimYields = async () => {
 		if (!contracts || !yieldsClaimable) {
@@ -119,6 +121,7 @@ export default function Wallet() {
 				setYieldTxnStatus,
 			);
 			alert("Yields claimed successfully");
+			setRefreshCounter((c) => c + 1);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to claim yields");
@@ -216,7 +219,7 @@ export default function Wallet() {
 									<table cellSpacing={0}>
 										<thead>
 											<tr>
-												<th>Token symbol</th>
+												<th>Forest Project Id</th>
 												<th>Asset name</th>
 												<th>Smart contract address</th>
 												<th>Share amount</th>
@@ -234,9 +237,9 @@ export default function Wallet() {
 														{item.token_contract_address}({item.token_contract_type})
 													</td>
 													<td>{item.user_balance}</td>
-													<td>{item.user_balance_price}</td>
+													<td>{toDisplayAmount(item.user_balance_price, contracts?.euro_e_metadata.decimals || 6, 2)}</td>
 													<td>{item.carbon_credit_yield_balance}</td>
-													<td>{item.euro_e_yields_balance}</td>
+													<td>{toDisplayAmount(item.euro_e_yields_balance, contracts?.euro_e_metadata.decimals || 6, 2)}</td>
 												</tr>
 											))}
 										</tbody>
@@ -292,7 +295,7 @@ export default function Wallet() {
 					</div>
 				</div>
 			</div>
-			{/* {carbon_credits_popup ? (
+			{/* {carbonCreditsPopup ? (
 				<ClaimPopup config={__carbon_credits_details} close={() => setCarbonCreditsPopup(false)} />
 			) : null} */}
 			{/* {dividends_details_popup ? <ClaimPopup config={__dividends_details} close={() => setDividendsPopup(false)} /> : null} */}

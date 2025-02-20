@@ -25,6 +25,7 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 	const [marketCurrencyMetadata, setmarketCurrencyMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [isCurrencyOperator, setIsCurrencyOperator] = useState(false);
+	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	useEffect(() => {
 		if (market) {
@@ -54,7 +55,7 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 				.then((res) => euroeStablecoin.operatorOf.parseReturnValue(res.returnValue!)!)
 				.then((res) => setIsCurrencyOperator(res[0]));
 		}
-	}, [market, user]);
+	}, [market, user, refreshCounter]);
 
 	const deleteMarket = async () => {
 		if (!market) {
@@ -74,7 +75,7 @@ export default function MarketDetails({ market }: MarketDetailsProps) {
 			);
 			setTxnStatus("success");
 			alert("Market deleted successfully");
-			window.location.reload();
+			setRefreshCounter((c) => c + 1);
 		} catch (e) {
 			console.error(e);
 			setTxnStatus("error");

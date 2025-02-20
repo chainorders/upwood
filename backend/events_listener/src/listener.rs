@@ -218,7 +218,7 @@ impl Listener {
 
         loop {
             while let Ok((error, finalized_blocks)) = finalized_block_stream
-                .next_chunk_timeout(100, Duration::from_millis(5000))
+                .next_chunk_timeout(1000, Duration::from_millis(5000))
                 .await
             {
                 debug!("Received chunk of {} blocks", finalized_blocks.len());

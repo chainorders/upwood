@@ -10,7 +10,8 @@ use shared::db::security_mint_fund::{SecurityMintFund, SecurityMintFundContract}
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
-    ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState, LegalContract, LegalContractUserModel, LegalContractUserSignature, Notification
+    ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState, LegalContract,
+    LegalContractUserModel, LegalContractUserSignature, Notification,
 };
 use shared::db_app::forest_project_crypto::{
     ForestProjectFundInvestor, ForestProjectSupply, ForestProjectTokenContract,
@@ -238,10 +239,12 @@ impl ForestProjectApi {
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
         Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectMedia>> {
         let conn = &mut db_pool.get()?;
         let page = page.unwrap_or(0);
-        let (media, page_count) = ForestProjectMedia::list(conn, project_id, page, PAGE_SIZE)?;
+        let (media, page_count) =
+            ForestProjectMedia::list(conn, project_id, page, page_size.unwrap_or(PAGE_SIZE))?;
         Ok(Json(PagedResponse {
             data: media,
             page_count,
@@ -767,11 +770,6 @@ impl ForestProjectAdminApi {
     ) -> JsonResult<ForestProject> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        if project.state != ForestProjectState::Draft {
-            return Err(Error::BadRequest(PlainText(
-                "Only draft projects can be created".to_string(),
-            )));
-        }
         debug!("Creating project: {:?}", project);
         let project = project.insert(conn);
         let project = match project {

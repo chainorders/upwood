@@ -12,9 +12,10 @@ import { toTokenId } from "../../../lib/conversions";
 interface TokenDetailsProps {
 	token: Token;
 	tokenContract?: ForestProjectTokenContract;
+	onDeleteToken: () => void;
 }
 
-export default function TokenDetails({ token, tokenContract }: TokenDetailsProps) {
+export default function TokenDetails({ token, tokenContract, onDeleteToken }: TokenDetailsProps) {
 	const { user } = useOutletContext<{ user: User }>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 
@@ -29,7 +30,7 @@ export default function TokenDetails({ token, tokenContract }: TokenDetailsProps
 			);
 			setTxnStatus("success");
 			alert("Deletion successfully");
-			window.location.reload();
+			onDeleteToken();
 		} catch (e) {
 			console.error(e);
 			setTxnStatus("error");

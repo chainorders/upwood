@@ -57,6 +57,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 	const [investorsPage, setInvestorsPage] = useState(0);
 	const [investorsRowsPerPage, setInvestorsRowsPerPage] = useState(10);
 	const [claimTxnStatus, setClaimTxnStatus] = useState<TxnStatus>("none");
+	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	const {
 		register,
@@ -83,7 +84,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 			.catch(() => {
 				setFundCurrencyMetadata(undefined);
 			});
-	}, [fund]);
+	}, [fund, refreshCounter]);
 	useEffect(() => {
 		if (fund) {
 			ForestProjectService.getAdminForestProjectsFundInvestorList(
@@ -94,7 +95,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 				investorsRowsPerPage,
 			).then(setInvestors);
 		}
-	}, [fund, investorsPage, investorsRowsPerPage]);
+	}, [fund, investorsPage, investorsRowsPerPage, refreshCounter]);
 
 	const markFailed = async () => {
 		try {
@@ -118,7 +119,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 			);
 			setMarkFailedTxnStatus("success");
 			alert("Marked failed successfully");
-			window.location.reload();
+			setRefreshCounter((c) => c + 1);
 		} catch (e) {
 			console.error(e);
 			setMarkFailedTxnStatus("error");
@@ -143,7 +144,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 			);
 			setDeleteTxnStatus("success");
 			alert("Deletion successfully");
-			window.location.reload();
+			setRefreshCounter((c) => c + 1);
 		} catch (e) {
 			console.error(e);
 			setDeleteTxnStatus("error");
@@ -177,7 +178,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 			);
 			setMarkSuccessTxnStatus("success");
 			alert("Marked success successfully");
-			window.location.reload();
+			setRefreshCounter((c) => c + 1);
 		} catch (e) {
 			console.error(e);
 			setMarkSuccessTxnStatus("error");
@@ -218,7 +219,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 			);
 			setClaimTxnStatus("success");
 			alert("Investment claimed successfully");
-			window.location.reload();
+			setRefreshCounter((c) => c + 1);
 		} catch (e) {
 			console.error(e);
 			setClaimTxnStatus("error");

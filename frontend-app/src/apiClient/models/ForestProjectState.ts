@@ -4,8 +4,9 @@
 /* eslint-disable */
 
 export enum ForestProjectState {
-    DRAFT = 'Draft',
-    ACTIVE = 'Active',
-    FUNDED = 'Funded',
-    ARCHIVED = 'Archived',
+	DRAFT = "Draft",
+	ACTIVE = "Active",
+	FUNDED = "Funded",
+	BOND = "Bond",
+	ARCHIVED = "Archived",
 }

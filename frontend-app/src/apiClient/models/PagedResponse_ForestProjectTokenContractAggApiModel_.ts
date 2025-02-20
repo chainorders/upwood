@@ -3,15 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ForestProjectTokenContractAggApiModel } from './ForestProjectTokenContractAggApiModel';
+import type { ForestProjectTokenContractAggApiModel } from "./ForestProjectTokenContractAggApiModel";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
 export type PagedResponse_ForestProjectTokenContractAggApiModel_ = {
-    page_count: number;
-    page: number;
-    data: Array<ForestProjectTokenContractAggApiModel>;
+	page_count: number;
+	page: number;
+	data: Array<ForestProjectTokenContractAggApiModel>;
 };
-

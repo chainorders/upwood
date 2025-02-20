@@ -7,9 +7,7 @@
 import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "offchain_rewards";
-export type initRequest = {
-	treasury: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-};
+export type initRequest = { treasury: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } };
 export const initRequestSchemaBase64 =
 	"FAABAAAACAAAAHRyZWFzdXJ5FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export const initErrorSchemaBase64 =
@@ -27,9 +25,7 @@ export type AddAgentError =
 	| { InvokeContract: Record<string, never> };
 export const addAgentErrorSchemaBase64 =
 	"FQoAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIOAAAASW52YWxpZEFkZHJlc3MCGAAAAFVuYXV0aG9yaXplZEludmFsaWRBZ2VudAIOAAAAQ2hlY2tTaWduYXR1cmUCEAAAAEludmFsaWRTaWduYXR1cmUCDAAAAEludmFsaWROb25jZQIWAAAASW52YWxpZENvbnRyYWN0QWRkcmVzcwIOAAAASW52b2tlQ29udHJhY3QC";
-export type AddAgentRequest = {
-	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-};
+export type AddAgentRequest = { address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } };
 export const addAgentRequestSchemaBase64 =
 	"FAABAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
 export type ClaimRewardError =
@@ -73,9 +69,7 @@ export type IsAgentError =
 	| { InvokeContract: Record<string, never> };
 export const isAgentErrorSchemaBase64 =
 	"FQoAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDAAAAFVuYXV0aG9yaXplZAIOAAAASW52YWxpZEFkZHJlc3MCGAAAAFVuYXV0aG9yaXplZEludmFsaWRBZ2VudAIOAAAAQ2hlY2tTaWduYXR1cmUCEAAAAEludmFsaWRTaWduYXR1cmUCDAAAAEludmFsaWROb25jZQIWAAAASW52YWxpZENvbnRyYWN0QWRkcmVzcwIOAAAASW52b2tlQ29udHJhY3QC";
-export type IsAgentRequest = {
-	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-};
+export type IsAgentRequest = { address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } };
 export const isAgentRequestSchemaBase64 =
 	"FAABAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
 export type IsAgentResponse = boolean;
@@ -96,19 +90,9 @@ export const removeAgentErrorSchemaBase64 =
 export type RemoveAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 export const removeAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type event =
-	| {
-			Init: [
-				{
-					treasury: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				},
-			];
-	  }
-	| {
-			AgentAdded: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
-	| {
-			AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
+	| { Init: [{ treasury: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] }
+	| { AgentAdded: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
+	| { AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
 	| {
 			Claimed: [
 				{

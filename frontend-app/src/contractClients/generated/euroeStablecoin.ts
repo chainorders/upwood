@@ -319,10 +319,7 @@ export type SetImplementorsError =
 	  };
 export const setImplementorsErrorSchemaBase64 =
 	"FQQAAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCBgAAAEN1c3RvbQEBAAAAFRUAAAALAAAAUGFyc2VQYXJhbXMCBwAAAExvZ0Z1bGwCDAAAAExvZ01hbGZvcm1lZAITAAAASW52YWxpZENvbnRyYWN0TmFtZQIMAAAAQ29udHJhY3RPbmx5AhMAAABJbnZva2VDb250cmFjdEVycm9yAhIAAABUb2tlbkFscmVhZHlNaW50ZWQCEAAAAE1heFN1cHBseVJlYWNoZWQCDwAAAE5vQmFsYW5jZVRvQnVybgIOAAAAQ29udHJhY3RQYXVzZWQCEgAAAEFkZHJlc3NCbG9ja2xpc3RlZAIaAAAARmFpbGVkVXBncmFkZU1pc3NpbmdNb2R1bGUCHAAAAEZhaWxlZFVwZ3JhZGVNaXNzaW5nQ29udHJhY3QCJQAAAEZhaWxlZFVwZ3JhZGVVbnN1cHBvcnRlZE1vZHVsZVZlcnNpb24CDgAAAE1pc3NpbmdBY2NvdW50Ag0AAABNYWxmb3JtZWREYXRhAg4AAABXcm9uZ1NpZ25hdHVyZQINAAAATm9uY2VNaXNtYXRjaAINAAAAV3JvbmdDb250cmFjdAIPAAAAV3JvbmdFbnRyeVBvaW50AgcAAABFeHBpcmVkAg==";
-export type SetImplementorsRequest = {
-	id: string;
-	implementors: Array<{ index: number; subindex: number }>;
-};
+export type SetImplementorsRequest = { id: string; implementors: Array<{ index: number; subindex: number }> };
 export const setImplementorsRequestSchemaBase64 = "FAACAAAAAgAAAGlkFgAMAAAAaW1wbGVtZW50b3JzEAIM";
 export type SetPausedError =
 	| { InvalidTokenId: Record<string, never> }
@@ -469,10 +466,7 @@ export const tokenMetadataErrorSchemaBase64 =
 	"FQQAAAAOAAAASW52YWxpZFRva2VuSWQCEQAAAEluc3VmZmljaWVudEZ1bmRzAgwAAABVbmF1dGhvcml6ZWQCBgAAAEN1c3RvbQEBAAAAFRUAAAALAAAAUGFyc2VQYXJhbXMCBwAAAExvZ0Z1bGwCDAAAAExvZ01hbGZvcm1lZAITAAAASW52YWxpZENvbnRyYWN0TmFtZQIMAAAAQ29udHJhY3RPbmx5AhMAAABJbnZva2VDb250cmFjdEVycm9yAhIAAABUb2tlbkFscmVhZHlNaW50ZWQCEAAAAE1heFN1cHBseVJlYWNoZWQCDwAAAE5vQmFsYW5jZVRvQnVybgIOAAAAQ29udHJhY3RQYXVzZWQCEgAAAEFkZHJlc3NCbG9ja2xpc3RlZAIaAAAARmFpbGVkVXBncmFkZU1pc3NpbmdNb2R1bGUCHAAAAEZhaWxlZFVwZ3JhZGVNaXNzaW5nQ29udHJhY3QCJQAAAEZhaWxlZFVwZ3JhZGVVbnN1cHBvcnRlZE1vZHVsZVZlcnNpb24CDgAAAE1pc3NpbmdBY2NvdW50Ag0AAABNYWxmb3JtZWREYXRhAg4AAABXcm9uZ1NpZ25hdHVyZQINAAAATm9uY2VNaXNtYXRjaAINAAAAV3JvbmdDb250cmFjdAIPAAAAV3JvbmdFbnRyeVBvaW50AgcAAABFeHBpcmVkAg==";
 export type TokenMetadataRequest = Array<string>;
 export const tokenMetadataRequestSchemaBase64 = "EAEdAA==";
-export type TokenMetadataResponse = Array<{
-	url: string;
-	hash: { None: Record<string, never> } | { Some: [string] };
-}>;
+export type TokenMetadataResponse = Array<{ url: string; hash: { None: Record<string, never> } | { Some: [string] } }>;
 export const tokenMetadataResponseSchemaBase64 =
 	"EAEUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAA";
 export type TransferError =

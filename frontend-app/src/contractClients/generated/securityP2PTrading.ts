@@ -57,17 +57,11 @@ export type BuyRequest = {
 };
 export const buyRequestSchemaBase64 =
 	"FAADAAAABQAAAHRva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABgAAAGFtb3VudBslAAAABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgU=";
-export type GetMarketRequest = {
-	contract: { index: number; subindex: number };
-	id: string;
-};
+export type GetMarketRequest = { contract: { index: number; subindex: number }; id: string };
 export const getMarketRequestSchemaBase64 = "FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export type RemoveAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 export const removeAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
-export type RemoveMarketRequest = {
-	contract: { index: number; subindex: number };
-	id: string;
-};
+export type RemoveMarketRequest = { contract: { index: number; subindex: number }; id: string };
 export const removeMarketRequestSchemaBase64 = "FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export type SellError =
 	| { ParseError: Record<string, never> }
@@ -89,9 +83,7 @@ export type SellRequest = {
 export const sellRequestSchemaBase64 =
 	"FAADAAAABQAAAHRva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABgAAAGFtb3VudBslAAAABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgU=";
 export type event =
-	| {
-			Initialized: [{ contract: { index: number; subindex: number }; id: string }];
-	  }
+	| { Initialized: [{ contract: { index: number; subindex: number }; id: string }] }
 	| {
 			AgentAdded: [
 				{
@@ -104,16 +96,11 @@ export type event =
 				},
 			];
 	  }
-	| {
-			AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
+	| { AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
 	| {
 			MarketAdded: [
 				{
-					token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					token: { contract: { index: number; subindex: number }; id: string };
 					market: {
 						liquidity_provider: string;
 						buy_rate: { numerator: bigint; denominator: bigint };
@@ -135,9 +122,7 @@ export type event =
 				},
 			];
 	  }
-	| {
-			MarketRemoved: [{ contract: { index: number; subindex: number }; id: string }];
-	  };
+	| { MarketRemoved: [{ contract: { index: number; subindex: number }; id: string }] };
 export const eventSchemaBase64 =
 	"FQYAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAoAAABBZ2VudEFkZGVkAQEAAAAUAAIAAAAHAAAAYWRkcmVzcxUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwFAAAAcm9sZXMQAhUDAAAACQAAAEFkZE1hcmtldAIMAAAAUmVtb3ZlTWFya2V0AggAAABPcGVyYXRvcgIMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMCwAAAE1hcmtldEFkZGVkAQEAAAAUAAIAAAAFAAAAdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQAGAAAAbWFya2V0FAADAAAAEgAAAGxpcXVpZGl0eV9wcm92aWRlcgsIAAAAYnV5X3JhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUJAAAAc2VsbF9yYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFCQAAAEV4Y2hhbmdlZAEBAAAAFAAHAAAADgAAAHRva2VuX2NvbnRyYWN0DAgAAAB0b2tlbl9pZB0ABgAAAHNlbGxlcgsFAAAAYnV5ZXILDAAAAHRva2VuX2Ftb3VudBslAAAABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUPAAAAY3VycmVuY3lfYW1vdW50GyUAAAANAAAATWFya2V0UmVtb3ZlZAEBAAAAFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {

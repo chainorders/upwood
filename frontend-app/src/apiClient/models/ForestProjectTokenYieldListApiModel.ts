@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { TokenMetadata } from './TokenMetadata';
-import type { Yield } from './Yield';
+import type { TokenMetadata } from "./TokenMetadata";
+import type { Yield } from "./Yield";
 
 export type ForestProjectTokenYieldListApiModel = {
-    yield_data: Yield;
-    token_metadata?: TokenMetadata;
+	yield_data: Yield;
+	token_metadata?: TokenMetadata;
 };
-

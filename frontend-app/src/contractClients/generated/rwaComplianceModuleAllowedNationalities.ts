@@ -7,10 +7,7 @@
 import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "rwa_compliance_module_allowed_nationalities";
-export type initRequest = {
-	nationalities: Array<string>;
-	identity_registry: { index: number; subindex: number };
-};
+export type initRequest = { nationalities: Array<string>; identity_registry: { index: number; subindex: number } };
 export const initRequestSchemaBase64 = "FAACAAAADQAAAG5hdGlvbmFsaXRpZXMQAhYCEQAAAGlkZW50aXR5X3JlZ2lzdHJ5DA==";
 export const initErrorSchemaBase64 =
 	"FQcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDQAAAEludmFsaWRNb2R1bGUCEQAAAENhbGxDb250cmFjdEVycm9yAgwAAABVbmF1dGhvcml6ZWQCEgAAAEFnZW50QWxyZWFkeUV4aXN0cwINAAAAQWdlbnROb3RGb3VuZAI=";

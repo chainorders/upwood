@@ -1,29 +1,30 @@
 import { useState } from "react";
 import { Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
-import { YieldApiModel, ForestProjectTokenContract, User } from "../../../apiClient";
+import { YieldApiModel, ForestProjectTokenContract } from "../../../apiClient";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { useOutletContext } from "react-router";
 import securitySftMultiYielder from "../../../contractClients/generated/securitySftMultiYielder";
 import TransactionButton from "../../../components/TransactionButton";
+import { User } from "../../../lib/user";
 
 interface YieldsProps {
 	tokenContract: ForestProjectTokenContract;
 	tokenId: string;
 	yielderContract: string;
 	yields: YieldApiModel[];
+	onRemoveYield: () => void;
 }
 
-export default function Yields({ yields, yielderContract, tokenContract, tokenId }: YieldsProps) {
+export default function Yields({ yields, yielderContract, tokenContract, tokenId, onRemoveYield }: YieldsProps) {
 	const { user } = useOutletContext<{ user: User }>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
-	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	const removeYield = async () => {
 		try {
 			await updateContract(
-				user.account_address,
+				user.concordiumAccountAddress,
 				yielderContract,
 				securitySftMultiYielder.removeYield,
 				{
@@ -35,7 +36,7 @@ export default function Yields({ yields, yielderContract, tokenContract, tokenId
 				},
 				setTxnStatus,
 			);
-			setRefreshCounter(refreshCounter + 1);
+			onRemoveYield();
 		} catch (e) {
 			setTxnStatus("error");
 			console.error(e);

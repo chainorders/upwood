@@ -1,5 +1,5 @@
 /* plpgsql-language-server:disable validation */
-CREATE TYPE forest_project_state AS ENUM('draft', 'active', 'funded', 'archived');
+CREATE TYPE forest_project_state AS ENUM('draft', 'active', 'funded', 'bond', 'archived');
 
 CREATE TABLE forest_projects (
        id uuid PRIMARY KEY NOT NULL,

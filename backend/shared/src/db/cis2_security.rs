@@ -64,10 +64,9 @@ impl Agent {
         let delete_filter = cis2_agents::cis2_address
             .eq(cis2_address)
             .and(cis2_agents::agent_address.eq(agent_address.to_string()));
-        let updated_rows = diesel::delete(cis2_agents::table)
+        diesel::delete(cis2_agents::table)
             .filter(delete_filter)
             .execute(conn)?;
-        assert_eq!(updated_rows, 1, "error {} rows were updated", updated_rows);
         Ok(())
     }
 
@@ -622,7 +621,7 @@ pub fn holders_count_by_token(
     Debug,
     PartialEq,
     Serialize,
-    Deserialize
+    Deserialize,
 )]
 #[diesel(table_name = cis2_tokens)]
 #[diesel(primary_key(cis2_address, token_id))]

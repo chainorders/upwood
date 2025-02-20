@@ -322,7 +322,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 						</Grid>
 						<Grid item xs={12}>
 							<Typography variant="body2" align="right">
-								{toDisplayAmount((euroIntrestRateNumeratorWatch || "0").toString(), euroeMetdata?.decimals || 0)}{" "}
+								{toDisplayAmount((euroIntrestRateNumeratorWatch || "0").toString(), euroeMetdata?.decimals || 6)}{" "}
 								{euroeMetdata?.symbol || "Euro"} per{" "}
 								{toDisplayAmount((euroIntrestRateDenominatorWatch || "1").toString(), projectTokenContract?.decimals || 0)}{" "}
 								{projectTokenContract?.symbol || "Project"} Tokens per token version

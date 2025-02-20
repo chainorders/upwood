@@ -1,23 +1,28 @@
-import { useParams } from "react-router";
 import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router";
+
+import AddIcon from "@mui/icons-material/Add";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
-	Box,
-	Typography,
-	CircularProgress,
-	Grid,
-	Paper,
-	List,
-	ListItemText,
-	ListItemIcon,
-	ListItemButton,
-	Dialog,
-	DialogTitle,
-	DialogContent,
 	Accordion,
-	AccordionSummary,
 	AccordionDetails,
+	AccordionSummary,
+	Box,
+	Breadcrumbs,
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	Grid,
+	List,
+	ListItemButton,
+	ListItemIcon,
+	ListItemText,
+	Paper,
+	Typography,
 } from "@mui/material";
+
 import {
+	ForestProject,
 	ForestProjectService,
 	ForestProjectTokenContract,
 	IndexerService,
@@ -30,16 +35,14 @@ import {
 	UserService,
 	YieldApiModel,
 } from "../../apiClient";
-import AddIcon from "@mui/icons-material/Add";
-import MarketDetails from "./components/MarketDetails";
-import FundDetails from "./components/FundDetails";
-import AddYieldPopup from "./components/AddYieldPopup";
-import Yields from "./components/Yields";
-import AddMarketPopup from "./components/AddMarketPopup";
 import AddFundPopup from "./components/AddFundPopup";
-import TokenDetails from "./components/TokenDetails";
+import AddMarketPopup from "./components/AddMarketPopup";
 import { AddProjectTokenPopup } from "./components/AddProjectTokenPopup";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AddYieldPopup from "./components/AddYieldPopup";
+import FundDetails from "./components/FundDetails";
+import MarketDetails from "./components/MarketDetails";
+import TokenDetails from "./components/TokenDetails";
+import Yields from "./components/Yields";
 
 export default function ProjectTokenDetails() {
 	const { id, contract_address, token_id } = useParams<{ id: string; token_id: string; contract_address: string }>();
@@ -53,8 +56,10 @@ export default function ProjectTokenDetails() {
 	const [fundCurrencyMetdata, setFundCurrencyMetdata] = useState<TokenMetadata>();
 	const [yields, setYields] = useState<YieldApiModel[]>([]);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [refreshCounter, setRefreshCounter] = useState(0);
+	const [project, setProject] = useState<ForestProject | null>(null);
 
-	const [loading, setLoading] = useState(true);
+	const [, setLoading] = useState(true);
 	const [openYieldPopup, setOpenYieldPopup] = useState(false);
 	const [openFundPopup, setOpenFundPopup] = useState(false);
 	const [openMarketPopup, setOpenMarketPopup] = useState(false);
@@ -66,6 +71,7 @@ export default function ProjectTokenDetails() {
 
 	const handleCloseYieldPopup = () => {
 		setOpenYieldPopup(false);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	const handleOpenFundPopup = () => {
@@ -74,6 +80,7 @@ export default function ProjectTokenDetails() {
 
 	const handleCloseFundPopup = () => {
 		setOpenFundPopup(false);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	const handleOpenMarketPopup = () => {
@@ -82,6 +89,7 @@ export default function ProjectTokenDetails() {
 
 	const handleCloseMarketPopup = () => {
 		setOpenMarketPopup(false);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	const handleOpenPreSaleTokenPopup = () => {
@@ -90,20 +98,21 @@ export default function ProjectTokenDetails() {
 
 	const handleClosePreSaleTokenPopup = () => {
 		setOpenPreSaleTokenPopup(false);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	useEffect(() => {
 		setLoading(true);
+		IndexerService.getAdminIndexerCis2TokenMarket(contract_address!, token_id!).then(setMarket);
+		IndexerService.getAdminIndexerCis2TokenYieldsList(contract_address!, token_id!).then(setYields);
+		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!).then(setFund);
 		IndexerService.getAdminIndexerCis2Token(contract_address!, token_id!)
 			.then(setToken)
 			.catch(() => alert("Failed to fetch token details"))
 			.finally(() => setLoading(false));
 		ForestProjectService.getAdminForestProjectsContract(contract_address!).then(setTokenContract);
-	}, [contract_address, token_id]);
-
-	useEffect(() => {
-		IndexerService.getAdminIndexerCis2TokenMarket(contract_address!, token_id!).then(setMarket);
-	}, [contract_address, token_id]);
+		UserService.getSystemConfig().then(setContracts);
+	}, [contract_address, token_id, refreshCounter]);
 
 	useEffect(() => {
 		if (market) {
@@ -111,15 +120,7 @@ export default function ProjectTokenDetails() {
 				setMarketCurrencyMetdata,
 			);
 		}
-	}, [market]);
-
-	useEffect(() => {
-		IndexerService.getAdminIndexerCis2TokenYieldsList(contract_address!, token_id!).then(setYields);
-	}, [contract_address, token_id]);
-
-	useEffect(() => {
-		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!).then(setFund);
-	}, [contract_address, token_id]);
+	}, [market, refreshCounter]);
 
 	useEffect(() => {
 		if (fund) {
@@ -127,11 +128,7 @@ export default function ProjectTokenDetails() {
 				setFundCurrencyMetdata,
 			);
 		}
-	}, [fund]);
-
-	useEffect(() => {
-		UserService.getSystemConfig().then(setContracts);
-	}, [contract_address, token_id]);
+	}, [fund, refreshCounter]);
 
 	// Pre Sale Token
 	useEffect(() => {
@@ -169,160 +166,186 @@ export default function ProjectTokenDetails() {
 		}
 	}, [preSaleTokenContract, token_id]);
 
-	if (loading) {
-		return <CircularProgress />;
-	}
+	useEffect(() => {
+		if (tokenContract) {
+			ForestProjectService.getAdminForestProjects(tokenContract.forest_project_id).then(setProject);
+		}
+	}, [tokenContract]);
 
-	if (!token) {
-		return <Typography>No token found</Typography>;
+	if (!token || !project || !tokenContract) {
+		return <div>Loading...</div>;
 	}
 
 	return (
-		<Box sx={{ flexGrow: 1, padding: 2 }}>
-			<Grid container spacing={2}>
-				<Grid item xs={12} md={8}>
-					<Paper sx={{ padding: 2 }}>
-						<TokenDetails token={token} tokenContract={tokenContract} />
-					</Paper>
-					<Accordion sx={{ marginTop: 2 }}>
-						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-							<Typography>Market Details</Typography>
-						</AccordionSummary>
-						<AccordionDetails>
-							{market ? (
-								<MarketDetails market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
-							) : (
-								<Typography>No market details available</Typography>
-							)}
-						</AccordionDetails>
-					</Accordion>
-					<Accordion sx={{ marginTop: 2 }}>
-						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-							<Typography>Pre Sale Token</Typography>
-						</AccordionSummary>
-						<AccordionDetails>
-							{preSaleToken ? (
-								<TokenDetails token={preSaleToken} tokenContract={preSaleTokenContract} />
-							) : (
-								<Typography>No Pre Sale Token Attached</Typography>
-							)}
-						</AccordionDetails>
-					</Accordion>
-					<Accordion sx={{ marginTop: 2 }}>
-						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-							<Typography>Fund Details</Typography>
-						</AccordionSummary>
-						<AccordionDetails>
-							{fund ? (
-								<FundDetails
-									fund={fund}
-									tokenContract={preSaleTokenContract}
-									investmentTokenContract={tokenContract}
-									currencyMetadata={fundCurrencyMetdata}
-								/>
-							) : (
-								<Typography>No fund details available</Typography>
-							)}
-						</AccordionDetails>
-					</Accordion>
-					<Accordion sx={{ marginTop: 2 }}>
-						<AccordionSummary expandIcon={<ExpandMoreIcon />}>
-							<Typography>Yields</Typography>
-						</AccordionSummary>
-						<AccordionDetails>
-							{yields.length > 0 && tokenContract && contracts ? (
-								<Yields
-									tokenId={token_id!}
-									tokenContract={tokenContract!}
-									yielderContract={contracts.yielder_contract_index}
-									yields={yields}
-								/>
-							) : (
-								<Typography>No yields available</Typography>
-							)}
-						</AccordionDetails>
-					</Accordion>
+		<>
+			<Breadcrumbs aria-label="breadcrumb">
+				<Link to="/admin">Admin</Link>
+				<Link to="/admin/projects">Projects</Link>
+				<Link to={`/admin/projects/${project.id}/details`}>{project.name}</Link>
+				<Link to={`/admin/projects/${project.id}/contract/${contract_address}/details`}>
+					{tokenContract.contract_type} - {tokenContract.contract_address}
+				</Link>
+				<Typography color="textPrimary">Token ID: {token_id}</Typography>
+			</Breadcrumbs>
+			<Box sx={{ flexGrow: 1, padding: 2 }}>
+				<Grid container spacing={2}>
+					<Grid item xs={12} md={8}>
+						<Paper sx={{ padding: 2 }}>
+							<TokenDetails
+								token={token}
+								tokenContract={tokenContract}
+								onDeleteToken={() => setRefreshCounter((c) => c + 1)}
+							/>
+						</Paper>
+						<Accordion sx={{ marginTop: 2 }}>
+							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+								<Typography>Market Details</Typography>
+							</AccordionSummary>
+							<AccordionDetails>
+								{market ? (
+									<MarketDetails market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
+								) : (
+									<Typography>No market details available</Typography>
+								)}
+							</AccordionDetails>
+						</Accordion>
+						<Accordion sx={{ marginTop: 2 }}>
+							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+								<Typography>Pre Sale Token</Typography>
+							</AccordionSummary>
+							<AccordionDetails>
+								{preSaleToken ? (
+									<TokenDetails
+										token={preSaleToken}
+										tokenContract={preSaleTokenContract}
+										onDeleteToken={() => setRefreshCounter((c) => c + 1)}
+									/>
+								) : (
+									<Typography>No Pre Sale Token Attached</Typography>
+								)}
+							</AccordionDetails>
+						</Accordion>
+						<Accordion sx={{ marginTop: 2 }}>
+							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+								<Typography>Fund Details</Typography>
+							</AccordionSummary>
+							<AccordionDetails>
+								{fund ? (
+									<FundDetails
+										fund={fund}
+										tokenContract={preSaleTokenContract}
+										investmentTokenContract={tokenContract}
+										currencyMetadata={fundCurrencyMetdata}
+									/>
+								) : (
+									<Typography>No fund details available</Typography>
+								)}
+							</AccordionDetails>
+						</Accordion>
+						<Accordion sx={{ marginTop: 2 }}>
+							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+								<Typography>Yields</Typography>
+							</AccordionSummary>
+							<AccordionDetails>
+								{yields.length > 0 && tokenContract && contracts ? (
+									<Yields
+										tokenId={token_id!}
+										tokenContract={tokenContract!}
+										yielderContract={contracts.yielder_contract_index}
+										yields={yields}
+										onRemoveYield={() => setRefreshCounter((c) => c + 1)}
+									/>
+								) : (
+									<Typography>No yields available</Typography>
+								)}
+							</AccordionDetails>
+						</Accordion>
+					</Grid>
+					<Grid item xs={12} md={4}>
+						<Paper sx={{ padding: 2 }}>
+							<Typography variant="h6" gutterBottom>
+								Actions
+							</Typography>
+							<List>
+								<ListItemButton onClick={handleOpenYieldPopup}>
+									<ListItemIcon>
+										<AddIcon />
+									</ListItemIcon>
+									<ListItemText primary="Add Yield" />
+								</ListItemButton>
+								<ListItemButton onClick={handleOpenPreSaleTokenPopup} disabled={!!preSaleToken || !preSaleTokenContract}>
+									<ListItemIcon>
+										<AddIcon />
+									</ListItemIcon>
+									<ListItemText primary="Add Pre Sale Token" />
+								</ListItemButton>
+								<ListItemButton
+									onClick={handleOpenFundPopup}
+									disabled={!!fund || !(contracts && contracts.mint_funds_contract && tokenContract && preSaleTokenContract)}
+								>
+									<ListItemIcon>
+										<AddIcon />
+									</ListItemIcon>
+									<ListItemText primary="Add Fund" />
+								</ListItemButton>
+								<ListItemButton onClick={handleOpenMarketPopup} disabled={!!market}>
+									<ListItemIcon>
+										<AddIcon />
+									</ListItemIcon>
+									<ListItemText primary="Add Market" />
+								</ListItemButton>
+							</List>
+						</Paper>
+					</Grid>
 				</Grid>
-				<Grid item xs={12} md={4}>
-					<Paper sx={{ padding: 2 }}>
-						<Typography variant="h6" gutterBottom>
-							Actions
-						</Typography>
-						<List>
-							<ListItemButton onClick={handleOpenYieldPopup}>
-								<ListItemIcon>
-									<AddIcon />
-								</ListItemIcon>
-								<ListItemText primary="Add Yield" />
-							</ListItemButton>
-							<ListItemButton onClick={handleOpenPreSaleTokenPopup} disabled={!!preSaleToken || !preSaleTokenContract}>
-								<ListItemIcon>
-									<AddIcon />
-								</ListItemIcon>
-								<ListItemText primary="Add Pre Sale Token" />
-							</ListItemButton>
-							<ListItemButton
-								onClick={handleOpenFundPopup}
-								disabled={!!fund || !(contracts && contracts.mint_funds_contract && tokenContract && preSaleTokenContract)}
-							>
-								<ListItemIcon>
-									<AddIcon />
-								</ListItemIcon>
-								<ListItemText primary="Add Fund" />
-							</ListItemButton>
-							<ListItemButton onClick={handleOpenMarketPopup} disabled={!!market}>
-								<ListItemIcon>
-									<AddIcon />
-								</ListItemIcon>
-								<ListItemText primary="Add Market" />
-							</ListItemButton>
-						</List>
-					</Paper>
-				</Grid>
-			</Grid>
-			<Dialog open={openYieldPopup} onClose={handleCloseYieldPopup}>
-				<DialogTitle>Add Yield</DialogTitle>
-				<DialogContent>
-					<AddYieldPopup contract_address={contract_address!} token_id={token_id!} onDone={() => window.location.reload()} />
-				</DialogContent>
-			</Dialog>
-			{contracts && contracts.mint_funds_contract && tokenContract && preSaleTokenContract && (
-				<Dialog open={openFundPopup} onClose={handleCloseFundPopup} fullWidth>
-					<DialogTitle>Add Fund</DialogTitle>
+				<Dialog open={openYieldPopup} onClose={handleCloseYieldPopup}>
+					<DialogTitle>Add Yield</DialogTitle>
 					<DialogContent>
-						<AddFundPopup
-							tokenId={token_id!}
-							forestProjectId={id!}
-							onDone={() => window.location.reload()}
-							fundContract={contracts.mint_funds_contract}
-							tokenContract={tokenContract}
-							preSaleTokenContract={preSaleTokenContract}
+						<AddYieldPopup
+							contract_address={contract_address!}
+							token_id={token_id!}
+							onDone={() => setRefreshCounter((c) => c + 1)}
 						/>
 					</DialogContent>
 				</Dialog>
-			)}
-			<Dialog open={openMarketPopup} onClose={handleCloseMarketPopup}>
-				<DialogTitle>Add Market</DialogTitle>
-				<DialogContent>
-					<AddMarketPopup
-						contract_address={contract_address!}
-						token_id={token_id!}
-						onDone={() => window.location.reload()}
-					/>
-				</DialogContent>
-			</Dialog>
-			{preSaleTokenContract && (
-				<Dialog open={openPreSaleTokenPopup} onClose={handleClosePreSaleTokenPopup} fullWidth>
-					<DialogTitle>Add Pre Sale Token</DialogTitle>
+				{contracts && contracts.mint_funds_contract && tokenContract && preSaleTokenContract && (
+					<Dialog open={openFundPopup} onClose={handleCloseFundPopup} fullWidth>
+						<DialogTitle>Add Fund</DialogTitle>
+						<DialogContent>
+							<AddFundPopup
+								tokenId={token_id!}
+								forestProjectId={id!}
+								onDone={() => setRefreshCounter((c) => c + 1)}
+								fundContract={contracts.mint_funds_contract}
+								tokenContract={tokenContract}
+								preSaleTokenContract={preSaleTokenContract}
+							/>
+						</DialogContent>
+					</Dialog>
+				)}
+				<Dialog open={openMarketPopup} onClose={handleCloseMarketPopup}>
+					<DialogTitle>Add Market</DialogTitle>
 					<DialogContent>
-						<AddProjectTokenPopup
-							token_contract={preSaleTokenContract}
-							token_id={token_id}
-							onDone={() => window.location.reload()}
+						<AddMarketPopup
+							contract_address={contract_address!}
+							token_id={token_id!}
+							onDone={() => setRefreshCounter((c) => c + 1)}
 						/>
 					</DialogContent>
 				</Dialog>
-			)}
-		</Box>
+				{preSaleTokenContract && (
+					<Dialog open={openPreSaleTokenPopup} onClose={handleClosePreSaleTokenPopup} fullWidth>
+						<DialogTitle>Add Pre Sale Token</DialogTitle>
+						<DialogContent>
+							<AddProjectTokenPopup
+								token_contract={preSaleTokenContract}
+								token_id={token_id}
+								onDone={() => setRefreshCounter((c) => c + 1)}
+							/>
+						</DialogContent>
+					</Dialog>
+				)}
+			</Box>
+		</>
 	);
 }

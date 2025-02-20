@@ -33,7 +33,17 @@ export default function OtpInput({ control, name, length, error }: OtpInputProps
 
 	return (
 		<>
-			<div id="input-divs" style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: "296px", margin: "auto", marginBottom: "50px" }}>
+			<div
+				id="input-divs"
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					maxWidth: "296px",
+					margin: "auto",
+					marginBottom: "50px",
+				}}
+			>
 				<div style={{ display: "flex", justifyContent: "center" }}>
 					{new Array(length).fill("").map((_, index) => (
 						<input
@@ -49,7 +59,11 @@ export default function OtpInput({ control, name, length, error }: OtpInputProps
 						/>
 					))}
 				</div>
-				{error && <p className="error" style={{ textAlign: "center", marginTop: "10px" }}>{error.message?.toString()}</p>}
+				{error && (
+					<p className="error" style={{ textAlign: "center", marginTop: "10px" }}>
+						{error.message?.toString()}
+					</p>
+				)}
 			</div>
 		</>
 	);

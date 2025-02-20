@@ -4,9 +4,8 @@
 /* eslint-disable */
 
 export type TokenMetadata = {
-    contract_address: string;
-    token_id: string;
-    symbol?: string;
-    decimals?: number;
+	contract_address: string;
+	token_id: string;
+	symbol?: string;
+	decimals?: number;
 };
-

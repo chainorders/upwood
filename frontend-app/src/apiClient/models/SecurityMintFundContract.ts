@@ -4,9 +4,8 @@
 /* eslint-disable */
 
 export type SecurityMintFundContract = {
-    contract_address: string;
-    currency_token_contract_address: string;
-    currency_token_id: string;
-    create_time: string;
+	contract_address: string;
+	currency_token_contract_address: string;
+	currency_token_id: string;
+	create_time: string;
 };
-

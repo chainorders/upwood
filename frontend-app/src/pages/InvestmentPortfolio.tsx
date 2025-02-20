@@ -24,6 +24,7 @@ export default function InvestmentPortfolio() {
 	useEffect(() => {
 		ForestProjectService.getForestProjectsListOwned().then(setProjects);
 		InvestmentPortfolioService.getPortfolioValueLastNMonths(6).then((response) => {
+			response.forEach((r) => (r.portfolio_value = toDisplayAmount(r.portfolio_value, 6, 0)));
 			setPortfolioValues(response.reverse());
 		});
 		InvestmentPortfolioService.getPortfolioAggregate().then(setPortfolioAgg);

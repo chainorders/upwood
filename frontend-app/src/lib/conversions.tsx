@@ -139,7 +139,7 @@ export const parseFinalizedUpdate: (
 
 export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2) {
 	const amountNum = BigInt(amount);
-	const amountStr = amountNum.toString();
+	const amountStr = amountNum.toString().padStart(decimals + 1, "0");
 	const amountStrLen = amountStr.length;
 	const integerPart = amountStr.slice(0, amountStrLen - decimals);
 	const decimalPart = amountStr.slice(amountStrLen - decimals);

@@ -4,8 +4,7 @@
 /* eslint-disable */
 
 export type ListenerBlock = {
-    block_height: string;
-    block_hash: Array<number>;
-    block_slot_time: string;
+	block_height: string;
+	block_hash: Array<number>;
+	block_slot_time: string;
 };
-

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { SystemContractsConfigApiModel, UserKYCModel, UserService } from "../../apiClient";
-import { User } from "../../lib/user";
 import { useOutletContext, useNavigate } from "react-router";
 import {
 	Table,
@@ -18,6 +17,7 @@ import {
 import { TxnStatus, updateContract } from "../../lib/concordium";
 import rwaIdentityRegistry from "../../contractClients/generated/rwaIdentityRegistry";
 import TransactionButton from "../../components/TransactionButton";
+import { User } from "../../lib/user";
 
 export default function UserList() {
 	const { user } = useOutletContext<{ user: User }>();
@@ -54,7 +54,7 @@ export default function UserList() {
 		navigate("/admin/users/invitations");
 	};
 
-	const handleRegisterIdentity = async (user: UserKYCModel) => {
+	const handleRegisterIdentity = async (userToRegister: UserKYCModel) => {
 		if (!contracts) {
 			alert("System contracts not loaded");
 			return;
@@ -62,37 +62,37 @@ export default function UserList() {
 
 		try {
 			await updateContract(
-				user.account_address,
+				user.concordiumAccountAddress,
 				contracts.identity_registry_contract_index,
 				rwaIdentityRegistry.registerIdentity,
 				{
-					address: { Account: [user.account_address] },
+					address: { Account: [userToRegister.account_address] },
 					identity: {
 						credentials: [],
 						attributes: [
 							{
 								tag: 5,
-								value: user.nationality,
+								value: userToRegister.nationality,
 							},
 						],
 					},
 				},
 				(status) => {
-					setRegisterIdentityTxnStatus((prev) => ({ ...prev, [user.account_address]: status }));
+					setRegisterIdentityTxnStatus((prev) => ({ ...prev, [userToRegister.account_address]: status }));
 				},
 			);
 			alert("Identity registered successfully");
 			setUsers((prevUsers) =>
-				prevUsers.map((u) => (u.cognito_user_id === user.cognito_user_id ? { ...u, kyc_verified: true } : u)),
+				prevUsers.map((u) => (u.cognito_user_id === userToRegister.cognito_user_id ? { ...u, kyc_verified: true } : u)),
 			);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to register identity");
-			setRegisterIdentityTxnStatus((prev) => ({ ...prev, [user.account_address]: "error" }));
+			setRegisterIdentityTxnStatus((prev) => ({ ...prev, [userToRegister.account_address]: "error" }));
 		}
 	};
 
-	const handleDeleteIdentity = async (user: UserKYCModel) => {
+	const handleDeleteIdentity = async (userToRegister: UserKYCModel) => {
 		if (!contracts) {
 			alert("System contracts not loaded");
 			return;
@@ -100,24 +100,24 @@ export default function UserList() {
 
 		try {
 			await updateContract(
-				user.account_address,
+				user.concordiumAccountAddress,
 				contracts.identity_registry_contract_index,
 				rwaIdentityRegistry.deleteIdentity,
 				{
-					Account: [user.account_address],
+					Account: [userToRegister.account_address],
 				},
 				(status) => {
-					setRemoveIdentityTxnStatus((prev) => ({ ...prev, [user.account_address]: status }));
+					setRemoveIdentityTxnStatus((prev) => ({ ...prev, [userToRegister.account_address]: status }));
 				},
 			);
 			alert("Identity removed successfully");
 			setUsers((prevUsers) =>
-				prevUsers.map((u) => (u.cognito_user_id === user.cognito_user_id ? { ...u, kyc_verified: false } : u)),
+				prevUsers.map((u) => (u.cognito_user_id === userToRegister.cognito_user_id ? { ...u, kyc_verified: false } : u)),
 			);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to remove identity");
-			setRemoveIdentityTxnStatus((prev) => ({ ...prev, [user.account_address]: "error" }));
+			setRemoveIdentityTxnStatus((prev) => ({ ...prev, [userToRegister.account_address]: "error" }));
 		}
 	};
 

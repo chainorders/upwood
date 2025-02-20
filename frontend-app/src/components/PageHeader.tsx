@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { User } from "../lib/user";
 
 export default function PageHeader(props: { parts: { name: string; link?: string }[]; user: User }) {
-	const { fullName, initialis } = props.user;
+	const { fullName, initialis, concordiumAccountAddress } = props.user;
 
 	return (
 		<>
@@ -24,7 +24,7 @@ export default function PageHeader(props: { parts: { name: string; link?: string
 									</span>
 								);
 							})}
-							<div className="username fr" style={{ marginTop: "-0.5em" }} title={props.user.concordiumAccountAddress}>
+							<div className="username fr" style={{ marginTop: "-0.5em" }} title={concordiumAccountAddress}>
 								<span>{initialis}</span>
 								{fullName}
 							</div>

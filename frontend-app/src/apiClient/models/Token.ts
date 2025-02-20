@@ -4,13 +4,12 @@
 /* eslint-disable */
 
 export type Token = {
-    cis2_address: string;
-    token_id: string;
-    is_paused: boolean;
-    metadata_url: string;
-    metadata_hash?: string;
-    supply: string;
-    create_time: string;
-    update_time: string;
+	cis2_address: string;
+	token_id: string;
+	is_paused: boolean;
+	metadata_url: string;
+	metadata_hash?: string;
+	supply: string;
+	create_time: string;
+	update_time: string;
 };
-

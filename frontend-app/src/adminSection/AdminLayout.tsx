@@ -1,9 +1,20 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router";
-import { AppBar, Toolbar, Typography, Box, Drawer, List, ListItem, ListItemText, ListItemIcon, IconButton } from "@mui/material";
+import {
+	AppBar,
+	Toolbar,
+	Typography,
+	Box,
+	Drawer,
+	List,
+	ListItem,
+	ListItemText,
+	ListItemIcon,
+	IconButton,
+} from "@mui/material";
 import { User } from "../lib/user";
-import MenuIcon from "@mui/icons-material/Menu";
-import navActiveProjectNormal from "../assets/nav-active-project-normal.svg";
-import navActiveProjectWhite from "../assets/nav-active-project-white.svg";
+import ProjectIcon from "@mui/icons-material/Folder";
+import UsersIcon from "@mui/icons-material/Group";
+import logoImage from "../assets/logo.svg";
 
 function UserAvatar({ user }: { user: User }) {
 	return (
@@ -33,27 +44,25 @@ export default function AdminLayout(props: { user?: User; logout: () => void }) 
 	const pathname = location.pathname;
 	const navItems = [
 		{
-			name: "PROJECTS",
+			name: "Projects",
 			url: "/admin/projects",
-			iconNormal: navActiveProjectNormal,
-			iconActive: navActiveProjectWhite,
+			icon: <ProjectIcon />,
 			isActive: pathname.startsWith("/admin/projects"),
 		},
 		{
 			name: "Users",
 			url: "/admin/users",
-			iconNormal: navActiveProjectNormal,
-			iconActive: navActiveProjectWhite,
+			icon: <UsersIcon />,
 			isActive: pathname.startsWith("/admin/users"),
 		},
 	];
 
 	return props.user && props.user.isAdmin ? (
 		<Box sx={{ display: "flex" }}>
-			<AppBar position="fixed">
+			<AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
 				<Toolbar>
 					<IconButton edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
-						<MenuIcon />
+						<img src={logoImage} alt="Website Logo" style={{ width: 40, height: 40, display: "block" }} />
 					</IconButton>
 					<Typography variant="h6" sx={{ flexGrow: 1 }}>
 						Admin
@@ -74,9 +83,7 @@ export default function AdminLayout(props: { user?: User; logout: () => void }) 
 					<List>
 						{navItems.map((item) => (
 							<ListItem button key={item.url} component={Link} to={item.url} selected={item.isActive}>
-								<ListItemIcon>
-									<img src={item.isActive ? item.iconActive : item.iconNormal} alt={item.name} />
-								</ListItemIcon>
+								<ListItemIcon>{item.icon}</ListItemIcon>
 								<ListItemText primary={item.name} />
 							</ListItem>
 						))}

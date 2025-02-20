@@ -8,7 +8,10 @@ import CCDScanModuleLink from "../common/concordium/CCDScanModuleLink";
 import CCDScanContractLink from "../common/concordium/CCDScanContractLink";
 import CCDScanAccountLink from "../common/concordium/CCDScanAccountLink";
 
-export default function ContractLayout(props: { contracts: Contract[], contractType: string }) {
+export default function ContractLayout(props: {
+	contracts: Contract[];
+	contractType: string;
+}) {
 	const { index, subIndex } = useParams();
 	const contract = props.contracts.find((contract) => {
 		return (
@@ -21,7 +24,7 @@ export default function ContractLayout(props: { contracts: Contract[], contractT
 			subindex: BigInt(subIndex!),
 		},
 		name: "Unknown",
-		type: props.contractType
+		type: props.contractType,
 	};
 
 	const [onChainInfo, setOncChainInfo] = useState<InstanceInfo>();

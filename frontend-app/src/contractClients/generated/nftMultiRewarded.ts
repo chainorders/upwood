@@ -7,9 +7,7 @@
 import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "nft_multi_rewarded";
-export type initRequest = {
-	reward_token: { contract: { index: number; subindex: number }; id: string };
-};
+export type initRequest = { reward_token: { contract: { index: number; subindex: number }; id: string } };
 export const initRequestSchemaBase64 = "FAABAAAADAAAAHJld2FyZF90b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAA==";
 export const initErrorSchemaBase64 =
 	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
@@ -30,9 +28,7 @@ export type AddAgentError =
 	| { InvalidContractAddress: Record<string, never> };
 export const addAgentErrorSchemaBase64 =
 	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
-export type AddAgentRequest = {
-	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-};
+export type AddAgentRequest = { address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } };
 export const addAgentRequestSchemaBase64 =
 	"FAABAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
 export type BalanceOfError =
@@ -77,9 +73,7 @@ export type IsAgentError =
 	| { InvalidContractAddress: Record<string, never> };
 export const isAgentErrorSchemaBase64 =
 	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
-export type IsAgentRequest = {
-	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-};
+export type IsAgentRequest = { address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } };
 export const isAgentRequestSchemaBase64 =
 	"FAABAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
 export type IsAgentResponse = boolean;
@@ -108,10 +102,7 @@ export type MintRequest = {
 	data: {
 		signed_metadata: {
 			contract_address: { index: number; subindex: number };
-			metadata_url: {
-				url: string;
-				hash: { None: Record<string, never> } | { Some: [string] };
-			};
+			metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 			account: string;
 			account_nonce: bigint;
 		};
@@ -209,10 +200,7 @@ export const tokenMetadataErrorSchemaBase64 =
 	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
 export type TokenMetadataRequest = Array<string>;
 export const tokenMetadataRequestSchemaBase64 = "EAEdAA==";
-export type TokenMetadataResponse = Array<{
-	url: string;
-	hash: { None: Record<string, never> } | { Some: [string] };
-}>;
+export type TokenMetadataResponse = Array<{ url: string; hash: { None: Record<string, never> } | { Some: [string] } }>;
 export const tokenMetadataResponseSchemaBase64 =
 	"EAEUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAA";
 export type TransferError =
@@ -261,10 +249,7 @@ export const transferMintErrorSchemaBase64 =
 export type TransferMintRequest = {
 	signed_metadata: {
 		contract_address: { index: number; subindex: number };
-		metadata_url: {
-			url: string;
-			hash: { None: Record<string, never> } | { Some: [string] };
-		};
+		metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 		account: string;
 		account_nonce: bigint;
 	};
@@ -297,87 +282,45 @@ export type UpdateOperatorRequest = Array<{
 export const updateOperatorRequestSchemaBase64 =
 	"EAEUAAIAAAAGAAAAdXBkYXRlFQIAAAAGAAAAUmVtb3ZlAgMAAABBZGQCCAAAAG9wZXJhdG9yFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type event =
-	| {
-			RewardTokenUpdated: [
-				{
-					reward_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
-				},
-			];
-	  }
-	| {
-			AgentAdded: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
-	| {
-			AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
-	| {
-			NonceUpdated: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }, bigint];
-	  }
+	| { RewardTokenUpdated: [{ reward_token: { contract: { index: number; subindex: number }; id: string } }] }
+	| { AgentAdded: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
+	| { AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
+	| { NonceUpdated: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }, bigint] }
 	| {
 			Cis2: [
 				| {
 						TokenMetadata: {
 							token_id: string;
-							metadata_url: {
-								url: string;
-								hash: { None: Record<string, never> } | { Some: [string] };
-							};
+							metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 						};
 				  }
 				| {
 						UpdateOperator: {
 							update: { Remove: Record<string, never> } | { Add: Record<string, never> };
-							owner:
-								| { Account: [string] }
-								| {
-										Contract: [{ index: number; subindex: number }];
-								  };
-							operator:
-								| { Account: [string] }
-								| {
-										Contract: [{ index: number; subindex: number }];
-								  };
+							owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+							operator: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 						};
 				  }
 				| {
 						Burn: {
 							token_id: string;
 							amount: string;
-							owner:
-								| { Account: [string] }
-								| {
-										Contract: [{ index: number; subindex: number }];
-								  };
+							owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 						};
 				  }
 				| {
 						Mint: {
 							token_id: string;
 							amount: string;
-							owner:
-								| { Account: [string] }
-								| {
-										Contract: [{ index: number; subindex: number }];
-								  };
+							owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 						};
 				  }
 				| {
 						Transfer: {
 							token_id: string;
 							amount: string;
-							from:
-								| { Account: [string] }
-								| {
-										Contract: [{ index: number; subindex: number }];
-								  };
-							to:
-								| { Account: [string] }
-								| {
-										Contract: [{ index: number; subindex: number }];
-								  };
+							from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+							to: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 						};
 				  },
 			];

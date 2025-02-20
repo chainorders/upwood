@@ -4,10 +4,9 @@
 /* eslint-disable */
 
 export type Notification = {
-    id: string;
-    project_id: string;
-    cognito_user_id: string;
-    created_at: string;
-    updated_at: string;
+	id: string;
+	project_id: string;
+	cognito_user_id: string;
+	created_at: string;
+	updated_at: string;
 };
-

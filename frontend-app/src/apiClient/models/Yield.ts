@@ -3,17 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { YieldType } from './YieldType';
+import type { YieldType } from "./YieldType";
 
 export type Yield = {
-    contract_address: string;
-    token_contract_address: string;
-    token_id: string;
-    yield_contract_address: string;
-    yield_token_id: string;
-    yield_rate_numerator: string;
-    yield_rate_denominator: string;
-    yield_type: YieldType;
-    create_time: string;
+	contract_address: string;
+	token_contract_address: string;
+	token_id: string;
+	yield_contract_address: string;
+	yield_token_id: string;
+	yield_rate_numerator: string;
+	yield_rate_denominator: string;
+	yield_type: YieldType;
+	create_time: string;
 };
-

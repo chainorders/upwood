@@ -11,7 +11,7 @@ import {
 } from "../../../apiClient";
 import securityP2PTrading from "../../../contractClients/generated/securityP2PTrading";
 import { toTokenId } from "../../../lib/conversions";
-import { useForm, Controller, } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import TransactionButton from "../../../components/TransactionButton";
@@ -86,13 +86,13 @@ export default function AddMarketPopup({ contract_address, token_id, onDone }: P
 					},
 				},
 				setTxnStatus,
-            );
-            setTxnStatus("success");
-            onDone();
+			);
+			setTxnStatus("success");
+			onDone();
 		} catch (error) {
 			console.error(error);
-            setTxnStatus("error");
-            onDone("Failed to add market");
+			setTxnStatus("error");
+			onDone("Failed to add market");
 		}
 	};
 

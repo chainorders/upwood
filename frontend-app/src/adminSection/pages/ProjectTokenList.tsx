@@ -25,6 +25,7 @@ export default function ProjectTokenList() {
 	const [tokens, setTokens] = useState<Token[]>([]);
 	const [tokenContract, setTokenContract] = useState<ForestProjectTokenContract | null>(null);
 	const [openPopup, setOpenPopup] = useState(false);
+	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	const handleOpenPopup = () => {
 		setOpenPopup(true);
@@ -32,7 +33,7 @@ export default function ProjectTokenList() {
 
 	const handleClosePopup = () => {
 		setOpenPopup(false);
-		window.location.reload();
+		setRefreshCounter((c) => c + 1);
 	};
 
 	useEffect(() => {
@@ -50,7 +51,7 @@ export default function ProjectTokenList() {
 			.catch(() => {
 				alert("Failed to fetch tokens");
 			});
-	}, [id, contract_address]);
+	}, [id, contract_address, refreshCounter]);
 
 	return (
 		<Box sx={{ flexGrow: 1, padding: 2 }}>

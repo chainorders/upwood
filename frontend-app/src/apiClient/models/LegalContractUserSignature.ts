@@ -4,11 +4,10 @@
 /* eslint-disable */
 
 export type LegalContractUserSignature = {
-    project_id: string;
-    cognito_user_id: string;
-    user_account: string;
-    user_signature: string;
-    created_at: string;
-    updated_at: string;
+	project_id: string;
+	cognito_user_id: string;
+	user_account: string;
+	user_signature: string;
+	created_at: string;
+	updated_at: string;
 };
-

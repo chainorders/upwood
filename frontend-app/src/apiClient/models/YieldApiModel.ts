@@ -3,11 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { TokenMetadata } from './TokenMetadata';
-import type { Yield } from './Yield';
+import type { TokenMetadata } from "./TokenMetadata";
+import type { Yield } from "./Yield";
 
 export type YieldApiModel = {
-    yield_: Yield;
-    yield_token_metadata?: TokenMetadata;
+	yield_: Yield;
+	yield_token_metadata?: TokenMetadata;
 };
-

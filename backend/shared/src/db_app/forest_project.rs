@@ -51,20 +51,18 @@ pub struct ForestProject {
 
 impl ForestProject {
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<ForestProject> {
-        let project = diesel::insert_into(schema::forest_projects::table)
+        diesel::insert_into(schema::forest_projects::table)
             .values(self)
             .returning(ForestProject::as_returning())
-            .get_result(conn)?;
-        Ok(project)
+            .get_result(conn)
     }
 
     pub fn update(&self, conn: &mut DbConn) -> DbResult<ForestProject> {
-        let project = diesel::update(schema::forest_projects::table)
+        diesel::update(schema::forest_projects::table)
             .filter(schema::forest_projects::id.eq(self.id))
             .set(self)
             .returning(ForestProject::as_returning())
-            .get_result(conn)?;
-        Ok(project)
+            .get_result(conn)
     }
 
     pub fn find(conn: &mut DbConn, project_id: uuid::Uuid) -> DbResult<Option<Self>> {
@@ -82,26 +80,18 @@ impl ForestProject {
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
-        let query = schema::forest_projects::table.into_boxed();
-        let count_query = schema::forest_projects::table.into_boxed();
-        let query = match project_ids {
-            Some(project_ids) => query.filter(schema::forest_projects::id.eq_any(project_ids)),
-            None => query,
-        };
-        let query = match states {
-            Some(states) => query.filter(schema::forest_projects::state.eq_any(states)),
-            None => query,
-        };
-        let count_query = match project_ids {
-            Some(project_ids) => {
-                count_query.filter(schema::forest_projects::id.eq_any(project_ids))
-            }
-            None => count_query,
-        };
-        let count_query = match states {
-            Some(states) => count_query.filter(schema::forest_projects::state.eq_any(states)),
-            None => count_query,
-        };
+        let mut query = schema::forest_projects::table.into_boxed();
+        let mut count_query = schema::forest_projects::table.into_boxed();
+
+        if let Some(ids) = project_ids {
+            query = query.filter(schema::forest_projects::id.eq_any(ids));
+            count_query = count_query.filter(schema::forest_projects::id.eq_any(ids));
+        }
+
+        if let Some(states) = states {
+            query = query.filter(schema::forest_projects::state.eq_any(states));
+            count_query = count_query.filter(schema::forest_projects::state.eq_any(states));
+        }
 
         let projects = query
             .select(ForestProject::as_select())
@@ -122,16 +112,13 @@ impl ForestProject {
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Uuid>, i64)> {
-        let query = schema::forest_projects::table.into_boxed();
-        let count_query = schema::forest_projects::table.into_boxed();
-        let query = match states {
-            Some(states) => query.filter(schema::forest_projects::state.eq_any(states)),
-            None => query,
-        };
-        let count_query = match states {
-            Some(states) => count_query.filter(schema::forest_projects::state.eq_any(states)),
-            None => count_query,
-        };
+        let mut query = schema::forest_projects::table.into_boxed();
+        let mut count_query = schema::forest_projects::table.into_boxed();
+
+        if let Some(states) = states {
+            query = query.filter(schema::forest_projects::state.eq_any(states));
+            count_query = count_query.filter(schema::forest_projects::state.eq_any(states));
+        }
 
         let projects = query
             .select(schema::forest_projects::id)
@@ -222,20 +209,21 @@ impl ForestProjectMedia {
             .limit(page_size)
             .offset(page * page_size)
             .get_results(conn)?;
+
         let total_count = schema::forest_project_property_media::table
             .filter(schema::forest_project_property_media::project_id.eq(project_id))
             .count()
             .get_result::<i64>(conn)?;
+
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
         Ok((media, page_count))
     }
 
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<ForestProjectMedia> {
-        let media = diesel::insert_into(schema::forest_project_property_media::table)
+        diesel::insert_into(schema::forest_project_property_media::table)
             .values(self)
             .returning(ForestProjectMedia::as_returning())
-            .get_result(conn)?;
-        Ok(media)
+            .get_result(conn)
     }
 
     pub fn delete(conn: &mut DbConn, id: uuid::Uuid) -> DbResult<ForestProjectMedia> {
@@ -273,6 +261,7 @@ pub enum ForestProjectState {
     Draft,
     Active,
     Funded,
+    Bond,
     Archived,
 }
 
@@ -282,6 +271,7 @@ impl std::fmt::Display for ForestProjectState {
             ForestProjectState::Draft => write!(f, "Draft"),
             ForestProjectState::Active => write!(f, "Active"),
             ForestProjectState::Funded => write!(f, "Funded"),
+            ForestProjectState::Bond => write!(f, "Bond"),
             ForestProjectState::Archived => write!(f, "Archived"),
         }
     }
@@ -313,11 +303,10 @@ pub struct ForestProjectPrice {
 
 impl ForestProjectPrice {
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<ForestProjectPrice> {
-        let price = diesel::insert_into(schema::forest_project_prices::table)
+        diesel::insert_into(schema::forest_project_prices::table)
             .values(self)
             .returning(ForestProjectPrice::as_returning())
-            .get_result(conn)?;
-        Ok(price)
+            .get_result(conn)
     }
 
     pub fn latest(conn: &mut DbConn, project_id: uuid::Uuid) -> DbResult<Option<Self>> {
@@ -363,6 +352,7 @@ impl ForestProjectPrice {
             .filter(schema::forest_project_prices::project_id.eq(project_id))
             .count()
             .get_result::<i64>(conn)?;
+
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((prices, page_count))
@@ -408,6 +398,7 @@ impl ForestProjectPrice {
             ),
         )
         .execute(conn)
+        .map_err(Into::into)
     }
 }
 
@@ -437,17 +428,15 @@ pub struct LegalContractUserSignature {
 
 impl LegalContractUserSignature {
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<LegalContractUserSignature> {
-        let signature =
-            diesel::insert_into(schema::forest_project_legal_contract_user_signatures::table)
-                .values(self)
-                .returning(LegalContractUserSignature::as_returning())
-                .get_result(conn)?;
-        Ok(signature)
+        diesel::insert_into(schema::forest_project_legal_contract_user_signatures::table)
+            .values(self)
+            .returning(LegalContractUserSignature::as_returning())
+            .get_result(conn)
     }
 
     pub fn upsert(&self, conn: &mut DbConn) -> DbResult<LegalContractUserSignature> {
         use crate::schema::forest_project_legal_contract_user_signatures::dsl::*;
-        let signature = diesel::insert_into(forest_project_legal_contract_user_signatures)
+        diesel::insert_into(forest_project_legal_contract_user_signatures)
             .values(self)
             .on_conflict((project_id, cognito_user_id))
             .do_update()
@@ -457,8 +446,7 @@ impl LegalContractUserSignature {
                 updated_at.eq(excluded(updated_at)),
             ))
             .returning(LegalContractUserSignature::as_returning())
-            .get_result(conn)?;
-        Ok(signature)
+            .get_result(conn)
     }
 
     pub fn find(conn: &mut DbConn, id: Uuid, user_id: &str) -> DbResult<Option<Self>> {
@@ -478,21 +466,17 @@ impl LegalContractUserSignature {
     ) -> DbResult<(Vec<(Uuid, bool)>, i64)> {
         use crate::schema::forest_project_legal_contract_user_signatures::dsl::*;
 
-        let query = forest_project_legal_contract_user_signatures
+        let mut query = forest_project_legal_contract_user_signatures
             .filter(cognito_user_id.eq(user_id))
             .into_boxed();
-        let count_query = forest_project_legal_contract_user_signatures
+        let mut count_query = forest_project_legal_contract_user_signatures
             .filter(cognito_user_id.eq(user_id))
             .into_boxed();
 
-        let query = match project_ids {
-            Some(ids) => query.filter(project_id.eq_any(ids)),
-            None => query,
-        };
-        let count_query = match project_ids {
-            Some(ids) => count_query.filter(project_id.eq_any(ids)),
-            None => count_query,
-        };
+        if let Some(ids) = project_ids {
+            query = query.filter(project_id.eq_any(ids));
+            count_query = count_query.filter(project_id.eq_any(ids));
+        }
 
         let results = query
             .select((
@@ -541,11 +525,10 @@ pub struct LegalContract {
 impl LegalContract {
     pub fn find(conn: &mut DbConn, id: Uuid) -> DbResult<Option<Self>> {
         use crate::schema::forest_project_legal_contracts::dsl::*;
-        let contract = forest_project_legal_contracts
+        forest_project_legal_contracts
             .filter(project_id.eq(id))
             .first::<Self>(conn)
-            .optional()?;
-        Ok(contract)
+            .optional()
     }
 
     pub fn list(conn: &mut DbConn, page: i64, page_size: i64) -> DbResult<(Vec<Self>, i64)> {
@@ -567,20 +550,18 @@ impl LegalContract {
     }
 
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<LegalContract> {
-        let contract = diesel::insert_into(schema::forest_project_legal_contracts::table)
+        diesel::insert_into(schema::forest_project_legal_contracts::table)
             .values(self)
             .returning(LegalContract::as_returning())
-            .get_result(conn)?;
-        Ok(contract)
+            .get_result(conn)
     }
 
     pub fn update(&self, conn: &mut DbConn) -> DbResult<LegalContract> {
-        let contract = diesel::update(schema::forest_project_legal_contracts::table)
+        diesel::update(schema::forest_project_legal_contracts::table)
             .filter(schema::forest_project_legal_contracts::project_id.eq(self.project_id))
             .set(self)
             .returning(LegalContract::as_returning())
-            .get_result(conn)?;
-        Ok(contract)
+            .get_result(conn)
     }
 }
 
@@ -636,8 +617,8 @@ impl LegalContractUserModel {
             .offset(page * page_size)
             .load(conn)?
             .into_iter()
-            .map(|(project_id, name, tag, text_url, edoc_url, pdf_url, created_at, cognito_user_id, signed_date, user_token_balance)| {
-                LegalContractUserModel {
+            .map(
+                |(
                     project_id,
                     name,
                     tag,
@@ -648,8 +629,21 @@ impl LegalContractUserModel {
                     cognito_user_id,
                     signed_date,
                     user_token_balance,
-                }
-            })
+                )| {
+                    LegalContractUserModel {
+                        project_id,
+                        name,
+                        tag,
+                        text_url,
+                        edoc_url,
+                        pdf_url,
+                        created_at,
+                        cognito_user_id,
+                        signed_date,
+                        user_token_balance,
+                    }
+                },
+            )
             .collect::<Vec<Self>>();
 
         let total_count = contracts_dsl::forest_project_legal_contracts
@@ -711,24 +705,21 @@ impl Notification {
         project_id: Uuid,
         cognito_user_id: &str,
     ) -> DbResult<Option<Self>> {
-        let res = schema::forest_project_notifications::table
+        schema::forest_project_notifications::table
             .filter(
                 schema::forest_project_notifications::project_id
                     .eq(project_id)
                     .and(schema::forest_project_notifications::cognito_user_id.eq(cognito_user_id)),
             )
             .first(conn)
-            .optional()?;
-
-        Ok(res)
+            .optional()
     }
 
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<Notification> {
-        let notification = diesel::insert_into(schema::forest_project_notifications::table)
+        diesel::insert_into(schema::forest_project_notifications::table)
             .values(self)
             .returning(Notification::as_returning())
-            .get_result(conn)?;
-        Ok(notification)
+            .get_result(conn)
     }
 
     pub fn list_for_user(
@@ -740,21 +731,17 @@ impl Notification {
     ) -> DbResult<(Vec<(Uuid, bool)>, i64)> {
         use crate::schema::forest_project_notifications::dsl::*;
 
-        let query = forest_project_notifications
+        let mut query = forest_project_notifications
             .filter(cognito_user_id.eq(user_id))
             .into_boxed();
-        let count_query = forest_project_notifications
+        let mut count_query = forest_project_notifications
             .filter(cognito_user_id.eq(user_id))
             .into_boxed();
 
-        let query = match project_ids {
-            Some(ids) => query.filter(project_id.eq_any(ids)),
-            None => query,
-        };
-        let count_query = match project_ids {
-            Some(ids) => count_query.filter(project_id.eq_any(ids)),
-            None => count_query,
-        };
+        if let Some(ids) = project_ids {
+            query = query.filter(project_id.eq_any(ids));
+            count_query = count_query.filter(project_id.eq_any(ids));
+        }
 
         let results = query
             .select((

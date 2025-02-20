@@ -4,12 +4,11 @@
 /* eslint-disable */
 
 export type UserYieldsAggregate = {
-    cognito_user_id: string;
-    yielder_contract_address: string;
-    yield_token_id: string;
-    yield_contract_address: string;
-    yield_amount: string;
-    yield_token_symbol: string;
-    yield_token_decimals: number;
+	cognito_user_id: string;
+	yielder_contract_address: string;
+	yield_token_id: string;
+	yield_contract_address: string;
+	yield_amount: string;
+	yield_token_symbol: string;
+	yield_token_decimals: number;
 };
-

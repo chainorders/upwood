@@ -191,7 +191,14 @@ export default function Register() {
 					</div>
 				</div>
 				<div className="field mrbottom">
-					<Button style="style3" radius16 text="CONTINUE WITH DIGITAL WALLET CREATION" active type="button" />
+					<Button
+						style="style3"
+						radius16
+						text="CONTINUE WITH DIGITAL WALLET CREATION"
+						active
+						type="button"
+						link="https://chromewebstore.google.com/detail/concordium-wallet/mnnkpffndmickbiakofclnpoiajlegmg?hl=en"
+					/>
 				</div>
 				<div className="or">
 					<span>OR</span>

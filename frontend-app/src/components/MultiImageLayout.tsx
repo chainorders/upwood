@@ -18,11 +18,7 @@ export default function MultiImageLayout({ data }: MultiImageProps) {
 						{data.images.map((im, index) => (
 							<div className="col-3 col-m-full col-mr-bottom-10 fl" key={index}>
 								<div className="im">
-									<img
-										src={im}
-										width={100}
-										height={100}
-									/>
+									<img src={im} width={100} height={100} />
 								</div>
 							</div>
 						))}

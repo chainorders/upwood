@@ -8,10 +8,7 @@ import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@c
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "security_mint_fund";
 export type initRequest = {
-	currency_token: {
-		contract: { index: number; subindex: number };
-		id: string;
-	};
+	currency_token: { contract: { index: number; subindex: number }; id: string };
 	agents: Array<{
 		address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 		roles: Array<
@@ -40,19 +37,13 @@ export const addAgentRequestSchemaBase64 =
 export type AddFundRequest = {
 	token: { contract: { index: number; subindex: number }; id: string };
 	rate: { numerator: bigint; denominator: bigint };
-	security_token: {
-		contract: { index: number; subindex: number };
-		id: string;
-	};
+	security_token: { contract: { index: number; subindex: number }; id: string };
 };
 export const addFundRequestSchemaBase64 =
 	"FAADAAAABQAAAHRva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUOAAAAc2VjdXJpdHlfdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQA=";
 export type ClaimInvestmentRequest = {
 	investments: Array<{
-		security_token: {
-			contract: { index: number; subindex: number };
-			id: string;
-		};
+		security_token: { contract: { index: number; subindex: number }; id: string };
 		investor: string;
 	}>;
 };
@@ -68,37 +59,24 @@ export const investRequestSchemaBase64 =
 	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAA==";
 export type RemoveAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 export const removeAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
-export type RemoveFundRequest = {
-	contract: { index: number; subindex: number };
-	id: string;
-};
+export type RemoveFundRequest = { contract: { index: number; subindex: number }; id: string };
 export const removeFundRequestSchemaBase64 = "FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export type TransferInvestRequest = {
 	amount: string;
-	security_token: {
-		contract: { index: number; subindex: number };
-		id: string;
-	};
+	security_token: { contract: { index: number; subindex: number }; id: string };
 };
 export const transferInvestRequestSchemaBase64 =
 	"FAACAAAABgAAAGFtb3VudBslAAAADgAAAHNlY3VyaXR5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
 export type UpdateFundStateRequest = {
-	security_token: {
-		contract: { index: number; subindex: number };
-		id: string;
-	};
+	security_token: { contract: { index: number; subindex: number }; id: string };
 	state:
-		| {
-				Success: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }, string] }];
-		  }
+		| { Success: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }, string] }] }
 		| { Fail: Record<string, never> };
 };
 export const updateFundStateRequestSchemaBase64 =
 	"FAACAAAADgAAAHNlY3VyaXR5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAHN0YXRlFQIAAAAHAAAAU3VjY2VzcwEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAECAAAADBYBBAAAAEZhaWwC";
 export type event =
-	| {
-			Initialized: [{ contract: { index: number; subindex: number }; id: string }];
-	  }
+	| { Initialized: [{ contract: { index: number; subindex: number }; id: string }] }
 	| {
 			AgentAdded: [
 				{
@@ -112,43 +90,23 @@ export type event =
 				},
 			];
 	  }
-	| {
-			AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
+	| { AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
 	| {
 			FundAdded: [
 				{
-					token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					token: { contract: { index: number; subindex: number }; id: string };
 					rate: { numerator: bigint; denominator: bigint };
-					security_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					security_token: { contract: { index: number; subindex: number }; id: string };
 				},
 			];
 	  }
-	| {
-			FundRemoved: [{ contract: { index: number; subindex: number }; id: string }];
-	  }
+	| { FundRemoved: [{ contract: { index: number; subindex: number }; id: string }] }
 	| {
 			FundStateUpdated: [
 				{
-					security_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					security_token: { contract: { index: number; subindex: number }; id: string };
 					state:
-						| {
-								Success: [
-									| { Account: [string] }
-									| {
-											Contract: [{ index: number; subindex: number }, string];
-									  },
-								];
-						  }
+						| { Success: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }, string] }] }
 						| { Fail: Record<string, never> };
 				},
 			];
@@ -156,10 +114,7 @@ export type event =
 	| {
 			Invested: [
 				{
-					security_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					security_token: { contract: { index: number; subindex: number }; id: string };
 					investor: string;
 					security_amount: string;
 					currency_amount: string;
@@ -169,10 +124,7 @@ export type event =
 	| {
 			InvestmentClaimed: [
 				{
-					security_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					security_token: { contract: { index: number; subindex: number }; id: string };
 					investor: string;
 					security_amount: string;
 					currency_amount: string;
@@ -182,10 +134,7 @@ export type event =
 	| {
 			InvestmentCancelled: [
 				{
-					security_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					security_token: { contract: { index: number; subindex: number }; id: string };
 					investor: string;
 					security_amount: string;
 					currency_amount: string;
@@ -216,7 +165,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const securityMintFund = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("828b07d078c953b169dc2792f62aee769585d2a1d37fc7918aef99c1e52f17db"),
+		ModuleReference.fromHexString("20cc574f628efa6afe1fb747a5676cfb47ae28ec639db9ac7a240097f23e1140"),
 		ContractName.fromString("security_mint_fund"),
 		initRequestSchemaBase64,
 	),

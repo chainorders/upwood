@@ -86,10 +86,7 @@ export type GetIdentityRequest = { Account: [string] } | { Contract: [{ index: n
 export const getIdentityRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type GetIdentityResponse = {
 	attributes: Array<{ tag: number; value: string }>;
-	credentials: Array<{
-		issuer: { index: number; subindex: number };
-		key: string;
-	}>;
+	credentials: Array<{ issuer: { index: number; subindex: number }; key: string }>;
 };
 export const getIdentityResponseSchemaBase64 =
 	"FAACAAAACgAAAGF0dHJpYnV0ZXMQAhQAAgAAAAMAAAB0YWcCBQAAAHZhbHVlFgILAAAAY3JlZGVudGlhbHMQAhQAAgAAAAYAAABpc3N1ZXIMAwAAAGtleR4gAAAA";
@@ -192,10 +189,7 @@ export const registerIdentityErrorSchemaBase64 =
 export type RegisterIdentityRequest = {
 	identity: {
 		attributes: Array<{ tag: number; value: string }>;
-		credentials: Array<{
-			issuer: { index: number; subindex: number };
-			key: string;
-		}>;
+		credentials: Array<{ issuer: { index: number; subindex: number }; key: string }>;
 	};
 	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 };
@@ -253,28 +247,12 @@ export type SupportsResponse = Array<
 >;
 export const supportsResponseSchemaBase64 = "EAEVAwAAAAkAAABOb1N1cHBvcnQCBwAAAFN1cHBvcnQCCQAAAFN1cHBvcnRCeQEBAAAAEAAM";
 export type event =
-	| {
-			IdentityRegistered: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
-	| {
-			IdentityRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
+	| { IdentityRegistered: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
+	| { IdentityRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
 	| { IssuerAdded: [{ index: number; subindex: number }] }
 	| { IssuerRemoved: [{ index: number; subindex: number }] }
-	| {
-			AgentAdded: [
-				{
-					agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				},
-			];
-	  }
-	| {
-			AgentRemoved: [
-				{
-					agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				},
-			];
-	  };
+	| { AgentAdded: [{ agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] }
+	| { AgentRemoved: [{ agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] };
 export const eventSchemaBase64 =
 	"FQYAAAASAAAASWRlbnRpdHlSZWdpc3RlcmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMDwAAAElkZW50aXR5UmVtb3ZlZAEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAsAAABJc3N1ZXJBZGRlZAEBAAAADA0AAABJc3N1ZXJSZW1vdmVkAQEAAAAMCgAAAEFnZW50QWRkZWQBAQAAABQAAQAAAAUAAABhZ2VudBUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwMAAAAQWdlbnRSZW1vdmVkAQEAAAAUAAEAAAAFAAAAYWdlbnQVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {

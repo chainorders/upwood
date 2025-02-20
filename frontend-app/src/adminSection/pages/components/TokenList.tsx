@@ -22,9 +22,10 @@ import { useState } from "react";
 interface TokenListProps {
 	tokens: Token[];
 	tokenContract: ForestProjectTokenContract | null;
+	onTokenAdded: () => void;
 }
 
-export default function TokenList({ tokens, tokenContract }: TokenListProps) {
+export default function TokenList({ tokens, tokenContract, onTokenAdded }: TokenListProps) {
 	const navigate = useNavigate();
 	const [openPopup, setOpenPopup] = useState(false);
 
@@ -34,7 +35,7 @@ export default function TokenList({ tokens, tokenContract }: TokenListProps) {
 
 	const handleClosePopup = () => {
 		setOpenPopup(false);
-		window.location.reload();
+		onTokenAdded();
 	};
 
 	return (

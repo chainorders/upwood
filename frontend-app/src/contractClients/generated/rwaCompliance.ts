@@ -7,9 +7,7 @@
 import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@concordium/web-sdk";
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "rwa_compliance";
-export type initRequest = {
-	modules: Array<{ index: number; subindex: number }>;
-};
+export type initRequest = { modules: Array<{ index: number; subindex: number }> };
 export const initRequestSchemaBase64 = "FAABAAAABwAAAG1vZHVsZXMQAgw=";
 export const initErrorSchemaBase64 =
 	"FQcAAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDQAAAEludmFsaWRNb2R1bGUCEQAAAENhbGxDb250cmFjdEVycm9yAgwAAABVbmF1dGhvcml6ZWQCEgAAAEFnZW50QWxyZWFkeUV4aXN0cwINAAAAQWdlbnROb3RGb3VuZAI=";
@@ -179,20 +177,8 @@ export type TransferredRequest = {
 export const transferredRequestSchemaBase64 =
 	"FAAEAAAACAAAAHRva2VuX2lkFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABAAAAGZyb20VAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMAgAAAHRvFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAYAAABhbW91bnQbJQAAAA==";
 export type event =
-	| {
-			AgentRemoved: [
-				{
-					agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				},
-			];
-	  }
-	| {
-			AgentAdded: [
-				{
-					agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-				},
-			];
-	  }
+	| { AgentRemoved: [{ agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] }
+	| { AgentAdded: [{ agent: { Account: [string] } | { Contract: [{ index: number; subindex: number }] } }] }
 	| { ModuleAdded: [{ index: number; subindex: number }] }
 	| { ModuleRemoved: [{ index: number; subindex: number }] };
 export const eventSchemaBase64 =

@@ -32,9 +32,13 @@ function ForestProjectMediaSection({
 				<div className="container">
 					<div className="container-in">
 						{medias.map((im, index) => (
-							<div className="col-3 col-m-full col-mr-bottom-10 fl" key={index}>
+							<div
+								className="col-3 col-m-full col-mr-bottom-10 fl"
+								style={{ paddingLeft: "2px", paddingRight: "2px" }}
+								key={index}
+							>
 								<div className="im">
-									<img src={im.image_url} width={100} height={100} />
+									<img src={im.image_url} style={{ width: "100%", height: "auto", objectFit: "cover" }} />
 								</div>
 							</div>
 						))}
@@ -65,7 +69,7 @@ export default function ActiveForestProjectDetails() {
 	useEffect(() => {
 		UserService.getSystemConfig().then(setContracts);
 		ForestProjectService.getForestProjects(id!).then(setProject);
-		ForestProjectService.getForestProjectsMediaList(id!, 0).then(setMedias);
+		ForestProjectService.getForestProjectsMediaList(id!, 0, 5).then(setMedias);
 	}, [id]);
 	useTitle(project?.forest_project.name);
 	const contentRef = useRef<HTMLDivElement>(null);

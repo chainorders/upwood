@@ -4,9 +4,8 @@
 /* eslint-disable */
 
 export type MaintenanceMessage = {
-    id: string;
-    message: string;
-    created_at: string;
-    order_index: number;
+	id: string;
+	message: string;
+	created_at: string;
+	order_index: number;
 };
-

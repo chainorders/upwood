@@ -18,6 +18,7 @@ import {
 	SelectChangeEvent,
 	Typography,
 	ButtonGroup,
+	Breadcrumbs,
 } from "@mui/material";
 
 export default function ProjectList() {
@@ -50,6 +51,10 @@ export default function ProjectList() {
 
 	return (
 		<>
+			<Breadcrumbs aria-label="breadcrumb">
+				<Link to="/admin">Admin</Link>
+				<Link to="/admin/projects">Projects</Link>
+			</Breadcrumbs>
 			<Typography variant="h4" gutterBottom>
 				Forest Projects
 			</Typography>
@@ -69,6 +74,7 @@ export default function ProjectList() {
 						<MenuItem value={ForestProjectState.DRAFT}>Draft</MenuItem>
 						<MenuItem value={ForestProjectState.ACTIVE}>Active</MenuItem>
 						<MenuItem value={ForestProjectState.FUNDED}>Funded</MenuItem>
+						<MenuItem value={ForestProjectState.BOND}>Bond</MenuItem>
 						<MenuItem value={ForestProjectState.ARCHIVED}>Archived</MenuItem>
 					</Select>
 				</FormControl>

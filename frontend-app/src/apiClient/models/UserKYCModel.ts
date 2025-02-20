@@ -4,15 +4,14 @@
 /* eslint-disable */
 
 export type UserKYCModel = {
-    cognito_user_id: string;
-    email: string;
-    account_address: string;
-    first_name: string;
-    last_name: string;
-    nationality: string;
-    desired_investment_amount?: number;
-    affiliate_commission: string;
-    affiliate_account_address?: string;
-    kyc_verified: boolean;
+	cognito_user_id: string;
+	email: string;
+	account_address: string;
+	first_name: string;
+	last_name: string;
+	nationality: string;
+	desired_investment_amount?: number;
+	affiliate_commission: string;
+	affiliate_account_address?: string;
+	kyc_verified: boolean;
 };
-

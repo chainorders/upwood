@@ -6,6 +6,8 @@ import navContractsNormal from "./assets/nav-contracts-normal.svg";
 import navContractsWhite from "./assets/nav-contracts-white.svg";
 import navFundedProjectNormal from "./assets/nav-funded-project-normal.svg";
 import navFundedProjectWhite from "./assets/nav-funded-project-white.svg";
+import navBondNormal from "./assets/nav-bond-normal.svg";
+import navBondWhite from "./assets/nav-bond-white.svg";
 import navInvestmentPortfolioNormal from "./assets/nav-investment-portfolio-normal.svg";
 import navInvestmentPortfolioWhite from "./assets/nav-investment-portfolio-white.svg";
 import navNewsUpdatesNormal from "./assets/nav-news-updates-normal.svg";
@@ -35,6 +37,13 @@ export default function AuthLayout(props: { user?: User; logout: () => void }) {
 			iconNormal: navFundedProjectNormal,
 			iconActive: navFundedProjectWhite,
 			isActive: pathname.startsWith("/projects/funded"),
+		},
+		{
+			name: "INVESTMENT BONDS",
+			url: "/projects/bond",
+			iconNormal: navBondNormal,
+			iconActive: navBondWhite,
+			isActive: pathname.startsWith("/projects/bond"),
 		},
 		{
 			name: "INVESTMENT PORTFOLIO",

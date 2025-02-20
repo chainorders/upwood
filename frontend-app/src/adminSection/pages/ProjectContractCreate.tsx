@@ -6,8 +6,19 @@ import {
 	SecurityTokenContractType,
 	SystemContractsConfigApiModel,
 	UserService,
+	ForestProject,
 } from "../../apiClient";
-import { Button, TextField, Select, MenuItem, InputLabel, FormControl, Box } from "@mui/material";
+import {
+	Button,
+	TextField,
+	Select,
+	MenuItem,
+	InputLabel,
+	FormControl,
+	Box,
+	Breadcrumbs,
+	Typography,
+} from "@mui/material";
 import { formatDate, parseFinalizedInit } from "../../lib/conversions";
 import securitySftMulti from "../../contractClients/generated/securitySftMulti";
 import { detectConcordiumProvider, WalletApi } from "@concordium/browser-wallet-api-helpers";
@@ -16,6 +27,7 @@ import { useEffect, useState } from "react";
 import { User } from "../../lib/user";
 import concordiumNodeClient from "../../contractClients/ConcordiumNodeClient";
 import CircularProgress from "@mui/material/CircularProgress";
+import { Link } from "react-router";
 
 export default function ProjectContractCreate() {
 	const { id } = useParams<{ id: string }>();
@@ -25,6 +37,7 @@ export default function ProjectContractCreate() {
 	const [contractsConfig, setContractsConfig] = useState<SystemContractsConfigApiModel | null>(null);
 	const [walletApi, setWalletApi] = useState<WalletApi>();
 	const [txnStatus, setTxnStatus] = useState<"sending" | "waiting" | "success" | "error" | "none">("none");
+	const [project, setProject] = useState<ForestProject | null>(null);
 
 	useEffect(() => {
 		UserService.getSystemConfig()
@@ -38,6 +51,12 @@ export default function ProjectContractCreate() {
 			setWalletApi(walletApi);
 		});
 	}, [walletApi]);
+
+	useEffect(() => {
+		if (id) {
+			ForestProjectService.getAdminForestProjects(id).then(setProject);
+		}
+	}, [id]);
 
 	const {
 		register,
@@ -122,7 +141,7 @@ export default function ProjectContractCreate() {
 						},
 						{
 							ForcedBurn: {},
-						}
+						},
 					],
 				},
 				{
@@ -183,73 +202,87 @@ export default function ProjectContractCreate() {
 
 	const contractAddress = watch("contract_address");
 
+	if (!project) {
+		return <div>Loading...</div>;
+	}
+
 	return (
-		<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-			<TextField
-				label="Contract Address"
-				{...register("contract_address", { required: true })}
-				error={!!errors.contract_address}
-				helperText={errors.contract_address ? "This field is required" : ""}
-				value={contractAddress || ""}
-			/>
-			<Button
-				variant="outlined"
-				onClick={initializeContract}
-				disabled={txnStatus === "sending" || txnStatus === "waiting"}
-				startIcon={(txnStatus === "sending" || txnStatus === "waiting") && <CircularProgress size={20} />}
-				color={txnStatus === "error" ? "error" : txnStatus === "success" ? "success" : "primary"}
-			>
-				{txnStatus === "sending" || txnStatus === "waiting" ? "Initializing..." : "Initialize Contract"}
-			</Button>
-			<FormControl error={!!errors.contract_type}>
-				<InputLabel id="contract-type-label">Contract Type</InputLabel>
-				<Select
-					labelId="contract-type-label"
-					{...register("contract_type", { required: true })}
-					label="Contract Type"
-					defaultValue={SecurityTokenContractType.PROPERTY}
-				>
-					<MenuItem value={SecurityTokenContractType.PROPERTY}>Property</MenuItem>
-					<MenuItem value={SecurityTokenContractType.BOND}>Bond</MenuItem>
-					<MenuItem value={SecurityTokenContractType.PROPERTY_PRE_SALE}>Property Pre Sale</MenuItem>
-					<MenuItem value={SecurityTokenContractType.BOND_PRE_SALE}>Bond Pre Sale</MenuItem>
-				</Select>
-				{errors.contract_type && <span>This field is required</span>}
-			</FormControl>
-			<TextField
-				label="Fund Token ID (optional)"
-				{...register("fund_token_id", { setValueAs: (val: string) => val || undefined })}
-			/>
-			<TextField
-				label="Market Token ID (optional)"
-				{...register("market_token_id", { setValueAs: (val: string) => val || undefined })}
-			/>
-			<TextField
-				label="Symbol"
-				{...register("symbol", { required: true })}
-				error={!!errors.symbol}
-				helperText={errors.symbol ? "This field is required" : ""}
-			/>
-			<TextField
-				label="Decimals"
-				type="number"
-				{...register("decimals", { required: true, valueAsNumber: true })}
-				error={!!errors.decimals}
-				helperText={errors.decimals ? "This field is required" : ""}
-			/>
-			<TextField
-				label="Metadata URL"
-				{...register("metadata_url", { required: true })}
-				error={!!errors.metadata_url}
-				helperText={errors.metadata_url ? "This field is required" : ""}
-			/>
-			<TextField
-				label="Metadata Hash (optional)"
-				{...register("metadata_hash", { setValueAs: (val: string) => val || undefined })}
-			/>
-			<Button type="submit" variant="contained" color="primary" disabled={!contractsConfig || !walletApi}>
-				Create Contract
-			</Button>
-		</Box>
+		<>
+			<Breadcrumbs aria-label="breadcrumb">
+				<Link to="/admin">Admin</Link>
+				<Link to="/admin/projects">Projects</Link>
+				<Link to={`/admin/projects/${id}/details`}>{project.name}</Link>
+				<Typography color="textPrimary">Contract Create</Typography>
+			</Breadcrumbs>
+			<div>
+				<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+					<TextField
+						label="Contract Address"
+						{...register("contract_address", { required: true })}
+						error={!!errors.contract_address}
+						helperText={errors.contract_address ? "This field is required" : ""}
+						value={contractAddress || ""}
+					/>
+					<Button
+						variant="outlined"
+						onClick={initializeContract}
+						disabled={txnStatus === "sending" || txnStatus === "waiting"}
+						startIcon={(txnStatus === "sending" || txnStatus === "waiting") && <CircularProgress size={20} />}
+						color={txnStatus === "error" ? "error" : txnStatus === "success" ? "success" : "primary"}
+					>
+						{txnStatus === "sending" || txnStatus === "waiting" ? "Initializing..." : "Initialize Contract"}
+					</Button>
+					<FormControl error={!!errors.contract_type}>
+						<InputLabel id="contract-type-label">Contract Type</InputLabel>
+						<Select
+							labelId="contract-type-label"
+							{...register("contract_type", { required: true })}
+							label="Contract Type"
+							defaultValue={SecurityTokenContractType.PROPERTY}
+						>
+							<MenuItem value={SecurityTokenContractType.PROPERTY}>Property</MenuItem>
+							<MenuItem value={SecurityTokenContractType.BOND}>Bond</MenuItem>
+							<MenuItem value={SecurityTokenContractType.PROPERTY_PRE_SALE}>Property Pre Sale</MenuItem>
+							<MenuItem value={SecurityTokenContractType.BOND_PRE_SALE}>Bond Pre Sale</MenuItem>
+						</Select>
+						{errors.contract_type && <span>This field is required</span>}
+					</FormControl>
+					<TextField
+						label="Fund Token ID (optional)"
+						{...register("fund_token_id", { setValueAs: (val: string) => val || undefined })}
+					/>
+					<TextField
+						label="Market Token ID (optional)"
+						{...register("market_token_id", { setValueAs: (val: string) => val || undefined })}
+					/>
+					<TextField
+						label="Symbol"
+						{...register("symbol", { required: true })}
+						error={!!errors.symbol}
+						helperText={errors.symbol ? "This field is required" : ""}
+					/>
+					<TextField
+						label="Decimals"
+						type="number"
+						{...register("decimals", { required: true, valueAsNumber: true })}
+						error={!!errors.decimals}
+						helperText={errors.decimals ? "This field is required" : ""}
+					/>
+					<TextField
+						label="Metadata URL"
+						{...register("metadata_url", { required: true })}
+						error={!!errors.metadata_url}
+						helperText={errors.metadata_url ? "This field is required" : ""}
+					/>
+					<TextField
+						label="Metadata Hash (optional)"
+						{...register("metadata_hash", { setValueAs: (val: string) => val || undefined })}
+					/>
+					<Button type="submit" variant="contained" color="primary" disabled={!contractsConfig || !walletApi}>
+						Create Contract
+					</Button>
+				</Box>
+			</div>
+		</>
 	);
 }

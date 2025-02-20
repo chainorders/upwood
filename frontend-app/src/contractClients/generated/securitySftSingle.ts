@@ -8,19 +8,11 @@ import { ContractEvent, ContractName, EntrypointName, ModuleReference } from "@c
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "security_sft_single";
 export type initRequest = {
-	metadata_url: {
-		url: string;
-		hash: { None: Record<string, never> } | { Some: [string] };
-	};
+	metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 	security:
 		| { None: Record<string, never> }
 		| {
-				Some: [
-					{
-						identity_registry: { index: number; subindex: number };
-						compliance: { index: number; subindex: number };
-					},
-				];
+				Some: [{ identity_registry: { index: number; subindex: number }; compliance: { index: number; subindex: number } }];
 		  };
 	agents: Array<{
 		address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
@@ -387,9 +379,7 @@ export type RecoveryAddressRequest = { Account: [string] } | { Contract: [{ inde
 export const recoveryAddressRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type RecoveryAddressResponse =
 	| { None: Record<string, never> }
-	| {
-			Some: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  };
+	| { Some: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] };
 export const recoveryAddressResponseSchemaBase64 =
 	"FQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type RemoveAgentError =
@@ -488,10 +478,7 @@ export const tokenMetadataErrorSchemaBase64 =
 	"FQ0AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAhIAAABVblZlcmlmaWVkSWRlbnRpdHkCEwAAAEluQ29tcGxpYW50VHJhbnNmZXICEQAAAENhbGxDb250cmFjdEVycm9yAgsAAABQYXVzZWRUb2tlbgINAAAASW52YWxpZEFtb3VudAIOAAAASW52YWxpZEFkZHJlc3MCEAAAAFJlY292ZXJlZEFkZHJlc3MCDgAAAFNlY3VyaXR5Tm90U2V0Ag==";
 export type TokenMetadataRequest = Array<string>;
 export const tokenMetadataRequestSchemaBase64 = "EAEdAA==";
-export type TokenMetadataResponse = Array<{
-	url: string;
-	hash: { None: Record<string, never> } | { Some: [string] };
-}>;
+export type TokenMetadataResponse = Array<{ url: string; hash: { None: Record<string, never> } | { Some: [string] } }>;
 export const tokenMetadataResponseSchemaBase64 =
 	"EAEUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAA";
 export type TransferError =
@@ -660,10 +647,7 @@ export type event =
 	| {
 			TokenMetadata: {
 				token_id: string;
-				metadata_url: {
-					url: string;
-					hash: { None: Record<string, never> } | { Some: [string] };
-				};
+				metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 			};
 	  }
 	| {

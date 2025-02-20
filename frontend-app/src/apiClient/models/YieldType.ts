@@ -4,6 +4,6 @@
 /* eslint-disable */
 
 export enum YieldType {
-    QUANTITY = 'Quantity',
-    SIMPLE_INTREST = 'SimpleIntrest',
+	QUANTITY = "Quantity",
+	SIMPLE_INTREST = "SimpleIntrest",
 }

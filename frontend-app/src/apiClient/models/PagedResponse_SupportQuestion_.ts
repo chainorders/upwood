@@ -3,15 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { SupportQuestion } from './SupportQuestion';
+import type { SupportQuestion } from "./SupportQuestion";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
 export type PagedResponse_SupportQuestion_ = {
-    page_count: number;
-    page: number;
-    data: Array<SupportQuestion>;
+	page_count: number;
+	page: number;
+	data: Array<SupportQuestion>;
 };
-

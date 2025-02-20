@@ -250,7 +250,7 @@ export default function FundInvest({
 						<div className="container-in">
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
-								<span className="colb">
+								<span className="colb" title={price.toString()}>
 									{toDisplayAmount(price.toString(), currencyMetadata?.decimals || 6, 2)}
 									{currencyMetadata?.symbol}
 								</span>
@@ -271,7 +271,7 @@ export default function FundInvest({
 							<label>
 								<span>
 									Investment amount{" "}
-									<span className="fr">
+									<span className="fr" title={`Account Address: ${user.concordiumAccountAddress}`}>
 										Balance - {toDisplayAmount(euroeBalance.toString(), currencyMetadata?.decimals || 6)}{" "}
 										{currencyMetadata?.symbol}
 									</span>

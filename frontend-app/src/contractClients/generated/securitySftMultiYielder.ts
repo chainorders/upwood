@@ -30,10 +30,7 @@ export const addAgentRequestSchemaBase64 =
 	"FAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVAwAAAAgAAABBZGRZaWVsZAILAAAAUmVtb3ZlWWllbGQCCAAAAE9wZXJhdG9yAg==";
 export type RemoveAgentRequest = { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 export const removeAgentRequestSchemaBase64 = "FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
-export type RemoveYieldRequest = {
-	token_contract: { index: number; subindex: number };
-	token_id: string;
-};
+export type RemoveYieldRequest = { token_contract: { index: number; subindex: number }; token_id: string };
 export const removeYieldRequestSchemaBase64 = "FAACAAAADgAAAHRva2VuX2NvbnRyYWN0DAgAAAB0b2tlbl9pZB0A";
 export type UpsertYieldRequest = {
 	token_contract: { index: number; subindex: number };
@@ -70,9 +67,7 @@ export type event =
 				},
 			];
 	  }
-	| {
-			AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }];
-	  }
+	| { AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
 	| {
 			YieldAdded: [
 				{
@@ -82,33 +77,16 @@ export type event =
 						contract: { index: number; subindex: number };
 						token_id: string;
 						calculation:
-							| {
-									Quantity: [{ numerator: bigint; denominator: bigint }];
-							  }
-							| {
-									SimpleInterest: [{ numerator: bigint; denominator: bigint }];
-							  };
+							| { Quantity: [{ numerator: bigint; denominator: bigint }] }
+							| { SimpleInterest: [{ numerator: bigint; denominator: bigint }] };
 					}>;
 				},
 			];
 	  }
-	| {
-			YieldRemoved: [
-				{
-					token_contract: { index: number; subindex: number };
-					token_id: string;
-				},
-			];
-	  }
+	| { YieldRemoved: [{ token_contract: { index: number; subindex: number }; token_id: string }] }
 	| {
 			YieldDistributed: [
-				{
-					from_token: string;
-					to_token: string;
-					contract: { index: number; subindex: number };
-					amount: string;
-					to: string;
-				},
+				{ from_token: string; to_token: string; contract: { index: number; subindex: number }; amount: string; to: string },
 			];
 	  };
 export const eventSchemaBase64 =
@@ -129,7 +107,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const securitySftMultiYielder = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("4ecccecc1c9e9567a684f952051a0c3c34d4cf9faca990b0e150154e17b8ba12"),
+		ModuleReference.fromHexString("06e590aae1912f9445900a4ff40608842e5480dc071e2bba9617bde45847fe1d"),
 		ContractName.fromString("security_sft_multi_yielder"),
 		initRequestSchemaBase64,
 	),

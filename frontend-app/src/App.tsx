@@ -32,6 +32,8 @@ import ProjectContractUpdate from "./adminSection/pages/ProjectContractUpdate.ts
 import ProjectTokenDetails from "./adminSection/pages/ProjectTokenDetails.tsx";
 import UserList from "./adminSection/pages/UserList.tsx";
 import UserInvitations from "./adminSection/pages/UserInvitations.tsx";
+import BondForestProjectsList from "./pages/BondForestProjectsList.tsx";
+import BondForestProjectDetails from "./pages/BondForestProjectDetails.tsx";
 
 export default function App() {
 	OpenAPI.BASE = import.meta.env.VITE_API_BASE_URL;
@@ -71,6 +73,8 @@ export default function App() {
 				<Route path="projects/active/:id" element={<ActiveForestProjectDetails />} />
 				<Route path="projects/funded" element={<FundedForestProjectsList />} />
 				<Route path="projects/funded/:id" element={<FundedForestProjectDetails />} />
+				<Route path="projects/bond" element={<BondForestProjectsList />} />
+				<Route path="projects/bond/:id" element={<BondForestProjectDetails />} />
 				<Route path="portfolio" element={<InvestmentPortfolio />} />
 				<Route path="wallet" element={<Wallet />} />
 				<Route path="news" element={<News />} />
@@ -101,7 +105,6 @@ export default function App() {
 								</Route>
 							</Route>
 						</Route>
-						<Route path="media">{/* <Route path="create" element={<ProjectMediaCreate />} /> */}</Route>
 					</Route>
 				</Route>
 				<Route path="users/*">

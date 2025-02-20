@@ -121,6 +121,7 @@ impl Identity {
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<usize> {
         diesel::insert_into(identity_registry_identities::table)
             .values(self)
+            .on_conflict_do_nothing()
             .execute(conn)
     }
 
