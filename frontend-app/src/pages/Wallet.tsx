@@ -13,16 +13,12 @@ import ProjectCardOwned from "../components/ProjectCardOwned";
 import ClaimPopup from "../components/ClaimPopup";
 import { Link } from "react-router";
 import { User } from "../lib/user";
-import "./Wallet.css"; // Add this line to import the CSS file
-import { toDisplayAmount, toTokenId } from "../lib/conversions";
-import { TxnStatus, updateContract } from "../lib/concordium";
-import securitySftMultiYielder from "../contractClients/generated/securitySftMultiYielder";
+import "./Wallet.css";
+import { toDisplayAmount } from "../lib/conversions";
 
 export default function Wallet() {
 	const { user } = useOutletContext<{ user: User }>();
-	const [carbonCreditsPopup, setCarbonCreditsPopup] = useState(false);
-	const [dividendsDetailsPopup, setDividendsPopup] = useState(false);
-	const [eTreesPopup, setEtreesPopup] = useState(false);
+	const [claimsPopup, setClaimsPopup] = useState(false);
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
 	const [yields, setYields] = useState<{
 		carbonCredits: string;
@@ -42,7 +38,6 @@ export default function Wallet() {
 	}>({ pages: [] });
 	const [ownedTokenContractPage, setOwnedTokenContractPage] = useState(0);
 	const [yieldsClaimable, setYieldsClaimable] = useState<ForestProjectTokenUserYieldClaim[]>();
-	const [yieldTxnStatus, setYieldTxnStatus] = useState<TxnStatus>("none");
 	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	useEffect(() => {
@@ -52,20 +47,20 @@ export default function Wallet() {
 	useEffect(() => {
 		if (contracts) {
 			ForestProjectService.getForestProjectsYieldsTotal().then((response) => {
-				const carbon_credit_yield = response.find(
+				const carbonCreditYield = response.find(
 					(r) =>
 						r.yield_token_id === contracts.carbon_credit_token_id &&
 						r.yield_contract_address === contracts.carbon_credit_contract_index,
 				);
-				const euro_e_yield = response.find(
+				const euroEYield = response.find(
 					(r) =>
 						r.yield_token_id === contracts.euro_e_token_id && r.yield_contract_address === contracts.euro_e_contract_index,
 				);
-				const etrees_yield = response.find((r) => r.yield_contract_address === contracts.tree_ft_contract_index);
+				const eTreesYield = response.find((r) => r.yield_contract_address === contracts.tree_ft_contract_index);
 				setYields({
-					carbonCredits: carbon_credit_yield?.yield_amount || "0",
-					euroE: euro_e_yield?.yield_amount || "0",
-					eTrees: etrees_yield?.yield_amount || "0",
+					carbonCredits: carbonCreditYield?.yield_amount || "0",
+					euroE: euroEYield?.yield_amount || "0",
+					eTrees: eTreesYield?.yield_amount || "0",
 				});
 			});
 			ForestProjectService.getForestProjectsYieldsClaimable().then(setYieldsClaimable);
@@ -99,35 +94,6 @@ export default function Wallet() {
 		}
 	}, [ownedTokenContracts, ownedTokenContractPage, refreshCounter]);
 
-	const claimYields = async () => {
-		if (!contracts || !yieldsClaimable) {
-			return;
-		}
-
-		try {
-			await updateContract(
-				user.concordiumAccountAddress,
-				contracts.yielder_contract_index,
-				securitySftMultiYielder.yieldFor,
-				{
-					owner: user.concordiumAccountAddress,
-					yields: yieldsClaimable.map((y) => ({
-						token_ver_from: toTokenId(BigInt(y.token_id), 8),
-						token_ver_to: toTokenId(BigInt(y.max_token_id), 8),
-						token_contract: { index: Number(y.token_contract_address), subindex: 0 },
-						amount: y.token_balance,
-					})),
-				},
-				setYieldTxnStatus,
-			);
-			alert("Yields claimed successfully");
-			setRefreshCounter((c) => c + 1);
-		} catch (e) {
-			console.error(e);
-			alert("Failed to claim yields");
-		}
-	};
-
 	return (
 		<>
 			<div className="clr"></div>
@@ -157,7 +123,6 @@ export default function Wallet() {
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Wallet</div>
 								<div className="value address-ellipsis">{user.concordiumAccountAddress || "NA"}</div>
-								<button onClick={() => setCarbonCreditsPopup(true)}>Change</button>
 							</div>
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Entity</div>
@@ -182,11 +147,13 @@ export default function Wallet() {
 								</div>
 							</div>
 							<div className="col-10-percent fl walletclms col-m-full">
-								<div className="tag">Claim Rewards</div>
+								<div className="tag">Yields</div>
 								<div className="value"></div>
-								<button onClick={claimYields} disabled={yieldsClaimable?.length === 0}>
-									Claim <br />
-									All
+								<button
+									onClick={() => setClaimsPopup(true)}
+									disabled={!contracts || !yieldsClaimable || yieldsClaimable.length === 0 || !yields}
+								>
+									Claim
 								</button>
 							</div>
 							<div className="clr"></div>
@@ -295,11 +262,19 @@ export default function Wallet() {
 					</div>
 				</div>
 			</div>
-			{/* {carbonCreditsPopup ? (
-				<ClaimPopup config={__carbon_credits_details} close={() => setCarbonCreditsPopup(false)} />
-			) : null} */}
-			{/* {dividends_details_popup ? <ClaimPopup config={__dividends_details} close={() => setDividendsPopup(false)} /> : null} */}
-			{/* {etrees_popup ? <ClaimPopup config={__etrees_details} close={() => setEtreesPopup(false)} /> : null} */}
+			{contracts && claimsPopup && yieldsClaimable && yields ? (
+				<ClaimPopup
+					user={user}
+					contracts={contracts}
+					yieldsClaimable={yieldsClaimable}
+					yieldsDisplay={yields}
+					close={() => setClaimsPopup(false)}
+					onClaimed={() => {
+						setRefreshCounter((c) => c + 1);
+						setClaimsPopup(false);
+					}}
+				/>
+			) : null}
 		</>
 	);
 }

@@ -96,7 +96,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 		if (data.carbonCredit.added) {
 			yields.push({
 				contract: { index: Number(contracts.carbon_credit_contract_index), subindex: 0 },
-				token_id: toTokenId(BigInt(contracts.carbon_credit_token_id), 8),
+				token_id: "",
 				calculation: {
 					Quantity: [{ numerator: BigInt(data.carbonCredit.numerator), denominator: BigInt(data.carbonCredit.denominator) }],
 				},
@@ -170,7 +170,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 						{carbonCreditsMetadata?.symbol ? `(${carbonCreditsMetadata?.symbol})` : ""} Carbon Credits
 					</Typography>
 					<Grid container spacing={2} alignItems="center">
-						<Grid item>
+						<Grid item xs={2}>
 							<Controller
 								name="carbonCredit.added"
 								control={control}
@@ -180,7 +180,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								)}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="carbonCredit.numerator"
 								control={control}
@@ -189,7 +189,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="carbonCredit.denominator"
 								control={control}
@@ -212,7 +212,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 						{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro
 					</Typography>
 					<Grid container spacing={2} alignItems="center">
-						<Grid item>
+						<Grid item xs={2}>
 							<Controller
 								name="euro.added"
 								control={control}
@@ -222,7 +222,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								)}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="euro.numerator"
 								control={control}
@@ -230,7 +230,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="euro.denominator"
 								control={control}
@@ -253,7 +253,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 						{eTreesMetadata?.symbol ? `(${eTreesMetadata?.symbol})` : ""} E-Trees
 					</Typography>
 					<Grid container spacing={2} alignItems="center">
-						<Grid item>
+						<Grid item xs={2}>
 							<Controller
 								name="eTrees.added"
 								control={control}
@@ -263,7 +263,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								)}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="eTrees.numerator"
 								control={control}
@@ -271,7 +271,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="eTrees.denominator"
 								control={control}
@@ -294,7 +294,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 						{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro Interest
 					</Typography>
 					<Grid container spacing={2} alignItems="center">
-						<Grid item>
+						<Grid item xs={2}>
 							<Controller
 								name="euroIntrest.added"
 								control={control}
@@ -304,7 +304,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								)}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="euroIntrest.numerator"
 								control={control}
@@ -312,7 +312,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone }: Pr
 								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
 							/>
 						</Grid>
-						<Grid item>
+						<Grid item xs={5}>
 							<Controller
 								name="euroIntrest.denominator"
 								control={control}

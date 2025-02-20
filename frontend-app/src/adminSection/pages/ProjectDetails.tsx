@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import {
 	ForestProject,
+	ForestProjectPrice,
 	ForestProjectService,
 	ForestProjectTokenContract,
 	LegalContract,
@@ -42,6 +43,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import AddMediaPopup from "./components/AddMediaPopup";
 import DeleteIcon from "@mui/icons-material/Delete"; // Add this import
+import { toDisplayAmount } from "../../lib/conversions";
 
 export default function ProjectDetails() {
 	const { id } = useParams<{ id: string }>();
@@ -56,7 +58,8 @@ export default function ProjectDetails() {
 	const [legalContract, setLegalContract] = useState<LegalContract>();
 	const [openAddLegalContractPopup, setOpenAddLegalContractPopup] = useState(false);
 	const [openUpdateLegalContractPopup, setOpenUpdateLegalContractPopup] = useState(false);
-	const [openAddMediaPopup, setOpenAddMediaPopup] = useState(false); // Add this state
+	const [openAddMediaPopup, setOpenAddMediaPopup] = useState(false);
+	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	const handleOpenAddPricePopup = () => {
 		setOpenAddPricePopup(true);
@@ -64,7 +67,7 @@ export default function ProjectDetails() {
 
 	const handleCloseAddPricePopup = () => {
 		setOpenAddPricePopup(false);
-		setPricesPage(0);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	const handleOpenLegalContractPopup = () => {
@@ -78,6 +81,7 @@ export default function ProjectDetails() {
 	const handleCloseLegalContractPopup = () => {
 		setOpenAddLegalContractPopup(false);
 		setOpenUpdateLegalContractPopup(false);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	const handleOpenAddMediaPopup = () => {
@@ -86,12 +90,18 @@ export default function ProjectDetails() {
 
 	const handleCloseAddMediaPopup = () => {
 		setOpenAddMediaPopup(false);
-		ForestProjectService.getForestProjectsMediaList(id!).then(setMedias);
+		setRefreshCounter((c) => c + 1);
 	};
 
 	const handleDeleteMedia = (mediaId: string) => {
 		ForestProjectService.deleteAdminForestProjectsMedia(id!, mediaId).then(() => {
-			ForestProjectService.getForestProjectsMediaList(id!).then(setMedias);
+			setRefreshCounter((c) => c + 1);
+		});
+	};
+
+	const handleDeletePrice = (price: ForestProjectPrice) => {
+		ForestProjectService.deleteAdminForestProjectsPrice(id!, price.price_at).then(() => {
+			setRefreshCounter((c) => c + 1);
 		});
 	};
 
@@ -101,11 +111,11 @@ export default function ProjectDetails() {
 		UserService.getSystemConfig().then(setContracts);
 		ForestProjectService.getAdminLegalContract(id!).then(setLegalContract);
 		ForestProjectService.getForestProjectsMediaList(id!).then(setMedias);
-	}, [id]);
+	}, [id, refreshCounter]);
 
 	useEffect(() => {
 		ForestProjectService.getAdminForestProjectsPriceList(id!, pricesPage, pricesPageSize).then(setPrices);
-	}, [id, pricesPage, pricesPageSize]);
+	}, [id, pricesPage, pricesPageSize, refreshCounter]);
 
 	const handlePriceChangePage = (_event: unknown, newPage: number) => {
 		setPricesPage(newPage);
@@ -230,7 +240,12 @@ export default function ProjectDetails() {
 							</AccordionSummary>
 							<AccordionDetails>
 								<Box sx={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 2 }}>
-									<Button variant="outlined" color="primary" onClick={handleOpenAddPricePopup} disabled={!contracts}>
+									<Button
+										variant="outlined"
+										color="primary"
+										onClick={handleOpenAddPricePopup}
+										disabled={!contracts?.euro_e_metadata}
+									>
 										Add Price
 									</Button>
 								</Box>
@@ -242,15 +257,23 @@ export default function ProjectDetails() {
 												<TableCell>Price At</TableCell>
 												<TableCell>Currency Token ID</TableCell>
 												<TableCell>Currency Token Contract Address</TableCell>
+												<TableCell></TableCell>
 											</TableRow>
 										</TableHead>
 										<TableBody>
 											{prices?.data.map((price) => (
 												<TableRow key={price.price_at}>
-													<TableCell>{price.price}</TableCell>
+													<TableCell>{toDisplayAmount(price.price, contracts?.euro_e_metadata.decimals || 6, 6)}</TableCell>
 													<TableCell>{new Date(price.price_at).toLocaleDateString()}</TableCell>
 													<TableCell>{price.currency_token_id}</TableCell>
 													<TableCell>{price.currency_token_contract_address}</TableCell>
+													<TableCell>
+														<ButtonGroup size="small" variant="outlined">
+															<Button color="secondary" startIcon={<DeleteIcon />} onClick={() => handleDeletePrice(price)}>
+																Delete
+															</Button>
+														</ButtonGroup>
+													</TableCell>
 												</TableRow>
 											))}
 										</TableBody>
@@ -347,12 +370,14 @@ export default function ProjectDetails() {
 						</Paper>
 					</Grid>
 				</Grid>
-				<AddPricePopup
-					open={openAddPricePopup}
-					onClose={handleCloseAddPricePopup}
-					projectId={id!}
-					euroEMetadata={contracts?.euro_e_metadata}
-				/>
+				{contracts?.euro_e_metadata && (
+					<AddPricePopup
+						open={openAddPricePopup}
+						onClose={handleCloseAddPricePopup}
+						projectId={id!}
+						euroEMetadata={contracts.euro_e_metadata}
+					/>
+				)}
 				<AddLegalContractPopup
 					open={openAddLegalContractPopup}
 					onClose={handleCloseLegalContractPopup}
@@ -363,11 +388,7 @@ export default function ProjectDetails() {
 					onClose={handleCloseLegalContractPopup}
 					projectId={project.id}
 				/>
-				<AddMediaPopup // Add this component
-					open={openAddMediaPopup}
-					onClose={handleCloseAddMediaPopup}
-					projectId={id!}
-				/>
+				<AddMediaPopup open={openAddMediaPopup} onClose={handleCloseAddMediaPopup} projectId={id!} />
 			</Box>
 		</>
 	);
