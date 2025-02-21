@@ -209,7 +209,7 @@ export default function EditCompany({ close = () => {} }: EditCompanyProps) {
 									<div className="space-15"></div>
 									<div className="text-align-center">We’ve sent a code to Jonh23@gmail.com</div>
 									<div className="space-30"></div>
-									<OtpInput />
+									{/* <OtpInput /> */}
 								</div>
 								<div className="clr"></div>
 								<div className="col-5 fl col-m-full col-mr-bottom-20 ">

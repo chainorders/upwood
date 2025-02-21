@@ -4610,6 +4610,7 @@ __metadata:
     "@types/react-dom": "npm:^18.3.5"
     "@vitejs/plugin-react-swc": "npm:^3.5.0"
     amazon-cognito-identity-js: "npm:6.3.12"
+    buffer: "npm:^6.0.3"
     change-case: "npm:^5.4.3"
     chart.js: "npm:^4.4.7"
     eslint: "npm:^9.17.0"

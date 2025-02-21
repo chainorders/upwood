@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { TokenMetadata } from "./TokenMetadata";
+import type { NewsArticle } from "./NewsArticle";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_TokenMetadata_ = {
+export type PagedResponse_NewsArticle = {
 	page_count: number;
 	page: number;
-	data: Array<TokenMetadata>;
+	data: Array<NewsArticle>;
 };

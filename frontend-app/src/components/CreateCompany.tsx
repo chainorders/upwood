@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import closeIcon from "../assets/close.svg";
 import Button from "./Button";
-import OtpInput from "./OtpInput";
+// import OtpInput from "./OtpInput";
 interface PopupProps {
 	close?: () => void;
 }
@@ -111,7 +111,7 @@ export default function CreateCompany({ close = () => {} }: PopupProps) {
 									<div className="space-15"></div>
 									<div className="text-align-center">We’ve sent a code to Jonh23@gmail.com</div>
 									<div className="space-30"></div>
-									<OtpInput />
+									{/* <OtpInput /> */}
 								</div>
 								<div className="clr"></div>
 								<div className="col-5 fl col-m-full col-mr-bottom-20">

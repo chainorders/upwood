@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 
 import {
-	PagedResponse_ForestProjectFundsAffiliateRewardRecord_,
-	PagedResponse_UserTransaction_,
+	PagedResponse_ForestProjectFundsAffiliateRewardRecord,
+	PagedResponse_UserTransaction,
 	SystemContractsConfigApiModel,
 	UserService,
 	WalletService,
 } from "../apiClient";
 import AccountCross from "../assets/account-not-protected.svg";
 import Button from "../components/Button";
-import ClaimPopup from "../components/ClaimPopup";
+// import ClaimPopup from "../components/ClaimPopup";
 import CreateCompany from "../components/CreateCompany";
 import EditCompany from "../components/EditCompany";
 import EditProfile from "../components/EditProfile";
@@ -51,13 +51,13 @@ function Pagination({
 
 export default function Settings() {
 	const { user } = useOutletContext<{ user: User }>();
-	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction_>();
+	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction>();
 	const [trasactionsPage, setTransactionsPage] = useState(0);
-	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord_>();
+	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord>();
 	const [affiliateRewardsPage, setAffiliateRewardsPage] = useState(0);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 
-	const [claim_popup, setClaimPopup] = useState(false);
+	const [, setClaimPopup] = useState(false);
 	const [edit_profile_popup, setEditProfilePopup] = useState(false);
 	const [create_company_popup, setCreateCompanyPopup] = useState(false);
 	const [edit_company_popup, setEditCompanyPopup] = useState(false);
@@ -76,15 +76,15 @@ export default function Settings() {
 		{ title: "Wallet", description: "How to manage your wallet", link: "" },
 		{ title: "Contracts", description: "How to manage your contracts", link: "" },
 	];
-	const claim_popup_details = {
-		heading: "Claim affiliate earnings",
-		list: [
-			{
-				tag: "Claim affiliate earnings",
-				display: "150 EUROe",
-			},
-		],
-	};
+	// const claim_popup_details = {
+	// 	heading: "Claim affiliate earnings",
+	// 	list: [
+	// 		{
+	// 			tag: "Claim affiliate earnings",
+	// 			display: "150 EUROe",
+	// 		},
+	// 	],
+	// };
 	return (
 		<>
 			<div className="clr"></div>
@@ -314,7 +314,7 @@ export default function Settings() {
 				</div>
 				<div className="space-30"></div>
 			</div>
-			{claim_popup ? <ClaimPopup config={claim_popup_details} close={() => setClaimPopup(false)} /> : null}
+			{/* {claim_popup ? <ClaimPopup config={claim_popup_details} close={() => setClaimPopup(false)} /> : null} */}
 			{edit_profile_popup ? <EditProfile close={() => setEditProfilePopup(false)} /> : null}
 			{create_company_popup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}
 			{edit_company_popup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}

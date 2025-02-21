@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ForestProject } from "./ForestProject";
+import type { LegalContract } from "./LegalContract";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_ForestProject_ = {
+export type PagedResponse_LegalContract = {
 	page_count: number;
 	page: number;
-	data: Array<ForestProject>;
+	data: Array<LegalContract>;
 };

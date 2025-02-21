@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { LegalContractUserModel } from "./LegalContractUserModel";
+import type { PlatformUpdate } from "./PlatformUpdate";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_LegalContractUserModel_ = {
+export type PagedResponse_PlatformUpdate = {
 	page_count: number;
 	page: number;
-	data: Array<LegalContractUserModel>;
+	data: Array<PlatformUpdate>;
 };

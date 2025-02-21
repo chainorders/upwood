@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
 	ForestProjectService,
 	ForestProjectState,
-	PagedResponse_ForestProjectAggApiModel_,
+	PagedResponse_ForestProjectAggApiModel,
 	SystemContractsConfigApiModel,
 	UserService,
 } from "../apiClient";
@@ -13,7 +13,7 @@ import { User } from "../lib/user";
 
 export default function ActiveForestProjectsList() {
 	const { user } = useOutletContext<{ user: User }>();
-	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
+	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 
 	useEffect(() => {

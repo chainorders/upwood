@@ -6,8 +6,8 @@ import {
 	ForestProjectService,
 	ForestProjectTokenContract,
 	LegalContract,
-	PagedResponse_ForestProjectMedia_,
-	PagedResponse_ForestProjectPrice_,
+	PagedResponse_ForestProjectMedia,
+	PagedResponse_ForestProjectPrice,
 	SystemContractsConfigApiModel,
 	UserService,
 } from "../../apiClient";
@@ -49,8 +49,8 @@ export default function ProjectDetails() {
 	const { id } = useParams<{ id: string }>();
 	const [project, setProject] = useState<ForestProject | null>(null);
 	const [tokenContracts, setTokenContracts] = useState<ForestProjectTokenContract[]>([]);
-	const [prices, setPrices] = useState<PagedResponse_ForestProjectPrice_>();
-	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia_>();
+	const [prices, setPrices] = useState<PagedResponse_ForestProjectPrice>();
+	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia>();
 	const [pricesPage, setPricesPage] = useState(0);
 	const [pricesPageSize, setPricesPageSize] = useState(10);
 	const [openAddPricePopup, setOpenAddPricePopup] = useState(false);

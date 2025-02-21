@@ -27,7 +27,7 @@ import {
 	ForestProjectService,
 	ForestProjectTokenContract,
 	SecurityMintFundState,
-	PagedResponse_ForestProjectFundInvestor_,
+	PagedResponse_ForestProjectFundInvestor,
 	ForestProjectFundInvestor,
 } from "../../../apiClient";
 import TransactionButton from "../../../components/TransactionButton";
@@ -53,7 +53,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 	const [markFailedTxnStatus, setMarkFailedTxnStatus] = useState<TxnStatus>("none");
 	const [markSuccessTxnStatus, setMarkSuccessTxnStatus] = useState<TxnStatus>("none");
 	const [openSuccessPopup, setOpenSuccessPopup] = useState(false);
-	const [investors, setInvestors] = useState<PagedResponse_ForestProjectFundInvestor_>();
+	const [investors, setInvestors] = useState<PagedResponse_ForestProjectFundInvestor>();
 	const [investorsPage, setInvestorsPage] = useState(0);
 	const [investorsRowsPerPage, setInvestorsRowsPerPage] = useState(10);
 	const [claimTxnStatus, setClaimTxnStatus] = useState<TxnStatus>("none");

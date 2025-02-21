@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, useOutletContext } from "react-router";
-import { LoginRes } from "../apiClient";
 import PageHeader from "../components/PageHeader";
 import NewsCard from "../components/NewsCard";
+import { User } from "../lib/user";
 
 export default function News() {
-	const { user } = useOutletContext<{ user: LoginRes }>();
+	const { user } = useOutletContext<{ user: User }>();
 	const [showAll, setShowAll] = useState(false);
 
 	const links = [

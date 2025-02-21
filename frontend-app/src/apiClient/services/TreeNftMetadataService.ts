@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { AddMetadataRequest } from "../models/AddMetadataRequest";
 import type { MintData } from "../models/MintData";
-import type { PagedResponse_TokenHolder_ } from "../models/PagedResponse_TokenHolder_";
+import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { TreeNftMetadata } from "../models/TreeNftMetadata";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
@@ -146,13 +146,13 @@ export class TreeNftMetadataService {
 	 * A paged response containing the list of token holders for the specified metadata.
 	 * @param metadataId
 	 * @param page
-	 * @returns PagedResponse_TokenHolder_
+	 * @returns PagedResponse_TokenHolder
 	 * @throws ApiError
 	 */
 	public static getAdminTreeNftMetadataOwners(
 		metadataId: string,
 		page: number,
-	): CancelablePromise<PagedResponse_TokenHolder_> {
+	): CancelablePromise<PagedResponse_TokenHolder> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/tree_nft/metadata/{metadata_id}/owners/{page}",

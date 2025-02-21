@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { ForestProjectAggApiModel, ForestProjectState, SystemContractsConfigApiModel } from "../apiClient";
-import NotifyNon from "../assets/notify-non.svg";
+// import NotifyNon from "../assets/notify-non.svg";
 import { User } from "../lib/user";
 import Button from "./Button";
 import MarketBuy from "./MarketBuy";

@@ -6,7 +6,7 @@ import {
 	ForestProjectMedia,
 	ForestProjectService,
 	ForestProjectState,
-	PagedResponse_ForestProjectMedia_,
+	PagedResponse_ForestProjectMedia,
 	SecurityMintFundState,
 	SystemContractsConfigApiModel,
 	UserService,
@@ -56,7 +56,7 @@ export default function ActiveForestProjectDetails() {
 	const { user } = useOutletContext<{ user: User }>();
 	const [project, setProject] = useState<ForestProjectAggApiModel>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
-	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia_>();
+	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia>();
 	const [tabIndex, setTabIndex] = useState(0);
 
 	const [buyShare, setBuyShare] = useState(false);

@@ -12,15 +12,15 @@ import type { ForestProjectTokenUserYieldClaim } from "../models/ForestProjectTo
 import type { ForestProjectTokenYieldListApiModel } from "../models/ForestProjectTokenYieldListApiModel";
 import type { LegalContract } from "../models/LegalContract";
 import type { LegalContractUserSignature } from "../models/LegalContractUserSignature";
-import type { PagedResponse_ForestProject_ } from "../models/PagedResponse_ForestProject_";
-import type { PagedResponse_ForestProjectAggApiModel_ } from "../models/PagedResponse_ForestProjectAggApiModel_";
-import type { PagedResponse_ForestProjectFundInvestor_ } from "../models/PagedResponse_ForestProjectFundInvestor_";
-import type { PagedResponse_ForestProjectMedia_ } from "../models/PagedResponse_ForestProjectMedia_";
-import type { PagedResponse_ForestProjectPrice_ } from "../models/PagedResponse_ForestProjectPrice_";
-import type { PagedResponse_ForestProjectTokenContractAggApiModel_ } from "../models/PagedResponse_ForestProjectTokenContractAggApiModel_";
-import type { PagedResponse_LegalContract_ } from "../models/PagedResponse_LegalContract_";
-import type { PagedResponse_LegalContractUserModel_ } from "../models/PagedResponse_LegalContractUserModel_";
-import type { PagedResponse_TokenMetadata_ } from "../models/PagedResponse_TokenMetadata_";
+import type { PagedResponse_ForestProject } from "../models/PagedResponse_ForestProject";
+import type { PagedResponse_ForestProjectAggApiModel } from "../models/PagedResponse_ForestProjectAggApiModel";
+import type { PagedResponse_ForestProjectFundInvestor } from "../models/PagedResponse_ForestProjectFundInvestor";
+import type { PagedResponse_ForestProjectMedia } from "../models/PagedResponse_ForestProjectMedia";
+import type { PagedResponse_ForestProjectPrice } from "../models/PagedResponse_ForestProjectPrice";
+import type { PagedResponse_ForestProjectTokenContractAggApiModel } from "../models/PagedResponse_ForestProjectTokenContractAggApiModel";
+import type { PagedResponse_LegalContract } from "../models/PagedResponse_LegalContract";
+import type { PagedResponse_LegalContractUserModel } from "../models/PagedResponse_LegalContractUserModel";
+import type { PagedResponse_TokenMetadata } from "../models/PagedResponse_TokenMetadata";
 import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
 import type { TokenMetadata } from "../models/TokenMetadata";
 import type { UserYieldsAggregate } from "../models/UserYieldsAggregate";
@@ -33,13 +33,13 @@ export class ForestProjectService {
 	/**
 	 * @param state
 	 * @param page
-	 * @returns PagedResponse_ForestProjectAggApiModel_
+	 * @returns PagedResponse_ForestProjectAggApiModel
 	 * @throws ApiError
 	 */
 	public static getForestProjectsList(
 		state: ForestProjectState,
 		page: number,
-	): CancelablePromise<PagedResponse_ForestProjectAggApiModel_> {
+	): CancelablePromise<PagedResponse_ForestProjectAggApiModel> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/forest_projects/list/{state}/{page}",
@@ -66,10 +66,10 @@ export class ForestProjectService {
 	}
 
 	/**
-	 * @returns PagedResponse_ForestProjectAggApiModel_
+	 * @returns PagedResponse_ForestProjectAggApiModel
 	 * @throws ApiError
 	 */
-	public static getForestProjectsListOwned(): CancelablePromise<PagedResponse_ForestProjectAggApiModel_> {
+	public static getForestProjectsListOwned(): CancelablePromise<PagedResponse_ForestProjectAggApiModel> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/forest_projects/list/owned",
@@ -79,13 +79,13 @@ export class ForestProjectService {
 	/**
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectTokenContractAggApiModel_
+	 * @returns PagedResponse_ForestProjectTokenContractAggApiModel
 	 * @throws ApiError
 	 */
 	public static getForestProjectsContractListOwned(
 		page?: number,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectTokenContractAggApiModel_> {
+	): CancelablePromise<PagedResponse_ForestProjectTokenContractAggApiModel> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/forest_projects/contract/list/owned",
@@ -100,14 +100,14 @@ export class ForestProjectService {
 	 * @param projectId
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectMedia_
+	 * @returns PagedResponse_ForestProjectMedia
 	 * @throws ApiError
 	 */
 	public static getForestProjectsMediaList(
 		projectId: string,
 		page?: number,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectMedia_> {
+	): CancelablePromise<PagedResponse_ForestProjectMedia> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/forest_projects/{project_id}/media/list",
@@ -199,13 +199,13 @@ export class ForestProjectService {
 	/**
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_LegalContractUserModel_
+	 * @returns PagedResponse_LegalContractUserModel
 	 * @throws ApiError
 	 */
 	public static getForestProjectsLegalContractList(
 		page?: number,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_LegalContractUserModel_> {
+	): CancelablePromise<PagedResponse_LegalContractUserModel> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/forest_projects/legal_contract/list",
@@ -243,13 +243,13 @@ export class ForestProjectService {
 	/**
 	 * @param page
 	 * @param state
-	 * @returns PagedResponse_ForestProject_
+	 * @returns PagedResponse_ForestProject
 	 * @throws ApiError
 	 */
 	public static getAdminForestProjectsList(
 		page: number,
 		state?: ForestProjectState,
-	): CancelablePromise<PagedResponse_ForestProject_> {
+	): CancelablePromise<PagedResponse_ForestProject> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/forest_projects/list/{page}",
@@ -384,14 +384,14 @@ export class ForestProjectService {
 	 * @param projectId
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectPrice_
+	 * @returns PagedResponse_ForestProjectPrice
 	 * @throws ApiError
 	 */
 	public static getAdminForestProjectsPriceList(
 		projectId: string,
 		page?: number,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectPrice_> {
+	): CancelablePromise<PagedResponse_ForestProjectPrice> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/forest_projects/{project_id}/price/list",
@@ -432,7 +432,7 @@ export class ForestProjectService {
 	 * @param investmentTokenId
 	 * @param investmentTokenContractAddress
 	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectFundInvestor_
+	 * @returns PagedResponse_ForestProjectFundInvestor
 	 * @throws ApiError
 	 */
 	public static getAdminForestProjectsFundInvestorList(
@@ -441,7 +441,7 @@ export class ForestProjectService {
 		investmentTokenId?: string,
 		investmentTokenContractAddress?: string,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectFundInvestor_> {
+	): CancelablePromise<PagedResponse_ForestProjectFundInvestor> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/forest_projects/fund/investor/list",
@@ -626,10 +626,10 @@ export class ForestProjectService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_TokenMetadata_
+	 * @returns PagedResponse_TokenMetadata
 	 * @throws ApiError
 	 */
-	public static getAdminTokenMetadataList(page: number): CancelablePromise<PagedResponse_TokenMetadata_> {
+	public static getAdminTokenMetadataList(page: number): CancelablePromise<PagedResponse_TokenMetadata> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/token_metadata/list/{page}",
@@ -642,13 +642,13 @@ export class ForestProjectService {
 	/**
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_LegalContract_
+	 * @returns PagedResponse_LegalContract
 	 * @throws ApiError
 	 */
 	public static getAdminLegalContractList(
 		page: number,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_LegalContract_> {
+	): CancelablePromise<PagedResponse_LegalContract> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/legal_contract/list",

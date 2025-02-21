@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Guide } from "./Guide";
+import type { TokenMetadata } from "./TokenMetadata";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_Guide_ = {
+export type PagedResponse_TokenMetadata = {
 	page_count: number;
 	page: number;
-	data: Array<Guide>;
+	data: Array<TokenMetadata>;
 };

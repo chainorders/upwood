@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ForestProjectFundsAffiliateRewardRecord } from "./ForestProjectFundsAffiliateRewardRecord";
+import type { ForestProject } from "./ForestProject";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_ForestProjectFundsAffiliateRewardRecord_ = {
+export type PagedResponse_ForestProject = {
 	page_count: number;
 	page: number;
-	data: Array<ForestProjectFundsAffiliateRewardRecord>;
+	data: Array<ForestProject>;
 };

@@ -1,11 +1,11 @@
 import { useOutletContext, useParams } from "react-router";
-import { LoginRes } from "../apiClient";
 import PageHeader from "../components/PageHeader";
+import { User } from "../lib/user";
 
 export default function NewsDetails() {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const { id } = useParams<{ id: string }>();
-	const { user } = useOutletContext<{ user: LoginRes }>();
+	const { user } = useOutletContext<{ user: User }>();
 
 	const data = {
 		id: "1516",

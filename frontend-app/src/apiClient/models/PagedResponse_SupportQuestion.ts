@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { LegalContract } from "./LegalContract";
+import type { SupportQuestion } from "./SupportQuestion";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_LegalContract_ = {
+export type PagedResponse_SupportQuestion = {
 	page_count: number;
 	page: number;
-	data: Array<LegalContract>;
+	data: Array<SupportQuestion>;
 };

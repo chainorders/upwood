@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import {
 	ForestProjectService,
 	ForestProjectTokenUserYieldClaim,
-	PagedResponse_ForestProjectAggApiModel_,
-	PagedResponse_ForestProjectTokenContractAggApiModel_,
+	PagedResponse_ForestProjectAggApiModel,
+	PagedResponse_ForestProjectTokenContractAggApiModel,
 	SystemContractsConfigApiModel,
 	UserService,
 } from "../apiClient";
@@ -19,14 +19,14 @@ import { toDisplayAmount } from "../lib/conversions";
 export default function Wallet() {
 	const { user } = useOutletContext<{ user: User }>();
 	const [claimsPopup, setClaimsPopup] = useState(false);
-	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
+	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [yields, setYields] = useState<{
 		carbonCredits: string;
 		euroE: string;
 		eTrees: string;
 	}>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
-	const [ownedTokenContracts, setOwnedTokenContracts] = useState<PagedResponse_ForestProjectTokenContractAggApiModel_>();
+	const [ownedTokenContracts, setOwnedTokenContracts] = useState<PagedResponse_ForestProjectTokenContractAggApiModel>();
 	const [ownedTokenContractsPages, setOwnedTokenContractsPages] = useState<{
 		onPreviousClick?: () => void;
 		pages: {

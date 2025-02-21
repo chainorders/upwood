@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Notification } from "../models/Notification";
-import type { PagedResponse_UserKYCModel_ } from "../models/PagedResponse_UserKYCModel_";
-import type { PagedResponse_UserRegistrationRequest_ } from "../models/PagedResponse_UserRegistrationRequest_";
+import type { PagedResponse_UserKYCModel } from "../models/PagedResponse_UserKYCModel";
+import type { PagedResponse_UserRegistrationRequest } from "../models/PagedResponse_UserRegistrationRequest";
 import type { SystemContractsConfigApiModel } from "../models/SystemContractsConfigApiModel";
 import type { UserCreatePostReq } from "../models/UserCreatePostReq";
 import type { UserCreatePostReqAdmin } from "../models/UserCreatePostReqAdmin";
@@ -35,13 +35,13 @@ export class UserService {
 	/**
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_UserRegistrationRequest_
+	 * @returns PagedResponse_UserRegistrationRequest
 	 * @throws ApiError
 	 */
 	public static getAdminRegistrationRequestList(
 		page?: number,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_UserRegistrationRequest_> {
+	): CancelablePromise<PagedResponse_UserRegistrationRequest> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/registration-request/list",
@@ -163,10 +163,10 @@ export class UserService {
 	 * A JSON response containing a paged list of `AdminUser` objects.
 	 * @param page
 	 * @param pageSize
-	 * @returns PagedResponse_UserKYCModel_
+	 * @returns PagedResponse_UserKYCModel
 	 * @throws ApiError
 	 */
-	public static getAdminUserList(page?: number, pageSize?: number): CancelablePromise<PagedResponse_UserKYCModel_> {
+	public static getAdminUserList(page?: number, pageSize?: number): CancelablePromise<PagedResponse_UserKYCModel> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/user/list",

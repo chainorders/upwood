@@ -5,11 +5,11 @@
 import type { Guide } from "../models/Guide";
 import type { MaintenanceMessage } from "../models/MaintenanceMessage";
 import type { NewsArticle } from "../models/NewsArticle";
-import type { PagedResponse_Guide_ } from "../models/PagedResponse_Guide_";
-import type { PagedResponse_MaintenanceMessage_ } from "../models/PagedResponse_MaintenanceMessage_";
-import type { PagedResponse_NewsArticle_ } from "../models/PagedResponse_NewsArticle_";
-import type { PagedResponse_PlatformUpdate_ } from "../models/PagedResponse_PlatformUpdate_";
-import type { PagedResponse_SupportQuestion_ } from "../models/PagedResponse_SupportQuestion_";
+import type { PagedResponse_Guide } from "../models/PagedResponse_Guide";
+import type { PagedResponse_MaintenanceMessage } from "../models/PagedResponse_MaintenanceMessage";
+import type { PagedResponse_NewsArticle } from "../models/PagedResponse_NewsArticle";
+import type { PagedResponse_PlatformUpdate } from "../models/PagedResponse_PlatformUpdate";
+import type { PagedResponse_SupportQuestion } from "../models/PagedResponse_SupportQuestion";
 import type { PlatformUpdate } from "../models/PlatformUpdate";
 import type { SupportQuestion } from "../models/SupportQuestion";
 
@@ -20,10 +20,10 @@ import { request as __request } from "../core/request";
 export class UserCommunicationService {
 	/**
 	 * @param page
-	 * @returns PagedResponse_NewsArticle_
+	 * @returns PagedResponse_NewsArticle
 	 * @throws ApiError
 	 */
-	public static getNewsArticlesList(page: number): CancelablePromise<PagedResponse_NewsArticle_> {
+	public static getNewsArticlesList(page: number): CancelablePromise<PagedResponse_NewsArticle> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/news_articles/list/{page}",
@@ -79,10 +79,10 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_PlatformUpdate_
+	 * @returns PagedResponse_PlatformUpdate
 	 * @throws ApiError
 	 */
-	public static getPlatformUpdatesList(page: number): CancelablePromise<PagedResponse_PlatformUpdate_> {
+	public static getPlatformUpdatesList(page: number): CancelablePromise<PagedResponse_PlatformUpdate> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/platform_updates/list/{page}",
@@ -149,10 +149,10 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_MaintenanceMessage_
+	 * @returns PagedResponse_MaintenanceMessage
 	 * @throws ApiError
 	 */
-	public static getMaintenanceMessagesList(page: number): CancelablePromise<PagedResponse_MaintenanceMessage_> {
+	public static getMaintenanceMessagesList(page: number): CancelablePromise<PagedResponse_MaintenanceMessage> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/maintenance_messages/list/{page}",
@@ -219,10 +219,10 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_Guide_
+	 * @returns PagedResponse_Guide
 	 * @throws ApiError
 	 */
-	public static getGuidesList(page: number): CancelablePromise<PagedResponse_Guide_> {
+	public static getGuidesList(page: number): CancelablePromise<PagedResponse_Guide> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/guides/list/{page}",
@@ -278,10 +278,10 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_SupportQuestion_
+	 * @returns PagedResponse_SupportQuestion
 	 * @throws ApiError
 	 */
-	public static getAdminSupportQuestionsList(page: number): CancelablePromise<PagedResponse_SupportQuestion_> {
+	public static getAdminSupportQuestionsList(page: number): CancelablePromise<PagedResponse_SupportQuestion> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/support_questions/list/{page}",

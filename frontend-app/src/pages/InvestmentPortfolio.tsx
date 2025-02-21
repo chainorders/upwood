@@ -3,7 +3,7 @@ import {
 	ForestProjectService,
 	InvestmentPortfolioService,
 	InvestmentPortfolioUserAggregate,
-	PagedResponse_ForestProjectAggApiModel_,
+	PagedResponse_ForestProjectAggApiModel,
 	PortfolioValue,
 	SystemContractsConfigApiModel,
 	UserService,
@@ -18,7 +18,7 @@ import { toDisplayAmount } from "../lib/conversions";
 export default function InvestmentPortfolio() {
 	const { user } = useOutletContext<{ user: User }>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
-	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel_>();
+	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [portfolioValues, setPortfolioValues] = useState<PortfolioValue[]>([]);
 	const [portfolioAgg, setPortfolioAgg] = useState<InvestmentPortfolioUserAggregate>();
 	useEffect(() => {

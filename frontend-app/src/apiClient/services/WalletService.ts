@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ClaimRequest } from "../models/ClaimRequest";
-import type { PagedResponse_ForestProjectFundsAffiliateRewardRecord_ } from "../models/PagedResponse_ForestProjectFundsAffiliateRewardRecord_";
-import type { PagedResponse_ForestProjectFundsInvestmentRecord_ } from "../models/PagedResponse_ForestProjectFundsInvestmentRecord_";
-import type { PagedResponse_UserTransaction_ } from "../models/PagedResponse_UserTransaction_";
+import type { PagedResponse_ForestProjectFundsAffiliateRewardRecord } from "../models/PagedResponse_ForestProjectFundsAffiliateRewardRecord";
+import type { PagedResponse_ForestProjectFundsInvestmentRecord } from "../models/PagedResponse_ForestProjectFundsInvestmentRecord";
+import type { PagedResponse_UserTransaction } from "../models/PagedResponse_UserTransaction";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -14,12 +14,12 @@ import { request as __request } from "../core/request";
 export class WalletService {
 	/**
 	 * @param page
-	 * @returns PagedResponse_ForestProjectFundsInvestmentRecord_
+	 * @returns PagedResponse_ForestProjectFundsInvestmentRecord
 	 * @throws ApiError
 	 */
 	public static getUserInvestmentsList(
 		page: number,
-	): CancelablePromise<PagedResponse_ForestProjectFundsInvestmentRecord_> {
+	): CancelablePromise<PagedResponse_ForestProjectFundsInvestmentRecord> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/user/investments/list/{page}",
@@ -31,12 +31,12 @@ export class WalletService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_ForestProjectFundsAffiliateRewardRecord_
+	 * @returns PagedResponse_ForestProjectFundsAffiliateRewardRecord
 	 * @throws ApiError
 	 */
 	public static getUserAffiliateRewardsList(
 		page?: number,
-	): CancelablePromise<PagedResponse_ForestProjectFundsAffiliateRewardRecord_> {
+	): CancelablePromise<PagedResponse_ForestProjectFundsAffiliateRewardRecord> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/user/affiliate/rewards/list",
@@ -63,10 +63,10 @@ export class WalletService {
 
 	/**
 	 * @param page
-	 * @returns PagedResponse_UserTransaction_
+	 * @returns PagedResponse_UserTransaction
 	 * @throws ApiError
 	 */
-	public static getUserTransactionsList(page?: number): CancelablePromise<PagedResponse_UserTransaction_> {
+	public static getUserTransactionsList(page?: number): CancelablePromise<PagedResponse_UserTransaction> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/user/transactions/list",

@@ -15,7 +15,7 @@ import {
 import { User } from "../lib/user";
 import euroeStablecoin from "../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../contractClients/ConcordiumNodeClient";
-import { AccountAddress, CcdAmount, ContractAddress } from "@concordium/web-sdk";
+import { AccountAddress, ContractAddress } from "@concordium/web-sdk";
 import securitySftMulti from "../contractClients/generated/securitySftMulti";
 import { toDisplayAmount, toTokenId } from "../lib/conversions";
 import securityP2PTrading from "../contractClients/generated/securityP2PTrading";
@@ -47,7 +47,6 @@ export default function MarketSell({
 	tokenContract,
 	currencyMetadata,
 	project,
-	supply,
 	legalContractSigned,
 	userNotified,
 }: MarketSellProps) {
@@ -74,10 +73,10 @@ export default function MarketSell({
 
 	const [popupState, setPopupState] = useState<"sell" | "notify" | "sold">("sell");
 	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [totalPayment, setTotalPayment] = useState(BigInt(0));
+	const [, setTotalPayment] = useState(BigInt(0));
 	const [euroeBalanceBuyer, setEuroeBalanceBuyer] = useState(BigInt(0));
 	const [tokenBalanceSeller, setTokenBalanceSeller] = useState(BigInt(0));
-	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
+	const [, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isUserNotified, setIsUserNotified] = useState(userNotified);
 	const [isSelling, setIsSelling] = useState(false);
@@ -85,7 +84,7 @@ export default function MarketSell({
 	const {
 		control,
 		handleSubmit,
-		formState: { errors, isValid },
+		formState: { errors },
 		setError,
 		setValue,
 		clearErrors,

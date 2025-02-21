@@ -9,7 +9,7 @@ import type { ForestProjectMedia } from "./ForestProjectMedia";
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_ForestProjectMedia_ = {
+export type PagedResponse_ForestProjectMedia = {
 	page_count: number;
 	page: number;
 	data: Array<ForestProjectMedia>;
