@@ -332,7 +332,7 @@ export default function MarketSell({
 						<div className="container">
 							<div className="container-in">
 								<div className="col-5 col-m-full col-mr-bottom-20 fl">
-									<Button text={"CLOSE"} link={""} active={false} call={close} />
+									<Button text="CLOSE" active={false} call={close} />
 								</div>
 								<div className="col-5 col-m-full fr">
 									{popupState === "notify" ? (

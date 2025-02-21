@@ -9,6 +9,8 @@ import {
 import { User } from "../lib/user";
 import Button from "./Button";
 import FundInvest from "./FundInvest";
+import { LazyLoadImage } from "react-lazy-load-image-component";
+import "react-lazy-load-image-component/src/effects/opacity.css";
 
 interface Props {
 	project: ForestProjectAggApiModel;
@@ -27,7 +29,14 @@ export default function ProjectCardBond({ project, user, contracts }: Props) {
 					<div className="container-in">
 						<div className="col-12">
 							<div className="image">
-								<img src={project.forest_project.image_small_url} />
+								<LazyLoadImage
+									src={project.forest_project.image_small_url}
+									alt="Project Image"
+									effect="opacity"
+									width="100%"
+									height="100%"
+									placeholderSrc="https://placehold.co/600x400?text=Loading"
+								/>
 								<div className="caption">{comingSoon ? "coming soon" : project.forest_project.label}</div>
 							</div>
 						</div>
