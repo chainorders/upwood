@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Box, Typography, Grid, TextField } from "@mui/material";
 import { useOutletContext } from "react-router";
-import { ForestProjectTokenContract, SecurityMintFundContract } from "../../../apiClient";
+import {
+	ForestProjectTokenContract,
+	SecurityMintFundContract,
+	SystemContractsConfigApiModel,
+} from "../../../apiClient";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import TransactionButton from "../../../components/TransactionButton";
@@ -10,6 +14,7 @@ import { User } from "../../../lib/user";
 import securityMintFund from "../../../contractClients/generated/securityMintFund";
 
 interface ProjectTokenAddFundPopupProps {
+	contracts: SystemContractsConfigApiModel;
 	fundContract: SecurityMintFundContract;
 	tokenContract: ForestProjectTokenContract;
 	preSaleTokenContract: ForestProjectTokenContract;
@@ -19,13 +24,11 @@ interface ProjectTokenAddFundPopupProps {
 }
 
 interface FundFormData {
-	preSaleTokenId: string;
-	preSaleTokenContractAddress: string;
-	rateNumerator: number;
-	rateDenominator: number;
+	price: number;
 }
 
 export default function AddFundPopup({
+	contracts,
 	fundContract,
 	tokenContract,
 	preSaleTokenContract,
@@ -34,10 +37,11 @@ export default function AddFundPopup({
 }: ProjectTokenAddFundPopupProps) {
 	const user = useOutletContext<{ user: User }>().user;
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
-	const { control, handleSubmit, watch } = useForm<FundFormData>();
-
-	const rateNumeratorWatch = watch("rateNumerator");
-	const rateDenominatorWatch = watch("rateDenominator");
+	const { control, handleSubmit } = useForm<FundFormData>({
+		defaultValues: {
+			price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
+		},
+	});
 
 	const onSubmit = async (data: FundFormData) => {
 		try {
@@ -55,13 +59,13 @@ export default function AddFundPopup({
 						},
 					},
 					rate: {
-						numerator: BigInt(data.rateNumerator),
-						denominator: BigInt(data.rateDenominator),
+						numerator: BigInt(data.price),
+						denominator: BigInt(1),
 					},
 					token: {
-						id: toTokenId(BigInt(data.preSaleTokenId), 8),
+						id: toTokenId(BigInt(tokenId), 8),
 						contract: {
-							index: Number(data.preSaleTokenContractAddress),
+							index: Number(preSaleTokenContract.contract_address),
 							subindex: 0,
 						},
 					},
@@ -78,53 +82,31 @@ export default function AddFundPopup({
 	return (
 		<div>
 			<form onSubmit={handleSubmit(onSubmit)}>
-				<Box mb={2}>
+				<Box mb={2} pt={2}>
 					<Grid container spacing={2} alignItems="center">
 						<Grid item xs={12}>
 							<Controller
-								name="preSaleTokenId"
+								name="price"
 								control={control}
-								defaultValue={tokenId}
+								defaultValue={0}
 								rules={{ required: true }}
-								render={({ field }) => <TextField {...field} label="Pre-Sale Token ID" fullWidth />}
+								render={({ field }) => (
+									<TextField
+										{...field}
+										label="Price"
+										type="number"
+										fullWidth
+										autoComplete="off"
+										required
+										InputProps={{ inputProps: { min: 0 } }}
+										helperText={`Price per token unit ${contracts.euro_e_metadata.symbol} ${toDisplayAmount(
+											field.value.toString(),
+											contracts.euro_e_metadata.decimals || 6,
+											contracts.euro_e_metadata.decimals || 6,
+										)}`}
+									/>
+								)}
 							/>
-						</Grid>
-						<Grid item xs={12}>
-							<Controller
-								name="preSaleTokenContractAddress"
-								control={control}
-								defaultValue={preSaleTokenContract?.contract_address || ""}
-								rules={{ required: true }}
-								render={({ field }) => <TextField {...field} label="Pre-Sale Token Contract Address" fullWidth />}
-							/>
-						</Grid>
-						<Grid item xs={12}>
-							<Box display="flex" alignItems="center">
-								<Controller
-									name="rateNumerator"
-									control={control}
-									defaultValue={0}
-									rules={{ required: true }}
-									render={({ field }) => <TextField {...field} label="Rate Numerator" type="number" fullWidth />}
-								/>
-								<Typography variant="h6" mx={2}>
-									/
-								</Typography>
-								<Controller
-									name="rateDenominator"
-									control={control}
-									defaultValue={1}
-									rules={{ required: true }}
-									render={({ field }) => <TextField {...field} label="Rate Denominator" type="number" fullWidth />}
-								/>
-							</Box>
-						</Grid>
-						<Grid item xs={12}>
-							<Typography variant="body2" align="right">
-								{toDisplayAmount((rateNumeratorWatch || "0").toString(), tokenContract?.decimals || 0)} per{" "}
-								{toDisplayAmount((rateDenominatorWatch || "1").toString(), tokenContract?.decimals || 0)}{" "}
-								{tokenContract?.symbol || "Project"} Tokens
-							</Typography>
 						</Grid>
 					</Grid>
 				</Box>

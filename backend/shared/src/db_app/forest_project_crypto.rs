@@ -709,6 +709,7 @@ impl ForestProjectUserBalanceAgg {
 
         let records = forest_project_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
+            .filter(total_balance.gt(Decimal::ZERO))
             .limit(page_size)
             .offset(page * page_size)
             .load::<Self>(conn)?;

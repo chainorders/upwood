@@ -226,6 +226,12 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 			alert(`Failed to claim investment: ${JSON.stringify(e)}`);
 		}
 	};
+
+	const handleCloseSuccessPopup = () => {
+		setOpenSuccessPopup(false);
+		setRefreshCounter((c) => c + 1);
+	};
+
 	return (
 		<>
 			<Paper variant="outlined" sx={{ padding: 2, marginBottom: 2 }}>
@@ -372,13 +378,13 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 					onRowsPerPageChange={handleChangeRowsPerPage}
 				/>
 			</Paper>
-			<Dialog open={openSuccessPopup} onClose={() => setOpenSuccessPopup(false)} fullWidth>
+			<Dialog open={openSuccessPopup} onClose={handleCloseSuccessPopup} fullWidth>
 				<DialogTitle>Mark Fund as Success</DialogTitle>
 				<DialogContent>
 					<Box
 						component="form"
 						onSubmit={handleSubmit(markSuccess)}
-						sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+						sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
 					>
 						<TextField
 							label="Receiver Account Address"
@@ -388,7 +394,7 @@ export default function FundDetails({ fund }: FundDetailsProps) {
 							helperText={errors.receiverAccountAddress ? "This field is required" : ""}
 						/>
 						<DialogActions>
-							<Button onClick={() => setOpenSuccessPopup(false)} color="primary">
+							<Button onClick={handleCloseSuccessPopup} color="primary">
 								Cancel
 							</Button>
 							<TransactionButton

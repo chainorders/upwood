@@ -66,7 +66,7 @@ export default function InvestmentPortfolio() {
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Return on investment</div>
-								<div className="value">{portfolioAgg?.return_on_investment}%</div>
+								<div className="value">{parseFloat(portfolioAgg?.return_on_investment || "0").toFixed(2)}%</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full">
 								<div className="tag">Carbon tons offset</div>

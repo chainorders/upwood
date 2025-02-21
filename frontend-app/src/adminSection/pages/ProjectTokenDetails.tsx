@@ -158,19 +158,19 @@ export default function ProjectTokenDetails() {
 				}
 			}
 		}
-	}, [tokenContract]);
+	}, [tokenContract, refreshCounter]);
 
 	useEffect(() => {
 		if (preSaleTokenContract) {
 			IndexerService.getAdminIndexerCis2Token(preSaleTokenContract.contract_address!, token_id!).then(setPreSaleToken);
 		}
-	}, [preSaleTokenContract, token_id]);
+	}, [preSaleTokenContract, token_id, refreshCounter]);
 
 	useEffect(() => {
 		if (tokenContract) {
 			ForestProjectService.getAdminForestProjects(tokenContract.forest_project_id).then(setProject);
 		}
-	}, [tokenContract]);
+	}, [tokenContract, refreshCounter]);
 
 	if (!token || !project || !tokenContract) {
 		return <div>Loading...</div>;
@@ -313,9 +313,10 @@ export default function ProjectTokenDetails() {
 						<DialogTitle>Add Fund</DialogTitle>
 						<DialogContent>
 							<AddFundPopup
+								contracts={contracts}
 								tokenId={token_id!}
 								forestProjectId={id!}
-								onDone={() => setRefreshCounter((c) => c + 1)}
+								onDone={handleCloseFundPopup}
 								fundContract={contracts.mint_funds_contract}
 								tokenContract={tokenContract}
 								preSaleTokenContract={preSaleTokenContract}
@@ -327,9 +328,10 @@ export default function ProjectTokenDetails() {
 					<DialogTitle>Add Market</DialogTitle>
 					<DialogContent>
 						<AddMarketPopup
+							contracts={contracts!}
 							contract_address={contract_address!}
 							token_id={token_id!}
-							onDone={() => setRefreshCounter((c) => c + 1)}
+							onDone={handleCloseMarketPopup}
 						/>
 					</DialogContent>
 				</Dialog>
@@ -340,7 +342,7 @@ export default function ProjectTokenDetails() {
 							<AddProjectTokenPopup
 								token_contract={preSaleTokenContract}
 								token_id={token_id}
-								onDone={() => setRefreshCounter((c) => c + 1)}
+								onDone={handleClosePreSaleTokenPopup}
 							/>
 						</DialogContent>
 					</Dialog>

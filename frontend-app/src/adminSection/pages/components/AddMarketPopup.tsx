@@ -1,63 +1,38 @@
 import { useOutletContext } from "react-router";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { User } from "../../../lib/user";
-import { useEffect, useState } from "react";
-import {
-	ForestProjectService,
-	ForestProjectTokenContract,
-	SystemContractsConfigApiModel,
-	TokenMetadata,
-	UserService,
-} from "../../../apiClient";
+import { useState } from "react";
+import { SystemContractsConfigApiModel } from "../../../apiClient";
 import securityP2PTrading from "../../../contractClients/generated/securityP2PTrading";
-import { toTokenId } from "../../../lib/conversions";
+import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import { useForm, Controller } from "react-hook-form";
 import { TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import TransactionButton from "../../../components/TransactionButton";
 
 interface Props {
+	contracts: SystemContractsConfigApiModel;
 	contract_address: string;
 	token_id: string;
 	onDone: (err?: string) => void;
 }
 
 interface AddMarketFormData {
-	buy_rate_numerator: number;
-	buy_rate_denominator: number;
-	sell_rate_numerator: number;
-	sell_rate_denominator: number;
+	buy_price: number;
+	sell_price: number;
 	liquidity_provider: string;
 }
 
-export default function AddMarketPopup({ contract_address, token_id, onDone }: Props) {
+export default function AddMarketPopup({ contract_address, token_id, onDone, contracts }: Props) {
 	const user = useOutletContext<{ user: User }>().user;
-	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
-	const [projectTokenContract, setProjectTokenContract] = useState<ForestProjectTokenContract>();
-	const [currencyMetadata, setCurrencyMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
-	const { control, handleSubmit, watch } = useForm<AddMarketFormData>();
-
-	useEffect(() => {
-		UserService.getSystemConfig().then((data) => {
-			setContracts(data);
-		});
-	}, [contract_address, token_id]);
-	useEffect(() => {
-		if (contracts && contracts.trading_contract) {
-			ForestProjectService.getAdminTokenMetadata(
-				contracts.trading_contract.currency_token_contract_address,
-				contracts.trading_contract.currency_token_id,
-			).then((data) => {
-				setCurrencyMetadata(data);
-			});
+	const { control, handleSubmit, watch } = useForm<AddMarketFormData>({
+		defaultValues: {
+			liquidity_provider: user.concordiumAccountAddress,
+			buy_price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
+			sell_price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
 		}
-	}, [contracts]);
-	useEffect(() => {
-		ForestProjectService.getAdminForestProjectsContract(contract_address).then((data) => {
-			setProjectTokenContract(data);
-		});
-	}, [contract_address]);
+	});
 
 	const onSubmitAddMarket = async (data: AddMarketFormData) => {
 		try {
@@ -75,12 +50,12 @@ export default function AddMarketPopup({ contract_address, token_id, onDone }: P
 					},
 					market: {
 						buy_rate: {
-							numerator: BigInt(data.buy_rate_numerator),
-							denominator: BigInt(data.buy_rate_denominator),
+							numerator: BigInt(data.buy_price),
+							denominator: BigInt(1),
 						},
 						sell_rate: {
-							numerator: BigInt(data.sell_rate_numerator),
-							denominator: BigInt(data.sell_rate_denominator),
+							numerator: BigInt(data.sell_price),
+							denominator: BigInt(1),
 						},
 						liquidity_provider: data.liquidity_provider,
 					},
@@ -96,10 +71,8 @@ export default function AddMarketPopup({ contract_address, token_id, onDone }: P
 		}
 	};
 
-	const buyRateNumerator = watch("buy_rate_numerator");
-	const buyRateDenominator = watch("buy_rate_denominator");
-	const sellRateNumerator = watch("sell_rate_numerator");
-	const sellRateDenominator = watch("sell_rate_denominator");
+	const buyPrice = watch("buy_price");
+	const sellPrice = watch("sell_price");
 
 	return (
 		<form onSubmit={handleSubmit(onSubmitAddMarket)}>
@@ -107,56 +80,50 @@ export default function AddMarketPopup({ contract_address, token_id, onDone }: P
 				<Controller
 					name="liquidity_provider"
 					control={control}
-					defaultValue={user.concordiumAccountAddress}
 					render={({ field }) => <TextField {...field} label="Liquidity Provider" fullWidth margin="normal" />}
 				/>
 				<Typography variant="body2" style={{ width: "100%" }} mt={2}>
-					This is the buy rate for the contract. The user will sell at this rate.
+					This is the buy price for the contract. The user will sell at this price.
 				</Typography>
-				<div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
-					<Controller
-						name="buy_rate_numerator"
-						control={control}
-						defaultValue={0}
-						render={({ field }) => (
-							<TextField {...field} label="Buy Rate Numerator" type="number" margin="normal" fullWidth />
-						)}
-					/>
-					<span>/</span>
-					<Controller
-						name="buy_rate_denominator"
-						control={control}
-						defaultValue={1}
-						render={({ field }) => (
-							<TextField {...field} label="Buy Rate Denominator" type="number" margin="normal" fullWidth />
-						)}
-					/>
-				</div>
-				<Typography variant="body2" style={{ width: "100%" }} align="right">
-					Please enter the buy and sell rates for the market.
-				</Typography>
+				<Controller
+					name="buy_price"
+					control={control}
+					render={({ field }) => (
+						<TextField
+							{...field}
+							label="Buy Price"
+							type="number"
+							margin="normal"
+							fullWidth
+							helperText={`Price per token unit ${contracts.euro_e_metadata.symbol} ${toDisplayAmount(
+								field.value.toString(),
+								contracts.euro_e_metadata.decimals || 6,
+								contracts.euro_e_metadata.decimals || 6,
+							)}`}
+						/>
+					)}
+				/>
 				<Typography variant="body2" style={{ width: "100%" }} mt={2}>
-					This is the sell rate for the contract. The user will buy at this rate.
+					This is the sell price for the contract. The user will buy at this price.
 				</Typography>
-				<div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
-					<Controller
-						name="sell_rate_numerator"
-						control={control}
-						defaultValue={0}
-						render={({ field }) => (
-							<TextField {...field} label="Sell Rate Numerator" type="number" margin="normal" fullWidth />
-						)}
-					/>
-					<span>/</span>
-					<Controller
-						name="sell_rate_denominator"
-						control={control}
-						defaultValue={1}
-						render={({ field }) => (
-							<TextField {...field} label="Sell Rate Denominator" type="number" margin="normal" fullWidth />
-						)}
-					/>
-				</div>
+				<Controller
+					name="sell_price"
+					control={control}
+					render={({ field }) => (
+						<TextField
+							{...field}
+							label="Sell Price"
+							type="number"
+							margin="normal"
+							fullWidth
+							helperText={`Price per token unit ${contracts.euro_e_metadata.symbol} ${toDisplayAmount(
+								field.value.toString(),
+								contracts.euro_e_metadata.decimals || 6,
+								contracts.euro_e_metadata.decimals || 6,
+							)}`}
+						/>
+					)}
+				/>
 			</div>
 			<TransactionButton
 				type="submit"
