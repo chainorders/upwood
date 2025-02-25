@@ -11,6 +11,7 @@ import type { ForestProjectTokenContract } from "../models/ForestProjectTokenCon
 import type { ForestProjectTokenUserYieldClaim } from "../models/ForestProjectTokenUserYieldClaim";
 import type { ForestProjectTokenYieldListApiModel } from "../models/ForestProjectTokenYieldListApiModel";
 import type { LegalContract } from "../models/LegalContract";
+import type { LegalContractUserModel } from "../models/LegalContractUserModel";
 import type { LegalContractUserSignature } from "../models/LegalContractUserSignature";
 import type { PagedResponse_ForestProject } from "../models/PagedResponse_ForestProject";
 import type { PagedResponse_ForestProjectAggApiModel } from "../models/PagedResponse_ForestProjectAggApiModel";
@@ -212,6 +213,21 @@ export class ForestProjectService {
 			query: {
 				page: page,
 				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param projectId
+	 * @returns LegalContractUserModel
+	 * @throws ApiError
+	 */
+	public static getForestProjectsLegalContract(projectId: string): CancelablePromise<LegalContractUserModel> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/forest_projects/{project_id}/legal_contract",
+			path: {
+				project_id: projectId,
 			},
 		});
 	}

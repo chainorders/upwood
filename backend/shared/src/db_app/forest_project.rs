@@ -580,6 +580,82 @@ pub struct LegalContractUserModel {
 }
 
 impl LegalContractUserModel {
+    pub fn find(
+        conn: &mut DbConn,
+        project_id: Uuid,
+        user_id: &str,
+    ) -> DbResult<Option<Self>> {
+        use crate::schema::forest_project_legal_contract_user_signatures::dsl as signatures_dsl;
+        use crate::schema::forest_project_legal_contracts::dsl as contracts_dsl;
+        use crate::schema_manual::forest_project_user_balance_agg::dsl as balance_dsl;
+
+        let result = contracts_dsl::forest_project_legal_contracts
+            .inner_join(
+                signatures_dsl::forest_project_legal_contract_user_signatures
+                    .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
+            )
+            .inner_join(
+                balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
+                    .eq(balance_dsl::forest_project_id)
+                    .and(balance_dsl::cognito_user_id.eq(user_id))),
+            )
+            .select((
+                contracts_dsl::project_id,
+                contracts_dsl::name,
+                contracts_dsl::tag,
+                contracts_dsl::text_url,
+                contracts_dsl::edoc_url,
+                contracts_dsl::pdf_url,
+                contracts_dsl::created_at,
+                signatures_dsl::cognito_user_id,
+                signatures_dsl::updated_at,
+                balance_dsl::total_balance,
+            ))
+            .filter(contracts_dsl::project_id.eq(project_id))
+            .first::<(
+                uuid::Uuid,
+                String,
+                String,
+                String,
+                String,
+                String,
+                NaiveDateTime,
+                String,
+                NaiveDateTime,
+                Decimal,
+            )>(conn)
+            .optional()?
+            .map(
+                |(
+                    project_id,
+                    name,
+                    tag,
+                    text_url,
+                    edoc_url,
+                    pdf_url,
+                    created_at,
+                    cognito_user_id,
+                    signed_date,
+                    user_token_balance,
+                )| {
+                    LegalContractUserModel {
+                        project_id,
+                        name,
+                        tag,
+                        text_url,
+                        edoc_url,
+                        pdf_url,
+                        created_at,
+                        cognito_user_id,
+                        signed_date,
+                        user_token_balance,
+                    }
+                },
+            );
+
+        Ok(result)
+    }
+
     pub fn list(
         conn: &mut DbConn,
         user_id: &str,

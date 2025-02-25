@@ -426,6 +426,25 @@ impl ForestProjectApi {
             page: page.unwrap_or(0),
         }))
     }
+
+    #[oai(
+        path = "/forest_projects/:project_id/legal_contract",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_legal_contract(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Path(project_id): Path<uuid::Uuid>,
+    ) -> JsonResult<LegalContractUserModel> {
+        let conn = &mut db_pool.get()?;
+        let contract =
+            LegalContractUserModel::find(conn, project_id, &claims.sub)?.ok_or(Error::NotFound(
+                PlainText(format!("Legal contract not found: {}", project_id)),
+            ))?;
+        Ok(Json(contract))
+    }
 }
 
 #[derive(Object, serde::Serialize, serde::Deserialize)]

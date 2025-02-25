@@ -14,6 +14,7 @@ interface ButtonProps {
 	linkState?: unknown;
 	loading?: boolean;
 	type?: "button" | "submit";
+	linkTarget?: string;
 }
 export default function Button({
 	text,
@@ -27,6 +28,7 @@ export default function Button({
 	danger,
 	call,
 	linkState,
+	linkTarget,
 	loading,
 	type,
 }: ButtonProps) {
@@ -47,6 +49,8 @@ export default function Button({
 				<Link
 					to={link}
 					state={linkState}
+					target={linkTarget ? "_blank" : "_self"}
+					rel="noreferrer"
 					className={`button ${radius16 ? "radius16" : ""} ${style || ""} ${active ? "active" : ""} ${danger ? "danger" : ""} ${disabled ? "disabled" : ""} ${loading ? "button__loader" : ""}`}
 				>
 					{icon && icon !== "" && !icononright && !loading && <img src={icon} width="14" height="14" className="left" />}
