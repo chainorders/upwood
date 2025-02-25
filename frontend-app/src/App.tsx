@@ -1,10 +1,9 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import AuthLayout from "./AuthLayout.tsx";
 import ActiveForestProjectsList from "./pages/ActiveForestProjectsList.tsx";
-import ActiveForestProjectDetails from "./pages/ActiveForestProjectDetails.tsx";
 import InvestmentPortfolio from "./pages/InvestmentPortfolio.tsx";
 import Login from "./pages/Login.tsx";
-import { OpenAPI } from "./apiClient/index.ts";
+import { ForestProjectState, OpenAPI } from "./apiClient/index.ts";
 import { useCallback, useState } from "react";
 import Wallet from "./pages/Wallet.tsx";
 import News from "./pages/News.tsx";
@@ -16,7 +15,6 @@ import UnAuthLayout from "./UnAuthLayout.tsx";
 import RegisterDownloadWallet from "./pages/RegisterDownloadWallet.tsx";
 import LoginInviteSuccess from "./pages/LoginInviteSuccess.tsx";
 import FundedForestProjectsList from "./pages/FundedForestProjectsList.tsx";
-import FundedForestProjectDetails from "./pages/FundedForestProjectDetails.tsx";
 import Contracts from "./pages/Contracts.tsx";
 import ContractsDetails from "./pages/ContractsDetails.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -33,7 +31,7 @@ import ProjectTokenDetails from "./adminSection/pages/ProjectTokenDetails.tsx";
 import UserList from "./adminSection/pages/UserList.tsx";
 import UserInvitations from "./adminSection/pages/UserInvitations.tsx";
 import BondForestProjectsList from "./pages/BondForestProjectsList.tsx";
-import BondForestProjectDetails from "./pages/BondForestProjectDetails.tsx";
+import ForestProjectDetails from "./pages/ForestProjectDetails.tsx";
 
 export default function App() {
 	OpenAPI.BASE = import.meta.env.VITE_API_BASE_URL;
@@ -70,11 +68,11 @@ export default function App() {
 			<Route element={<AuthLayout user={user} logout={logout} />}>
 				<Route index path="/" element={<ActiveForestProjectsList />} />
 				<Route path="projects/active" element={<ActiveForestProjectsList />} />
-				<Route path="projects/active/:id" element={<ActiveForestProjectDetails />} />
+				<Route path="projects/active/:id" element={<ForestProjectDetails source={ForestProjectState.ACTIVE} />} />
 				<Route path="projects/funded" element={<FundedForestProjectsList />} />
-				<Route path="projects/funded/:id" element={<FundedForestProjectDetails />} />
+				<Route path="projects/funded/:id" element={<ForestProjectDetails source={ForestProjectState.FUNDED} />} />
 				<Route path="projects/bond" element={<BondForestProjectsList />} />
-				<Route path="projects/bond/:id" element={<BondForestProjectDetails />} />
+				<Route path="projects/bond/:id" element={<ForestProjectDetails source={ForestProjectState.BOND} />} />
 				<Route path="portfolio" element={<InvestmentPortfolio />} />
 				<Route path="wallet" element={<Wallet />} />
 				<Route path="news" element={<News />} />

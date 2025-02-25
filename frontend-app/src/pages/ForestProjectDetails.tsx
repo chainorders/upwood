@@ -16,6 +16,9 @@ import SingleImageLayout from "../components/SingleImageLayout";
 import PageHeader from "../components/PageHeader";
 import { useTitle } from "../components/useTitle";
 import { User } from "../lib/user";
+import MarketBuy from "../components/MarketBuy";
+import { LazyLoadImage } from "react-lazy-load-image-component";
+import "react-lazy-load-image-component/src/effects/opacity.css";
 
 function ForestProjectMediaSection({
 	project,
@@ -38,7 +41,14 @@ function ForestProjectMediaSection({
 								key={index}
 							>
 								<div className="im">
-									<img src={im.image_url} style={{ width: "100%", height: "auto", objectFit: "cover" }} />
+									<LazyLoadImage
+                                        src={im.image_url}
+										alt=""
+										width="100%"
+										height="auto"
+                                        style={{ objectFit: "cover", maxHeight: "300px" }}
+                                        effect="opacity"
+                                    />
 								</div>
 							</div>
 						))}
@@ -51,7 +61,11 @@ function ForestProjectMediaSection({
 	);
 }
 
-export default function ActiveForestProjectDetails() {
+interface Props {
+	source: ForestProjectState;
+}
+
+export default function ForestProjectDetails({ source }: Props) {
 	const { id } = useParams<{ id: string }>();
 	const { user } = useOutletContext<{ user: User }>();
 	const [project, setProject] = useState<ForestProjectAggApiModel>();
@@ -59,12 +73,26 @@ export default function ActiveForestProjectDetails() {
 	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia>();
 	const [tabIndex, setTabIndex] = useState(0);
 
-	const [buyShare, setBuyShare] = useState(false);
-	const openBuyShare = () => {
-		setBuyShare(true);
+	const [bondFundPopup, setBondFundPopup] = useState(false);
+	const openBondFundPopup = () => {
+		setBondFundPopup(true);
 	};
-	const closeBuyShare = () => {
-		setBuyShare(false);
+	const closeBondFundPopup = () => {
+		setBondFundPopup(false);
+	};
+	const [propertyFundPopup, setPropertyFundPopup] = useState(false);
+	const openPropertyFundPopup = () => {
+		setPropertyFundPopup(true);
+	};
+	const closePropertyFundPopup = () => {
+		setPropertyFundPopup(false);
+	};
+	const [marketBuyPopup, setMarketBuyPopup] = useState(false);
+	const openMarketBuyPopup = () => {
+		setMarketBuyPopup(true);
+	};
+	const closeMarketBuyPopup = () => {
+		setMarketBuyPopup(false);
 	};
 	useEffect(() => {
 		UserService.getSystemConfig().then(setContracts);
@@ -82,19 +110,30 @@ export default function ActiveForestProjectDetails() {
 		image: "/Photo2.jpg",
 	};
 
+	const headerParts = [];
+	if (source === ForestProjectState.ACTIVE) {
+		headerParts.push({ name: "Active Projects", link: "/projects/active" });
+	} else if (source === ForestProjectState.FUNDED) {
+		headerParts.push({ name: "Funded Projects", link: "/projects/funded" });
+	} else if (source === ForestProjectState.BOND) {
+		headerParts.push({ name: "Investment Bonds", link: "/projects/bond" });
+	}
+	headerParts.push({ name: project?.forest_project.name || "", link: "" });
+
 	const comingSoon = project?.forest_project.state === ForestProjectState.DRAFT;
 	return (
 		<>
 			<div className="project-detail">
-				<PageHeader
-					user={user}
-					parts={[
-						{ name: "Active Projects", link: "/projects/active" },
-						{ name: project?.forest_project.name || "", link: "" },
-					]}
-				/>
+				<PageHeader user={user} parts={headerParts} />
 				<div className="image">
-					<img src={project?.forest_project.image_large_url} width={100} height={100} />
+                    <LazyLoadImage
+                        src={project?.forest_project.image_large_url}
+                        alt="Project Image"
+                        effect="opacity"
+                        width="100%"
+                        height="100"
+                        placeholderSrc="https://placehold.co/600x400?text=Loading"
+                    />
 					<div className="caption">{project?.forest_project.label}</div>
 				</div>
 				<div className="space-30"></div>
@@ -104,13 +143,31 @@ export default function ActiveForestProjectDetails() {
 							<div className="project-name">{comingSoon ? "To be announced" : project?.forest_project.name}</div>
 						</div>
 						<div className="col-3 col-m-full fr">
-							<Button
-								text={"INVEST"}
-								link={""}
-								active={true}
-								call={openBuyShare}
-								disabled={!project?.property_fund || project.property_fund.fund_state != SecurityMintFundState.OPEN}
-							/>
+							{
+								{
+									[ForestProjectState.DRAFT]: <Button text="COMING SOON" disabled={true} />,
+									[ForestProjectState.ACTIVE]: (
+										<Button
+											text="INVEST"
+											active
+											call={openPropertyFundPopup}
+											disabled={!project?.property_fund || project.property_fund.fund_state != SecurityMintFundState.OPEN}
+										/>
+									),
+									[ForestProjectState.FUNDED]: (
+										<Button text="BUY" active call={openMarketBuyPopup} disabled={!project?.property_market} />
+									),
+									[ForestProjectState.ARCHIVED]: <Button text="ARCHIVED" disabled={true} />,
+									[ForestProjectState.BOND]: (
+										<Button
+											text="INVEST"
+											active
+											call={openBondFundPopup}
+											disabled={!project?.bond_fund || project.bond_fund.fund_state != SecurityMintFundState.OPEN}
+										/>
+									),
+								}[source]
+							}
 						</div>
 						<div className="clr"></div>
 					</div>
@@ -178,9 +235,22 @@ export default function ActiveForestProjectDetails() {
 					</div>
 				</div>
 			</div>
-			{buyShare && project?.property_fund && contracts ? (
+			{bondFundPopup && project?.bond_fund && contracts ? (
 				<FundInvest
-					close={closeBuyShare}
+					close={closeBondFundPopup}
+					user={user}
+					contracts={contracts}
+					fund={project.bond_fund}
+					tokenContract={project.bond_contract}
+					currencyMetadata={project.bond_fund_currency_metadata}
+					project={project.forest_project}
+					supply={project.supply}
+					legalContractSigned={project.contract_signed}
+				/>
+			) : null}
+			{propertyFundPopup && project?.property_fund && contracts ? (
+				<FundInvest
+					close={closePropertyFundPopup}
 					user={user}
 					contracts={contracts}
 					fund={project.property_fund}
@@ -190,9 +260,21 @@ export default function ActiveForestProjectDetails() {
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}
 				/>
-			) : (
-				<></>
-			)}
+			) : null}
+			{marketBuyPopup && project?.property_market && contracts ? (
+				<MarketBuy
+					close={closeMarketBuyPopup}
+					user={user}
+					contracts={contracts}
+					market={project.property_market}
+					tokenContract={project.property_contract}
+					currencyMetadata={project.property_market_currency_metadata}
+					project={project.forest_project}
+					supply={project.supply}
+					legalContractSigned={project.contract_signed}
+					userNotified={project.user_notified}
+				/>
+			) : null}
 		</>
 	);
 }
