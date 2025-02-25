@@ -11,7 +11,7 @@ import {
 	SystemContractsConfigApiModel,
 	UserService,
 } from "../apiClient";
-import { useOutletContext, useParams } from "react-router";
+import { useLocation, useOutletContext, useParams } from "react-router";
 import SingleImageLayout from "../components/SingleImageLayout";
 import PageHeader from "../components/PageHeader";
 import { useTitle } from "../components/useTitle";
@@ -68,7 +68,8 @@ interface Props {
 export default function ForestProjectDetails({ source }: Props) {
 	const { id } = useParams<{ id: string }>();
 	const { user } = useOutletContext<{ user: User }>();
-	const [project, setProject] = useState<ForestProjectAggApiModel>();
+	const location = useLocation();
+	const [project, setProject] = useState<ForestProjectAggApiModel>(location.state?.project);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia>();
 	const [tabIndex, setTabIndex] = useState(0);

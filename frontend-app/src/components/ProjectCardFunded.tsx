@@ -70,7 +70,12 @@ export default function ProjectCardFunded({ project, user, contracts }: Props) {
 					</div>
 					<div className="container-in">
 						<div className="col-8 col-m-full col-mr-bottom-20 fl">
-							<Button text="VIEW DETAILS" link={`/projects/funded/${project.forest_project.id}`} active={false} />
+							<Button
+								text="VIEW DETAILS"
+								link={`/projects/funded/${project.forest_project.id}`}
+								active={false}
+								linkState={{ project }}
+							/>
 						</div>
 						<div className="col-4 col-m-full fl">
 							<Button text="BUY" active call={openNotifyShare} disabled={!project.property_market} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
 import {
 	ForestProject,
 	ForestProjectPrice,
@@ -47,7 +47,8 @@ import { toDisplayAmount } from "../../lib/conversions";
 
 export default function ProjectDetails() {
 	const { id } = useParams<{ id: string }>();
-	const [project, setProject] = useState<ForestProject | null>(null);
+	const location = useLocation();
+	const [project, setProject] = useState<ForestProject>(location.state?.project);
 	const [tokenContracts, setTokenContracts] = useState<ForestProjectTokenContract[]>([]);
 	const [prices, setPrices] = useState<PagedResponse_ForestProjectPrice>();
 	const [medias, setMedias] = useState<PagedResponse_ForestProjectMedia>();
