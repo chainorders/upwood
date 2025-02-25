@@ -22,6 +22,9 @@ export default function AddPricePopup({ open, onClose, projectId, euroEMetadata 
 	const onSubmit = async (data: ForestProjectPrice) => {
 		try {
 			data.price_at = formatDate(new Date(data.price_at));
+			data.currency_token_id = euroEMetadata.token_id;
+			data.currency_token_contract_address = euroEMetadata.contract_address;
+			data.project_id = projectId;
 			await ForestProjectService.postAdminForestProjectsPrice(projectId, data);
 			onClose();
 			reset();
