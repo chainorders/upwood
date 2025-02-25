@@ -15,7 +15,12 @@ import { PortfolioValue } from "../apiClient";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler);
 
-export default function PortfolioValueChart(props: { values: PortfolioValue[] }) {
+export default function PortfolioValueChart(props: {
+	values: PortfolioValue[];
+	sixMonthsAgo: string;
+	currentMonth: string;
+	lastMonth: string;
+}) {
 	const chartLabels = props.values.map((value) => new Date(value.at).toLocaleDateString("en-US", { month: "short" }));
 	const chartData = props.values.map((value) => value.portfolio_value);
 
@@ -76,13 +81,13 @@ export default function PortfolioValueChart(props: { values: PortfolioValue[] })
 						</div>
 						<div className="clr"></div>
 						<div className="col-4 fl cels first">
-							In 6 months <span>+104€</span>
+							In 6 months <span>${props.sixMonthsAgo}</span>
 						</div>
 						<div className="col-4 text-align-center fl cels">
-							Last month <span>+104€</span>
+							Last month <span>${props.lastMonth}</span>
 						</div>
 						<div className="col-4 text-align-right fl cels last">
-							Current month <span>+104€</span>
+							Current month <span>${props.currentMonth}</span>
 						</div>
 						<div className="clr"></div>
 					</div>

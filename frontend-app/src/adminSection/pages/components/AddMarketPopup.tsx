@@ -31,7 +31,7 @@ export default function AddMarketPopup({ contract_address, token_id, onDone, con
 			liquidity_provider: user.concordiumAccountAddress,
 			buy_price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
 			sell_price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
-		}
+		},
 	});
 
 	const onSubmitAddMarket = async (data: AddMarketFormData) => {

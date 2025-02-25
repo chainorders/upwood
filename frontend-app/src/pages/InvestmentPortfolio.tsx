@@ -13,7 +13,7 @@ import ProjectCardOwned from "../components/ProjectCardOwned";
 import PortfolioValueChart from "../components/PortfolioValueChart";
 import { useOutletContext } from "react-router";
 import { User } from "../lib/user";
-import { toDisplayAmount } from "../lib/conversions";
+import { formatDate, toDisplayAmount } from "../lib/conversions";
 
 export default function InvestmentPortfolio() {
 	const { user } = useOutletContext<{ user: User }>();
@@ -21,15 +21,44 @@ export default function InvestmentPortfolio() {
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [portfolioValues, setPortfolioValues] = useState<PortfolioValue[]>([]);
 	const [portfolioAgg, setPortfolioAgg] = useState<InvestmentPortfolioUserAggregate>();
+	const [valSixMonthsAgo, setValSixMonthsAgo] = useState<string>("0");
+	const [valLastMonth, setValLastMonth] = useState<string>("0");
+	const [valCurrentMonth, setValCurrentMonth] = useState<string>("0");
+
 	useEffect(() => {
-		ForestProjectService.getForestProjectsListOwned().then(setProjects);
-		InvestmentPortfolioService.getPortfolioValueLastNMonths(6).then((response) => {
-			response.forEach((r) => (r.portfolio_value = toDisplayAmount(r.portfolio_value, 6, 0)));
-			setPortfolioValues(response.reverse());
-		});
-		InvestmentPortfolioService.getPortfolioAggregate().then(setPortfolioAgg);
 		UserService.getSystemConfig().then(setContracts);
 	}, [user]);
+
+	useEffect(() => {
+		if (!user || !contracts) {
+			return;
+		}
+
+		const sixMonthsAgo = new Date();
+		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+		const currentMonth = new Date();
+		const lastMonth = new Date();
+		lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+		ForestProjectService.getForestProjectsListOwned().then(setProjects);
+		InvestmentPortfolioService.getPortfolioValueLastNMonths(6).then((response) => {
+			response.forEach(
+				(r) => (r.portfolio_value = toDisplayAmount(r.portfolio_value, contracts?.euro_e_metadata.decimals || 6, 0)),
+			);
+			setPortfolioValues(response.reverse());
+		});
+		InvestmentPortfolioService.getPortfolioValue(formatDate(sixMonthsAgo)).then((val) =>
+			setValSixMonthsAgo(toDisplayAmount(val, contracts?.euro_e_metadata.decimals || 6, 0)),
+		);
+		InvestmentPortfolioService.getPortfolioValue(formatDate(lastMonth)).then((val) =>
+			setValLastMonth(toDisplayAmount(val, contracts?.euro_e_metadata.decimals || 6, 0)),
+		);
+		InvestmentPortfolioService.getPortfolioValue(formatDate(currentMonth)).then((val) =>
+			setValCurrentMonth(toDisplayAmount(val, contracts?.euro_e_metadata.decimals || 6, 0)),
+		);
+		InvestmentPortfolioService.getPortfolioAggregate();
+		InvestmentPortfolioService.getPortfolioAggregate().then(setPortfolioAgg);
+	}, [user, contracts]);
 
 	return (
 		<>
@@ -94,7 +123,12 @@ export default function InvestmentPortfolio() {
 							<div className="col-12">
 								<div className="chart">
 									<div className="chart-in">
-										<PortfolioValueChart values={portfolioValues} />
+										<PortfolioValueChart
+											values={portfolioValues}
+											sixMonthsAgo={valSixMonthsAgo}
+											currentMonth={valCurrentMonth}
+											lastMonth={valLastMonth}
+										/>
 									</div>
 								</div>
 							</div>

@@ -42,13 +42,13 @@ function ForestProjectMediaSection({
 							>
 								<div className="im">
 									<LazyLoadImage
-                                        src={im.image_url}
+										src={im.image_url}
 										alt=""
 										width="100%"
 										height="auto"
-                                        style={{ objectFit: "cover", maxHeight: "300px" }}
-                                        effect="opacity"
-                                    />
+										style={{ objectFit: "cover", maxHeight: "300px" }}
+										effect="opacity"
+									/>
 								</div>
 							</div>
 						))}
@@ -126,14 +126,14 @@ export default function ForestProjectDetails({ source }: Props) {
 			<div className="project-detail">
 				<PageHeader user={user} parts={headerParts} />
 				<div className="image">
-                    <LazyLoadImage
-                        src={project?.forest_project.image_large_url}
-                        alt="Project Image"
-                        effect="opacity"
-                        width="100%"
-                        height="100"
-                        placeholderSrc="https://placehold.co/600x400?text=Loading"
-                    />
+					<LazyLoadImage
+						src={project?.forest_project.image_large_url}
+						alt="Project Image"
+						effect="opacity"
+						width="100%"
+						height="100"
+						placeholderSrc="https://placehold.co/600x400?text=Loading"
+					/>
 					<div className="caption">{project?.forest_project.label}</div>
 				</div>
 				<div className="space-30"></div>

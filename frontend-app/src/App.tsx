@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
-import { lazy, Suspense, useCallback, useState } from "react";
-import { ForestProjectState, OpenAPI } from "./apiClient/index.ts";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { ForestProjectState, OpenAPI, SystemContractsConfigApiModel, UserService } from "./apiClient/index.ts";
 import { User } from "./lib/user.ts";
 
 const AuthLayout = lazy(() => import("./AuthLayout.tsx"));
@@ -39,6 +39,7 @@ export default function App() {
 	const location = useLocation();
 
 	const [user, setUser] = useState<User>();
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const navigate = useNavigate();
 	const login = useCallback(
 		(user: User) => {
@@ -56,6 +57,9 @@ export default function App() {
 			navigate("/login");
 		});
 	};
+	useEffect(() => {
+		UserService.getSystemConfig().then(setContracts);
+	}, [user]);
 
 	return (
 		<Suspense fallback={<div>Loading...</div>}>
@@ -75,7 +79,7 @@ export default function App() {
 					<Route path="projects/funded/:id" element={<ForestProjectDetails source={ForestProjectState.FUNDED} />} />
 					<Route path="projects/bond" element={<BondForestProjectsList />} />
 					<Route path="projects/bond/:id" element={<ForestProjectDetails source={ForestProjectState.BOND} />} />
-					<Route path="portfolio" element={<InvestmentPortfolio />} />
+					<Route path="portfolio" element={<InvestmentPortfolio/>} />
 					<Route path="wallet" element={<Wallet />} />
 					<Route path="news" element={<News />} />
 					<Route path="news/:id" element={<NewsDetails />} />

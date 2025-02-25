@@ -27,6 +27,41 @@ pub struct Api;
 #[OpenApi]
 impl Api {
     #[oai(
+        path = "/portfolio/value",
+        method = "get",
+        tag = "ApiTags::InvestmentPortfolio"
+    )]
+    async fn portfolio_value(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Query(at): Query<NaiveDateTime>,
+    ) -> JsonResult<Decimal> {
+        let conn = &mut db_pool.get()?;
+        let ret = InvestmentPortfolioUserAggregate::calculate_portfolio_value(
+            conn,
+            &claims.sub,
+            at,
+            contracts.euro_e_token_id,
+            contracts.euro_e_contract_index,
+        );
+        let ret = match ret {
+            Ok(ret) => ret,
+            Err(error) => {
+                error!(
+                    "Error while calculating investment portfolio value: {:?}",
+                    error
+                );
+                return Err(Error::InternalServer(PlainText(
+                    "Error while calculating investment portfolio value".to_string(),
+                )));
+            }
+        };
+        Ok(Json(ret))
+    }
+
+    #[oai(
         path = "/portfolio/aggregate",
         method = "get",
         tag = "ApiTags::InvestmentPortfolio"

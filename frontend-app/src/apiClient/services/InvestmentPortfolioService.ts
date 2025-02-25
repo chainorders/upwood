@@ -11,6 +11,21 @@ import { request as __request } from "../core/request";
 
 export class InvestmentPortfolioService {
 	/**
+	 * @param at
+	 * @returns string
+	 * @throws ApiError
+	 */
+	public static getPortfolioValue(at: string): CancelablePromise<string> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/portfolio/value",
+			query: {
+				at: at,
+			},
+		});
+	}
+
+	/**
 	 * @param now
 	 * @returns InvestmentPortfolioUserAggregate
 	 * @throws ApiError
