@@ -20,6 +20,7 @@ export default function PortfolioValueChart(props: {
 	sixMonthsAgo: string;
 	currentMonth: string;
 	lastMonth: string;
+	currencySymbol: string;
 }) {
 	const chartLabels = props.values.map((value) => new Date(value.at).toLocaleDateString("en-US", { month: "short" }));
 	const chartData = props.values.map((value) => value.portfolio_value);
@@ -81,13 +82,25 @@ export default function PortfolioValueChart(props: {
 						</div>
 						<div className="clr"></div>
 						<div className="col-4 fl cels first">
-							In 6 months <span>${props.sixMonthsAgo}</span>
+							In 6 months{" "}
+							<span>
+								{props.currencySymbol}
+								{props.sixMonthsAgo}
+							</span>
 						</div>
 						<div className="col-4 text-align-center fl cels">
-							Last month <span>${props.lastMonth}</span>
+							Last month{" "}
+							<span>
+								{props.currencySymbol}
+								{props.lastMonth}
+							</span>
 						</div>
 						<div className="col-4 text-align-right fl cels last">
-							Current month <span>${props.currentMonth}</span>
+							Current month{" "}
+							<span>
+								{props.currencySymbol}
+								{props.currentMonth}
+							</span>
 						</div>
 						<div className="clr"></div>
 					</div>

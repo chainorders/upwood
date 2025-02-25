@@ -128,6 +128,7 @@ export default function InvestmentPortfolio() {
 											sixMonthsAgo={valSixMonthsAgo}
 											currentMonth={valCurrentMonth}
 											lastMonth={valLastMonth}
+											currencySymbol={contracts?.euro_e_metadata.symbol || ""}
 										/>
 									</div>
 								</div>
