@@ -151,6 +151,7 @@ mod tests {
                             init_name:        super::contract_name(),
                             origin_ref:       super::module_ref(),
                             events:           vec![],
+                            parameter:        None,
                         }),
                         contract:  contract_address.to_decimal(),
                     }],

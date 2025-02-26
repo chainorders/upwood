@@ -16,8 +16,8 @@ security-p2p-trading = { path = "../security-p2p-trading" }
 security-mint-fund = { path = "../security-mint-fund" }
 nft-multi-rewarded = { path = "../nft-multi-rewarded" }
 offchain-rewards = { path = "../offchain-rewards" }
-concordium-smart-contract-testing = { version = "4.2.0" }
-concordium_base = "5.0.0"
+concordium-smart-contract-testing = { version = "4.3.0" }
+concordium_base = "6.0.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

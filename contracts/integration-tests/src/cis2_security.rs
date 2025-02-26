@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-use concordium_base::smart_contracts::WasmModule;
 use concordium_cis2::{
     BalanceOfQuery, BalanceOfQueryParams, BalanceOfQueryResponse, IsTokenId, TransferParams,
     UpdateOperator, UpdateOperatorParams,

@@ -1225,15 +1225,15 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "4.3.0"
+version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d0798ed24edd3a8212ba2f3d6c771635cb3561c327dc03463efa09fa9bd6083"
+checksum = "f7a70dae6be9a40cae34506d4d464f891db0deeb3a15fb1a2a20a3d46b2a4cfc"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "chrono",
- "concordium-smart-contract-engine 5.0.0",
- "concordium_base 5.0.0",
+ "concordium-smart-contract-engine",
+ "concordium_base 6.0.0",
  "derive_more 0.99.18",
  "ed25519-dalek",
  "futures",
@@ -1265,7 +1265,7 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "chrono",
- "concordium-smart-contract-engine 6.0.0",
+ "concordium-smart-contract-engine",
  "concordium_base 7.0.0",
  "derive_more 0.99.18",
  "ed25519-dalek",
@@ -1309,31 +1309,6 @@ dependencies = [
 
 [[package]]
 name = "concordium-smart-contract-engine"
-version = "5.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec03be6a4a56c0501cf9225d135aaa6c155228039efde27d6551814bc6776db1"
-dependencies = [
- "anyhow",
- "byteorder",
- "concordium-contracts-common",
- "concordium-wasm 4.0.0",
- "derive_more 0.99.18",
- "ed25519-zebra",
- "futures",
- "libc",
- "num_enum",
- "rand",
- "secp256k1",
- "serde",
- "sha2",
- "sha3",
- "slab",
- "thiserror 1.0.66",
- "tinyvec",
-]
-
-[[package]]
-name = "concordium-smart-contract-engine"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acd7ceba6727800db45bb7fffdda4c45377ea7682779eb8b2cf0df7f377161f3"
@@ -1341,7 +1316,7 @@ dependencies = [
  "anyhow",
  "byteorder",
  "concordium-contracts-common",
- "concordium-wasm 5.0.0",
+ "concordium-wasm",
  "derive_more 0.99.18",
  "ed25519-zebra",
  "futures",
@@ -1359,12 +1334,12 @@ dependencies = [
 
 [[package]]
 name = "concordium-smart-contract-testing"
-version = "4.2.0"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2032c38f9f857a12543d88e41bce3a4a5ba3bb1552436fb944c8aec9122c09d"
+checksum = "e7d2a1fb209bf0718cb2eff7b4d8bfb413007d02c875adf0f2a2034f7f720515"
 dependencies = [
  "anyhow",
- "concordium-rust-sdk 4.3.0",
+ "concordium-rust-sdk 5.0.0",
  "num-bigint",
  "num-integer",
  "sha2",
@@ -1383,19 +1358,6 @@ dependencies = [
 
 [[package]]
 name = "concordium-wasm"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26a581ef6ae1b23e149eaf5ed1e43c1da877ded9ae0de4989cd71b76d25c67d7"
-dependencies = [
- "anyhow",
- "concordium-contracts-common",
- "derive_more 0.99.18",
- "leb128",
- "num_enum",
-]
-
-[[package]]
-name = "concordium-wasm"
 version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d051a3ec0f7fbacc57e7f1b1bfa2d5d8a268354f5bbe37962390a00959adaa1"
@@ -1409,9 +1371,9 @@ dependencies = [
 
 [[package]]
 name = "concordium_base"
-version = "5.0.0"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a3dd5a345b61f667a8cb6a361f3e88268bf15b68eabab7f78e27ce513b20175"
+checksum = "2b7719963a1f1e3f1dfc2614daad47b91ad5a32104d7ab67dcf962627fdc0a6d"
 dependencies = [
  "aes",
  "anyhow",
@@ -2903,7 +2865,7 @@ dependencies = [
  "concordium-rwa-identity-registry",
  "concordium-smart-contract-testing",
  "concordium-std",
- "concordium_base 5.0.0",
+ "concordium_base 6.0.0",
  "nft-multi-rewarded",
  "offchain-rewards",
  "security-mint-fund",

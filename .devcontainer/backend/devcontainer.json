@@ -43,8 +43,7 @@
 					"cargo",
 					"clippy",
 					"--no-deps",
-					"--message-format=json",
-					"--all-targets"
+					"--message-format=json"
 				],
 				"rust-analyzer.checkOnSave.command": "clippy",
 				"rust-analyzer.checkOnSave": true,
