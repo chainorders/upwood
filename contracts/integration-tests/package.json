@@ -3,6 +3,7 @@
 	"packageManager": "yarn@4.0.2",
 	"scripts": {
 		"test": "cargo test",
-		"format": "cargo +nightly-2023-04-01 fmt"
+		"format": "cargo +nightly-2023-04-01 fmt",
+		"clean": "cargo clean"
 	}
 }
