@@ -107,7 +107,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const securitySftMultiYielder = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("06e590aae1912f9445900a4ff40608842e5480dc071e2bba9617bde45847fe1d"),
+		ModuleReference.fromHexString("4ecccecc1c9e9567a684f952051a0c3c34d4cf9faca990b0e150154e17b8ba12"),
 		ContractName.fromString("security_sft_multi_yielder"),
 		initRequestSchemaBase64,
 	),

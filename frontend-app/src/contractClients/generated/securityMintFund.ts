@@ -165,7 +165,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const securityMintFund = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("20cc574f628efa6afe1fb747a5676cfb47ae28ec639db9ac7a240097f23e1140"),
+		ModuleReference.fromHexString("828b07d078c953b169dc2792f62aee769585d2a1d37fc7918aef99c1e52f17db"),
 		ContractName.fromString("security_mint_fund"),
 		initRequestSchemaBase64,
 	),
