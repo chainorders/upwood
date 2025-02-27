@@ -168,3 +168,37 @@ export function toDisplayRate(
 	const rate = numeratorNumWithDecimals / denominatorNumWithDecimals;
 	return rate.toFixed(roundToDecimal);
 }
+
+export type Signature = {
+	signature: string;
+	signatureScheme: string;
+};
+
+export type SigsApi = {
+	sigs: {
+		[key: number]: {
+			sigs: {
+				[key: number]: Signature;
+			};
+		};
+	}
+};
+
+export type SigsContract = [number, [number, { Ed25519: [string] }][]][];
+
+export function sigsApiToContract(sigsApi: SigsApi): SigsContract {
+	console.log(sigsApi);
+	const sigs: SigsContract = [];
+	for (const [key, value] of Object.entries(sigsApi.sigs)) {
+		const keyNum = parseInt(key);
+		const sigsArray: [number, { Ed25519: [string] }][] = [];
+		for (const [key2, value2] of Object.entries(value.sigs)) {
+			const key2Num = parseInt(key2);
+			const sig = value2.signature;
+			const sigScheme = value2.signatureScheme;
+			sigsArray.push([key2Num, { Ed25519: [sig] }]);
+		}
+		sigs.push([keyNum, sigsArray]);
+	}
+	return sigs;
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router";
 
 import {
+	ForestProjectFundsAffiliateRewardRecord,
 	PagedResponse_ForestProjectFundsAffiliateRewardRecord,
 	PagedResponse_UserTransaction,
 	SystemContractsConfigApiModel,
@@ -10,13 +11,14 @@ import {
 } from "../apiClient";
 import AccountCross from "../assets/account-not-protected.svg";
 import Button from "../components/Button";
-// import ClaimPopup from "../components/ClaimPopup";
 import CreateCompany from "../components/CreateCompany";
 import EditCompany from "../components/EditCompany";
 import EditProfile from "../components/EditProfile";
 import PageHeader from "../components/PageHeader";
 import { User } from "../lib/user";
-import { toDisplayAmount } from "../lib/conversions";
+import { sigsApiToContract, toDisplayAmount } from "../lib/conversions";
+import offchainRewards from "../contractClients/generated/offchainRewards";
+import { TxnStatus, updateContract } from "../lib/concordium";
 
 function Pagination({
 	pageCount,
@@ -49,14 +51,66 @@ function Pagination({
 	);
 }
 
+function ClaimEarningsButton({
+	reward,
+	user,
+	contracts,
+}: {
+	reward?: ForestProjectFundsAffiliateRewardRecord;
+	user: User;
+	contracts: SystemContractsConfigApiModel;
+}) {
+	const [, setTxnStatus] = useState<TxnStatus>("none");
+	const [isClaiming, setIsClaiming] = useState(false);
+
+	const onClaimClick = async () => {
+		if (!reward) return;
+
+		setIsClaiming(true);
+		try {
+			await WalletService.getUserAffiliateRewardsClaim(reward.investment_record_id).then((res) =>
+				updateContract(
+					user.concordiumAccountAddress,
+					contracts.offchain_rewards_contract_index,
+					offchainRewards.claimReward,
+					{
+						signer: res.signer,
+						signature: sigsApiToContract(res.signature),
+						claim: {
+							account: res.claim.account,
+							account_nonce: BigInt(res.claim.account_nonce),
+							contract_address: { index: Number(res.claim.contract_address), subindex: 0 },
+							reward_amount: res.claim.reward_amount,
+							reward_id: res.claim.reward_id,
+							reward_token_contract: { index: Number(res.claim.reward_token_contract), subindex: 0 },
+							reward_token_id: res.claim.reward_token_id,
+						},
+					},
+					setTxnStatus,
+				),
+			);
+			setIsClaiming(false);
+		} catch (error) {
+			console.error(error);
+			alert("Error claiming earnings. Please try again later.");
+			setTxnStatus("error");
+			setIsClaiming(false);
+		}
+	};
+
+	return <Button text="CLAIM EARNINGS" active disabled={!reward} call={onClaimClick} loading={isClaiming} />;
+}
+
 export default function Settings() {
 	const { user } = useOutletContext<{ user: User }>();
 	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction>();
 	const [trasactionsPage, setTransactionsPage] = useState(0);
 	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord>();
+	const [claimableReward, setClaimableReward] = useState<ForestProjectFundsAffiliateRewardRecord>();
 	const [affiliateRewardsPage, setAffiliateRewardsPage] = useState(0);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 
+	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [, setClaimPopup] = useState(false);
 	const [edit_profile_popup, setEditProfilePopup] = useState(false);
 	const [create_company_popup, setCreateCompanyPopup] = useState(false);
@@ -67,24 +121,25 @@ export default function Settings() {
 	}, [user]);
 	useEffect(() => {
 		WalletService.getUserTransactionsList(trasactionsPage).then(setTransactions);
-	}, [user, trasactionsPage]);
+	}, [user, trasactionsPage, refreshCounter]);
 	useEffect(() => {
 		WalletService.getUserAffiliateRewardsList(affiliateRewardsPage).then(setAffiliateRewards);
-	}, [user, affiliateRewardsPage]);
+	}, [user, affiliateRewardsPage, refreshCounter]);
+	useEffect(() => {
+		if (!affiliateRewards || !affiliateRewards.data) {
+			setClaimableReward(undefined);
+			return;
+		}
+
+		const claimableReward = affiliateRewards.data.find((r) => BigInt(r.remaining_reward_amount) > 0);
+		setClaimableReward(claimableReward);
+	}, [affiliateRewards]);
 	const links = [
 		{ title: "Portfolio", description: "How to manage your investments portfolio", link: "" },
 		{ title: "Wallet", description: "How to manage your wallet", link: "" },
 		{ title: "Contracts", description: "How to manage your contracts", link: "" },
 	];
-	// const claim_popup_details = {
-	// 	heading: "Claim affiliate earnings",
-	// 	list: [
-	// 		{
-	// 			tag: "Claim affiliate earnings",
-	// 			display: "150 EUROe",
-	// 		},
-	// 	],
-	// };
+	const userAffiliateLink = `${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`;
 	return (
 		<>
 			<div className="clr"></div>
@@ -134,7 +189,7 @@ export default function Settings() {
                   </div> */}
 									<div>
 										<div className="action pdtop">
-											<Button text={"Create company profile"} link={""} active={true} call={() => setCreateCompanyPopup(true)} />
+											<Button text={"Create company profile"} active call={() => setCreateCompanyPopup(true)} />
 										</div>
 									</div>
 								</div>
@@ -218,10 +273,9 @@ export default function Settings() {
 								<div className="heading">Affiliate settings</div>
 								<p className="genp hideonmobile">
 									Your unique link :{" "}
-									<a
-										href={`${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`}
-										target="_blank"
-									>{`${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`}</a>
+									<a href={userAffiliateLink} target="_blank">
+										{userAffiliateLink}
+									</a>
 								</p>
 							</div>
 							<div className="col-4 text-align-right fr hideonmobile">
@@ -253,7 +307,7 @@ export default function Settings() {
 													<td>{item.investment_record_id}</td>
 													<td>{item.investor_account_address}</td>
 													<td>{toDisplayAmount(item.currency_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
-													<td>{item.affiliate_commission}%</td>
+													<td>{parseFloat(item.affiliate_commission) * 100}%</td>
 													<td>{toDisplayAmount(item.reward_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
 													<td>{toDisplayAmount(item.remaining_reward_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
 												</tr>
@@ -281,14 +335,16 @@ export default function Settings() {
 								/>
 							</div>
 							<div className="col-2 text-align-right fr hideonmobile">
-								<Button text={"CLAIM EARNINGS"} link={""} active={true} call={() => setClaimPopup(true)} />
+								{contracts && <ClaimEarningsButton reward={claimableReward} user={user} contracts={contracts} />}
 							</div>
 							<div className="clr"></div>
 							<div className="space-20 showonmobile"></div>
 							<div className="col-12 text-align-center showonmobile">
 								<p className="genp">
 									Your unique link :<br />
-									<Link to="upwood.io/jsdhdsjsdhc1234">upwood.io/jsdhdsjsdhc1234</Link>
+									<a href={userAffiliateLink} target="_blank" style={{ wordBreak: "break-all" }}>
+										{userAffiliateLink}
+									</a>
 								</p>
 							</div>
 							<div className="space-20 showonmobile"></div>
@@ -299,7 +355,7 @@ export default function Settings() {
 							</div>
 							<div className="space-20 showonmobile"></div>
 							<div className="col-12 showonmobile">
-								<Button text={"CLAIM EARNINGS"} link={""} active={true} call={() => setClaimPopup(true)} />
+								{contracts && <ClaimEarningsButton reward={claimableReward} user={user} contracts={contracts} />}
 							</div>
 							<div className="space-20 showonmobile"></div>
 							<div className="col-12 text-align-center showonmobile">
@@ -314,7 +370,6 @@ export default function Settings() {
 				</div>
 				<div className="space-30"></div>
 			</div>
-			{/* {claim_popup ? <ClaimPopup config={claim_popup_details} close={() => setClaimPopup(false)} /> : null} */}
 			{edit_profile_popup ? <EditProfile close={() => setEditProfilePopup(false)} /> : null}
 			{create_company_popup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}
 			{edit_company_popup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}

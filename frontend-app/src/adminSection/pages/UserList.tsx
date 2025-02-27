@@ -139,6 +139,7 @@ export default function UserList() {
 								<TableCell>Investment Amount</TableCell>
 								<TableCell>Account</TableCell>
 								<TableCell>KYC Verified</TableCell>
+								<TableCell>Affiliate Commission</TableCell>
 								<TableCell>Actions</TableCell>
 							</TableRow>
 						</TableHead>
@@ -152,6 +153,7 @@ export default function UserList() {
 									<TableCell>{user.desired_investment_amount}</TableCell>
 									<TableCell>{user.account_address}</TableCell>
 									<TableCell>{user.kyc_verified ? "Yes" : "No"}</TableCell>
+									<TableCell>{user.affiliate_commission}</TableCell>
 									<TableCell>
 										<ButtonGroup variant="outlined" size="small">
 											{user.kyc_verified ? (
