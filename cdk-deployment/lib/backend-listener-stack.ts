@@ -1,12 +1,19 @@
-import { Stack, Tags } from "aws-cdk-lib";
-import { Construct } from "constructs";
-import { constructName, StackProps as SP } from "./shared";
-import * as ecs from "aws-cdk-lib/aws-ecs";
-import * as ssm from "aws-cdk-lib/aws-ssm";
-import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
+import {
+	Stack,
+	Tags,
+} from "aws-cdk-lib";
 import { IVpc } from "aws-cdk-lib/aws-ec2";
-import { ILogGroup } from "aws-cdk-lib/aws-logs";
+import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
+import * as ecs from "aws-cdk-lib/aws-ecs";
 import { Ec2Service } from "aws-cdk-lib/aws-ecs";
+import { ILogGroup } from "aws-cdk-lib/aws-logs";
+import * as ssm from "aws-cdk-lib/aws-ssm";
+import { Construct } from "constructs";
+
+import {
+	constructName,
+	StackProps as SP,
+} from "./shared";
 
 interface StackProps extends SP {
 	logGroup: ILogGroup;
