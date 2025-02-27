@@ -14,11 +14,15 @@ import {
 	UserPoolEmail,
 } from "aws-cdk-lib/aws-cognito";
 
+export interface CognitoStackProps extends StackProps {
+	appDomain: string;
+}
+
 export class CognitoStack extends cdk.Stack {
 	userPool: IUserPool;
 	userPoolClient: IUserPoolClient;
 
-	constructor(scope: Construct, id: string, props: StackProps) {
+	constructor(scope: Construct, id: string, props: CognitoStackProps) {
 		super(scope, id, props);
 		const userPool = new UserPool(this, constructName(props, "user-pool"), {
 			userPoolName: constructName(props, "user-pool"),
@@ -30,6 +34,11 @@ export class CognitoStack extends cdk.Stack {
 				profilePicture: { required: false, mutable: true },
 			},
 			customAttributes: {
+				affiliate_con_accnt: new StringAttribute({
+					mutable: true,
+					minLen: 50,
+					maxLen: 50,
+				}),
 				con_accnt: new StringAttribute({
 					mutable: true,
 					minLen: 50,
@@ -44,8 +53,14 @@ export class CognitoStack extends cdk.Stack {
 			selfSignUpEnabled: true,
 			signInAliases: { email: true },
 			email: UserPoolEmail.withCognito(), // TODO: Implement email configuration with SES
-			// userInvitation: {}, // TODO: Implement user invitation
-			// userVerification: {}, //TODO: Implement user verification,
+			userInvitation: {
+				emailSubject: "Your Upwood account is ready",
+				emailBody: `
+					<p>Hi, <span style="font-weight: bold; color: #2a9d8f;">{username}</span>, your account is ready to use.</p>
+					<p>Please click / visit this link <a style="color: #264653; text-decoration: none; font-weight: bold;" href="https://${props.appDomain}/login">${props.appDomain}/login</a> and use <span style="font-weight: bold; color: #e76f51;">{####}</span> as the first time password to register your account.</p>
+				`,
+			},
+			// userVerification: {},
 			removalPolicy:
 				props.organization_env === OrganizationEnv.PROD
 					? cdk.RemovalPolicy.RETAIN
