@@ -79,7 +79,7 @@ export default function App() {
 					<Route path="projects/funded/:id" element={<ForestProjectDetails source={ForestProjectState.FUNDED} />} />
 					<Route path="projects/bond" element={<BondForestProjectsList />} />
 					<Route path="projects/bond/:id" element={<ForestProjectDetails source={ForestProjectState.BOND} />} />
-					<Route path="portfolio" element={<InvestmentPortfolio/>} />
+					<Route path="portfolio" element={<InvestmentPortfolio />} />
 					<Route path="wallet" element={<Wallet />} />
 					<Route path="news" element={<News />} />
 					<Route path="news/:id" element={<NewsDetails />} />

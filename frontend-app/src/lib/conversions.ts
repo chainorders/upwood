@@ -181,7 +181,7 @@ export type SigsApi = {
 				[key: number]: Signature;
 			};
 		};
-	}
+	};
 };
 
 export type SigsContract = [number, [number, { Ed25519: [string] }][]][];
