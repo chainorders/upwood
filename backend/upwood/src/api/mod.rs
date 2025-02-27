@@ -97,8 +97,8 @@ impl Config {
     /// The .env file should be in the root of the project
     pub fn load() -> Self {
         let cargo_manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        dotenvy::from_filename(cargo_manifest_dir.join(".env")).ok();
-        dotenvy::from_filename(cargo_manifest_dir.join(".secure.env")).ok();
+        dotenvy::from_filename_override(cargo_manifest_dir.join(".env")).ok();
+        dotenvy::from_filename_override(cargo_manifest_dir.join(".secure.env")).ok();
 
         config::Config::builder()
             .add_source(config::Environment::default())

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
 	ForestProjectService,
 	ForestProjectTokenUserYieldClaim,
+	OpenAPI,
 	PagedResponse_ForestProjectAggApiModel,
 	PagedResponse_ForestProjectTokenContractAggApiModel,
 	SystemContractsConfigApiModel,
@@ -15,6 +16,8 @@ import { Link } from "react-router";
 import { User } from "../lib/user";
 import "./Wallet.css";
 import { toDisplayAmount } from "../lib/conversions";
+import useDownloader from "react-use-downloader";
+import { FILE_DOWNLOAD_TIMEOUT } from "../lib/constants";
 
 export default function Wallet() {
 	const { user } = useOutletContext<{ user: User }>();
@@ -94,6 +97,24 @@ export default function Wallet() {
 		}
 	}, [ownedTokenContracts, ownedTokenContractPage, refreshCounter]);
 
+	const { download, isInProgress } = useDownloader();
+	const onTxnListDownload = async () => {
+		if (isInProgress) return;
+		await download(`${OpenAPI.BASE}/user/transactions/list/download`, "transactions_list.csv", FILE_DOWNLOAD_TIMEOUT, {
+			headers: {
+				Authorization: `Bearer ${user.idToken}`,
+			},
+		});
+	};
+	const onTokensListDownload = async () => {
+		if (isInProgress) return;
+		await download(`${OpenAPI.BASE}/forest_projects/list/owned/download`, "tokens_list.csv", FILE_DOWNLOAD_TIMEOUT, {
+			headers: {
+				Authorization: `Bearer ${user.idToken}`,
+			},
+		});
+	};
+
 	return (
 		<>
 			<div className="clr"></div>
@@ -169,12 +190,19 @@ export default function Wallet() {
 								<div className="heading">Token list</div>
 							</div>
 							<div className="col-6 text-align-right fr hideonmobile">
-								<Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
+								<a href="#" className={`guides ${isInProgress ? "disabled" : ""}`} onClick={onTxnListDownload}>
 									Export transaction history
-								</Link>
-								<Link type="text" to="/" className="guides margin" style={{ cursor: "pointer" }}>
+								</a>
+								<a
+									href="#"
+									className={`guides margin ${isInProgress ? "disabled" : ""}`}
+									onClick={(e) => {
+										e.preventDefault();
+										onTokensListDownload();
+									}}
+								>
 									Export token list
-								</Link>
+								</a>
 							</div>
 							<div className="clr"></div>
 						</div>

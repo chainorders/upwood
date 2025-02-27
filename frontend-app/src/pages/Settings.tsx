@@ -3,6 +3,7 @@ import { Link, useOutletContext } from "react-router";
 
 import {
 	ForestProjectFundsAffiliateRewardRecord,
+	OpenAPI,
 	PagedResponse_ForestProjectFundsAffiliateRewardRecord,
 	PagedResponse_UserTransaction,
 	SystemContractsConfigApiModel,
@@ -19,6 +20,8 @@ import { User } from "../lib/user";
 import { sigsApiToContract, toDisplayAmount } from "../lib/conversions";
 import offchainRewards from "../contractClients/generated/offchainRewards";
 import { TxnStatus, updateContract } from "../lib/concordium";
+import useDownloader from "react-use-downloader";
+import { FILE_DOWNLOAD_TIMEOUT } from "../lib/constants";
 
 function Pagination({
 	pageCount,
@@ -134,6 +137,22 @@ export default function Settings() {
 		const claimableReward = affiliateRewards.data.find((r) => BigInt(r.remaining_reward_amount) > 0);
 		setClaimableReward(claimableReward);
 	}, [affiliateRewards]);
+
+	const { download, isInProgress } = useDownloader();
+	const onAffiliateEarningsDownload = async () => {
+		if (isInProgress) return;
+		await download(
+			`${OpenAPI.BASE}/user/affiliate/rewards/list/download`,
+			"affiliate_earnings.csv",
+			FILE_DOWNLOAD_TIMEOUT,
+			{
+				headers: {
+					Authorization: `Bearer ${user.idToken}`,
+				},
+			},
+		);
+	};
+
 	const links = [
 		{ title: "Portfolio", description: "How to manage your investments portfolio", link: "" },
 		{ title: "Wallet", description: "How to manage your wallet", link: "" },
@@ -322,9 +341,16 @@ export default function Settings() {
 						</div>
 						<div className="container-in">
 							<div className="col-4 fl hideonmobile">
-								<Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
+								<a
+									href="#"
+									className={`guides ${isInProgress ? "disabled" : ""}`}
+									onClick={(e) => {
+										e.preventDefault();
+										onAffiliateEarningsDownload();
+									}}
+								>
 									Export affiliate earning table
-								</Link>
+								</a>
 							</div>
 
 							<div className="fr col-m-full">
@@ -359,9 +385,16 @@ export default function Settings() {
 							</div>
 							<div className="space-20 showonmobile"></div>
 							<div className="col-12 text-align-center showonmobile">
-								<Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
+								<a
+									href="#"
+									className={`guides ${isInProgress ? "disabled" : ""}`}
+									onClick={(e) => {
+										e.preventDefault();
+										onAffiliateEarningsDownload();
+									}}
+								>
 									Export affiliate earning table
-								</Link>
+								</a>
 							</div>
 							<div className="clr"></div>
 							<div className="space-20"></div>

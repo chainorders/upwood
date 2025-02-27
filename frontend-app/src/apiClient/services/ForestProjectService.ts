@@ -78,6 +78,17 @@ export class ForestProjectService {
 	}
 
 	/**
+	 * @returns binary
+	 * @throws ApiError
+	 */
+	public static getForestProjectsListOwnedDownload(): CancelablePromise<Blob> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/forest_projects/list/owned/download",
+		});
+	}
+
+	/**
 	 * @param page
 	 * @param pageSize
 	 * @returns PagedResponse_ForestProjectTokenContractAggApiModel

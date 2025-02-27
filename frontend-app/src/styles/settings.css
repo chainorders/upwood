@@ -13,6 +13,13 @@
 	text-transform: uppercase;
 	text-decoration: none;
 }
+.settings a.guides {
+	cursor: pointer;
+}
+.settings a.guides.disabled {
+	cursor: not-allowed;
+	color: rgba(15, 180, 4, 0.5);
+}
 .settings .guides.margin {
 	margin-left: 60px;
 }

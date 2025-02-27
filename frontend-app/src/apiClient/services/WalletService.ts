@@ -75,4 +75,26 @@ export class WalletService {
 			},
 		});
 	}
+
+	/**
+	 * @returns binary
+	 * @throws ApiError
+	 */
+	public static getUserTransactionsListDownload(): CancelablePromise<Blob> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/user/transactions/list/download",
+		});
+	}
+
+	/**
+	 * @returns binary
+	 * @throws ApiError
+	 */
+	public static getUserAffiliateRewardsListDownload(): CancelablePromise<Blob> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/user/affiliate/rewards/list/download",
+		});
+	}
 }

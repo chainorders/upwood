@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
+use poem_openapi::payload::{Attachment, AttachmentType};
 use poem_openapi::types::ToJSON;
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
@@ -111,6 +112,82 @@ impl ForestProjectApi {
             page_count,
             page: 0,
         }))
+    }
+
+    #[oai(
+        path = "/forest_projects/list/owned/download",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn forest_project_list_owned_download(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> Result<Attachment<Vec<u8>>> {
+        let conn = &mut db_pool.get()?;
+        let (user_owned_projects, _) =
+            ForestProjectUserBalanceAgg::list_by_user_id(conn, &claims.sub, 0, i64::MAX).map_err(
+                |e| {
+                    error!("Failed to list user owned projects: {}", e);
+                    Error::InternalServer(PlainText(format!(
+                        "Failed to list user owned projects: {}",
+                        e
+                    )))
+                },
+            )?;
+        let project_ids = user_owned_projects
+            .iter()
+            .map(|p| p.forest_project_id)
+            .collect::<Vec<_>>();
+        let projects = ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub)?;
+        let mut wtr = csv::Writer::from_writer(vec![]);
+
+        wtr.write_record([
+            "Project ID",
+            "Project Name",
+            "Property Contract Address",
+            "Property Contract Type",
+            "User Balance",
+        ])
+        .map_err(|e| {
+            error!("Failed to write csv header: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to write csv header: {}", e)))
+        })?;
+        for project in projects {
+            wtr.write_record(&[
+                project.forest_project.id.to_string(),
+                project.forest_project.name,
+                project
+                    .property_contract
+                    .as_ref()
+                    .map(|c| c.contract_address.to_string())
+                    .unwrap_or_default(),
+                project
+                    .property_contract
+                    .as_ref()
+                    .map(|c| c.contract_type.to_string())
+                    .unwrap_or_default(),
+                project.user_balance.to_string(),
+            ])
+            .map_err(|e| {
+                error!("Failed to write csv record: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to write csv record: {}", e)))
+            })?;
+        }
+        let data = wtr.into_inner().map_err(|e| {
+            error!("Failed to write csv: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to write csv: {}", e)))
+        })?;
+        Ok(Attachment::new(data)
+            .attachment_type(AttachmentType::Attachment)
+            .filename(
+                format!(
+                    "forest_projects_owned_{}.csv",
+                    chrono::Utc::now().timestamp()
+                )
+                .to_string(),
+            ))
     }
 
     #[oai(

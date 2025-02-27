@@ -13,7 +13,7 @@ use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
-use poem_openapi::payload::{Json, PlainText};
+use poem_openapi::payload::{Attachment, AttachmentType, Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use serde::Serialize;
 use shared::api::PagedResponse;
@@ -559,6 +559,120 @@ impl UserApi {
             page,
             page_count,
         }))
+    }
+
+    #[oai(
+        path = "/user/transactions/list/download",
+        method = "get",
+        tag = "ApiTags::Wallet"
+    )]
+    pub async fn user_transactions_list_download(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> Result<Attachment<Vec<u8>>> {
+        let mut conn = db_pool.get()?;
+        let (transactions, _) =
+            UserTransaction::list_by_cognito_user_id(&mut conn, &claims.sub, 0, i64::MAX).map_err(
+                |e| {
+                    error!("Error listing user transactions: {:?}", e);
+                    e
+                },
+            )?;
+
+        let mut wtr = csv::Writer::from_writer(vec![]);
+        wtr.write_record(["Transaction Hash", "Type", "Sender", "Amount"])
+            .map_err(|e| {
+                error!("Failed to write csv header: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to write csv header: {}", e)))
+            })?;
+
+        for transaction in transactions {
+            wtr.write_record(&[
+                transaction.transaction_hash.to_string(),
+                transaction.transaction_type.to_string(),
+                transaction.account_address.to_string(),
+                transaction.currency_amount.to_string(),
+            ])
+            .map_err(|e| {
+                error!("Failed to write csv record: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to write csv record: {}", e)))
+            })?;
+        }
+
+        let data = wtr.into_inner().map_err(|e| {
+            error!("Failed to write csv: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to write csv: {}", e)))
+        })?;
+
+        Ok(Attachment::new(data)
+            .attachment_type(AttachmentType::Attachment)
+            .filename(
+                format!("user_transactions_{}.csv", chrono::Utc::now().timestamp()).to_string(),
+            ))
+    }
+
+    #[oai(
+        path = "/user/affiliate/rewards/list/download",
+        method = "get",
+        tag = "ApiTags::Wallet"
+    )]
+    pub async fn user_affiliate_rewards_list_download(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> Result<Attachment<Vec<u8>>> {
+        let mut conn = db_pool.get()?;
+        let (rewards, _) =
+            ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, 0, i64::MAX)
+                .map_err(|e| {
+                    error!("Error listing user affiliate rewards: {:?}", e);
+                    e
+                })?;
+
+        let mut wtr = csv::Writer::from_writer(vec![]);
+        wtr.write_record([
+            "Investment Record ID",
+            "Investor Account Address",
+            "Reward Amount",
+            "Affiliate Commission",
+            "Currency Amount",
+            "Remaining Reward Amount",
+        ])
+        .map_err(|e| {
+            error!("Failed to write csv header: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to write csv header: {}", e)))
+        })?;
+
+        for reward in rewards {
+            wtr.write_record(&[
+                reward.investment_record_id.to_string(),
+                reward.investor_account_address.to_string(),
+                reward.reward_amount.to_string(),
+                reward.affiliate_commission.to_string(),
+                reward.currency_amount.to_string(),
+                reward.remaining_reward_amount.to_string(),
+            ])
+            .map_err(|e| {
+                error!("Failed to write csv record: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to write csv record: {}", e)))
+            })?;
+        }
+
+        let data = wtr.into_inner().map_err(|e| {
+            error!("Failed to write csv: {}", e);
+            Error::InternalServer(PlainText(format!("Failed to write csv: {}", e)))
+        })?;
+
+        Ok(Attachment::new(data)
+            .attachment_type(AttachmentType::Attachment)
+            .filename(
+                format!(
+                    "user_affiliate_rewards_{}.csv",
+                    chrono::Utc::now().timestamp()
+                )
+                .to_string(),
+            ))
     }
 
     #[oai(path = "/system_config", method = "get", tag = "ApiTags::User")]
