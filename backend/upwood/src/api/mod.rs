@@ -8,6 +8,7 @@ pub mod tree_nft;
 pub mod user;
 pub mod user_communication;
 
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -95,9 +96,9 @@ impl Config {
     /// Load configuration from .env files
     /// The .env file should be in the root of the project
     pub fn load() -> Self {
-        dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-        dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
-            .ok();
+        let cargo_manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        dotenvy::from_filename(cargo_manifest_dir.join(".env")).ok();
+        dotenvy::from_filename(cargo_manifest_dir.join(".secure.env")).ok();
 
         config::Config::builder()
             .add_source(config::Environment::default())
@@ -441,7 +442,7 @@ pub struct SystemContractsConfig {
     pub offchain_rewards_contract_index:  Decimal,
     pub mint_funds_contract_index:        Decimal,
     pub trading_contract_index:           Decimal,
-    pub yielder_contract_index:           Decimal
+    pub yielder_contract_index:           Decimal,
 }
 
 impl SystemContractsConfig {

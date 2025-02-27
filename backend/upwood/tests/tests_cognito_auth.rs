@@ -13,7 +13,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn cognito_auth_test() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".secure.env"))
         .ok();
     let (db_config, _container) = shared_tests::create_new_database_container().await;
     shared::db_setup::run_migrations(&db_config.db_url());

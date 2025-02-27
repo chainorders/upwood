@@ -70,7 +70,7 @@ const TREE_SFT_METADATA_URL: &str = "https://metadata.com/tree_sft";
 #[test(tokio::test)]
 pub async fn test_forest_projects() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".secure.env"))
         .ok();
     let test_id = format!("fpsu_{}", uuid::Uuid::new_v4());
     let start_time = DateTime::parse_from_rfc3339("2021-01-01T00:00:00Z")

@@ -11,7 +11,7 @@ use uuid::Uuid;
 #[tokio::test]
 async fn test_s3_public_files() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".secure.env"))
         .ok();
     let api_config: api::Config = config::Config::builder()
         .add_source(config::Environment::default())
@@ -86,7 +86,7 @@ async fn test_s3_public_files() {
 #[tokio::test]
 async fn test_ipfs_public_files() {
     dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
-    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("secure.env"))
+    dotenvy::from_filename(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".secure.env"))
         .ok();
     let api_config: api::Config = config::Config::builder()
         .add_source(config::Environment::default())
