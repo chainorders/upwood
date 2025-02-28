@@ -9,7 +9,6 @@ import {
 	UserService,
 } from "../apiClient";
 import PageHeader from "../components/PageHeader";
-import { useOutletContext } from "react-router";
 import ProjectCardOwned from "../components/ProjectCardOwned";
 import ClaimPopup from "../components/ClaimPopup";
 import { Link } from "react-router";
@@ -19,8 +18,11 @@ import { toDisplayAmount } from "../lib/conversions";
 import useDownloader from "react-use-downloader";
 import { FILE_DOWNLOAD_TIMEOUT } from "../lib/constants";
 
-export default function Wallet() {
-	const { user } = useOutletContext<{ user: User }>();
+interface WalletProps {
+	user: User;
+}
+
+export default function Wallet({ user }: WalletProps) {
 	const [claimsPopup, setClaimsPopup] = useState(false);
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [yields, setYields] = useState<{

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import closeIcon from "../assets/close.svg";
 import Button from "./Button";
-import { useOutletContext } from "react-router";
 import AccountCross from "../assets/account-not-protected.svg";
 import AccountProtected from "../assets/account-protected.svg";
 import editRow from "../assets/editRow.svg";
@@ -12,6 +11,7 @@ import OtpInput from "./OtpInput";
 import { User } from "../lib/user";
 
 interface PopupProps {
+	user: User;
 	close?: () => void;
 }
 
@@ -33,8 +33,7 @@ interface OtpFormInputs {
 	otp: string;
 }
 
-export default function EditProfile({ close = () => {} }: PopupProps) {
-	const { user } = useOutletContext<{ user: User }>();
+export default function EditProfile({ user, close = () => {} }: PopupProps) {
 	const {
 		register: registerFullName,
 		handleSubmit: handleSubmitFullName,

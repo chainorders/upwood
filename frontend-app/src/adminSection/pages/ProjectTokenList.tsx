@@ -19,8 +19,9 @@ import { Link, useParams } from "react-router";
 import { AddProjectTokenPopup } from "./components/AddProjectTokenPopup";
 import Dialog from "@mui/material/Dialog";
 import { daysSince } from "../../lib/conversions";
+import { User } from "../../lib/user";
 
-export default function ProjectTokenList() {
+export default function ProjectTokenList({ user }: { user: User }) {
 	const { id, contract_address } = useParams<{ id: string; contract_address: string }>();
 	const [tokens, setTokens] = useState<Token[]>([]);
 	const [tokenContract, setTokenContract] = useState<ForestProjectTokenContract | null>(null);
@@ -115,6 +116,7 @@ export default function ProjectTokenList() {
 				<DialogTitle>Add Token</DialogTitle>
 				<DialogContent>
 					<AddProjectTokenPopup
+						user={user}
 						token_contract={tokenContract!}
 						token_id={tokenContract ? daysSince(tokenContract?.created_at).toString() : ""}
 						onDone={handleClosePopup}

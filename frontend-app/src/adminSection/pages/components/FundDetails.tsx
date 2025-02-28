@@ -33,7 +33,6 @@ import {
 import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { User } from "../../../lib/user";
-import { useOutletContext } from "react-router";
 import securityMintFund from "../../../contractClients/generated/securityMintFund";
 import { toTokenId } from "../../../lib/conversions";
 import { useForm } from "react-hook-form";
@@ -43,10 +42,10 @@ interface FundDetailsProps {
 	investmentTokenContract?: ForestProjectTokenContract;
 	tokenContract?: ForestProjectTokenContract;
 	currencyMetadata?: TokenMetadata;
+	user: User;
 }
 
-export default function FundDetails({ fund }: FundDetailsProps) {
-	const { user } = useOutletContext<{ user: User }>();
+export default function FundDetails({ fund, user }: FundDetailsProps) {
 	const [fundTokenMetadata, setFundTokenMetadata] = useState<ForestProjectTokenContract>();
 	const [fundCurrencyMetadata, setFundCurrencyMetadata] = useState<TokenMetadata>();
 	const [deleteTxnStatus, setDeleteTxnStatus] = useState<TxnStatus>("none");

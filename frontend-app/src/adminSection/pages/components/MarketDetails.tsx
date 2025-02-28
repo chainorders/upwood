@@ -8,20 +8,19 @@ import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import securityP2PTrading from "../../../contractClients/generated/securityP2PTrading";
 import { User } from "../../../lib/user";
-import { useOutletContext } from "react-router";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import euroeStablecoin from "../../../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../../../contractClients/ConcordiumNodeClient";
 import { ContractAddress } from "@concordium/web-sdk";
 
 interface MarketDetailsProps {
+	user: User;
 	market: Market;
 	tokenMetadata?: ForestProjectTokenContract;
 	currencyMetadata?: TokenMetadata;
 }
 
-export default function MarketDetails({ market }: MarketDetailsProps) {
-	const { user } = useOutletContext<{ user: User }>();
+export default function MarketDetails({ market, user }: MarketDetailsProps) {
 	const [marketCurrencyMetadata, setmarketCurrencyMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [isCurrencyOperator, setIsCurrencyOperator] = useState(false);

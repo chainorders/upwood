@@ -1,13 +1,15 @@
-import { useOutletContext } from "react-router";
+import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import ContractsCard from "../components/ContractsCard";
 import { User } from "../lib/user";
 import { ForestProjectService, PagedResponse_LegalContractUserModel, UserService } from "../apiClient";
-import { useEffect, useState } from "react";
 import { MAX_PAGE_SIZE } from "../lib/constants";
 
-export default function Contracts() {
-	const { user } = useOutletContext<{ user: User }>();
+interface ContractsProps {
+	user: User;
+}
+
+export default function Contracts({ user }: ContractsProps) {
 	const [legalContracts, setLegalContracts] = useState<PagedResponse_LegalContractUserModel>();
 	useEffect(() => {
 		ForestProjectService.getForestProjectsLegalContractList(0, MAX_PAGE_SIZE).then(setLegalContracts);

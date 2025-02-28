@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { useLocation, useOutletContext, useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
 import PageHeader from "../components/PageHeader";
 import DownloadIcon from "../assets/Icon.svg";
 import Button from "../components/Button";
 import { User } from "../lib/user";
 import { LegalContractUserModel, ForestProjectService } from "../apiClient";
 
-export default function ContractsDetails() {
-	const { user } = useOutletContext<{ user: User }>();
+interface ContractsDetailsProps {
+	user: User;
+}
+
+export default function ContractsDetails({ user }: ContractsDetailsProps) {
 	const { id } = useParams<{ id: string }>();
 	const location = useLocation();
 	const [contract, setContract] = useState<LegalContractUserModel>(location.state?.legalContract);

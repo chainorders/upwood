@@ -4,12 +4,12 @@ import { YieldApiModel, ForestProjectTokenContract } from "../../../apiClient";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
-import { useOutletContext } from "react-router";
 import securitySftMultiYielder from "../../../contractClients/generated/securitySftMultiYielder";
 import TransactionButton from "../../../components/TransactionButton";
 import { User } from "../../../lib/user";
 
 interface YieldsProps {
+	user: User;
 	tokenContract: ForestProjectTokenContract;
 	tokenId: string;
 	yielderContract: string;
@@ -17,8 +17,7 @@ interface YieldsProps {
 	onRemoveYield: () => void;
 }
 
-export default function Yields({ yields, yielderContract, tokenContract, tokenId, onRemoveYield }: YieldsProps) {
-	const { user } = useOutletContext<{ user: User }>();
+export default function Yields({ user, yields, yielderContract, tokenContract, tokenId, onRemoveYield }: YieldsProps) {
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 
 	const removeYield = async () => {

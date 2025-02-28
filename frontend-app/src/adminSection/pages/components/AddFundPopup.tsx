@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Box, Typography, Grid, TextField } from "@mui/material";
-import { useOutletContext } from "react-router";
+import { Box, Grid, TextField } from "@mui/material";
 import {
 	ForestProjectTokenContract,
 	SecurityMintFundContract,
@@ -14,6 +13,7 @@ import { User } from "../../../lib/user";
 import securityMintFund from "../../../contractClients/generated/securityMintFund";
 
 interface ProjectTokenAddFundPopupProps {
+	user: User;
 	contracts: SystemContractsConfigApiModel;
 	fundContract: SecurityMintFundContract;
 	tokenContract: ForestProjectTokenContract;
@@ -28,6 +28,7 @@ interface FundFormData {
 }
 
 export default function AddFundPopup({
+	user,
 	contracts,
 	fundContract,
 	tokenContract,
@@ -35,7 +36,6 @@ export default function AddFundPopup({
 	tokenId,
 	onDone,
 }: ProjectTokenAddFundPopupProps) {
-	const user = useOutletContext<{ user: User }>().user;
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const { control, handleSubmit } = useForm<FundFormData>({
 		defaultValues: {

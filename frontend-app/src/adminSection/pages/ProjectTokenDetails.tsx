@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -43,8 +44,9 @@ import FundDetails from "./components/FundDetails";
 import MarketDetails from "./components/MarketDetails";
 import TokenDetails from "./components/TokenDetails";
 import Yields from "./components/Yields";
+import { User } from "../../lib/user.ts";
 
-export default function ProjectTokenDetails() {
+const ProjectTokenDetails = ({ user }: { user: User }) => {
 	const { id, contract_address, token_id } = useParams<{ id: string; token_id: string; contract_address: string }>();
 	const [token, setToken] = useState<Token>();
 	const [tokenContract, setTokenContract] = useState<ForestProjectTokenContract>();
@@ -192,6 +194,7 @@ export default function ProjectTokenDetails() {
 					<Grid item xs={12} md={8}>
 						<Paper sx={{ padding: 2 }}>
 							<TokenDetails
+								user={user}
 								token={token}
 								tokenContract={tokenContract}
 								onDeleteToken={() => setRefreshCounter((c) => c + 1)}
@@ -203,7 +206,7 @@ export default function ProjectTokenDetails() {
 							</AccordionSummary>
 							<AccordionDetails>
 								{market ? (
-									<MarketDetails market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
+									<MarketDetails user={user} market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
 								) : (
 									<Typography>No market details available</Typography>
 								)}
@@ -216,6 +219,7 @@ export default function ProjectTokenDetails() {
 							<AccordionDetails>
 								{preSaleToken ? (
 									<TokenDetails
+										user={user}
 										token={preSaleToken}
 										tokenContract={preSaleTokenContract}
 										onDeleteToken={() => setRefreshCounter((c) => c + 1)}
@@ -232,6 +236,7 @@ export default function ProjectTokenDetails() {
 							<AccordionDetails>
 								{fund ? (
 									<FundDetails
+										user={user}
 										fund={fund}
 										tokenContract={preSaleTokenContract}
 										investmentTokenContract={tokenContract}
@@ -249,6 +254,7 @@ export default function ProjectTokenDetails() {
 							<AccordionDetails>
 								{yields.length > 0 && tokenContract && contracts ? (
 									<Yields
+										user={user}
 										tokenId={token_id!}
 										tokenContract={tokenContract!}
 										yielderContract={contracts.yielder_contract_index}
@@ -302,6 +308,7 @@ export default function ProjectTokenDetails() {
 					<DialogTitle>Add Yield</DialogTitle>
 					<DialogContent>
 						<AddYieldPopup
+							user={user}
 							contract_address={contract_address!}
 							token_id={token_id!}
 							onDone={() => setRefreshCounter((c) => c + 1)}
@@ -313,6 +320,7 @@ export default function ProjectTokenDetails() {
 						<DialogTitle>Add Fund</DialogTitle>
 						<DialogContent>
 							<AddFundPopup
+								user={user}
 								contracts={contracts}
 								tokenId={token_id!}
 								forestProjectId={id!}
@@ -328,6 +336,7 @@ export default function ProjectTokenDetails() {
 					<DialogTitle>Add Market</DialogTitle>
 					<DialogContent>
 						<AddMarketPopup
+							user={user}
 							contracts={contracts!}
 							contract_address={contract_address!}
 							token_id={token_id!}
@@ -340,6 +349,7 @@ export default function ProjectTokenDetails() {
 						<DialogTitle>Add Pre Sale Token</DialogTitle>
 						<DialogContent>
 							<AddProjectTokenPopup
+								user={user}
 								token_contract={preSaleTokenContract}
 								token_id={token_id}
 								onDone={handleClosePreSaleTokenPopup}
@@ -351,3 +361,5 @@ export default function ProjectTokenDetails() {
 		</>
 	);
 }
+
+export default ProjectTokenDetails;

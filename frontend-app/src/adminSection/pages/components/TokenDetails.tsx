@@ -5,18 +5,17 @@ import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { useState } from "react";
 import { User } from "../../../lib/user";
-import { useOutletContext } from "react-router";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
 import { toTokenId } from "../../../lib/conversions";
 
 interface TokenDetailsProps {
+	user: User;
 	token: Token;
 	tokenContract?: ForestProjectTokenContract;
 	onDeleteToken: () => void;
 }
 
-export default function TokenDetails({ token, tokenContract, onDeleteToken }: TokenDetailsProps) {
-	const { user } = useOutletContext<{ user: User }>();
+export default function TokenDetails({ user, token, tokenContract, onDeleteToken }: TokenDetailsProps) {
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 
 	const deleteToken = async () => {

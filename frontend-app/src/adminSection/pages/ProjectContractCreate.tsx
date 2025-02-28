@@ -1,4 +1,5 @@
-import { useNavigate, useOutletContext, useParams } from "react-router";
+import React from 'react';
+import { useNavigate, useParams } from "react-router";
 import { useForm } from "react-hook-form";
 import {
 	ForestProjectTokenContract,
@@ -29,9 +30,8 @@ import concordiumNodeClient from "../../contractClients/ConcordiumNodeClient";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Link } from "react-router";
 
-export default function ProjectContractCreate() {
+const ProjectContractCreate = ({ user }: { user: User }) => {
 	const { id } = useParams<{ id: string }>();
-	const { user } = useOutletContext<{ user: User }>();
 	const navigate = useNavigate();
 
 	const [contractsConfig, setContractsConfig] = useState<SystemContractsConfigApiModel | null>(null);
@@ -286,3 +286,5 @@ export default function ProjectContractCreate() {
 		</>
 	);
 }
+
+export default ProjectContractCreate;

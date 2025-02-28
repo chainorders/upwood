@@ -1,4 +1,3 @@
-import { useOutletContext } from "react-router";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { User } from "../../../lib/user";
 import { ForestProjectTokenContract, Token } from "../../../apiClient";
@@ -14,10 +13,10 @@ interface AddProjectTokenPopupProps {
 	token_contract: ForestProjectTokenContract;
 	token_id?: string;
 	onDone: (err?: string) => void;
+	user: User;
 }
 
-export function AddProjectTokenPopup({ token_contract, token_id, onDone }: AddProjectTokenPopupProps) {
-	const { user } = useOutletContext<{ user: User }>();
+export function AddProjectTokenPopup({ token_contract, token_id, onDone, user }: AddProjectTokenPopupProps) {
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [tokenIdHex, setTokenIdHex] = useState<string>(toTokenId(BigInt(token_id || ""), 8));
 	const {

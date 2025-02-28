@@ -1,4 +1,4 @@
-import { useOutletContext } from "react-router";
+import React from 'react';
 import { User } from "../../lib/user";
 import { useEffect, useState } from "react";
 import { UserRegistrationRequest, UserService } from "../../apiClient";
@@ -15,8 +15,7 @@ import {
 	ButtonGroup,
 } from "@mui/material";
 
-export default function UserInvitations() {
-	const { user } = useOutletContext<{ user: User }>();
+const UserInvitations = ({ user }: { user: User }) => {
 	const [loading, setLoading] = useState(true);
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -107,4 +106,6 @@ export default function UserInvitations() {
 			/>
 		</Paper>
 	);
-}
+};
+
+export default UserInvitations;

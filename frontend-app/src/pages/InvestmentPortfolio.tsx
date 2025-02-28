@@ -11,12 +11,14 @@ import {
 import PageHeader from "../components/PageHeader";
 import ProjectCardOwned from "../components/ProjectCardOwned";
 import PortfolioValueChart from "../components/PortfolioValueChart";
-import { useOutletContext } from "react-router";
 import { User } from "../lib/user";
 import { formatDate, toDisplayAmount } from "../lib/conversions";
 
-export default function InvestmentPortfolio() {
-	const { user } = useOutletContext<{ user: User }>();
+interface InvestmentPortfolioProps {
+	user: User;
+}
+
+export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) {
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [portfolioValues, setPortfolioValues] = useState<PortfolioValue[]>([]);

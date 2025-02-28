@@ -1,4 +1,3 @@
-import { useOutletContext } from "react-router";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { User } from "../../../lib/user";
 import { useState } from "react";
@@ -14,6 +13,7 @@ interface Props {
 	contracts: SystemContractsConfigApiModel;
 	contract_address: string;
 	token_id: string;
+	user: User;
 	onDone: (err?: string) => void;
 }
 
@@ -23,8 +23,7 @@ interface AddMarketFormData {
 	liquidity_provider: string;
 }
 
-export default function AddMarketPopup({ contract_address, token_id, onDone, contracts }: Props) {
-	const user = useOutletContext<{ user: User }>().user;
+export default function AddMarketPopup({ contract_address, token_id, onDone, contracts, user }: Props) {
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const { control, handleSubmit, watch } = useForm<AddMarketFormData>({
 		defaultValues: {

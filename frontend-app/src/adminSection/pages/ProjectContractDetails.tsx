@@ -1,3 +1,4 @@
+import React from "react";
 import { useParams } from "react-router";
 import { useEffect, useState } from "react";
 import {
@@ -33,8 +34,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MarketDetails from "./components/MarketDetails";
 import FundDetails from "./components/FundDetails";
 import TokenList from "./components/TokenList";
+import { User } from "../../lib/user.ts";
 
-export default function ProjectContractDetails() {
+const ProjectContractDetails = ({ user }: { user: User }) => {
 	const { contract_address } = useParams<{ contract_address?: string }>();
 	const [contract, setContract] = useState<ForestProjectTokenContract | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -183,7 +185,12 @@ export default function ProjectContractDetails() {
 								<Typography>Tokens</Typography>
 							</AccordionSummary>
 							<AccordionDetails>
-								<TokenList tokens={tokens} tokenContract={contract} onTokenAdded={() => setRefreshCounter((c) => c + 1)} />
+								<TokenList
+									user={user}
+									tokens={tokens}
+									tokenContract={contract}
+									onTokenAdded={() => setRefreshCounter((c) => c + 1)}
+								/>
 							</AccordionDetails>
 						</Accordion>
 						<Accordion sx={{ marginTop: 2 }}>
@@ -192,7 +199,7 @@ export default function ProjectContractDetails() {
 							</AccordionSummary>
 							<AccordionDetails>
 								{market ? (
-									<MarketDetails market={market} currencyMetadata={marketCurrencyMetdata} tokenMetadata={contract} />
+									<MarketDetails user={user} market={market} currencyMetadata={marketCurrencyMetdata} tokenMetadata={contract} />
 								) : (
 									<Typography>No market details available</Typography>
 								)}
@@ -205,6 +212,7 @@ export default function ProjectContractDetails() {
 							<AccordionDetails>
 								{fund ? (
 									<FundDetails
+										user={user}
 										fund={fund}
 										currencyMetadata={fundCurrencyMetdata}
 										investmentTokenContract={contract}
@@ -241,4 +249,6 @@ export default function ProjectContractDetails() {
 			</Box>
 		</>
 	);
-}
+};
+
+export default ProjectContractDetails;

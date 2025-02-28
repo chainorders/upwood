@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router";
-
 import {
 	ForestProjectService,
 	ForestProjectState,
@@ -12,8 +10,11 @@ import PageHeader from "../components/PageHeader";
 import ProjectCardBond from "../components/ProjectCardBond";
 import { User } from "../lib/user";
 
-export default function BondForestProjectsList() {
-	const { user } = useOutletContext<{ user: User }>();
+interface BondForestProjectsListProps {
+	user: User;
+}
+
+export default function BondForestProjectsList({ user }: BondForestProjectsListProps) {
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 

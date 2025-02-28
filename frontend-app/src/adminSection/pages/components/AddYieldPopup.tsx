@@ -11,7 +11,6 @@ import securitySftMultiYielder, {
 	UpsertYieldRequest,
 } from "../../../contractClients/generated/securitySftMultiYielder";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
-import { useOutletContext } from "react-router";
 import { useForm, Controller } from "react-hook-form";
 import { TextField, Checkbox, FormControlLabel, Box, Typography, Grid } from "@mui/material";
 import TransactionButton from "../../../components/TransactionButton";
@@ -21,6 +20,7 @@ interface ProjectTokenAddYieldPopupProps {
 	contract_address: string;
 	token_id: string;
 	onDone: (err?: string) => void;
+	user: User;
 }
 
 interface YieldFormData {
@@ -46,8 +46,7 @@ interface YieldFormData {
 	};
 }
 
-export default function AddYieldPopup({ contract_address, token_id, onDone }: ProjectTokenAddYieldPopupProps) {
-	const user = useOutletContext<{ user: User }>().user;
+export default function AddYieldPopup({ contract_address, token_id, onDone, user }: ProjectTokenAddYieldPopupProps) {
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [projectTokenContract, setProjectTokenContract] = useState<ForestProjectTokenContract>();
 	const [euroeMetdata, setEuroMetadata] = useState<TokenMetadata>();

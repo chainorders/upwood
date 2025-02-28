@@ -8,11 +8,13 @@ import {
 } from "../apiClient";
 import ProjectCardActive from "../components/ProjectCardActive";
 import PageHeader from "../components/PageHeader";
-import { useOutletContext } from "react-router";
 import { User } from "../lib/user";
 
-export default function ActiveForestProjectsList() {
-	const { user } = useOutletContext<{ user: User }>();
+interface ActiveForestProjectsListProps {
+	user: User;
+}
+
+export default function ActiveForestProjectsList({ user }: ActiveForestProjectsListProps) {
 	const [projects, setProjects] = useState<PagedResponse_ForestProjectAggApiModel>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 

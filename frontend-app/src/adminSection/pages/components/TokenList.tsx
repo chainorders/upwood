@@ -18,14 +18,16 @@ import { useNavigate } from "react-router";
 import { AddProjectTokenPopup } from "./AddProjectTokenPopup";
 import { daysSince } from "../../../lib/conversions";
 import { useState } from "react";
+import { User } from "../../../lib/user";
 
 interface TokenListProps {
 	tokens: Token[];
 	tokenContract: ForestProjectTokenContract | null;
 	onTokenAdded: () => void;
+	user: User;
 }
 
-export default function TokenList({ tokens, tokenContract, onTokenAdded }: TokenListProps) {
+export default function TokenList({ tokens, tokenContract, onTokenAdded, user }: TokenListProps) {
 	const navigate = useNavigate();
 	const [openPopup, setOpenPopup] = useState(false);
 
@@ -95,6 +97,7 @@ export default function TokenList({ tokens, tokenContract, onTokenAdded }: Token
 				<DialogTitle>Add Token</DialogTitle>
 				<DialogContent>
 					<AddProjectTokenPopup
+						user={user}
 						token_contract={tokenContract!}
 						token_id={tokenContract ? daysSince(tokenContract?.created_at).toString() : ""}
 						onDone={handleClosePopup}

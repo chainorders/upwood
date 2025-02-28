@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { SystemContractsConfigApiModel, UserKYCModel, UserService } from "../../apiClient";
-import { useOutletContext, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import {
 	Table,
 	TableBody,
@@ -19,8 +19,7 @@ import rwaIdentityRegistry from "../../contractClients/generated/rwaIdentityRegi
 import TransactionButton from "../../components/TransactionButton";
 import { User } from "../../lib/user";
 
-export default function UserList() {
-	const { user } = useOutletContext<{ user: User }>();
+const UserList = ({ user }: { user: User }) => {
 	const [users, setUsers] = useState<UserKYCModel[]>([]);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [loading, setLoading] = useState(true);
@@ -35,11 +34,12 @@ export default function UserList() {
 	}, []);
 	useEffect(() => {
 		setLoading(true);
-		UserService.getAdminUserList(page, rowsPerPage).then((data) => {
-			setUsers(data.data);
-			setLoading(false);
-		});
-	}, [user, page, rowsPerPage]);
+		UserService.getAdminUserList(page, rowsPerPage)
+			.then((data) => {
+				setUsers(data.data);
+			})
+			.finally(() => setLoading(false));
+	}, [page, rowsPerPage]);
 
 	const handleChangePage = (_event: unknown, newPage: number) => {
 		setPage(newPage);
@@ -195,4 +195,6 @@ export default function UserList() {
 			</Box>
 		</Box>
 	);
-}
+};
+
+export default UserList;

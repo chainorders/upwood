@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useOutletContext } from "react-router";
+import { Link } from "react-router";
 
 import {
 	ForestProjectFundsAffiliateRewardRecord,
@@ -104,8 +104,7 @@ function ClaimEarningsButton({
 	return <Button text="CLAIM EARNINGS" active disabled={!reward} call={onClaimClick} loading={isClaiming} />;
 }
 
-export default function Settings() {
-	const { user } = useOutletContext<{ user: User }>();
+export default function Settings({ user }: { user: User }) {
 	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction>();
 	const [trasactionsPage, setTransactionsPage] = useState(0);
 	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord>();
@@ -403,7 +402,7 @@ export default function Settings() {
 				</div>
 				<div className="space-30"></div>
 			</div>
-			{edit_profile_popup ? <EditProfile close={() => setEditProfilePopup(false)} /> : null}
+			{edit_profile_popup ? <EditProfile user={user} close={() => setEditProfilePopup(false)} /> : null}
 			{create_company_popup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}
 			{edit_company_popup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}
 		</>
