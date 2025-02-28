@@ -105,6 +105,9 @@ export class BackendListenerStack extends Stack {
 				cluster: props.cluster,
 				serviceName: constructName(props, "backend-listener-service"),
 				desiredCount: 1,
+				deploymentController: {
+					type: ecs.DeploymentControllerType.ECS,
+				},
 			},
 		);
 		Tags.of(service).add("organization", props.organization);
