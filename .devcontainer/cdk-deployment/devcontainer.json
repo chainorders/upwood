@@ -50,8 +50,7 @@
                 "bierner.github-markdown-preview",
                 "formulahendry.docker-extension-pack",
                 "MS-CST-E.vscode-devskim",
-                "mark-tucker.aws-cli-configure",
-                "sourcegraph.cody-ai"
+                "mark-tucker.aws-cli-configure"
             ]
         }
     },
