@@ -562,9 +562,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "5.0.0"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7a70dae6be9a40cae34506d4d464f891db0deeb3a15fb1a2a20a3d46b2a4cfc"
+checksum = "636daca1ac2bff1bf3dfd61200163606dca548612a1d33c5c95596ceddfcc475"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -638,9 +638,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-smart-contract-testing"
-version = "4.3.0"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7d2a1fb209bf0718cb2eff7b4d8bfb413007d02c875adf0f2a2034f7f720515"
+checksum = "e651a53f95277cfd8954e0081299968331283cf108726fe3066633947d74daa4"
 dependencies = [
  "anyhow",
  "concordium-rust-sdk",
@@ -675,9 +675,9 @@ dependencies = [
 
 [[package]]
 name = "concordium_base"
-version = "6.0.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b7719963a1f1e3f1dfc2614daad47b91ad5a32104d7ab67dcf962627fdc0a6d"
+checksum = "6100afd4f5bebf3ab1dc9fa7f09e6156dd064c3f849def660867083e0cae9e69"
 dependencies = [
  "aes",
  "anyhow",

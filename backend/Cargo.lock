@@ -1225,39 +1225,6 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "5.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7a70dae6be9a40cae34506d4d464f891db0deeb3a15fb1a2a20a3d46b2a4cfc"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "chrono",
- "concordium-smart-contract-engine",
- "concordium_base 6.0.0",
- "derive_more 0.99.18",
- "ed25519-dalek",
- "futures",
- "hex",
- "http 0.2.12",
- "num",
- "num-bigint",
- "num-traits",
- "prost",
- "rand",
- "rust_decimal",
- "semver",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 1.0.66",
- "tokio",
- "tokio-stream",
- "tonic",
- "tracing",
-]
-
-[[package]]
-name = "concordium-rust-sdk"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "636daca1ac2bff1bf3dfd61200163606dca548612a1d33c5c95596ceddfcc475"
@@ -1266,7 +1233,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "concordium-smart-contract-engine",
- "concordium_base 7.0.0",
+ "concordium_base",
  "derive_more 0.99.18",
  "ed25519-dalek",
  "futures",
@@ -1334,12 +1301,12 @@ dependencies = [
 
 [[package]]
 name = "concordium-smart-contract-testing"
-version = "4.3.0"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7d2a1fb209bf0718cb2eff7b4d8bfb413007d02c875adf0f2a2034f7f720515"
+checksum = "e651a53f95277cfd8954e0081299968331283cf108726fe3066633947d74daa4"
 dependencies = [
  "anyhow",
- "concordium-rust-sdk 5.0.0",
+ "concordium-rust-sdk",
  "num-bigint",
  "num-integer",
  "sha2",
@@ -1367,54 +1334,6 @@ dependencies = [
  "derive_more 0.99.18",
  "leb128",
  "num_enum",
-]
-
-[[package]]
-name = "concordium_base"
-version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b7719963a1f1e3f1dfc2614daad47b91ad5a32104d7ab67dcf962627fdc0a6d"
-dependencies = [
- "aes",
- "anyhow",
- "ark-bls12-381",
- "ark-ec",
- "ark-ff",
- "ark-serialize",
- "ark-std",
- "base64 0.21.7",
- "bs58",
- "byteorder",
- "cbc",
- "chrono",
- "concordium-contracts-common",
- "concordium_base_derive",
- "curve25519-dalek",
- "derive_more 0.99.18",
- "ed25519-dalek",
- "either",
- "ff 0.13.0",
- "hex",
- "hmac",
- "itertools 0.10.5",
- "leb128",
- "libc",
- "nom",
- "num",
- "num-bigint",
- "num-traits",
- "pbkdf2",
- "rand",
- "rayon",
- "rust_decimal",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "sha3",
- "subtle",
- "thiserror 1.0.66",
- "zeroize",
 ]
 
 [[package]]
@@ -2093,7 +2012,7 @@ dependencies = [
  "clap",
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rust-sdk 6.0.0",
+ "concordium-rust-sdk",
  "concordium-rwa-identity-registry",
  "diesel",
  "diesel-derive-enum",
@@ -2886,7 +2805,7 @@ dependencies = [
  "concordium-rwa-identity-registry",
  "concordium-smart-contract-testing",
  "concordium-std",
- "concordium_base 6.0.0",
+ "concordium_base",
  "nft-multi-rewarded",
  "offchain-rewards",
  "security-mint-fund",
@@ -4770,7 +4689,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "concordium-cis2",
- "concordium-rust-sdk 6.0.0",
+ "concordium-rust-sdk",
  "diesel",
  "diesel-derive-enum",
  "diesel_migrations",
@@ -4793,7 +4712,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "concordium-cis2",
- "concordium-rust-sdk 6.0.0",
+ "concordium-rust-sdk",
  "diesel",
  "diesel_migrations",
  "num-bigint",
@@ -5676,7 +5595,7 @@ dependencies = [
  "clap",
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rust-sdk 6.0.0",
+ "concordium-rust-sdk",
  "concordium-rwa-compliance",
  "concordium-rwa-identity-registry",
  "concordium-smart-contract-testing",
