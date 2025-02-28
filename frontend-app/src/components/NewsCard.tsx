@@ -1,17 +1,10 @@
-"use client";
+import { NewsArticle } from "../apiClient";
 
-import { Link } from "react-router";
-
-interface ItemProps {
-	item: {
-		id: string;
-		image: string;
-		image_label: string;
-		title: string;
-		short: string;
-	};
+interface NewsCardProps {
+	article: NewsArticle;
 }
-export default function NewsCard({ item }: ItemProps) {
+
+export default function NewsCard({ article: item }: NewsCardProps) {
 	return (
 		<>
 			<div className="news-card">
@@ -19,8 +12,8 @@ export default function NewsCard({ item }: ItemProps) {
 					<div className="container-in">
 						<div className="col-12">
 							<div className="image">
-								<img src={item.image} />
-								<div className="caption">{item.image_label}</div>
+								<img src={item.image_url} />
+								<div className="caption">{item.label}</div>
 							</div>
 						</div>
 					</div>
@@ -29,14 +22,14 @@ export default function NewsCard({ item }: ItemProps) {
 					<div className="container-in">
 						<div className="col-12">
 							<div className="news-name">{item.title}</div>
-							<div className="news-description">{item.short}</div>
+							<div className="news-description">{item.content}</div>
 						</div>
 					</div>
 					<div className="container-in text-align-right">
 						<div className="col-12">
-							<Link to={`/news/${item.id}`} className="read">
+							<a href={item.article_url} target="_blank" className="read">
 								READ FULL ARTICLE
-							</Link>
+							</a>
 						</div>
 					</div>
 				</div>

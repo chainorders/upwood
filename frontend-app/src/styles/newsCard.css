@@ -28,6 +28,8 @@
 	width: 100%;
 	height: auto;
 	border-radius: 15px 15px 0 0;
+	max-height: 350px;
+	object-fit: cover;
 }
 .news-card .read {
 	display: inline-block;

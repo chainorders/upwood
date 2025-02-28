@@ -1,5 +1,5 @@
 use poem::web::Data;
-use poem_openapi::param::Path;
+use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
@@ -18,7 +18,7 @@ pub struct Api;
 #[OpenApi]
 impl Api {
     #[oai(
-        path = "/news_articles/list/:page/",
+        path = "/news_articles/list",
         method = "get",
         tag = "ApiTags::UserCommunication"
     )]
@@ -26,10 +26,11 @@ impl Api {
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<NewsArticle>> {
         let mut conn = db_pool.get()?;
-        let (news_articles, count) = NewsArticle::list(&mut conn, page, 2)?;
+        let (news_articles, count) = NewsArticle::list(&mut conn, page, page_size.unwrap_or(2))?;
         Ok(Json(PagedResponse {
             data: news_articles,
             page_count: count,
@@ -89,7 +90,7 @@ impl Api {
     }
 
     #[oai(
-        path = "/platform_updates/list/:page/",
+        path = "/platform_updates/list",
         method = "get",
         tag = "ApiTags::UserCommunication"
     )]
@@ -97,7 +98,7 @@ impl Api {
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
     ) -> JsonResult<PagedResponse<PlatformUpdate>> {
         let mut conn = db_pool.get()?;
         let (platform_updates, count) = PlatformUpdate::list(&mut conn, page, 2)?;
@@ -163,7 +164,6 @@ impl Api {
         method = "delete",
         tag = "ApiTags::UserCommunication"
     )]
-
     pub async fn platform_updates_delete(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
@@ -177,7 +177,7 @@ impl Api {
     }
 
     #[oai(
-        path = "/maintenance_messages/list/:page",
+        path = "/maintenance_messages/list",
         method = "get",
         tag = "ApiTags::UserCommunication"
     )]
@@ -185,7 +185,7 @@ impl Api {
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
     ) -> JsonResult<PagedResponse<MaintenanceMessage>> {
         let mut conn = db_pool.get()?;
         let (maintenance_messages, count) = MaintenanceMessage::list(&mut conn, page, 2)?;
@@ -266,7 +266,7 @@ impl Api {
     }
 
     #[oai(
-        path = "/guides/list/:page",
+        path = "/guides/list",
         method = "get",
         tag = "ApiTags::UserCommunication"
     )]
@@ -274,7 +274,7 @@ impl Api {
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
     ) -> JsonResult<PagedResponse<Guide>> {
         let mut conn = db_pool.get()?;
         let (guides, count) = Guide::list(&mut conn, page, 2)?;
@@ -337,7 +337,7 @@ impl Api {
     }
 
     #[oai(
-        path = "/admin/support_questions/list/:page",
+        path = "/admin/support_questions/list",
         method = "get",
         tag = "ApiTags::UserCommunication"
     )]
@@ -345,11 +345,13 @@ impl Api {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<SupportQuestion>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let (support_questions, count) = SupportQuestion::list(&mut conn, page, PAGE_SIZE)?;
+        let (support_questions, count) =
+            SupportQuestion::list(&mut conn, page, page_size.unwrap_or(PAGE_SIZE))?;
         Ok(Json(PagedResponse {
             data: support_questions,
             page_count: count,

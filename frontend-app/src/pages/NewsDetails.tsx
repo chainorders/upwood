@@ -1,11 +1,14 @@
-import { useOutletContext, useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router";
 import PageHeader from "../components/PageHeader";
 import { User } from "../lib/user";
 
-export default function NewsDetails() {
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface NewsDetailsProps {
+	user: User;
+}
+
+export default function NewsDetails({ user }: NewsDetailsProps) {
 	const { id } = useParams<{ id: string }>();
-	const { user } = useOutletContext<{ user: User }>();
 
 	const data = {
 		id: "1516",

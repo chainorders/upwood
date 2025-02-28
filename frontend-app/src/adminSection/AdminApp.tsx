@@ -29,8 +29,7 @@ const ProjectContractUpdate = lazy(() => import("./pages/ProjectContractUpdate.t
 const ProjectTokenDetails = lazy(() => import("./pages/ProjectTokenDetails.tsx"));
 const UserList = lazy(() => import("./pages/UserList.tsx"));
 const UserInvitations = lazy(() => import("./pages/UserInvitations.tsx"));
-const News = lazy(() => import("../pages/News.tsx"));
-const NewsDetails = lazy(() => import("../pages/NewsDetails.tsx"));
+const NewsList = lazy(() => import("./pages/components/NewsList.tsx"));
 
 function UserAvatar({ user }: { user: User }) {
 	return (
@@ -150,13 +149,10 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							<Route path="list" element={<UserList user={user} />} />
 							<Route path="invitations" element={<UserInvitations user={user} />} />
 						</Route>
-						{/* <Route path="news/*">
+						<Route path="news/*">
 							<Route index element={<Navigate to="list" />} />
-							<Route path="list" element={<News />} />
-							<Route path=":id">
-								<Route path="update" element={<NewsDetails />} />
-							</Route>
-						</Route> */}
+							<Route path="list" element={<NewsList />} />
+						</Route>
 					</Routes>
 				</Suspense>
 			</Box>

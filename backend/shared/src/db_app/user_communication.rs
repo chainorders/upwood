@@ -49,8 +49,9 @@ impl NewsArticle {
             .offset(page * page_size)
             .order_by(news_articles::order_index.asc())
             .get_results(conn)?;
-        let count: i64 = query.count().get_result(conn)?;
-        Ok((news_articles, count))
+        let total_count: i64 = query.count().get_result(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((news_articles, page_count))
     }
 
     #[instrument(skip(conn))]
@@ -110,7 +111,8 @@ impl PlatformUpdate {
             .order_by(platform_updates::order_index.asc())
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
-        Ok((platform_updates, count))
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((platform_updates, page_count))
     }
 
     #[instrument(skip(conn))]
@@ -170,7 +172,8 @@ impl MaintenanceMessage {
             .order_by(maintenance_messages::order_index.asc())
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
-        Ok((maintenance_messages, count))
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((maintenance_messages, page_count))
     }
 
     #[instrument(skip(conn))]
@@ -227,7 +230,8 @@ impl Guide {
             .order_by(guides::order_index.asc())
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
-        Ok((guides, count))
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((guides, page_count))
     }
 
     #[instrument(skip(conn))]
@@ -278,7 +282,8 @@ impl SupportQuestion {
             .offset(page * page_size)
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
-        Ok((support_queries, count))
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((support_queries, page_count))
     }
 
     #[instrument(skip(conn))]

@@ -20,15 +20,17 @@ import { request as __request } from "../core/request";
 export class UserCommunicationService {
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @returns PagedResponse_NewsArticle
 	 * @throws ApiError
 	 */
-	public static getNewsArticlesList(page: number): CancelablePromise<PagedResponse_NewsArticle> {
+	public static getNewsArticlesList(page: number, pageSize?: number): CancelablePromise<PagedResponse_NewsArticle> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/news_articles/list/{page}",
-			path: {
+			url: "/news_articles/list",
+			query: {
 				page: page,
+				page_size: pageSize,
 			},
 		});
 	}
@@ -85,8 +87,8 @@ export class UserCommunicationService {
 	public static getPlatformUpdatesList(page: number): CancelablePromise<PagedResponse_PlatformUpdate> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/platform_updates/list/{page}",
-			path: {
+			url: "/platform_updates/list",
+			query: {
 				page: page,
 			},
 		});
@@ -155,8 +157,8 @@ export class UserCommunicationService {
 	public static getMaintenanceMessagesList(page: number): CancelablePromise<PagedResponse_MaintenanceMessage> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/maintenance_messages/list/{page}",
-			path: {
+			url: "/maintenance_messages/list",
+			query: {
 				page: page,
 			},
 		});
@@ -225,8 +227,8 @@ export class UserCommunicationService {
 	public static getGuidesList(page: number): CancelablePromise<PagedResponse_Guide> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/guides/list/{page}",
-			path: {
+			url: "/guides/list",
+			query: {
 				page: page,
 			},
 		});
@@ -278,15 +280,20 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @returns PagedResponse_SupportQuestion
 	 * @throws ApiError
 	 */
-	public static getAdminSupportQuestionsList(page: number): CancelablePromise<PagedResponse_SupportQuestion> {
+	public static getAdminSupportQuestionsList(
+		page: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_SupportQuestion> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/support_questions/list/{page}",
-			path: {
+			url: "/admin/support_questions/list",
+			query: {
 				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

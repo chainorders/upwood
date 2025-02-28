@@ -1,12 +1,21 @@
-import { useState } from "react";
-import { Link, useOutletContext } from "react-router";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import PageHeader from "../components/PageHeader";
 import NewsCard from "../components/NewsCard";
 import { User } from "../lib/user";
+import { PagedResponse_NewsArticle, UserCommunicationService } from "../apiClient";
 
-export default function News() {
-	const { user } = useOutletContext<{ user: User }>();
+interface NewsProps {
+	user: User;
+}
+
+export default function News({ user }: NewsProps) {
 	const [showAll, setShowAll] = useState(false);
+	const [newsArticles, setNewsArticles] = useState<PagedResponse_NewsArticle>();
+
+	useEffect(() => {
+		UserCommunicationService.getNewsArticlesList(0).then(setNewsArticles);
+	}, [user]);
 
 	const links = [
 		{
@@ -63,25 +72,6 @@ export default function News() {
 			title: "Update: 1.13",
 			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
 			link: "",
-		},
-	];
-
-	const data = [
-		{
-			id: "1256",
-			image: "/Photo2.jpg",
-			image_label: "ABOUT UPWOOD",
-			title: "Upwood signs agreement with Airflygreen",
-			short:
-				"AirFlyGreen joins investor cummunity with commitment to compensate 6000 tons Co2 of flight emissions from London to Dubai. On 27th June Upwood announced official partnership si...",
-		},
-		{
-			id: "1516",
-			image: "/Photo2.jpg",
-			image_label: "LETTER FROM CEO",
-			title: "Forest market experience positive dynamics",
-			short:
-				"Following recent changes in reduction of Euribor % by European Central Bank construction industry experience upward trend which leads to increased demand for timber. Current, trajectory...",
 		},
 	];
 
@@ -152,9 +142,9 @@ export default function News() {
 				<div className="space-30"></div>
 				<div className="container">
 					<div className="container-in">
-						{data.map((item, index) => (
-							<div className="col-6 col-m-full fl" key={index}>
-								<NewsCard item={item} />
+						{newsArticles?.data.map((item, index) => (
+							<div className="col-6 col-m-full fl" key={item.id}>
+								<NewsCard article={item} />
 							</div>
 						))}
 						<div className="clr"></div>
