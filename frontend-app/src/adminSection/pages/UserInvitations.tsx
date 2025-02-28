@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { User } from "../../lib/user";
 import { useEffect, useState } from "react";
 import { UserRegistrationRequest, UserService } from "../../apiClient";

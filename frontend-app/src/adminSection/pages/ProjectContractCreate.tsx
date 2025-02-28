@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { useNavigate, useParams } from "react-router";
 import { useForm } from "react-hook-form";
 import {
@@ -285,6 +285,6 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 			</div>
 		</>
 	);
-}
+};
 
 export default ProjectContractCreate;

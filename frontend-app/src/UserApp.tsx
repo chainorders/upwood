@@ -111,9 +111,15 @@ export default function UserApp({ user, logout }: { user?: User; logout: () => v
 				<Routes>
 					<Route index path="/" element={<ActiveForestProjectsList user={user} />} />
 					<Route path="projects/active" element={<ActiveForestProjectsList user={user} />} />
-					<Route path="projects/active/:id" element={<ForestProjectDetails user={user} source={ForestProjectState.ACTIVE} />} />
+					<Route
+						path="projects/active/:id"
+						element={<ForestProjectDetails user={user} source={ForestProjectState.ACTIVE} />}
+					/>
 					<Route path="projects/funded" element={<FundedForestProjectsList user={user} />} />
-					<Route path="projects/funded/:id" element={<ForestProjectDetails user={user} source={ForestProjectState.FUNDED} />} />
+					<Route
+						path="projects/funded/:id"
+						element={<ForestProjectDetails user={user} source={ForestProjectState.FUNDED} />}
+					/>
 					<Route path="projects/bond" element={<BondForestProjectsList user={user} />} />
 					<Route path="projects/bond/:id" element={<ForestProjectDetails user={user} source={ForestProjectState.BOND} />} />
 					<Route path="portfolio" element={<InvestmentPortfolio user={user} />} />

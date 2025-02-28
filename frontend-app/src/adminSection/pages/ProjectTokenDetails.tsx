@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -206,7 +206,12 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 							</AccordionSummary>
 							<AccordionDetails>
 								{market ? (
-									<MarketDetails user={user} market={market} tokenMetadata={tokenContract} currencyMetadata={marketCurrencyMetdata} />
+									<MarketDetails
+										user={user}
+										market={market}
+										tokenMetadata={tokenContract}
+										currencyMetadata={marketCurrencyMetdata}
+									/>
 								) : (
 									<Typography>No market details available</Typography>
 								)}
@@ -360,6 +365,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 			</Box>
 		</>
 	);
-}
+};
 
 export default ProjectTokenDetails;
