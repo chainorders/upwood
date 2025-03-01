@@ -12,11 +12,11 @@ import {
 	Typography,
 	Pagination,
 } from "@mui/material";
-import { NewsArticle } from "../../../apiClient/models/NewsArticle";
+import { NewsArticle } from "../../apiClient/models/NewsArticle";
 import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import { PagedResponse_NewsArticle, UserCommunicationService } from "../../../apiClient";
-import AddNewsArticlePopup from "./AddNewsArticlePopup";
+import { PagedResponse_NewsArticle, UserCommunicationService } from "../../apiClient";
+import AddNewsArticlePopup from "./components/AddNewsArticlePopup";
 
 export default function NewsList() {
 	const navigate = useNavigate();

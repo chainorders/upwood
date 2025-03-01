@@ -10,15 +10,15 @@ import {
 	TableHead,
 	TablePagination,
 	TableRow,
+	Typography,
 } from "@mui/material";
-import { MaintenanceMessage, PagedResponse_MaintenanceMessage, UserCommunicationService } from "../../apiClient";
+import { PagedResponse_MaintenanceMessage, UserCommunicationService } from "../../apiClient";
 import AddMaintenanceMsgPopup from "../components/AddMaintenanceMsgPopup";
 
 const MaintenanceMessageList = () => {
 	const [messages, setMessages] = useState<PagedResponse_MaintenanceMessage>();
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
-	const [totalMessages, setTotalMessages] = useState(0);
 	const [open, setOpen] = useState(false);
 	const [refreshCounter, setRefreshCounter] = useState(0);
 
@@ -34,9 +34,12 @@ const MaintenanceMessageList = () => {
 
 	return (
 		<Box>
-			<Button variant="contained" color="primary" onClick={() => setOpen(true)}>
-				Add Maintenance Message
-			</Button>
+			<Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+				<Typography variant="h4">Maintenance Messages</Typography>
+				<Button variant="contained" color="primary" onClick={() => setOpen(true)}>
+					Add Maintenance Message
+				</Button>
+			</Box>
 			<TableContainer component={Paper}>
 				<Table>
 					<TableHead>
@@ -71,12 +74,8 @@ const MaintenanceMessageList = () => {
 				onPageChange={(event, newPage) => setPage(newPage)}
 				rowsPerPage={rowsPerPage}
 				onRowsPerPageChange={(event) => setRowsPerPage(parseInt(event.target.value, 10))}
-				/>
-			<AddMaintenanceMsgPopup
-				open={open}
-				onClose={() => setOpen(false)}
-				onAdd={() => setRefreshCounter((c) => c + 1)}
 			/>
+			<AddMaintenanceMsgPopup open={open} onClose={() => setOpen(false)} onAdd={() => setRefreshCounter((c) => c + 1)} />
 		</Box>
 	);
 };

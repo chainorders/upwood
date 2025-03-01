@@ -30,7 +30,7 @@ const ProjectContractUpdate = lazy(() => import("./pages/ProjectContractUpdate.t
 const ProjectTokenDetails = lazy(() => import("./pages/ProjectTokenDetails.tsx"));
 const UserList = lazy(() => import("./pages/UserList.tsx"));
 const UserInvitations = lazy(() => import("./pages/UserInvitations.tsx"));
-const NewsList = lazy(() => import("./pages/components/NewsList.tsx"));
+const NewsList = lazy(() => import("./pages/NewsList.tsx"));
 const MaintenanceMessageList = lazy(() => import("./pages/MaintenanceMessageList.tsx"));
 
 function UserAvatar({ user }: { user: User }) {

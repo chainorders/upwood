@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SystemContractsConfigApiModel, UserKYCModel, UserService } from "../../apiClient";
+import { PagedResponse_UserKYCModel, SystemContractsConfigApiModel, UserKYCModel, UserService } from "../../apiClient";
 import { useNavigate } from "react-router";
 import {
 	Table,
@@ -20,27 +20,33 @@ import TransactionButton from "../../components/TransactionButton";
 import { User } from "../../lib/user";
 
 const UserList = ({ user }: { user: User }) => {
-	const [users, setUsers] = useState<UserKYCModel[]>([]);
+	const [users, setUsers] = useState<PagedResponse_UserKYCModel>();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
-	const [loading, setLoading] = useState(true);
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(10);
 	const navigate = useNavigate();
 	const [registerIdentityTxnStatus, setRegisterIdentityTxnStatus] = useState<Record<string, TxnStatus>>({});
 	const [deleteIdentityTxnStatus, setRemoveIdentityTxnStatus] = useState<Record<string, TxnStatus>>({});
+	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	useEffect(() => {
 		UserService.getSystemConfig().then(setContracts);
-	}, []);
+	}, [user]);
 	useEffect(() => {
-		setLoading(true);
-		UserService.getAdminUserList(page, rowsPerPage)
-			.then((data) => {
-				setUsers(data.data);
-			})
-			.finally(() => setLoading(false));
-	}, [page, rowsPerPage]);
+		UserService.getAdminUserList(page, rowsPerPage).then(setUsers);
+	}, [page, rowsPerPage, refreshCounter]);
 
+	const updateUserKycStatus = (accountAddress: string, kycVerified: boolean) => {
+		setUsers((prev) => ({
+			...prev!,
+			data: prev!.data.map((user) => {
+				if (user.account_address === accountAddress) {
+					return { ...user, kyc_verified: kycVerified };
+				}
+				return user;
+			}),
+		}));
+	};
 	const handleChangePage = (_event: unknown, newPage: number) => {
 		setPage(newPage);
 	};
@@ -82,9 +88,7 @@ const UserList = ({ user }: { user: User }) => {
 				},
 			);
 			alert("Identity registered successfully");
-			setUsers((prevUsers) =>
-				prevUsers.map((u) => (u.cognito_user_id === userToRegister.cognito_user_id ? { ...u, kyc_verified: true } : u)),
-			);
+			updateUserKycStatus(userToRegister.account_address, true);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to register identity");
@@ -111,19 +115,13 @@ const UserList = ({ user }: { user: User }) => {
 				},
 			);
 			alert("Identity removed successfully");
-			setUsers((prevUsers) =>
-				prevUsers.map((u) => (u.cognito_user_id === userToRegister.cognito_user_id ? { ...u, kyc_verified: false } : u)),
-			);
+			updateUserKycStatus(userToRegister.account_address, false);
 		} catch (e) {
 			console.error(e);
 			alert("Failed to remove identity");
 			setRemoveIdentityTxnStatus((prev) => ({ ...prev, [userToRegister.account_address]: "error" }));
 		}
 	};
-
-	if (loading) {
-		return <div>Loading...</div>;
-	}
 
 	return (
 		<Box display="flex">
@@ -144,7 +142,7 @@ const UserList = ({ user }: { user: User }) => {
 							</TableRow>
 						</TableHead>
 						<TableBody>
-							{users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user) => (
+							{users?.data.map((user) => (
 								<TableRow key={user.cognito_user_id}>
 									<TableCell>{user.email}</TableCell>
 									<TableCell>{user.first_name}</TableCell>
@@ -181,7 +179,7 @@ const UserList = ({ user }: { user: User }) => {
 				<TablePagination
 					rowsPerPageOptions={[5, 10, 25]}
 					component="div"
-					count={users.length}
+					count={users?.page_count || 0 * rowsPerPage || 0}
 					rowsPerPage={rowsPerPage}
 					page={page}
 					onPageChange={handleChangePage}
