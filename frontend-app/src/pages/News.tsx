@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import PageHeader from "../components/PageHeader";
 import NewsCard from "../components/NewsCard";
 import { User } from "../lib/user";
-import { PagedResponse_NewsArticle, UserCommunicationService } from "../apiClient";
+import { MaintenanceMessage, PagedResponse_NewsArticle, PlatformUpdate, UserCommunicationService } from "../apiClient";
 
 interface NewsProps {
 	user: User;
@@ -12,9 +12,11 @@ interface NewsProps {
 export default function News({ user }: NewsProps) {
 	const [showAll, setShowAll] = useState(false);
 	const [newsArticles, setNewsArticles] = useState<PagedResponse_NewsArticle>();
+	const [latestMaintenanceMessage, setLatestMaintenanceMessage] = useState<MaintenanceMessage>();
 
 	useEffect(() => {
 		UserCommunicationService.getNewsArticlesList(0).then(setNewsArticles);
+		UserCommunicationService.getMaintenanceMessagesLatest().then(setLatestMaintenanceMessage);
 	}, [user]);
 
 	const links = [
@@ -75,12 +77,6 @@ export default function News({ user }: NewsProps) {
 		},
 	];
 
-	const planned_maintainence = {
-		date: "22.10.24",
-		text:
-			"Next planned platform maintenance is going to happen at 22.07.2024 22 : 00 (CET), please be aware that there may be short time frame when platform may show service maintenance. We are constantly working on platform improvements, updates and new features to provide better investment experience. Your funds are in your digital wallet, thereby, always safe!",
-	};
-
 	const displayedLinks = showAll ? links : links.slice(0, 3);
 	return (
 		<>
@@ -90,9 +86,11 @@ export default function News({ user }: NewsProps) {
 				<div className="outerboxshadow">
 					<div className="container">
 						<div className="container-in">
-							<div className="col-4 fr text-align-right col-m-full col-mr-bottom-10 text-align-left-mobile">
-								{planned_maintainence.date}
-							</div>
+							{latestMaintenanceMessage && (
+								<div className="col-4 fr text-align-right col-m-full col-mr-bottom-10 text-align-left-mobile">
+									{new Date(latestMaintenanceMessage.created_at).toLocaleDateString()}
+								</div>
+							)}
 							<div className="col-8 fl col-m-full">
 								<div className="heading">Planned platform maintenance</div>
 							</div>
@@ -100,7 +98,7 @@ export default function News({ user }: NewsProps) {
 						</div>
 						<div className="container-in">
 							<div className="col-12">
-								<div className="content">{planned_maintainence.text}</div>
+								<div className="content">{latestMaintenanceMessage?.message || "No planned platform maintenance"}</div>
 							</div>
 						</div>
 					</div>

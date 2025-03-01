@@ -33,21 +33,13 @@ impl NewsArticle {
             .optional()
     }
 
-    pub fn find_first(conn: &mut DbConn) -> DbResult<Option<NewsArticle>> {
-        news_articles::table
-            .select(NewsArticle::as_select())
-            .order_by(news_articles::order_index.asc())
-            .first(conn)
-            .optional()
-    }
-
     #[instrument(skip(conn))]
     pub fn list(conn: &mut DbConn, page: i64, page_size: i64) -> DbResult<(Vec<NewsArticle>, i64)> {
         let query = news_articles::table.select(NewsArticle::as_select());
         let news_articles = query
             .limit(page_size)
             .offset(page * page_size)
-            .order_by(news_articles::order_index.asc())
+            .order_by(news_articles::order_index.desc())
             .get_results(conn)?;
         let total_count: i64 = query.count().get_result(conn)?;
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
@@ -93,7 +85,7 @@ impl PlatformUpdate {
     pub fn find_first(conn: &mut DbConn) -> DbResult<Option<PlatformUpdate>> {
         platform_updates::table
             .select(PlatformUpdate::as_select())
-            .order_by(platform_updates::order_index.asc())
+            .order_by(platform_updates::order_index.desc())
             .first(conn)
             .optional()
     }
@@ -108,7 +100,7 @@ impl PlatformUpdate {
         let platform_updates = query
             .limit(page_size)
             .offset(page * page_size)
-            .order_by(platform_updates::order_index.asc())
+            .order_by(platform_updates::order_index.desc())
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
         let page_count = (count as f64 / page_size as f64).ceil() as i64;
@@ -154,7 +146,7 @@ impl MaintenanceMessage {
     pub fn find_first(conn: &mut DbConn) -> DbResult<Option<MaintenanceMessage>> {
         maintenance_messages::table
             .select(MaintenanceMessage::as_select())
-            .order_by(maintenance_messages::order_index.asc())
+            .order_by(maintenance_messages::order_index.desc())
             .first(conn)
             .optional()
     }
@@ -169,7 +161,7 @@ impl MaintenanceMessage {
         let maintenance_messages = query
             .limit(page_size)
             .offset(page * page_size)
-            .order_by(maintenance_messages::order_index.asc())
+            .order_by(maintenance_messages::order_index.desc())
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
         let page_count = (count as f64 / page_size as f64).ceil() as i64;
@@ -216,7 +208,7 @@ impl Guide {
     pub fn find_first(conn: &mut DbConn) -> DbResult<Option<Guide>> {
         guides::table
             .select(Guide::as_select())
-            .order_by(guides::order_index.asc())
+            .order_by(guides::order_index.desc())
             .first(conn)
             .optional()
     }
@@ -227,7 +219,7 @@ impl Guide {
         let guides = query
             .limit(page_size)
             .offset(page * page_size)
-            .order_by(guides::order_index.asc())
+            .order_by(guides::order_index.desc())
             .get_results(conn)?;
         let count: i64 = query.count().get_result(conn)?;
         let page_count = (count as f64 / page_size as f64).ceil() as i64;

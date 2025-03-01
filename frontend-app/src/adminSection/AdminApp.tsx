@@ -17,6 +17,7 @@ import UsersIcon from "@mui/icons-material/Group";
 import NewspaperIcon from "@mui/icons-material/Newspaper";
 import logoImage from "../assets/logo.svg";
 import LogoutIcon from "@mui/icons-material/Logout";
+import HandymanIcon from "@mui/icons-material/Handyman";
 import { lazy, Suspense } from "react";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
@@ -30,6 +31,7 @@ const ProjectTokenDetails = lazy(() => import("./pages/ProjectTokenDetails.tsx")
 const UserList = lazy(() => import("./pages/UserList.tsx"));
 const UserInvitations = lazy(() => import("./pages/UserInvitations.tsx"));
 const NewsList = lazy(() => import("./pages/components/NewsList.tsx"));
+const MaintenanceMessageList = lazy(() => import("./pages/MaintenanceMessageList.tsx"));
 
 function UserAvatar({ user }: { user: User }) {
 	return (
@@ -75,6 +77,12 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/news",
 			icon: <NewspaperIcon />,
 			isActive: pathname.startsWith("/admin/news"),
+		},
+		{
+			name: "Maintenance Messages",
+			url: "/admin/maintenance",
+			icon: <HandymanIcon />,
+			isActive: pathname.startsWith("/admin/maintenance"),
 		},
 	];
 
@@ -152,6 +160,10 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						<Route path="news/*">
 							<Route index element={<Navigate to="list" />} />
 							<Route path="list" element={<NewsList />} />
+						</Route>
+						<Route path="maintenance/*">
+							<Route index element={<Navigate to="list" />} />
+							<Route path="list" element={<MaintenanceMessageList />} />
 						</Route>
 					</Routes>
 				</Suspense>

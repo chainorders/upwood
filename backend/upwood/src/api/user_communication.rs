@@ -186,9 +186,11 @@ impl Api {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<MaintenanceMessage>> {
         let mut conn = db_pool.get()?;
-        let (maintenance_messages, count) = MaintenanceMessage::list(&mut conn, page, 2)?;
+        let (maintenance_messages, count) =
+            MaintenanceMessage::list(&mut conn, page, page_size.unwrap_or(PAGE_SIZE))?;
         Ok(Json(PagedResponse {
             data: maintenance_messages,
             page_count: count,

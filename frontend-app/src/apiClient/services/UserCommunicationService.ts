@@ -151,15 +151,20 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @returns PagedResponse_MaintenanceMessage
 	 * @throws ApiError
 	 */
-	public static getMaintenanceMessagesList(page: number): CancelablePromise<PagedResponse_MaintenanceMessage> {
+	public static getMaintenanceMessagesList(
+		page: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_MaintenanceMessage> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/maintenance_messages/list",
 			query: {
 				page: page,
+				page_size: pageSize,
 			},
 		});
 	}
