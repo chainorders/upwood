@@ -81,15 +81,20 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @returns PagedResponse_PlatformUpdate
 	 * @throws ApiError
 	 */
-	public static getPlatformUpdatesList(page: number): CancelablePromise<PagedResponse_PlatformUpdate> {
+	public static getPlatformUpdatesList(
+		page: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_PlatformUpdate> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/platform_updates/list",
 			query: {
 				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

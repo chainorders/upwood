@@ -99,9 +99,11 @@ impl Api {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<PlatformUpdate>> {
         let mut conn = db_pool.get()?;
-        let (platform_updates, count) = PlatformUpdate::list(&mut conn, page, 2)?;
+        let (platform_updates, count) =
+            PlatformUpdate::list(&mut conn, page, page_size.unwrap_or(PAGE_SIZE))?;
         Ok(Json(PagedResponse {
             data: platform_updates,
             page_count: count,

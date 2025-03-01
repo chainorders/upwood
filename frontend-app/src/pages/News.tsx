@@ -3,7 +3,13 @@ import { Link } from "react-router";
 import PageHeader from "../components/PageHeader";
 import NewsCard from "../components/NewsCard";
 import { User } from "../lib/user";
-import { MaintenanceMessage, PagedResponse_NewsArticle, PlatformUpdate, UserCommunicationService } from "../apiClient";
+import {
+	MaintenanceMessage,
+	PagedResponse_NewsArticle,
+	PagedResponse_PlatformUpdate,
+	PlatformUpdate,
+	UserCommunicationService,
+} from "../apiClient";
 
 interface NewsProps {
 	user: User;
@@ -13,71 +19,17 @@ export default function News({ user }: NewsProps) {
 	const [showAll, setShowAll] = useState(false);
 	const [newsArticles, setNewsArticles] = useState<PagedResponse_NewsArticle>();
 	const [latestMaintenanceMessage, setLatestMaintenanceMessage] = useState<MaintenanceMessage>();
+	const [platformUpdates, setPlatformUpdates] = useState<PagedResponse_PlatformUpdate>();
 
 	useEffect(() => {
 		UserCommunicationService.getNewsArticlesList(0).then(setNewsArticles);
 		UserCommunicationService.getMaintenanceMessagesLatest().then(setLatestMaintenanceMessage);
+		UserCommunicationService.getPlatformUpdatesList(0).then(setPlatformUpdates);
 	}, [user]);
 
-	const links = [
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-		{
-			title: "Update: 1.13",
-			description: "Proactively incubate innovative processes for high-payoff architectures. Globally benchmark flexible.",
-			link: "",
-		},
-	];
+	const displayedPlatformUpdates = showAll ? platformUpdates?.data : platformUpdates?.data.slice(0, 3);
+	const showAllDisabled = (platformUpdates?.data.length || 0) <= 3;
 
-	const displayedLinks = showAll ? links : links.slice(0, 3);
 	return (
 		<>
 			<div className="clr"></div>
@@ -111,25 +63,31 @@ export default function News({ user }: NewsProps) {
 								<div className="heading">Platform updates</div>
 							</div>
 							<div className="col-4 text-align-right fr hideonmobile">
-								<span className="seeall" onClick={() => setShowAll(!showAll)} style={{ cursor: "pointer" }}>
+								<span
+									className={`seeall ${showAllDisabled ? "disabled" : ""}`}
+									onClick={() => !showAllDisabled && setShowAll(!showAll)}
+								>
 									{showAll ? "SEE LESS" : "SEE ALL"}
 								</span>
 							</div>
 
 							<div className="clr"></div>
-							{displayedLinks.map((item, index) => (
+							{displayedPlatformUpdates?.map((pu, index) => (
 								<div className="col-4 col-m-full fl" key={index}>
 									<div className="linkbox">
-										<Link to={item.link}>
-											<div className="title">{item.title}</div>
-											<div className="description">{item.description}</div>
-										</Link>
+										<a>
+											<div className="title">{pu.title}</div>
+											<div className="description">{pu.label}</div>
+										</a>
 									</div>
 								</div>
 							))}
 							<div className="clr"></div>
 							<div className="col-12 showonmobile text-align-center">
-								<span className="seeall" onClick={() => setShowAll(!showAll)} style={{ cursor: "pointer" }}>
+								<span
+									className={`seeall ${showAllDisabled ? "disabled" : ""}`}
+									onClick={() => !showAllDisabled && setShowAll(!showAll)}
+								>
 									{showAll ? "SEE LESS" : "SEE ALL"}
 								</span>
 							</div>

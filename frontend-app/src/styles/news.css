@@ -12,6 +12,10 @@
 	font-weight: 500;
 	color: rgba(15, 180, 4, 1);
 }
+.news .seeall.disabled {
+	color: rgba(15, 180, 4, 0.5);
+	cursor: not-allowed;
+}
 .news .linkbox {
 	border: 1px solid rgba(235, 235, 235, 1);
 	margin-bottom: 20px;

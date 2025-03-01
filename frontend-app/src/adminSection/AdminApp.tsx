@@ -18,7 +18,9 @@ import NewspaperIcon from "@mui/icons-material/Newspaper";
 import logoImage from "../assets/logo.svg";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HandymanIcon from "@mui/icons-material/Handyman";
+import UpdateIcon from "@mui/icons-material/Update";
 import { lazy, Suspense } from "react";
+import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -83,6 +85,12 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/maintenance",
 			icon: <HandymanIcon />,
 			isActive: pathname.startsWith("/admin/maintenance"),
+		},
+		{
+			name: "Platform Updates",
+			url: "/admin/updates",
+			icon: <UpdateIcon />,
+			isActive: pathname.startsWith("/admin/updates"),
 		},
 	];
 
@@ -164,6 +172,10 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						<Route path="maintenance/*">
 							<Route index element={<Navigate to="list" />} />
 							<Route path="list" element={<MaintenanceMessageList />} />
+						</Route>
+						<Route path="updates/*">
+							<Route index element={<Navigate to="list" />} />
+							<Route path="list" element={<UpdateMessagesList />} />
 						</Route>
 					</Routes>
 				</Suspense>
