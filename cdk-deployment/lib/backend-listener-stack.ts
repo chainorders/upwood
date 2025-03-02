@@ -103,7 +103,6 @@ export class BackendListenerStack extends Stack {
 			{
 				taskDefinition: listenerTaskDefinition,
 				cluster: props.cluster,
-				serviceName: constructName(props, "backend-listener-service"),
 				desiredCount: 1,
 				deploymentController: {
 					type: ecs.DeploymentControllerType.ECS,

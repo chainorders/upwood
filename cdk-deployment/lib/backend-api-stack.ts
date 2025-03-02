@@ -141,7 +141,6 @@ export class BackendApiStack extends Stack {
 			{
 				taskDefinition: taskDef,
 				cluster: props.cluster,
-				serviceName: constructName(props, "backend-api-service"),
 				desiredCount: props.containerCount,
 				deploymentController: {
 					type: ecs.DeploymentControllerType.ECS,
@@ -150,7 +149,6 @@ export class BackendApiStack extends Stack {
 					cloudMapNamespace: props.discoveryNamespace,
 					container: apiContainer,
 					containerPort: props.apiSocketPort,
-					name: constructName(props, "backend-api-discovery-service"),
 				},
 			},
 		);
