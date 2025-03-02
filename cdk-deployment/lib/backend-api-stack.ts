@@ -1,36 +1,22 @@
-import {
-	aws_apigatewayv2,
-	RemovalPolicy,
-	Stack,
-	Tags,
-} from "aws-cdk-lib";
+import { aws_apigatewayv2, RemovalPolicy, Stack, Tags } from "aws-cdk-lib";
 import {
 	CorsHttpMethod,
 	DomainName,
 	HttpApi,
 	IVpcLink,
 } from "aws-cdk-lib/aws-apigatewayv2";
-import {
-	HttpServiceDiscoveryIntegration,
-} from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import { HttpServiceDiscoveryIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
 import { IVpc } from "aws-cdk-lib/aws-ec2";
 import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
-import {
-	PolicyDocument,
-	PolicyStatement,
-} from "aws-cdk-lib/aws-iam";
+import { PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { ILogGroup } from "aws-cdk-lib/aws-logs";
 import { IBucket } from "aws-cdk-lib/aws-s3";
 import { INamespace } from "aws-cdk-lib/aws-servicediscovery";
 import { Construct } from "constructs";
 
-import {
-	constructName,
-	OrganizationEnv,
-	StackProps as SP,
-} from "./shared";
+import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 
 interface StackProps extends SP {
 	certificateArn: string;

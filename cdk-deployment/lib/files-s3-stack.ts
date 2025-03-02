@@ -2,7 +2,7 @@ import { App, RemovalPolicy, Stack, Tags } from "aws-cdk-lib";
 import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 import { Bucket, HttpMethods, IBucket } from "aws-cdk-lib/aws-s3";
 
-export interface StackProps extends SP { }
+export interface StackProps extends SP {}
 export class FilesS3Stack extends Stack {
 	filesBucket: IBucket;
 
