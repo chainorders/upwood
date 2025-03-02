@@ -1,0 +1,2 @@
+ALTER TABLE guides
+ADD COLUMN guide_url TEXT NOT NULL;

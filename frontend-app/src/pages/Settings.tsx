@@ -5,8 +5,10 @@ import {
 	ForestProjectFundsAffiliateRewardRecord,
 	OpenAPI,
 	PagedResponse_ForestProjectFundsAffiliateRewardRecord,
+	PagedResponse_Guide,
 	PagedResponse_UserTransaction,
 	SystemContractsConfigApiModel,
+	UserCommunicationService,
 	UserService,
 	WalletService,
 } from "../apiClient";
@@ -111,6 +113,7 @@ export default function Settings({ user }: { user: User }) {
 	const [claimableReward, setClaimableReward] = useState<ForestProjectFundsAffiliateRewardRecord>();
 	const [affiliateRewardsPage, setAffiliateRewardsPage] = useState(0);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [guides, setGuides] = useState<PagedResponse_Guide>();
 
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [, setClaimPopup] = useState(false);
@@ -136,6 +139,9 @@ export default function Settings({ user }: { user: User }) {
 		const claimableReward = affiliateRewards.data.find((r) => BigInt(r.remaining_reward_amount) > 0);
 		setClaimableReward(claimableReward);
 	}, [affiliateRewards]);
+	useEffect(() => {
+		UserCommunicationService.getGuidesList(0, 3).then(setGuides);
+	}, [user]);
 
 	const { download, isInProgress } = useDownloader();
 	const onAffiliateEarningsDownload = async () => {
@@ -152,11 +158,6 @@ export default function Settings({ user }: { user: User }) {
 		);
 	};
 
-	const links = [
-		{ title: "Portfolio", description: "How to manage your investments portfolio", link: "" },
-		{ title: "Wallet", description: "How to manage your wallet", link: "" },
-		{ title: "Contracts", description: "How to manage your contracts", link: "" },
-	];
 	const userAffiliateLink = `${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`;
 	return (
 		<>
@@ -213,13 +214,13 @@ export default function Settings({ user }: { user: User }) {
 								</div>
 							</div>
 							<div className="clr"></div>
-							{links.map((item, index) => (
+							{guides?.data.map((guide, index) => (
 								<div className="col-4 col-m-full fl" key={index}>
 									<div className="linkbox">
-										<Link type="text" to={item.link}>
-											<div className="title">{item.title}</div>
-											<div className="description">{item.description}</div>
-										</Link>
+										<a href={guide.guide_url} target="_blank" rel="noreferrer">
+											<div className="title">{guide.title}</div>
+											<div className="description">{guide.label}</div>
+										</a>
 									</div>
 								</div>
 							))}
@@ -297,9 +298,9 @@ export default function Settings({ user }: { user: User }) {
 								</p>
 							</div>
 							<div className="col-4 text-align-right fr hideonmobile">
-								<Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
+								<a href={import.meta.env.VITE_AFFILIATE_TERMS_URL} className="guides" target="_blank" rel="noreferrer">
 									Affiliate Terms & Conditions
-								</Link>
+								</a>
 							</div>
 							<div className="clr"></div>
 						</div>

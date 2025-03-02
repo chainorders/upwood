@@ -129,9 +129,9 @@ export default function Wallet({ user }: WalletProps) {
 								<div className="heading">Balance</div>
 							</div>
 							<div className="col-4 text-align-right fr hideonmobile">
-								<Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>
+								<a href={import.meta.env.VITE_WALLET_MANAGEMENT_GUIDE_URL} className="guides" target="_blank" rel="noreferrer">
 									WALLET MANAGEMENT GUIDES
-								</Link>
+								</a>
 							</div>
 							<div className="col-4 text-align-right fr showonmobile">
 								<Link type="text" to="/" className="guides" style={{ cursor: "pointer" }}>

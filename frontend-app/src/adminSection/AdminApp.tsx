@@ -19,6 +19,8 @@ import logoImage from "../assets/logo.svg";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HandymanIcon from "@mui/icons-material/Handyman";
 import UpdateIcon from "@mui/icons-material/Update";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
 
@@ -34,6 +36,8 @@ const UserList = lazy(() => import("./pages/UserList.tsx"));
 const UserInvitations = lazy(() => import("./pages/UserInvitations.tsx"));
 const NewsList = lazy(() => import("./pages/NewsList.tsx"));
 const MaintenanceMessageList = lazy(() => import("./pages/MaintenanceMessageList.tsx"));
+const GuideList = lazy(() => import("./pages/GuideList.tsx"));
+const QuestionsList = lazy(() => import("./pages/QuestionsList.tsx"));
 
 function UserAvatar({ user }: { user: User }) {
 	return (
@@ -91,6 +95,18 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/updates",
 			icon: <UpdateIcon />,
 			isActive: pathname.startsWith("/admin/updates"),
+		},
+		{
+			name: "Guides",
+			url: "/admin/guides",
+			icon: <HelpOutlineIcon />,
+			isActive: pathname.startsWith("/admin/guides"),
+		},
+		{
+			name: "Support Questions",
+			url: "/admin/support",
+			icon: <SupportAgentIcon />,
+			isActive: pathname.startsWith("/admin/support"),
 		},
 	];
 
@@ -176,6 +192,14 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						<Route path="updates/*">
 							<Route index element={<Navigate to="list" />} />
 							<Route path="list" element={<UpdateMessagesList />} />
+						</Route>
+						<Route path="guides/*">
+							<Route index element={<Navigate to="list" />} />
+							<Route path="list" element={<GuideList />} />
+						</Route>
+						<Route path="support/*">
+							<Route index element={<Navigate to="list" />} />
+							<Route path="list" element={<QuestionsList />} />
 						</Route>
 					</Routes>
 				</Suspense>

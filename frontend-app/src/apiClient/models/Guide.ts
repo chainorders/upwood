@@ -9,4 +9,5 @@ export type Guide = {
 	label: string;
 	created_at: string;
 	order_index: number;
+	guide_url: string;
 };

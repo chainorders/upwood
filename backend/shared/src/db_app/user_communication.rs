@@ -194,6 +194,7 @@ pub struct Guide {
     pub label:       String,
     pub created_at:  chrono::NaiveDateTime,
     pub order_index: i32,
+    pub guide_url:   String,
 }
 
 impl Guide {

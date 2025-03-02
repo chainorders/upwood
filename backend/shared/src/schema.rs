@@ -222,6 +222,7 @@ diesel::table! {
         label -> Varchar,
         created_at -> Timestamp,
         order_index -> Int4,
+        guide_url -> Text,
     }
 }
 

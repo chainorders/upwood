@@ -231,15 +231,17 @@ export class UserCommunicationService {
 
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @returns PagedResponse_Guide
 	 * @throws ApiError
 	 */
-	public static getGuidesList(page: number): CancelablePromise<PagedResponse_Guide> {
+	public static getGuidesList(page: number, pageSize?: number): CancelablePromise<PagedResponse_Guide> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/guides/list",
 			query: {
 				page: page,
+				page_size: pageSize,
 			},
 		});
 	}
