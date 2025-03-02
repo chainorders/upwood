@@ -32,34 +32,40 @@ export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) 
 	}, [user]);
 
 	useEffect(() => {
-		if (!user || !contracts) {
-			return;
-		}
+		if (!user || !contracts) return;
 
-		const sixMonthsAgo = new Date();
-		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-		const currentMonth = new Date();
-		const lastMonth = new Date();
-		lastMonth.setMonth(lastMonth.getMonth() - 1);
+		const fetchPortfolioValues = async () => {
+			const sixMonthsAgo = new Date();
+			sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+			const currentMonth = new Date();
+			const lastMonth = new Date();
+			lastMonth.setMonth(lastMonth.getMonth() - 1);
 
-		ForestProjectService.getForestProjectsListOwned().then(setProjects);
-		InvestmentPortfolioService.getPortfolioValueLastNMonths(6).then((response) => {
-			response.forEach(
-				(r) => (r.portfolio_value = toDisplayAmount(r.portfolio_value, contracts?.euro_e_metadata.decimals || 6, 0)),
+			const [projects, portfolioValues, valSixMonthsAgo, valLastMonth, valCurrentMonth, portfolioAgg] = await Promise.all([
+				ForestProjectService.getForestProjectsListOwned(),
+				InvestmentPortfolioService.getPortfolioValueLastNMonths(6),
+				InvestmentPortfolioService.getPortfolioValue(formatDate(sixMonthsAgo)),
+				InvestmentPortfolioService.getPortfolioValue(formatDate(lastMonth)),
+				InvestmentPortfolioService.getPortfolioValue(formatDate(currentMonth)),
+				InvestmentPortfolioService.getPortfolioAggregate(),
+			]);
+
+			setProjects(projects);
+			setPortfolioValues(
+				portfolioValues
+					.map((r) => ({
+						...r,
+						portfolio_value: toDisplayAmount(r.portfolio_value, contracts.euro_e_metadata.decimals || 6, 0),
+					}))
+					.reverse(),
 			);
-			setPortfolioValues(response.reverse());
-		});
-		InvestmentPortfolioService.getPortfolioValue(formatDate(sixMonthsAgo)).then((val) =>
-			setValSixMonthsAgo(toDisplayAmount(val, contracts?.euro_e_metadata.decimals || 6, 0)),
-		);
-		InvestmentPortfolioService.getPortfolioValue(formatDate(lastMonth)).then((val) =>
-			setValLastMonth(toDisplayAmount(val, contracts?.euro_e_metadata.decimals || 6, 0)),
-		);
-		InvestmentPortfolioService.getPortfolioValue(formatDate(currentMonth)).then((val) =>
-			setValCurrentMonth(toDisplayAmount(val, contracts?.euro_e_metadata.decimals || 6, 0)),
-		);
-		InvestmentPortfolioService.getPortfolioAggregate();
-		InvestmentPortfolioService.getPortfolioAggregate().then(setPortfolioAgg);
+			setValSixMonthsAgo(toDisplayAmount(valSixMonthsAgo, contracts.euro_e_metadata.decimals || 6, 0));
+			setValLastMonth(toDisplayAmount(valLastMonth, contracts.euro_e_metadata.decimals || 6, 0));
+			setValCurrentMonth(toDisplayAmount(valCurrentMonth, contracts.euro_e_metadata.decimals || 6, 0));
+			setPortfolioAgg(portfolioAgg);
+		};
+
+		fetchPortfolioValues();
 	}, [user, contracts]);
 
 	return (
