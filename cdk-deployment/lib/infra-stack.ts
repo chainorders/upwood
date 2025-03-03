@@ -1,5 +1,14 @@
-import { Construct } from "constructs";
-import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
+import {
+	Duration,
+	RemovalPolicy,
+	SecretValue,
+	Stack,
+	Tags,
+} from "aws-cdk-lib";
+import {
+	IVpcLink,
+	VpcLink,
+} from "aws-cdk-lib/aws-apigatewayv2";
 import {
 	InstanceClass,
 	InstanceSize,
@@ -11,21 +20,32 @@ import {
 	SubnetType,
 	Vpc,
 } from "aws-cdk-lib/aws-ec2";
-import { Duration, RemovalPolicy, SecretValue, Stack, Tags } from "aws-cdk-lib";
 import {
-	PostgresEngineVersion,
+	Cluster,
+	Ec2Service,
+} from "aws-cdk-lib/aws-ecs";
+import {
+	LogGroup,
+	RetentionDays,
+} from "aws-cdk-lib/aws-logs";
+import {
 	DatabaseInstance,
 	DatabaseInstanceEngine,
 	IDatabaseInstance,
+	PostgresEngineVersion,
 } from "aws-cdk-lib/aws-rds";
-import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { Cluster, Ec2Service } from "aws-cdk-lib/aws-ecs";
-import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
-import { IVpcLink, VpcLink } from "aws-cdk-lib/aws-apigatewayv2";
 import {
 	IPrivateDnsNamespace,
 	PrivateDnsNamespace,
 } from "aws-cdk-lib/aws-servicediscovery";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
+import { Construct } from "constructs";
+
+import {
+	constructName,
+	OrganizationEnv,
+	StackProps as SP,
+} from "./shared";
 
 export interface StackProps extends SP {
 	dbStorageGiB: number;
@@ -113,6 +133,8 @@ export class InfraStack extends Stack {
 			}),
 			vpc: vpc,
 			// The database is kept in public subnet to allow tools like pgAdmin to connect to it
+			// This is not a deployment requirement but a convenience for developers
+			// Should be removed in production as this also incurrs additional cost for the public IP
 			vpcSubnets: { subnetType: SubnetType.PUBLIC },
 			instanceType: InstanceType.of(
 				props.dbInstanceClass,
