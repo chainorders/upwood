@@ -11,11 +11,7 @@ import {
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
-import {
-	constructName,
-	OrganizationEnv,
-	StackProps as SP,
-} from "./shared";
+import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 
 export interface StackProps extends SP {
 	domainName: string;

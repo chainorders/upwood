@@ -1,4 +1,6 @@
-use crate::schema::{forest_project_legal_contract_user_signatures, forest_project_legal_contracts};
+use crate::schema::{
+    forest_project_legal_contract_user_signatures, forest_project_legal_contracts,
+};
 
 diesel::table! {
     forest_project_funds_affiliate_reward_records (investment_record_id) {

@@ -75,9 +75,7 @@ impl ListenerBlock {
 
     /// Retrieves the last processed block from the database.
     #[instrument(skip_all)]
-    pub fn find_last(
-        conn: &mut DbConn,
-    ) -> Result<Option<ListenerBlock>, diesel::result::Error> {
+    pub fn find_last(conn: &mut DbConn) -> Result<Option<ListenerBlock>, diesel::result::Error> {
         let block = listener_blocks::table
             .order(listener_blocks::block_height.desc())
             .limit(1)

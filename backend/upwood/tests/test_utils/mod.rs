@@ -4,7 +4,7 @@ use aws_sdk_cognitoidentityprovider::types::UserType;
 use passwords::PasswordGenerator;
 use rust_decimal::Decimal;
 use shared::db_app::users::UserKYCModel;
-use upwood::api::user::{UserCreatePostReqAdmin};
+use upwood::api::user::UserCreatePostReqAdmin;
 use upwood::utils::aws::cognito::{
     account_address_attribute, email_attribute, email_verified_attribute, first_name_attribute,
     last_name_attribute, nationality_attribute, UserPool,

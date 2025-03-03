@@ -580,11 +580,7 @@ pub struct LegalContractUserModel {
 }
 
 impl LegalContractUserModel {
-    pub fn find(
-        conn: &mut DbConn,
-        project_id: Uuid,
-        user_id: &str,
-    ) -> DbResult<Option<Self>> {
+    pub fn find(conn: &mut DbConn, project_id: Uuid, user_id: &str) -> DbResult<Option<Self>> {
         use crate::schema::forest_project_legal_contract_user_signatures::dsl as signatures_dsl;
         use crate::schema::forest_project_legal_contracts::dsl as contracts_dsl;
         use crate::schema_manual::forest_project_user_balance_agg::dsl as balance_dsl;

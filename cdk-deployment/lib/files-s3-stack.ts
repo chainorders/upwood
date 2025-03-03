@@ -10,11 +10,7 @@ import {
 } from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 
-import {
-	constructName,
-	OrganizationEnv,
-	StackProps as SP,
-} from "./shared";
+import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 
 export interface StackProps extends SP {
 	domainName: string;
@@ -41,10 +37,14 @@ export class FilesS3Stack extends Stack {
 			}),
 			cors: [
 				{
-					allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.HEAD, s3.HttpMethods.PUT],
+					allowedMethods: [
+						s3.HttpMethods.GET,
+						s3.HttpMethods.HEAD,
+						s3.HttpMethods.PUT,
+					],
 					allowedOrigins: ["*"],
 					allowedHeaders: ["Content-Type"],
-				}
+				},
 			],
 			websiteIndexDocument: "index.html",
 		});

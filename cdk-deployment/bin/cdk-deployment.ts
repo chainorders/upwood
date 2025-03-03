@@ -2,10 +2,7 @@
 import "source-map-support/register";
 
 import * as cdk from "aws-cdk-lib";
-import {
-	InstanceClass,
-	InstanceSize,
-} from "aws-cdk-lib/aws-ec2";
+import { InstanceClass, InstanceSize } from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import { PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
 import * as dotenv from "dotenv";
