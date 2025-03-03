@@ -3210,6 +3210,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"blueimp-load-image@npm:^5.14.0":
+  version: 5.16.0
+  resolution: "blueimp-load-image@npm:5.16.0"
+  checksum: 10c0/17d37d811ec6778f494fbaf62414ae7b470412106c17a6ebc9805d95c3cf4f88c31f5609cd51b007076e247b99088c6ed157eee9f5e247e03482cbc2951e1611
+  languageName: node
+  linkType: hard
+
 "brace-expansion@npm:^1.1.7":
   version: 1.1.11
   resolution: "brace-expansion@npm:1.1.11"
@@ -4403,6 +4410,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"exif-js@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "exif-js@npm:2.3.0"
+  checksum: 10c0/6bcb081cfd141147e9e13c412fa52fa8a6b915d441bdaefb8c9882058f0e12843b8249ecf6f620709ce43ef069ebdd45181176560160a066f03e2cae384a10f7
+  languageName: node
+  linkType: hard
+
 "exit@npm:^0.1.2":
   version: 0.1.2
   resolution: "exit@npm:0.1.2"
@@ -4651,6 +4665,7 @@ __metadata:
     non.geist: "npm:^1.0.4"
     prettier: "npm:3.2.5"
     react: "npm:^18.3.1"
+    react-avatar-edit: "npm:^1.2.0"
     react-chartjs-2: "npm:^5.3.0"
     react-dom: "npm:^18.3.1"
     react-hook-form: "npm:^7.54.2"
@@ -6056,6 +6071,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"konva@npm:^8.3.5":
+  version: 8.4.3
+  resolution: "konva@npm:8.4.3"
+  checksum: 10c0/fb2353daa06c8af0baf4d8314e12d8fcdc481d3a99225403872d7aab5717d598767d3a67a61cd635065c79d7bcd6841d54aa84f0412c49ff904ae478aed49bd2
+  languageName: node
+  linkType: hard
+
 "leven@npm:^3.1.0":
   version: 3.1.0
   resolution: "leven@npm:3.1.0"
@@ -7001,6 +7023,19 @@ __metadata:
   version: 1.2.3
   resolution: "queue-microtask@npm:1.2.3"
   checksum: 10c0/900a93d3cdae3acd7d16f642c29a642aea32c2026446151f0778c62ac089d4b8e6c986811076e1ae180a694cedf077d453a11b58ff0a865629a4f82ab558e102
+  languageName: node
+  linkType: hard
+
+"react-avatar-edit@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "react-avatar-edit@npm:1.2.0"
+  dependencies:
+    blueimp-load-image: "npm:^5.14.0"
+    exif-js: "npm:^2.3.0"
+    konva: "npm:^8.3.5"
+  peerDependencies:
+    react: ^16.x || ^17 || ^18
+  checksum: 10c0/918aca6670b937ba5ca145eb372025ea0b8cee3e530eda0fbb37d28f040aa1eb4d0750cbf368cbfe2652722b48fe009b812b80f7f1f5a86e29f479ffc9841955
   languageName: node
   linkType: hard
 

@@ -47,8 +47,8 @@ const GuideList = () => {
 							<TableCell>ID</TableCell>
 							<TableCell>Title</TableCell>
 							<TableCell>Label</TableCell>
-                            <TableCell>Created At</TableCell>
-                            <TableCell>Url</TableCell>
+							<TableCell>Created At</TableCell>
+							<TableCell>Url</TableCell>
 							<TableCell>Actions</TableCell>
 						</TableRow>
 					</TableHead>
@@ -58,8 +58,8 @@ const GuideList = () => {
 								<TableCell>{guide.id}</TableCell>
 								<TableCell>{guide.title}</TableCell>
 								<TableCell>{guide.label}</TableCell>
-                                <TableCell>{guide.created_at}</TableCell>
-                                <TableCell>{guide.guide_url}</TableCell>
+								<TableCell>{guide.created_at}</TableCell>
+								<TableCell>{guide.guide_url}</TableCell>
 								<TableCell>
 									<Button color="secondary" onClick={() => handleDeleteGuide(guide.id)}>
 										Delete

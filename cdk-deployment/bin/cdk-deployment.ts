@@ -2,7 +2,10 @@
 import "source-map-support/register";
 
 import * as cdk from "aws-cdk-lib";
-import { InstanceClass, InstanceSize } from "aws-cdk-lib/aws-ec2";
+import {
+	InstanceClass,
+	InstanceSize,
+} from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import { PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
 import * as dotenv from "dotenv";
@@ -115,6 +118,8 @@ const filesStack = new FilesS3Stack(app, "FilesS3Stack", {
 		organization: ORGANIZATION,
 		environment: ORGANIZATION_ENV,
 	},
+	domainName: process.env.FILES_DOMAIN_NAME!,
+	certificateArn: process.env.FILES_FRONT_CERTIFICATE_ARN!,
 });
 
 new BackendApiStack(app, "BackendApiStack", {

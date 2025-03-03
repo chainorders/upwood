@@ -98,4 +98,15 @@ export class FilesService {
 			},
 		});
 	}
+
+	/**
+	 * @returns UploadUrlResponse
+	 * @throws ApiError
+	 */
+	public static postFilesS3ProfilePictureUploadUrl(): CancelablePromise<UploadUrlResponse> {
+		return __request(OpenAPI, {
+			method: "POST",
+			url: "/files/s3/profile_picture_upload_url",
+		});
+	}
 }

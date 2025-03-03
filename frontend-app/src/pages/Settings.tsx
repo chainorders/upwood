@@ -117,19 +117,16 @@ export default function Settings({ user }: { user: User }) {
 
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [, setClaimPopup] = useState(false);
-	const [edit_profile_popup, setEditProfilePopup] = useState(false);
-	const [create_company_popup, setCreateCompanyPopup] = useState(false);
-	const [edit_company_popup, setEditCompanyPopup] = useState(false);
+	const [editProfilePopup, setEditProfilePopup] = useState(false);
+	const [createCompanyPopup, setCreateCompanyPopup] = useState(false);
+	const [editCompanyPopup, setEditCompanyPopup] = useState(false);
 
 	useEffect(() => {
-		UserService.getSystemConfig().then(setContracts);
-	}, [user]);
-	useEffect(() => {
 		WalletService.getUserTransactionsList(trasactionsPage).then(setTransactions);
-	}, [user, trasactionsPage, refreshCounter]);
+	}, [trasactionsPage, refreshCounter]);
 	useEffect(() => {
 		WalletService.getUserAffiliateRewardsList(affiliateRewardsPage).then(setAffiliateRewards);
-	}, [user, affiliateRewardsPage, refreshCounter]);
+	}, [affiliateRewardsPage, refreshCounter]);
 	useEffect(() => {
 		if (!affiliateRewards || !affiliateRewards.data) {
 			setClaimableReward(undefined);
@@ -140,8 +137,9 @@ export default function Settings({ user }: { user: User }) {
 		setClaimableReward(claimableReward);
 	}, [affiliateRewards]);
 	useEffect(() => {
+		UserService.getSystemConfig().then(setContracts);
 		UserCommunicationService.getGuidesList(0, 3).then(setGuides);
-	}, [user]);
+	}, [user, refreshCounter]);
 
 	const { download, isInProgress } = useDownloader();
 	const onAffiliateEarningsDownload = async () => {
@@ -403,9 +401,15 @@ export default function Settings({ user }: { user: User }) {
 				</div>
 				<div className="space-30"></div>
 			</div>
-			{edit_profile_popup ? <EditProfile user={user} close={() => setEditProfilePopup(false)} /> : null}
-			{create_company_popup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}
-			{edit_company_popup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}
+			{editProfilePopup ? (
+				<EditProfile
+					user={user}
+					close={() => setEditProfilePopup(false)}
+					filesBaseUrl={import.meta.env.VITE_FILES_BASE_URL}
+				/>
+			) : null}
+			{createCompanyPopup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}
+			{editCompanyPopup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}
 		</>
 	);
 }

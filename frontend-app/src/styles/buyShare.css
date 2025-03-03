@@ -17,10 +17,13 @@
 	padding: 20px;
 
 	/* Centering */
-	position: fixed;
+	position: absolute;
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
+	scroll-behavior: smooth;
+	overflow: auto;
+	max-height: 95%;
 }
 
 .popup-overlay .popup .close {

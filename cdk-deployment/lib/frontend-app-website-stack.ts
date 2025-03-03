@@ -1,18 +1,28 @@
-import * as cdk from "aws-cdk-lib";
-import { Construct } from "constructs";
-import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
+import {
+	aws_certificatemanager as acm,
+	aws_cloudfront as cloudfront,
+	aws_cloudfront_origins as origins,
+	aws_s3_deployment as s3deploy,
+	CfnOutput,
+	RemovalPolicy,
+	Stack,
+	Tags,
+} from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import { aws_s3_deployment as s3deploy } from "aws-cdk-lib";
-import { aws_certificatemanager as acm } from "aws-cdk-lib";
-import { aws_cloudfront as cloudfront } from "aws-cdk-lib";
-import { aws_cloudfront_origins as origins } from "aws-cdk-lib";
+import { Construct } from "constructs";
+
+import {
+	constructName,
+	OrganizationEnv,
+	StackProps as SP,
+} from "./shared";
 
 export interface StackProps extends SP {
 	domainName: string;
 	certificateArn: string;
 }
 
-export class FrontendAppWebsiteStack extends cdk.Stack {
+export class FrontendAppWebsiteStack extends Stack {
 	constructor(scope: Construct, id: string, props: StackProps) {
 		super(scope, id, props);
 
@@ -20,8 +30,8 @@ export class FrontendAppWebsiteStack extends cdk.Stack {
 			bucketName: props.domainName,
 			removalPolicy:
 				props.organization_env === OrganizationEnv.PROD
-					? cdk.RemovalPolicy.RETAIN
-					: cdk.RemovalPolicy.DESTROY,
+					? RemovalPolicy.RETAIN
+					: RemovalPolicy.DESTROY,
 			autoDeleteObjects: true,
 			publicReadAccess: true,
 			blockPublicAccess: new s3.BlockPublicAccess({
@@ -72,8 +82,10 @@ export class FrontendAppWebsiteStack extends cdk.Stack {
 				certificate: certificate,
 			},
 		);
-		new cdk.CfnOutput(this, constructName(props, "AppWebsiteUrl"), {
+		new CfnOutput(this, constructName(props, "AppWebsiteUrl"), {
 			value: distribution.distributionDomainName,
 		});
+		Tags.of(bucket).add("organization", props.organization);
+		Tags.of(bucket).add("environment", props.organization_env);
 	}
 }

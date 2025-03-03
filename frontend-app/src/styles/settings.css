@@ -149,6 +149,8 @@
 .edo .saverow {
 	margin-top: 8px;
 	cursor: pointer;
+	border: 0;
+	background: none;
 }
 .edo .letter {
 	width: 88px;
@@ -170,7 +172,7 @@
 .edo .links {
 	text-align: center;
 }
-.edo .links span {
+.edo .links .link-button {
 	text-transform: uppercase;
 	text-align: center;
 	color: rgba(15, 180, 4, 1);
@@ -178,8 +180,16 @@
 	padding: 0 10px;
 	font-weight: 500;
 }
-.edo .links span.danger {
+.edo .links .link-button[disabled] {
+	color: rgba(15, 180, 4, 0.5);
+	cursor: not-allowed;
+}
+.edo .links .link-button.danger {
 	color: red;
+}
+.edo .links .link-button.danger[disabled] {
+	color: rgb(255, 139, 139);
+	cursor: not-allowed;
 }
 .edo .inputotp {
 	border: 1px solid #ccc; /* Light gray border */

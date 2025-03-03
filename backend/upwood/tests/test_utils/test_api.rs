@@ -215,7 +215,7 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn admin_delete_file_s3(&mut self, id_token: String, file_name: Uuid) {
+    pub async fn admin_delete_file_s3(&mut self, id_token: String, file_name: String) {
         let res = self
             .client
             .delete(format!("/admin/files/s3/{}", file_name))
@@ -255,7 +255,7 @@ impl ApiTestClient {
         }
     }
 
-    pub async fn admin_delete_file_ipfs(&mut self, id_token: String, file_name: Uuid) {
+    pub async fn admin_delete_file_ipfs(&mut self, id_token: String, file_name: String) {
         let res = self
             .client
             .delete(format!("/admin/files/ipfs/{}", file_name))

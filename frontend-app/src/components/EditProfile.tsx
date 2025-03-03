@@ -6,13 +6,17 @@ import AccountCross from "../assets/account-not-protected.svg";
 import AccountProtected from "../assets/account-protected.svg";
 import editRow from "../assets/editRow.svg";
 import saveRow from "../assets/saveRow.svg";
-import Avatar from "../assets/Avatar.svg";
+import avatarDefaultImg from "../assets/Avatar.svg";
 import OtpInput from "./OtpInput";
 import { User } from "../lib/user";
+import Avatar from "react-avatar-edit";
+import { FilesService } from "../apiClient";
+import { Buffer } from "buffer/";
 
 interface PopupProps {
 	user: User;
 	close?: () => void;
+	filesBaseUrl: string;
 }
 
 interface FullNameFormInputs {
@@ -33,7 +37,127 @@ interface OtpFormInputs {
 	otp: string;
 }
 
-export default function EditProfile({ user, close = () => {} }: PopupProps) {
+function ProfilePicture({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) {
+	const [state, setState] = useState<"default" | "upload" | "uploading" | "deleting">("default");
+	const [imageData, setImageData] = useState<string>();
+	const [error, setError] = useState<string>();
+
+	const onProfilePictureUpdated = (fileUrl: string) => {
+		user.picture = fileUrl;
+		setState("default");
+	};
+
+	const changeProfilePicture = (imageData: string) => {
+		const buf = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ""), "base64");
+		setState("uploading");
+		FilesService.postFilesS3ProfilePictureUploadUrl()
+			.then((res) =>
+				fetch(res.presigned_url, { method: "PUT", body: buf, headers: { "Content-Type": "image/png" } }).then(
+					() => `${fileBaseUrl}/${res.file_name}`,
+				),
+			)
+			.then((fileUrl) =>
+				user.cognitoUser.updateAttributes([{ Name: "picture", Value: fileUrl }], () => onProfilePictureUpdated(fileUrl)),
+			)
+			.catch((err) => {
+				console.log(err);
+				alert("Error uploading image");
+				setError("Error uploading image");
+				setState("default");
+			});
+	};
+
+	const removeProfilePicture = () => {
+		setState("deleting");
+		user.cognitoUser.updateAttributes([{ Name: "picture", Value: "" }], () => {
+			user.picture = "";
+			setState("default");
+		});
+	};
+
+	return (
+		<>
+			<div style={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
+				{
+					{
+						["default"]: <img src={user.picture || avatarDefaultImg} alt="" className="Avatar" />,
+						["upload"]: (
+							<Avatar
+								width={150}
+								height={150}
+								imageWidth={88}
+								onCrop={setImageData}
+								cropRadius={44}
+								label="upload"
+								onClose={() => setImageData(undefined)}
+								exportMimeType="image/png"
+							/>
+						),
+						["uploading"]: <img src={imageData} alt="" className="Avatar uploading" />,
+						["deleting"]: <img src={user.picture} alt="" className="Avatar deleting" />,
+					}[state]
+				}
+			</div>
+			<div className="space-15"></div>
+			<div className="links">
+				{
+					{
+						["default"]: (
+							<>
+								<button className="reset-button link-button" onClick={() => setState("upload")}>
+									CHANGE
+								</button>
+								<button
+									className="reset-button link-button danger"
+									onClick={() => removeProfilePicture()}
+									disabled={!user.picture}
+								>
+									DELETE
+								</button>
+							</>
+						),
+						["upload"]: (
+							<>
+								<button
+									className="reset-button link-button"
+									disabled={!imageData}
+									onClick={() => changeProfilePicture(imageData!)}
+								>
+									SET
+								</button>
+								<button className="reset-button link-button danger" onClick={() => setState("default")}>
+									CANCEL
+								</button>
+							</>
+						),
+						["uploading"]: (
+							<>
+								<button className="reset-button link-button" disabled>
+									UPLOADING
+								</button>
+								<button className="reset-button link-button danger" disabled>
+									CANCEL
+								</button>
+							</>
+						),
+						["deleting"]: (
+							<>
+								<button className="reset-button link-button" disabled>
+									CHANGE
+								</button>
+								<button className="reset-button link-button danger" disabled>
+									DELETING
+								</button>
+							</>
+						),
+					}[state]
+				}
+			</div>
+		</>
+	);
+}
+
+export default function EditProfile({ user, close = () => {}, filesBaseUrl }: PopupProps) {
 	const {
 		register: registerFullName,
 		handleSubmit: handleSubmitFullName,
@@ -101,6 +225,11 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 	}, [handleKeyDown]);
 
 	const onSubmitFullName: SubmitHandler<FullNameFormInputs> = ({ fullName }) => {
+		if (fullName === user.fullName) {
+			setFullNameEdit(false);
+			return;
+		}
+
 		const nameParts = fullName.split(" ");
 		const givenName = nameParts[0];
 		const familyName = nameParts[nameParts.length - 1];
@@ -125,6 +254,11 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 	};
 
 	const onSubmitEmail: SubmitHandler<EmailFormInputs> = ({ email }) => {
+		if (email === user.email) {
+			setEmailEdit(false);
+			return;
+		}
+
 		user.cognitoUser.updateAttributes([{ Name: "email", Value: email }], (err) => {
 			if (err) {
 				console.log(err);
@@ -188,7 +322,14 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 
 	return (
 		<div className="popup-overlay" onClick={handleOverlayClick}>
-			<div className="popup" onClick={(e) => e.stopPropagation()}>
+			<div
+				className="popup"
+				onClick={(e) => {
+					e.stopPropagation();
+					setFullNameEdit(false);
+					setEmailEdit(false);
+				}}
+			>
 				<>
 					<img src={closeIcon} alt="Close icon" width={32} height={32} className="close" onClick={close} />
 					<div className="heading">Edit profile</div>
@@ -197,14 +338,7 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 							<div className="container-in">
 								<div className="space-20"></div>
 								<div className="col-12">
-									<div className="text-align-center">
-										<img src={Avatar} alt="" className="Avatar" />
-									</div>
-									<div className="space-15"></div>
-									<div className="links">
-										<span>CHANGE</span>
-										<span className="danger">DELETE</span>
-									</div>
+									<ProfilePicture user={user} fileBaseUrl={filesBaseUrl} />
 								</div>
 								<div className="space-20"></div>
 								<div className="col-12">
@@ -223,7 +357,13 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 												className="boxt withedit fl"
 												{...registerFullName("fullName", { required: "Full name is required" })}
 											/>
-											<button type="submit" className="saverow fr">
+											<button
+												type="submit"
+												className="reset-button saverow fr"
+												onClick={(e) => {
+													e.stopPropagation();
+												}}
+											>
 												<img src={saveRow} alt="" />
 											</button>
 											<div className="clr"></div>
@@ -233,7 +373,13 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 										<div className="boxl lg">
 											{watchFullName("fullName")}{" "}
 											<span className="fr">
-												<img src={editRow} onClick={() => setFullNameEdit(true)} />
+												<img
+													src={editRow}
+													onClick={(e) => {
+														e.stopPropagation();
+														setFullNameEdit(true);
+													}}
+												/>
 											</span>
 										</div>
 									)}
@@ -259,7 +405,7 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 													},
 												})}
 											/>
-											<button type="submit" className="saverow fr">
+											<button type="submit" className="reset-button saverow fr" onClick={(e) => e.stopPropagation()}>
 												<img src={saveRow} alt="" />
 											</button>
 											<div className="clr"></div>
@@ -269,7 +415,13 @@ export default function EditProfile({ user, close = () => {} }: PopupProps) {
 										<div className="boxl lg">
 											{watchEmailForm("email")}{" "}
 											<span className="fr">
-												<img src={editRow} onClick={() => setEmailEdit(true)} />
+												<img
+													src={editRow}
+													onClick={(e) => {
+														e.stopPropagation();
+														setEmailEdit(true);
+													}}
+												/>
 											</span>
 										</div>
 									)}

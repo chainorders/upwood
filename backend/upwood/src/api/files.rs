@@ -39,7 +39,7 @@ impl Api {
             .await
             .map_err(|e| Error::InternalServer(PlainText(format!("Server Error: {}", e))))?;
         Ok(Json(UploadUrlResponse {
-            file_name,
+            file_name: file_name.to_string(),
             presigned_url,
         }))
     }
@@ -64,11 +64,11 @@ impl Api {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(files_bucket): Data<&s3::FilesBucket>,
-        Path(file_name): Path<Uuid>,
+        Path(file_name): Path<String>,
     ) -> NoResResult {
         ensure_is_admin(&claims)?;
         files_bucket
-            .delete(&file_name.to_string())
+            .delete(&file_name)
             .await
             .map_err(|e| Error::InternalServer(PlainText(format!("Server Error: {}", e))))?;
 
@@ -102,7 +102,7 @@ impl Api {
             .await
             .map_err(|e| Error::InternalServer(PlainText(format!("Server Error: {}", e))))?;
         Ok(Json(UploadUrlResponse {
-            file_name,
+            file_name: file_name.to_string(),
             presigned_url,
         }))
     }
@@ -127,15 +127,40 @@ impl Api {
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(files_bucket): Data<&ipfs::filebase::FilesBucket>,
-        Path(file_name): Path<Uuid>,
+        Path(file_name): Path<String>,
     ) -> NoResResult {
         ensure_is_admin(&claims)?;
         files_bucket
-            .delete(&file_name.to_string())
+            .delete(&file_name)
             .await
             .map_err(|e| Error::InternalServer(PlainText(format!("Server Error: {}", e))))?;
 
         Ok(())
+    }
+
+    #[oai(
+        path = "/files/s3/profile_picture_upload_url",
+        method = "post",
+        tag = "ApiTags::Files"
+    )]
+    pub async fn s3_profile_picture_upload_url(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(files_bucket): Data<&s3::FilesBucket>,
+    ) -> JsonResult<UploadUrlResponse> {
+        let file_name = format!(
+            "user/{}/profile_picture_{}",
+            claims.sub,
+            chrono::Utc::now().timestamp()
+        );
+        let presigned_url = files_bucket
+            .create_presigned_url(&file_name.to_string())
+            .await
+            .map_err(|e| Error::InternalServer(PlainText(format!("Server Error: {}", e))))?;
+        Ok(Json(UploadUrlResponse {
+            file_name,
+            presigned_url,
+        }))
     }
 }
 
@@ -144,5 +169,5 @@ impl Api {
 #[derive(Object, Deserialize)]
 pub struct UploadUrlResponse {
     pub presigned_url: String,
-    pub file_name:     Uuid,
+    pub file_name:     String,
 }
