@@ -1,4 +1,5 @@
 FROM rust:latest AS builder
+RUN rustup toolchain install nightly-x86_64-unknown-linux-gnu
 WORKDIR /app
 COPY . .
 WORKDIR /app/backend

@@ -213,7 +213,7 @@ pub mod account {
     #[derive(thiserror::Error, Debug)]
     pub enum SignatureError {
         #[error("Network error: {0}")]
-        QueryError(#[from] QueryError),
+        QueryError(#[from] Box<QueryError>),
         #[error(
             "Indices do not exist on chain for credential index `{credential_index}` and key \
              index `{key_index}`"
@@ -270,7 +270,8 @@ pub mod account {
 
         let signer_account_info = client
             .get_account_info(&AccountIdentifier::Address(signer), bi)
-            .await?;
+            .await
+            .map_err(|e| SignatureError::from(Box::new(e)))?;
 
         let signer_account_credentials = signer_account_info.response.account_credentials;
         let credential_signatures_threshold = signer_account_info.response.account_threshold;

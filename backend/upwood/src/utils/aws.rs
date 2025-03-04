@@ -369,7 +369,7 @@ pub mod cognito {
         pub fn is_admin(&self) -> bool {
             self.cognito_groups
                 .as_ref()
-                .map_or(false, |groups| groups.iter().any(|group| group == "admin"))
+                .is_some_and(|groups| groups.iter().any(|group| group == "admin"))
         }
 
         pub fn email_verified(&self) -> bool { self.email_verified.unwrap_or(false) }

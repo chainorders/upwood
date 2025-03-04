@@ -59,7 +59,7 @@ pub enum Error {
     #[error("Invalid node URI: {0}")]
     InvalidNodeUri(#[from] concordium_rust_sdk::endpoints::Error),
     #[error("Listener Error: {0}")]
-    ListenerError(#[from] ListenerError),
+    ListenerError(#[from] Box<ListenerError>),
     #[error("Listener stopped")]
     ListenerStopped,
     #[error("Tracing subscriber error: {0}")]

@@ -3,7 +3,7 @@ ARG VARIANT="bookworm"
 ARG CARGO_HOME="/usr/local/cargo"
 ARG RUSTUP_HOME="/usr/local/rustup"
 
-FROM mcr.microsoft.com/vscode/devcontainers/rust:1-${VARIANT}
+FROM rust:1.85-${VARIANT}
 ENV CARGO_HOME=${CARGO_HOME}
 ENV RUSTUP_HOME=${RUSTUP_HOME}
 
@@ -11,11 +11,11 @@ ENV RUSTUP_HOME=${RUSTUP_HOME}
 # RUSTFLAGS="-C link-arg=-fuse-ld=lld" or with Cargo's configuration file (i.e see .cargo/config.toml).
 RUN apt-get update \
    && export DEBIAN_FRONTEND=noninteractive \
-   && apt-get -y install clang lld \
+   && apt-get -y install clang lld less \
    && apt-get autoremove -y && apt-get clean -y
-RUN apt install build-essential libpq-dev
-RUN rustup toolchain install nightly --allow-downgrade -c rustfmt -c clippy \
-   && rustup toolchain install stable --allow-downgrade -c rust-analyzer -c clippy \
+RUN apt install build-essential -y libpq-dev -y
+RUN rustup toolchain install nightly --allow-downgrade -c rust-analyzer -c rustfmt -c clippy \
+   && rustup toolchain install stable --allow-downgrade -c rust-analyzer -c rustfmt -c clippy \
    && rustup update
 RUN cargo install --locked cargo-concordium diesel_cli
 
