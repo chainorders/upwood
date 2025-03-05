@@ -13,7 +13,7 @@ import {
 	Typography,
 } from "@mui/material";
 import { formatDate } from "../../lib/conversions";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function ProjectCreate() {
 	const {
@@ -21,16 +21,18 @@ export default function ProjectCreate() {
 		handleSubmit,
 		formState: { errors },
 	} = useForm<ForestProject>();
+	const navigate = useNavigate();
+
 	const onSubmit = (data: ForestProject) => {
 		const now = new Date();
 		data.created_at = formatDate(now);
 		data.updated_at = formatDate(now);
 		data.id = uuidv4();
-		console.log(data);
 
 		ForestProjectService.postAdminForestProjects(data)
 			.then(() => {
 				alert("Project created successfully");
+				navigate("/admin/projects");
 			})
 			.catch(() => {
 				alert("Failed to create project");

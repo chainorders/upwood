@@ -130,6 +130,21 @@ pub struct UserKYCModel {
 }
 
 impl UserKYCModel {
+    pub fn new(user: User, kyc_verified: bool) -> Self {
+        UserKYCModel {
+            cognito_user_id: user.cognito_user_id,
+            email: user.email,
+            account_address: user.account_address,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            affiliate_account_address: user.affiliate_account_address,
+            affiliate_commission: user.affiliate_commission,
+            desired_investment_amount: user.desired_investment_amount,
+            nationality: user.nationality,
+            kyc_verified,
+        }
+    }
+
     pub fn account_address(&self) -> AccountAddress {
         self.account_address
             .parse()
@@ -151,18 +166,7 @@ impl UserKYCModel {
             .filter(identity_registry_address.eq(identity_registry_contract_index))
             .first(conn)
             .optional()?
-            .map(|(user, identity)| UserKYCModel {
-                cognito_user_id:           user.cognito_user_id,
-                email:                     user.email,
-                account_address:           user.account_address,
-                first_name:                user.first_name,
-                last_name:                 user.last_name,
-                affiliate_account_address: user.affiliate_account_address,
-                affiliate_commission:      user.affiliate_commission,
-                desired_investment_amount: user.desired_investment_amount,
-                nationality:               user.nationality,
-                kyc_verified:              identity.is_some(),
-            });
+            .map(|(user, identity)| UserKYCModel::new(user, identity.is_some()));
         Ok(res)
     }
 
@@ -181,18 +185,7 @@ impl UserKYCModel {
             .filter(identity_registry_address.eq(identity_registry_contract_index))
             .first(conn)
             .optional()?
-            .map(|(user, identity)| UserKYCModel {
-                cognito_user_id:           user.cognito_user_id,
-                email:                     user.email,
-                account_address:           user.account_address,
-                first_name:                user.first_name,
-                last_name:                 user.last_name,
-                affiliate_account_address: user.affiliate_account_address,
-                affiliate_commission:      user.affiliate_commission,
-                desired_investment_amount: user.desired_investment_amount,
-                nationality:               user.nationality,
-                kyc_verified:              identity.is_some(),
-            });
+            .map(|(user, identity)| UserKYCModel::new(user, identity.is_some()));
         Ok(res)
     }
 
@@ -219,18 +212,7 @@ impl UserKYCModel {
             .offset(page * page_size)
             .get_results(conn)?
             .into_iter()
-            .map(|(user, identity)| UserKYCModel {
-                cognito_user_id:           user.cognito_user_id,
-                email:                     user.email,
-                account_address:           user.account_address,
-                first_name:                user.first_name,
-                last_name:                 user.last_name,
-                affiliate_account_address: user.affiliate_account_address,
-                affiliate_commission:      user.affiliate_commission,
-                desired_investment_amount: user.desired_investment_amount,
-                nationality:               user.nationality,
-                kyc_verified:              identity.is_some(),
-            });
+            .map(|(user, identity)| UserKYCModel::new(user, identity.is_some()));
 
         let count: i64 = query.count().get_result(conn)?;
         let page_count = (count as f64 / page_size as f64).ceil() as i64;

@@ -319,18 +319,7 @@ impl UserApi {
             &user.account_address,
         )?;
 
-        Ok(Json(UserKYCModel {
-            account_address: user.account_address,
-            cognito_user_id: user.cognito_user_id,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            nationality: user.nationality,
-            affiliate_account_address: user.affiliate_account_address,
-            affiliate_commission: user.affiliate_commission,
-            desired_investment_amount: user.desired_investment_amount,
-            kyc_verified,
-        }))
+        Ok(Json(UserKYCModel::new(user, kyc_verified)))
     }
 
     /// Retrieves the current user's information based on the provided bearer authorization token.

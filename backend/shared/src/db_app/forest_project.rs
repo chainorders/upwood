@@ -397,7 +397,8 @@ impl ForestProjectPrice {
                     .and(schema::forest_project_prices::price_at.eq(price_at)),
             ),
         )
-        .execute(conn)}
+        .execute(conn)
+    }
 }
 
 #[derive(
