@@ -23,6 +23,8 @@ interface StackProps extends SP {
 	postgresDb: string;
 	postgresUserParameter: ssm.IParameter;
 	postgresPasswordParameter: ssm.IParameter;
+	secrets: Record<string, ecs.Secret>;
+	environment: Record<string, string>;
 }
 
 export class BackendListenerStack extends Stack {
@@ -49,30 +51,8 @@ export class BackendListenerStack extends Stack {
 		);
 		listenerTaskDefinition.addContainer("backend-listener", {
 			image: ecs.ContainerImage.fromDockerImageAsset(containerImage),
-			secrets: {
-				POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(
-					props.postgresPasswordParameter,
-				),
-				POSTGRES_USER: ecs.Secret.fromSsmParameter(props.postgresUserParameter),
-			},
-			environment: {
-				RUST_LOG: "info",
-				AWS_REGION: String(props.env!.region!),
-				POSTGRES_DB: props.postgresDb,
-				POSTGRES_HOST: props.postgresHostname,
-				POSTGRES_PORT: String(props.postgresPort),
-				DB_POOL_MAX_SIZE: String(props.dbPoolMaxSize),
-				CONCORDIUM_NODE_URI: props.concordiumNodeUri,
-				NODE_RATE_LIMIT: String(100),
-				NODE_RATE_LIMIT_DURATION_MILLIS: String(1000),
-				NODE_REQUEST_TIMEOUT_MILLIS: "1000",
-				NODE_CONNECT_TIMEOUT_MILLIS: "2000",
-				ACCOUNT: props.listenerAccountAddress,
-				DEFAULT_BLOCK_HEIGHT: props.listenerDefaultBlockHeight.toString(),
-				LISTENER_RETRY_TIMES: "10",
-				LISTENER_RETRY_MIN_DELAY_MILLIS: "500",
-				LISTENER_RETRY_MAX_DELAY_MILLIS: "10000",
-			},
+			secrets: props.secrets,
+			environment: props.environment,
 			memoryReservationMiB: props.memoryReservationSoftMiB,
 			logging: new ecs.AwsLogDriver({
 				streamPrefix: "listener",

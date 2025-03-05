@@ -2,10 +2,7 @@
 import "source-map-support/register";
 
 import * as cdk from "aws-cdk-lib";
-import {
-	InstanceClass,
-	InstanceSize,
-} from "aws-cdk-lib/aws-ec2";
+import { InstanceClass, InstanceSize } from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import { PostgresEngineVersion } from "aws-cdk-lib/aws-rds";
 import * as dotenv from "dotenv";
@@ -20,8 +17,8 @@ import { FrontendAppWebsiteStack } from "../lib/frontend-app-website-stack";
 import { InfraStack } from "../lib/infra-stack";
 import { OrganizationEnv } from "../lib/shared";
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.secure.env') });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../.secure.env") });
 
 const ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT!;
 const REGION = process.env.CDK_DEFAULT_REGION!;
@@ -81,7 +78,10 @@ const dbStack = new DbStack(app, "DbStack", {
 	},
 	dbInstanceSize: process.env.DB_INSTANCE_SIZE! as InstanceSize,
 	dbInstanceClass: process.env.DB_INSTANCE_CLASS! as InstanceClass,
-	dbEngineVersion: PostgresEngineVersion.of(process.env.DB_POSTGRES_FULL_VER!, process.env.DB_POSTGRES_MAJOR_VER!),
+	dbEngineVersion: PostgresEngineVersion.of(
+		process.env.DB_POSTGRES_FULL_VER!,
+		process.env.DB_POSTGRES_MAJOR_VER!,
+	),
 	dbUsername: process.env.DB_USERNAME!,
 	dbPassword: cdk.SecretValue.unsafePlainText(process.env.DB_PASSWORD!),
 	dbBackupRetentionDays: parseInt(process.env.DB_BACKUP_RETENTION_DAYS!),
@@ -103,7 +103,9 @@ new BackendListenerStack(app, "BackendListenerStack", {
 	},
 	concordiumNodeUri: process.env.CONCORDIUM_NODE_URI!,
 	listenerAccountAddress: process.env.LISTENER_ACCOUNT_ADDRESS!,
-	listenerDefaultBlockHeight: parseInt(process.env.LISTENER_DEFAULT_BLOCK_HEIGHT!),
+	listenerDefaultBlockHeight: parseInt(
+		process.env.LISTENER_DEFAULT_BLOCK_HEIGHT!,
+	),
 	dbPoolMaxSize: parseInt(process.env.LISTENER_DB_POOL_MAX_SIZE!),
 	memoryReservationSoftMiB: parseInt(process.env.MEMORY_RESERVATION_SOFT_MIB!),
 	postgresPort: parseInt(process.env.DB_PORT!),
@@ -114,6 +116,31 @@ new BackendListenerStack(app, "BackendListenerStack", {
 	cluster: infraStack.cluster,
 	logGroup: infraStack.logGroup,
 	vpc: infraStack.vpc,
+	secrets: {
+		POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(dbStack.dbPasswordParam),
+		POSTGRES_USER: ecs.Secret.fromSsmParameter(dbStack.dbUsernameParam),
+	},
+	environment: {
+		RUST_LOG: process.env.RUST_LOG!,
+		AWS_REGION: process.env.CDK_DEFAULT_REGION!,
+		POSTGRES_DB: process.env.DB_NAME!,
+		POSTGRES_HOST: dbStack.dbInstance.dbInstanceEndpointAddress,
+		POSTGRES_PORT: process.env.DB_PORT!,
+		DB_POOL_MAX_SIZE: process.env.LISTENER_DB_POOL_MAX_SIZE!,
+		CONCORDIUM_NODE_URI: process.env.CONCORDIUM_NODE_URI!,
+		NODE_RATE_LIMIT: process.env.NODE_RATE_LIMIT!,
+		NODE_RATE_LIMIT_DURATION_MILLIS:
+			process.env.NODE_RATE_LIMIT_DURATION_MILLIS!,
+		NODE_REQUEST_TIMEOUT_MILLIS: process.env.NODE_REQUEST_TIMEOUT_MILLIS!,
+		NODE_CONNECT_TIMEOUT_MILLIS: process.env.NODE_CONNECT_TIMEOUT_MILLIS!,
+		ACCOUNT: process.env.LISTENER_ACCOUNT_ADDRESS!,
+		DEFAULT_BLOCK_HEIGHT: process.env.LISTENER_DEFAULT_BLOCK_HEIGHT!,
+		LISTENER_RETRY_TIMES: process.env.LISTENER_RETRY_TIMES!,
+		LISTENER_RETRY_MIN_DELAY_MILLIS:
+			process.env.LISTENER_RETRY_MIN_DELAY_MILLIS!,
+		LISTENER_RETRY_MAX_DELAY_MILLIS:
+			process.env.LISTENER_RETRY_MAX_DELAY_MILLIS!,
+	},
 });
 
 const filesStack = new FilesS3Stack(app, "FilesS3Stack", {
@@ -155,15 +182,14 @@ new BackendApiStack(app, "BackendApiStack", {
 	domainName: process.env.API_DOMAIN_NAME!,
 	certificateArn: process.env.API_DOMAIN_CERTIFICATE_ARN!,
 	secrets: {
-		POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(
-			dbStack.dbPasswordParam,
-		),
+		POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(dbStack.dbPasswordParam),
 		POSTGRES_USER: ecs.Secret.fromSsmParameter(dbStack.dbUsernameParam),
 	},
 	environment: {
 		//secrets
 		TREE_NFT_AGENT_WALLET_JSON_STR: process.env.TREE_NFT_AGENT_WALLET_JSON_STR!,
-		OFFCHAIN_REWARDS_AGENT_WALLET_JSON_STR: process.env.OFFCHAIN_REWARDS_AGENT_WALLET_JSON_STR!,
+		OFFCHAIN_REWARDS_AGENT_WALLET_JSON_STR:
+			process.env.OFFCHAIN_REWARDS_AGENT_WALLET_JSON_STR!,
 		FILEBASE_ACCESS_KEY_ID: process.env.FILEBASE_ACCESS_KEY_ID!,
 		FILEBASE_SECRET_ACCESS_KEY: process.env.FILEBASE_SECRET_ACCESS_KEY!,
 		//other
@@ -174,14 +200,16 @@ new BackendApiStack(app, "BackendApiStack", {
 		POSTGRES_DB: process.env.DB_NAME!,
 		POSTGRES_HOST: dbStack.dbInstance.dbInstanceEndpointAddress,
 		POSTGRES_PORT: process.env.DB_PORT!,
-		DB_POOL_MAX_SIZE: process.env.API_DB_POOL_MAX_SIZE || process.env.BACKEND_DB_POOL_MAX_SIZE!,
+		DB_POOL_MAX_SIZE:
+			process.env.API_DB_POOL_MAX_SIZE || process.env.BACKEND_DB_POOL_MAX_SIZE!,
 		AWS_USER_POOL_ID: cognitoStack.userPool.userPoolId,
 		AWS_USER_POOL_CLIENT_ID: cognitoStack.userPoolClient.userPoolClientId,
 		AWS_USER_POOL_REGION: cognitoStack.userPool.env.region,
 		CONCORDIUM_NETWORK: process.env.CONCORDIUM_NETWORK!,
 		CONCORDIUM_NODE_URI: process.env.CONCORDIUM_NODE_URI!,
 		EURO_E_CONTRACT_INDEX: process.env.EURO_E_CONTRACT_INDEX!,
-		IDENTITY_REGISTRY_CONTRACT_INDEX: process.env.IDENTITY_REGISTRY_CONTRACT_INDEX!,
+		IDENTITY_REGISTRY_CONTRACT_INDEX:
+			process.env.IDENTITY_REGISTRY_CONTRACT_INDEX!,
 		COMPLIANCE_CONTRACT_INDEX: process.env.COMPLIANCE_CONTRACT_INDEX!,
 		CARBON_CREDIT_CONTRACT_INDEX: process.env.CARBON_CREDIT_CONTRACT_INDEX!,
 		TREE_FT_CONTRACT_INDEX: process.env.TREE_FT_CONTRACT_INDEX!,
@@ -189,14 +217,16 @@ new BackendApiStack(app, "BackendApiStack", {
 		MINT_FUNDS_CONTRACT_INDEX: process.env.MINT_FUNDS_CONTRACT_INDEX!,
 		TRADING_CONTRACT_INDEX: process.env.TRADING_CONTRACT_INDEX!,
 		YIELDER_CONTRACT_INDEX: process.env.YIELDER_CONTRACT_INDEX!,
-		OFFCHAIN_REWARDS_CONTRACT_INDEX: process.env.OFFCHAIN_REWARDS_CONTRACT_INDEX!,
+		OFFCHAIN_REWARDS_CONTRACT_INDEX:
+			process.env.OFFCHAIN_REWARDS_CONTRACT_INDEX!,
 		AFFILIATE_COMMISSION: process.env.AFFILIATE_COMMISSION!,
 		FILES_BUCKET_NAME: filesStack.filesBucket.bucketName,
-		FILES_PRESIGNED_URL_EXPIRY_SECS: process.env.FILES_PRESIGNED_URL_EXPIRY_SECS!,
+		FILES_PRESIGNED_URL_EXPIRY_SECS:
+			process.env.FILES_PRESIGNED_URL_EXPIRY_SECS!,
 		FILEBASE_BUCKET_NAME: process.env.FILEBASE_BUCKET_NAME!,
 		FILEBASE_S3_ENDPOINT_URL: process.env.FILEBASE_S3_ENDPOINT_URL!,
 		ID_STATEMENT: process.env.ID_STATEMENT!,
-	}
+	},
 });
 
 new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
