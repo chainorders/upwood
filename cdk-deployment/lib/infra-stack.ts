@@ -1,12 +1,5 @@
-import {
-	RemovalPolicy,
-	Stack,
-	Tags,
-} from "aws-cdk-lib";
-import {
-	IVpcLink,
-	VpcLink,
-} from "aws-cdk-lib/aws-apigatewayv2";
+import { RemovalPolicy, Stack, Tags } from "aws-cdk-lib";
+import { IVpcLink, VpcLink } from "aws-cdk-lib/aws-apigatewayv2";
 import {
 	InstanceClass,
 	InstanceSize,
@@ -17,25 +10,15 @@ import {
 	SubnetType,
 	Vpc,
 } from "aws-cdk-lib/aws-ec2";
-import {
-	Cluster,
-	Ec2Service,
-} from "aws-cdk-lib/aws-ecs";
-import {
-	LogGroup,
-	RetentionDays,
-} from "aws-cdk-lib/aws-logs";
+import { Cluster, Ec2Service } from "aws-cdk-lib/aws-ecs";
+import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import {
 	IPrivateDnsNamespace,
 	PrivateDnsNamespace,
 } from "aws-cdk-lib/aws-servicediscovery";
 import { Construct } from "constructs";
 
-import {
-	constructName,
-	OrganizationEnv,
-	StackProps as SP,
-} from "./shared";
+import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 
 export interface StackProps extends SP {
 	logsRetentionDays: RetentionDays;

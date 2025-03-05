@@ -1,10 +1,4 @@
-import {
-	Duration,
-	RemovalPolicy,
-	SecretValue,
-	Stack,
-	Tags,
-} from "aws-cdk-lib";
+import { Duration, RemovalPolicy, SecretValue, Stack, Tags } from "aws-cdk-lib";
 import {
 	InstanceClass,
 	InstanceSize,
@@ -24,11 +18,7 @@ import {
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
 
-import {
-	constructName,
-	OrganizationEnv,
-	StackProps as SP,
-} from "./shared";
+import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 
 export interface StackProps extends SP {
 	dbStorageGiB: number;
