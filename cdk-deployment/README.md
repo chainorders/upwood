@@ -18,12 +18,13 @@ The deployment of Blockchain components is a prerequisite for the deployment of 
 
 - [ ] Concordium Blockchain Node: Amazon ECS
 - [x] User Authentication & Management: [Amazon Cognito](./lib/cognito-stack.ts)
-- [x] Database Server: [Amazon RDS](./lib/infra-stack.ts)
+- [x] Infra Stack: [ECS Cluster & Private DNS](./lib/infra-stack.ts)
+- [x] Database Server: [Amazon RDS](./lib/db-stack.ts)
 - [x] Concordium Listener Server: [Amazon ECS](./lib/backend-listener-stack.ts)
-- [ ] Upwood APIs/Web Server: [Amazon ECS](./lib/backend-api-stack.ts)
+- [x] Upwood APIs/Web Server: [Amazon ECS](./lib/backend-api-stack.ts)
 - [x] API Gateway using Amazon API Gateway: [Amazon API Gateway](./lib/backend-api-stack.ts)
 - [x] Frontend Deployment & Distribution: [Amazon S3 & Cloudfront](./lib/frontend-app-website-stack.ts)
-- [ ] Frontend Deployment & Distribution Dapp: Amazon S3 & Cloudfront
+- [ ] Dapp Frontend Deployment & Distribution: Amazon S3 & Cloudfront
 
 ### Prerequisites
 
