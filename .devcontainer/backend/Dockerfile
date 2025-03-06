@@ -13,7 +13,8 @@ RUN apt-get update \
    && export DEBIAN_FRONTEND=noninteractive \
    && apt-get -y install clang lld less \
    && apt-get autoremove -y && apt-get clean -y
-RUN apt install build-essential -y libpq-dev -y
+RUN apt install build-essential -y libpq-dev -y zsh -y
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 RUN rustup toolchain install nightly --allow-downgrade -c rust-analyzer -c rustfmt -c clippy \
    && rustup toolchain install stable --allow-downgrade -c rust-analyzer -c rustfmt -c clippy \
    && rustup update

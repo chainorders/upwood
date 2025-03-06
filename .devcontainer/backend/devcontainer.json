@@ -45,11 +45,21 @@
 					"--no-deps",
 					"--message-format=json"
 				],
-				"rust-analyzer.checkOnSave.command": "clippy",
+				"rust-analyzer.checkOnSave.command": "check",
 				"rust-analyzer.checkOnSave": true,
 				"rust-analyzer.linkedProjects": [
 					"Cargo.toml"
-				]
+				],
+				"terminal.integrated.profiles.linux": {
+					"bash": {
+						"path": "/bin/bash",
+						"icon": "terminal-bash"
+					},
+					"zsh": {
+						"path": "/bin/zsh",
+						"icon": "terminal"
+					}
+				}
 			},
 			"extensions": [
 				"ms-azuretools.vscode-docker",
