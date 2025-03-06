@@ -168,17 +168,15 @@ export default function Settings({ user }: { user: User }) {
 							<div className="col-6 fl col-m-full">
 								<div className="setting-block text-align-center">
 									<div className="heading">Profile settings</div>
-									<div className="letter">{user.initialis}</div>
+									{user.picture ? (
+										<img src={user.picture} alt="" className="Avatar" />
+									) : (
+										<div className="letter">{user.initialis}</div>
+									)}
 									<div className="name">{user.fullName}</div>
 									<div className="email mr">{user.email}</div>
 									<div className="action">
-										<Button
-											style={`style3`}
-											text={"Edit profile"}
-											link={""}
-											active={false}
-											call={() => setEditProfilePopup(true)}
-										/>
+										<Button style="style3" text="Edit profile" call={() => setEditProfilePopup(true)} />
 									</div>
 									<div className="st">
 										<span>
