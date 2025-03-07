@@ -14,7 +14,6 @@ use std::time::Duration;
 
 use aws::s3;
 use concordium::chain::concordium_global_context;
-use concordium::identity::IdStatement;
 use concordium_rust_sdk::types::{ContractAddress, WalletAccount};
 use concordium_rust_sdk::web3id::did::Network;
 use concordium_rust_sdk::{cis2, v2};
@@ -37,7 +36,7 @@ use shared::db_setup;
 use shared::db_shared::DbPool;
 use tracing::error;
 
-use crate::utils::{self, *};
+use crate::utils::*;
 pub type OpenApiServiceType = OpenApiService<
     (
         user::UserApi,
@@ -89,7 +88,8 @@ pub struct Config {
     pub filebase_bucket_name: String,
     /// Default commission for affiliates
     pub affiliate_commission: Decimal,
-    pub id_statement: String,
+    pub ses_from_email: String,
+    pub company_invitation_accept_url: String,
 }
 
 impl Config {
@@ -149,14 +149,22 @@ impl Config {
         &self,
         aws_sdk_config: &aws_config::SdkConfig,
     ) -> aws::cognito::UserPool {
-        utils::aws::cognito::UserPool::new(
+        aws::cognito::UserPool::new(
             aws_sdk_config,
-            self.aws_user_pool_id.clone(),
-            self.aws_user_pool_client_id.clone(),
-            self.aws_user_pool_region.clone(),
+            &self.aws_user_pool_id,
+            &self.aws_user_pool_client_id,
+            &self.aws_user_pool_region,
         )
         .await
         .expect("Failed to create user pool")
+    }
+
+    pub fn emailer(&self, aws_sdk_config: &aws_config::SdkConfig) -> aws::ses::Emailer {
+        aws::ses::Emailer {
+            client: aws_sdk_sesv2::Client::new(aws_sdk_config),
+            from_email: self.ses_from_email.clone(),
+            company_invitation_accept_url: self.company_invitation_accept_url.clone(),
+        }
     }
 
     pub fn tree_nft_agent_wallet(&self) -> WalletAccount {
@@ -230,10 +238,6 @@ impl Config {
             commission: self.affiliate_commission,
         }
     }
-
-    pub fn id_statement(&self) -> IdStatement {
-        serde_json::from_str(&self.id_statement).expect("Failed to parse Identity Statement JSON")
-    }
 }
 
 pub async fn create_web_app(config: Config) -> Route {
@@ -252,6 +256,7 @@ pub async fn create_web_app(config: Config) -> Route {
     let ui = api.swagger_ui();
     let api = api
         .with(AddData::new(db_pool))
+        .with(AddData::new(config.emailer(&sdk_config)))
         .with(AddData::new(config.files_bucket(&sdk_config)))
         .with(AddData::new(config.ipfs_files_bucket()))
         .with(AddData::new(config.aws_cognito_user_pool(&sdk_config).await))

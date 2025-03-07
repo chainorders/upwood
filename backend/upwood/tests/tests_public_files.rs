@@ -21,7 +21,7 @@ async fn test_s3_public_files() {
         .expect("Failed to deserialize config");
     let (db_config, _container) = shared_tests::create_new_database_container().await;
     shared::db_setup::run_migrations(&db_config.db_url());
-    // Uncomment the following lines to run the tests on the local database container
+    //// Uncomment the following lines to run the tests on the local database in dev container
     // let db_config = shared_tests::PostgresTestConfig {
     //     postgres_db:       "concordium_rwa_dev".to_string(),
     //     postgres_host:     "localhost".to_string(),
@@ -41,9 +41,9 @@ async fn test_s3_public_files() {
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let mut user_pool = UserPool::new(
         &sdk_config,
-        api_config.aws_user_pool_id.to_string(),
-        api_config.aws_user_pool_client_id.to_string(),
-        api_config.aws_user_pool_region.to_string(),
+        &api_config.aws_user_pool_id,
+        &api_config.aws_user_pool_client_id,
+        &api_config.aws_user_pool_region,
     )
     .await
     .expect("Failed to create user pool");
@@ -116,9 +116,9 @@ async fn test_ipfs_public_files() {
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let mut user_pool = UserPool::new(
         &sdk_config,
-        api_config.aws_user_pool_id.to_string(),
-        api_config.aws_user_pool_client_id.to_string(),
-        api_config.aws_user_pool_region.to_string(),
+        &api_config.aws_user_pool_id,
+        &api_config.aws_user_pool_client_id,
+        &api_config.aws_user_pool_region,
     )
     .await
     .expect("Failed to create user pool");

@@ -115,6 +115,7 @@
 }
 .edo .boxl {
 	padding-top: 10px;
+	padding-bottom: 10px;
 }
 .edo .boxl img {
 	cursor: pointer;
@@ -125,6 +126,12 @@
 	padding: 0 15px;
 	border: 1px solid rgba(215, 219, 208, 1);
 	border-radius: 4px;
+	font-family: Arial, Helvetica, sans-serif;
+	background-color: transparent;
+}
+.edo textarea.boxt {
+	height: 100px;
+	padding: 10px 15px;
 }
 .edo .boxt:focus {
 	outline: none;
@@ -215,4 +222,7 @@
 }
 .edo .styremove {
 	cursor: pointer;
+}
+.edo .styremove[disabled] {
+	cursor: not-allowed;
 }

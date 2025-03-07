@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type UserRegisterGetRes = {
-	id_statement: any;
-	/**
-	 * The hex of the challenge
-	 */
-	challenge: string;
+export type CompanyInvitation = {
+	id: string;
+	company_id: string;
+	email: string;
+	created_by: string;
+	created_at: string;
 };

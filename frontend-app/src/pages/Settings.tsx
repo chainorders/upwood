@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-
 import {
+	Company,
 	ForestProjectFundsAffiliateRewardRecord,
 	OpenAPI,
 	PagedResponse_ForestProjectFundsAffiliateRewardRecord,
@@ -19,7 +19,7 @@ import EditCompany from "../components/EditCompany";
 import EditProfile from "../components/EditProfile";
 import PageHeader from "../components/PageHeader";
 import { User } from "../lib/user";
-import { sigsApiToContract, toDisplayAmount } from "../lib/conversions";
+import { nameToInitials, sigsApiToContract, toDisplayAmount } from "../lib/conversions";
 import offchainRewards from "../contractClients/generated/offchainRewards";
 import { TxnStatus, updateContract } from "../lib/concordium";
 import useDownloader from "react-use-downloader";
@@ -106,7 +106,7 @@ function ClaimEarningsButton({
 	return <Button text="CLAIM EARNINGS" active disabled={!reward} call={onClaimClick} loading={isClaiming} />;
 }
 
-export default function Settings({ user }: { user: User }) {
+export default function Settings({ user, refreshUser }: { user: User; refreshUser: () => Promise<void> }) {
 	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction>();
 	const [trasactionsPage, setTransactionsPage] = useState(0);
 	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord>();
@@ -114,6 +114,7 @@ export default function Settings({ user }: { user: User }) {
 	const [affiliateRewardsPage, setAffiliateRewardsPage] = useState(0);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [guides, setGuides] = useState<PagedResponse_Guide>();
+	const [company, setCompany] = useState<Company>();
 
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [, setClaimPopup] = useState(false);
@@ -139,6 +140,7 @@ export default function Settings({ user }: { user: User }) {
 	useEffect(() => {
 		UserService.getSystemConfig().then(setContracts);
 		UserCommunicationService.getGuidesList(0, 3).then(setGuides);
+		UserService.getCompany().then(setCompany);
 	}, [user, refreshCounter]);
 
 	const { download, isInProgress } = useDownloader();
@@ -157,6 +159,7 @@ export default function Settings({ user }: { user: User }) {
 	};
 
 	const userAffiliateLink = `${window.location.protocol}//${window.location.host}/login/${user.concordiumAccountAddress}`;
+	const companyInitials = nameToInitials(company?.name);
 	return (
 		<>
 			<div className="clr"></div>
@@ -189,24 +192,26 @@ export default function Settings({ user }: { user: User }) {
 							<div className="col-6 fl col-m-full">
 								<div className="setting-block text-align-center">
 									<div className="heading">Legal entity</div>
-									{/* <div>
-                    <div className="letter">C</div>
-                    <div className="name">SIA Upwood</div>
-                    <div className="email">esg@upwood.io</div>
-                    <div className="reg">Reg. nr. 12343678</div>
-                    <div className='action'>
-                      <Button style={`style3`} text ={'Edit company profile'} link={''} active={false} call={()=> setEditCompanyPopup(true)} />
-                    </div>
-                    <div className="st"><Link type="text" to="/"
-                        className="guides"
-                        style={{ cursor: "pointer" }}
-                    >Download account statement</Link></div>
-                  </div> */}
-									<div>
-										<div className="action pdtop">
-											<Button text={"Create company profile"} active call={() => setCreateCompanyPopup(true)} />
+									{company ? (
+										<div>
+											{company.profile_picture_url ? (
+												<img src={company.profile_picture_url} alt="" className="Avatar" />
+											) : (
+												<div className="letter">{companyInitials}</div>
+											)}
+											<div className="name">{company.name}</div>
+											<div className="reg mr">VAT No. {company.vat_no}</div>
+											<div className="action">
+												<Button style="style3" text="Edit company profile" call={() => setEditCompanyPopup(true)} />
+											</div>
 										</div>
-									</div>
+									) : (
+										<div>
+											<div className="action pdtop">
+												<Button text="Create company profile" active call={() => setCreateCompanyPopup(true)} />
+											</div>
+										</div>
+									)}
 								</div>
 							</div>
 							<div className="clr"></div>
@@ -399,15 +404,34 @@ export default function Settings({ user }: { user: User }) {
 				</div>
 				<div className="space-30"></div>
 			</div>
-			{editProfilePopup ? (
+			{editProfilePopup && (
 				<EditProfile
 					user={user}
 					close={() => setEditProfilePopup(false)}
 					filesBaseUrl={import.meta.env.VITE_FILES_BASE_URL}
 				/>
-			) : null}
-			{createCompanyPopup ? <CreateCompany close={() => setCreateCompanyPopup(false)} /> : null}
-			{editCompanyPopup ? <EditCompany close={() => setEditCompanyPopup(false)} /> : null}
+			)}
+			{createCompanyPopup && (
+				<CreateCompany
+					close={() => setCreateCompanyPopup(false)}
+					filesBaseUrl={import.meta.env.VITE_FILES_BASE_URL}
+					onCreated={async (company) => {
+						refreshUser();
+						setCompany(company);
+						user.companyId = company.id;
+					}}
+				/>
+			)}
+			{editCompanyPopup && company && (
+				<EditCompany
+					close={() => setEditCompanyPopup(false)}
+					company={company}
+					filesBaseUrl={import.meta.env.VITE_FILES_BASE_URL}
+					onUpdated={async (company) => {
+						setCompany(company);
+					}}
+				/>
+			)}
 		</>
 	);
 }

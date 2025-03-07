@@ -37,6 +37,7 @@ pub struct User {
     pub desired_investment_amount: Option<i32>,
     pub affiliate_commission:      Decimal,
     pub affiliate_account_address: Option<String>,
+    pub company_id:                Option<Uuid>,
 }
 
 impl User {
@@ -110,6 +111,17 @@ impl User {
     ) -> DbResult<User> {
         diesel::update(users::table.filter(users::cognito_user_id.eq(cognito_user_id)))
             .set(users::account_address.eq(account_address.to_string()))
+            .returning(User::as_returning())
+            .get_result(conn)
+    }
+
+    pub fn update_company_id(
+        conn: &mut DbConn,
+        cognito_user_id: &str,
+        company_id: Option<Uuid>,
+    ) -> DbResult<User> {
+        diesel::update(users::table.filter(users::cognito_user_id.eq(cognito_user_id)))
+            .set(users::company_id.eq(company_id))
             .returning(User::as_returning())
             .get_result(conn)
     }
@@ -218,6 +230,37 @@ impl UserKYCModel {
         let page_count = (count as f64 / page_size as f64).ceil() as i64;
         Ok((ret.collect(), page_count))
     }
+
+    pub fn list_by_company_id(
+        conn: &mut DbConn,
+        identity_registry_contract_index: Decimal,
+        company_id_param: Uuid,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        use crate::schema::identity_registry_identities::dsl::*;
+        use crate::schema::users::dsl::*;
+
+        let query = users
+            .left_join(identity_registry_identities.on(account_address.eq(identity_address)))
+            .select((User::as_select(), Option::<Identity>::as_select()))
+            .filter(
+                company_id
+                    .eq(company_id_param)
+                    .and(identity_registry_address.eq(identity_registry_contract_index)),
+            );
+
+        let ret = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?
+            .into_iter()
+            .map(|(user, identity)| UserKYCModel::new(user, identity.is_some()));
+
+        let count: i64 = query.count().get_result(conn)?;
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((ret.collect(), page_count))
+    }
 }
 
 #[derive(
@@ -292,5 +335,139 @@ impl UserRegistrationRequest {
     pub fn delete(conn: &mut DbConn, request_id: Uuid) -> DbResult<usize> {
         use crate::schema::user_registration_requests::dsl::*;
         diesel::delete(user_registration_requests.filter(id.eq(request_id))).execute(conn)
+    }
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Debug,
+    PartialEq,
+    Insertable,
+    AsChangeset,
+    Object,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(table_name = crate::schema::companies)]
+#[diesel(primary_key(id))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
+pub struct Company {
+    pub id:                   Uuid,
+    pub name:                 String,
+    pub registration_address: Option<String>,
+    pub vat_no:               Option<String>,
+    pub country:              Option<String>,
+    pub profile_picture_url:  Option<String>,
+    pub created_at:           chrono::NaiveDateTime,
+    pub updated_at:           chrono::NaiveDateTime,
+}
+
+impl Company {
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        diesel::insert_into(crate::schema::companies::table)
+            .values(self)
+            .get_result(conn)
+    }
+
+    pub fn find(conn: &mut DbConn, company_id: Uuid) -> DbResult<Option<Self>> {
+        crate::schema::companies::table
+            .filter(crate::schema::companies::id.eq(company_id))
+            .first(conn)
+            .optional()
+    }
+
+    pub fn delete(conn: &mut DbConn, company_id: Uuid) -> DbResult<usize> {
+        diesel::delete(
+            crate::schema::companies::table.filter(crate::schema::companies::id.eq(company_id)),
+        )
+        .execute(conn)
+    }
+
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
+        diesel::update(crate::schema::companies::table.filter(crate::schema::companies::id.eq(self.id)))
+            .set(self)
+            .get_result(conn)
+    }
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Debug,
+    PartialEq,
+    Insertable,
+    AsChangeset,
+    Object,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(table_name = crate::schema::company_invitations)]
+#[diesel(primary_key(id))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(treat_none_as_null = true)]
+pub struct CompanyInvitation {
+    pub id:         Uuid,
+    pub company_id: Uuid,
+    pub email:      String,
+    pub created_by: String,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+impl CompanyInvitation {
+    pub fn list_by_company_id(
+        conn: &mut DbConn,
+        company_id: Uuid,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<CompanyInvitation>, i64)> {
+        let query = crate::schema::company_invitations::table
+            .filter(crate::schema::company_invitations::company_id.eq(company_id));
+        let invitations = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?;
+        let count: i64 = query.count().get_result(conn)?;
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((invitations, page_count))
+    }
+
+    pub fn find_by_email(
+        conn: &mut DbConn,
+        company_id: Uuid,
+        email: &str,
+    ) -> DbResult<Option<Self>> {
+        crate::schema::company_invitations::table
+            .filter(
+                crate::schema::company_invitations::company_id
+                    .eq(company_id)
+                    .and(crate::schema::company_invitations::email.eq(email)),
+            )
+            .first(conn)
+            .optional()
+    }
+
+    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
+        diesel::insert_into(crate::schema::company_invitations::table)
+            .values(self)
+            .get_result(conn)
+    }
+
+    pub fn find(conn: &mut DbConn, invitation_id: Uuid) -> DbResult<Option<Self>> {
+        crate::schema::company_invitations::table
+            .filter(crate::schema::company_invitations::id.eq(invitation_id))
+            .first(conn)
+            .optional()
+    }
+
+    pub fn delete(conn: &mut DbConn, invitation_id: Uuid) -> DbResult<usize> {
+        diesel::delete(
+            crate::schema::company_invitations::table
+                .filter(crate::schema::company_invitations::id.eq(invitation_id)),
+        )
+        .execute(conn)
     }
 }

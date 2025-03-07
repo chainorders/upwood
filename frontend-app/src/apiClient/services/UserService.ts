@@ -2,14 +2,18 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { Company } from "../models/Company";
+import type { CompanyInvitation } from "../models/CompanyInvitation";
 import type { Notification } from "../models/Notification";
+import type { PagedResponse_CompanyInvitation } from "../models/PagedResponse_CompanyInvitation";
 import type { PagedResponse_UserKYCModel } from "../models/PagedResponse_UserKYCModel";
 import type { PagedResponse_UserRegistrationRequest } from "../models/PagedResponse_UserRegistrationRequest";
 import type { SystemContractsConfigApiModel } from "../models/SystemContractsConfigApiModel";
+import type { UserCompanyCreateUpdateReq } from "../models/UserCompanyCreateUpdateReq";
+import type { UserCompanyInvitationCreateReq } from "../models/UserCompanyInvitationCreateReq";
 import type { UserCreatePostReq } from "../models/UserCreatePostReq";
 import type { UserCreatePostReqAdmin } from "../models/UserCreatePostReqAdmin";
 import type { UserKYCModel } from "../models/UserKYCModel";
-import type { UserRegisterGetRes } from "../models/UserRegisterGetRes";
 import type { UserRegistrationRequest } from "../models/UserRegistrationRequest";
 import type { UserRegistrationRequestApi } from "../models/UserRegistrationRequestApi";
 
@@ -83,17 +87,6 @@ export class UserService {
 				id: id,
 				is_accepted: isAccepted,
 			},
-		});
-	}
-
-	/**
-	 * @returns UserRegisterGetRes
-	 * @throws ApiError
-	 */
-	public static getUserRegister(): CancelablePromise<UserRegisterGetRes> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/user/register",
 		});
 	}
 
@@ -199,6 +192,130 @@ export class UserService {
 			url: "/user/notifications",
 			body: requestBody,
 			mediaType: "application/json; charset=utf-8",
+		});
+	}
+
+	/**
+	 * @returns Company
+	 * @throws ApiError
+	 */
+	public static getCompany(): CancelablePromise<Company> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/company",
+		});
+	}
+
+	/**
+	 * @param requestBody
+	 * @returns Company
+	 * @throws ApiError
+	 */
+	public static postCompany(requestBody: UserCompanyCreateUpdateReq): CancelablePromise<Company> {
+		return __request(OpenAPI, {
+			method: "POST",
+			url: "/company",
+			body: requestBody,
+			mediaType: "application/json; charset=utf-8",
+		});
+	}
+
+	/**
+	 * @param requestBody
+	 * @returns Company
+	 * @throws ApiError
+	 */
+	public static putCompany(requestBody: UserCompanyCreateUpdateReq): CancelablePromise<Company> {
+		return __request(OpenAPI, {
+			method: "PUT",
+			url: "/company",
+			body: requestBody,
+			mediaType: "application/json; charset=utf-8",
+		});
+	}
+
+	/**
+	 * @param requestBody
+	 * @returns CompanyInvitation
+	 * @throws ApiError
+	 */
+	public static postCompanyInvitation(
+		requestBody: UserCompanyInvitationCreateReq,
+	): CancelablePromise<CompanyInvitation> {
+		return __request(OpenAPI, {
+			method: "POST",
+			url: "/company/invitation",
+			body: requestBody,
+			mediaType: "application/json; charset=utf-8",
+		});
+	}
+
+	/**
+	 * @param invitationId
+	 * @param accepted
+	 * @returns any
+	 * @throws ApiError
+	 */
+	public static putCompanyInvitation(invitationId: string, accepted: boolean): CancelablePromise<any> {
+		return __request(OpenAPI, {
+			method: "PUT",
+			url: "/company/invitation",
+			query: {
+				invitation_id: invitationId,
+				accepted: accepted,
+			},
+		});
+	}
+
+	/**
+	 * @param invitationId
+	 * @returns any
+	 * @throws ApiError
+	 */
+	public static deleteCompanyInvitation(invitationId: string): CancelablePromise<any> {
+		return __request(OpenAPI, {
+			method: "DELETE",
+			url: "/company/invitation",
+			query: {
+				invitation_id: invitationId,
+			},
+		});
+	}
+
+	/**
+	 * @returns PagedResponse_CompanyInvitation
+	 * @throws ApiError
+	 */
+	public static getCompanyInvitationList(): CancelablePromise<PagedResponse_CompanyInvitation> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/company/invitation/list",
+		});
+	}
+
+	/**
+	 * @returns PagedResponse_UserKYCModel
+	 * @throws ApiError
+	 */
+	public static getCompanyMembersList(): CancelablePromise<PagedResponse_UserKYCModel> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/company/members/list",
+		});
+	}
+
+	/**
+	 * @param userId
+	 * @returns any
+	 * @throws ApiError
+	 */
+	public static deleteCompanyMembers(userId: string): CancelablePromise<any> {
+		return __request(OpenAPI, {
+			method: "DELETE",
+			url: "/company/members",
+			query: {
+				user_id: userId,
+			},
 		});
 	}
 }

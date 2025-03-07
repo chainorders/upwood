@@ -6,12 +6,9 @@ import AccountCross from "../assets/account-not-protected.svg";
 import AccountProtected from "../assets/account-protected.svg";
 import editRow from "../assets/editRow.svg";
 import saveRow from "../assets/saveRow.svg";
-import avatarDefaultImg from "../assets/Avatar.svg";
 import OtpInput from "./OtpInput";
 import { User } from "../lib/user";
-import Avatar from "react-avatar-edit";
-import { FilesService } from "../apiClient";
-import { Buffer } from "buffer/";
+import ProfilePicture from "./ProfilePicture";
 
 interface PopupProps {
 	user: User;
@@ -35,126 +32,6 @@ interface PasswordFormInputs {
 
 interface OtpFormInputs {
 	otp: string;
-}
-
-function ProfilePicture({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) {
-	const [state, setState] = useState<"default" | "upload" | "uploading" | "deleting">("default");
-	const [imageData, setImageData] = useState<string>();
-	const [error, setError] = useState<string>();
-
-	const onProfilePictureUpdated = (fileUrl: string) => {
-		user.picture = fileUrl;
-		setState("default");
-	};
-
-	const changeProfilePicture = (imageData: string) => {
-		const buf = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ""), "base64");
-		setState("uploading");
-		FilesService.postFilesS3ProfilePictureUploadUrl()
-			.then((res) =>
-				fetch(res.presigned_url, { method: "PUT", body: buf, headers: { "Content-Type": "image/png" } }).then(
-					() => `${fileBaseUrl}/${res.file_name}`,
-				),
-			)
-			.then((fileUrl) =>
-				user.cognitoUser.updateAttributes([{ Name: "picture", Value: fileUrl }], () => onProfilePictureUpdated(fileUrl)),
-			)
-			.catch((err) => {
-				console.log(err);
-				alert("Error uploading image");
-				setError("Error uploading image");
-				setState("default");
-			});
-	};
-
-	const removeProfilePicture = () => {
-		setState("deleting");
-		user.cognitoUser.updateAttributes([{ Name: "picture", Value: "" }], () => {
-			user.picture = "";
-			setState("default");
-		});
-	};
-
-	return (
-		<>
-			<div style={{ display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
-				{
-					{
-						["default"]: <img src={user.picture || avatarDefaultImg} alt="" className="Avatar" />,
-						["upload"]: (
-							<Avatar
-								width={150}
-								height={150}
-								imageWidth={88}
-								onCrop={setImageData}
-								cropRadius={44}
-								label="upload"
-								onClose={() => setImageData(undefined)}
-								exportMimeType="image/png"
-							/>
-						),
-						["uploading"]: <img src={imageData} alt="" className="Avatar uploading" />,
-						["deleting"]: <img src={user.picture} alt="" className="Avatar deleting" />,
-					}[state]
-				}
-			</div>
-			<div className="space-15"></div>
-			<div className="links">
-				{
-					{
-						["default"]: (
-							<>
-								<button className="reset-button link-button" onClick={() => setState("upload")}>
-									CHANGE
-								</button>
-								<button
-									className="reset-button link-button danger"
-									onClick={() => removeProfilePicture()}
-									disabled={!user.picture}
-								>
-									DELETE
-								</button>
-							</>
-						),
-						["upload"]: (
-							<>
-								<button
-									className="reset-button link-button"
-									disabled={!imageData}
-									onClick={() => changeProfilePicture(imageData!)}
-								>
-									SET
-								</button>
-								<button className="reset-button link-button danger" onClick={() => setState("default")}>
-									CANCEL
-								</button>
-							</>
-						),
-						["uploading"]: (
-							<>
-								<button className="reset-button link-button" disabled>
-									UPLOADING
-								</button>
-								<button className="reset-button link-button danger" disabled>
-									CANCEL
-								</button>
-							</>
-						),
-						["deleting"]: (
-							<>
-								<button className="reset-button link-button" disabled>
-									CHANGE
-								</button>
-								<button className="reset-button link-button danger" disabled>
-									DELETING
-								</button>
-							</>
-						),
-					}[state]
-				}
-			</div>
-		</>
-	);
 }
 
 export default function EditProfile({ user, close = () => {}, filesBaseUrl }: PopupProps) {
@@ -187,7 +64,6 @@ export default function EditProfile({ user, close = () => {}, filesBaseUrl }: Po
 	} = useForm<PasswordFormInputs>();
 
 	const {
-		register: registerOtp,
 		handleSubmit: handleSubmitOtp,
 		control: controlOtp,
 		formState: { errors: otpErrors, isValid },
@@ -197,7 +73,6 @@ export default function EditProfile({ user, close = () => {}, filesBaseUrl }: Po
 	const [fullNameEdit, setFullNameEdit] = useState(false);
 	const [emailEdit, setEmailEdit] = useState(false);
 	const [emailEditOTPScreen, setEmailEditOtpScreen] = useState<{ email: string }>();
-	const [forgotScreen, setForgotScreen] = useState(false);
 	const [enable2FaScreen, set2FAScreen] = useState(false);
 	const [disable2FaScreen, set2FAScreenDisable] = useState(false);
 	const [settingPassword, setSettingPassword] = useState(false);
@@ -320,6 +195,19 @@ export default function EditProfile({ user, close = () => {}, filesBaseUrl }: Po
 		});
 	};
 
+	function updateCognitoAttribute(attributeName: string, value: string): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			user.cognitoUser.updateAttributes([{ Name: attributeName, Value: value }], (err) => {
+				if (err) {
+					console.error(`Failed to update ${attributeName}:`, err);
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
+		});
+	}
+
 	return (
 		<div className="popup-overlay" onClick={handleOverlayClick}>
 			<div
@@ -338,7 +226,13 @@ export default function EditProfile({ user, close = () => {}, filesBaseUrl }: Po
 							<div className="container-in">
 								<div className="space-20"></div>
 								<div className="col-12">
-									<ProfilePicture user={user} fileBaseUrl={filesBaseUrl} />
+									<ProfilePicture
+										fileBaseUrl={filesBaseUrl}
+										picture={user.picture}
+										initials={user.initialis}
+										update={(url) => updateCognitoAttribute("picture", url).then(() => (user.picture = url))}
+										onDeleted={() => updateCognitoAttribute("picture", "").then(() => (user.picture = ""))}
+									/>
 								</div>
 								<div className="space-20"></div>
 								<div className="col-12">
@@ -428,14 +322,6 @@ export default function EditProfile({ user, close = () => {}, filesBaseUrl }: Po
 								</div>
 								<div className="clr"></div>
 								<div className="space-30"></div>
-								<div className="col-12">
-									<div className="head">
-										Change password{" "}
-										{/* <span className="headlink fr" onClick={() => setForgotScreen(true)}>
-											Forget Password
-										</span> */}
-									</div>
-								</div>
 								<div className="clr"></div>
 								<form onSubmit={handleSubmitPassword(onSubmitPassword)}>
 									<div className="col-4 fl col-m-full col-mr-bottom-10">
@@ -578,23 +464,6 @@ export default function EditProfile({ user, close = () => {}, filesBaseUrl }: Po
 										</div>
 										<div className="clr"></div>
 									</form>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-			{forgotScreen && (
-				<div className="popup" onClick={(e) => e.stopPropagation()}>
-					<div className="heading">Forget Password</div>
-					<div className="cl-area edo">
-						<div className="container">
-							<div className="container-in">
-								<div className="space-20"></div>
-								<div className="col-12">
-									<div className="head text-align-center">Please check your email to create</div>
-									<div className="head text-align-center">a new password</div>
-									<div className="space-30"></div>
 								</div>
 							</div>
 						</div>

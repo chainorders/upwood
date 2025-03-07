@@ -27,13 +27,37 @@ export default function App() {
 		},
 		[location.state?.from, navigate],
 	);
-	const logout = () => {
+	const logout = useCallback(() => {
 		user?.cognitoUser.signOut(() => {
 			OpenAPI.TOKEN = undefined;
 			setUser(undefined);
 			navigate("/login");
 		});
-	};
+	}, [user, navigate]);
+	const refreshUser = useCallback(
+		async (force: boolean) => {
+			if (!user) {
+				return;
+			}
+
+			try {
+				if (force) {
+					const newUser = await user.forceRefresh();
+					setUser(newUser);
+					OpenAPI.TOKEN = newUser.idToken;
+				} else {
+					await user.refresh().then((newUser) => {
+						setUser(newUser);
+						OpenAPI.TOKEN = newUser.idToken;
+					});
+				}
+			} catch (e) {
+				console.error(e);
+				logout();
+			}
+		},
+		[user, logout],
+	);
 
 	return (
 		<Suspense fallback={<div>Loading...</div>}>
@@ -46,7 +70,7 @@ export default function App() {
 					<Route path="/register/download-wallet" element={<RegisterDownloadWallet />} />
 				</Route>
 				<Route path="admin/*" element={<AdminApp user={user} logout={logout} />} />
-				<Route path="*" element={<UserApp user={user} logout={logout} />} />
+				<Route path="*" element={<UserApp user={user} logout={logout} refreshUser={refreshUser} />} />
 			</Routes>
 		</Suspense>
 	);

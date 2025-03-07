@@ -19,8 +19,9 @@ import navSupportWhite from "./assets/nav-support-white.svg";
 import navWalletManagementNormal from "./assets/nav-wallet-management-normal.svg";
 import navWalletManagementWhite from "./assets/nav-wallet-management-white.svg";
 import { User } from "./lib/user.ts";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { ForestProjectState } from "./apiClient/index.ts";
+import CompanyInvitation from "./pages/CompanyInvitation.tsx";
 
 const ActiveForestProjectsList = lazy(() => import("./pages/ActiveForestProjectsList.tsx"));
 const InvestmentPortfolio = lazy(() => import("./pages/InvestmentPortfolio.tsx"));
@@ -35,7 +36,15 @@ const Settings = lazy(() => import("./pages/Settings.tsx"));
 const BondForestProjectsList = lazy(() => import("./pages/BondForestProjectsList.tsx"));
 const ForestProjectDetails = lazy(() => import("./pages/ForestProjectDetails.tsx"));
 
-export default function UserApp({ user, logout }: { user?: User; logout: () => void }) {
+export default function UserApp({
+	user,
+	logout,
+	refreshUser,
+}: {
+	user?: User;
+	logout: () => void;
+	refreshUser: (force: boolean) => Promise<void>;
+}) {
 	const location = useLocation();
 	const pathname = location.pathname;
 	const navItems: NavItem[] = [
@@ -104,6 +113,12 @@ export default function UserApp({ user, logout }: { user?: User; logout: () => v
 		},
 	];
 
+	useEffect(() => {
+		if (user) {
+			refreshUser(false);
+		}
+	}, [location.key, user, refreshUser]);
+
 	return user ? (
 		<div className="auth-layout">
 			<Header navItems={navItems} logout={logout} />
@@ -129,7 +144,9 @@ export default function UserApp({ user, logout }: { user?: User; logout: () => v
 					<Route path="contracts" element={<Contracts user={user} />} />
 					<Route path="contracts/:id" element={<ContractsDetails user={user} />} />
 					<Route path="support" element={<Support user={user} />} />
-					<Route path="settings" element={<Settings user={user} />} />
+					<Route path="settings" element={<Settings user={user} refreshUser={() => refreshUser(true)} />} />
+					<Route path="settings/company-invitation/:invitationId/accept" element={<CompanyInvitation accepted />} />
+					<Route path="settings/company-invitation/:invitationId/reject" element={<CompanyInvitation accepted={false} />} />
 					<Route path="*" element={<Navigate to="/" />} />
 				</Routes>
 			</Suspense>

@@ -202,3 +202,13 @@ export function sigsApiToContract(sigsApi: SigsApi): SigsContract {
 	}
 	return sigs;
 }
+
+export function nameToInitials(name?: string) {
+	if (!name || name === "") {
+		return "";
+	}
+
+	const names = name.split(" ");
+	const initials = names.map((name) => name[0]);
+	return initials.join("").slice(0, 2).toUpperCase();
+}

@@ -11,6 +11,7 @@ use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::v2::BlockIdentifier;
 use concordium_rust_sdk::web3id::CredentialMetadata;
 use concordium_rust_sdk::{v2, web3id};
+use diesel::Connection;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Attachment, AttachmentType, Json, PlainText};
@@ -25,10 +26,14 @@ use shared::db_app::forest_project_crypto::{
     ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord, TokenMetadata,
 };
 use shared::db_app::portfolio::UserTransaction;
-use shared::db_app::users::{User, UserKYCModel, UserRegistrationRequest};
+use shared::db_app::users::{
+    Company, CompanyInvitation, User, UserKYCModel, UserRegistrationRequest,
+};
 use uuid::Uuid;
 
 use crate::api::*;
+use crate::utils::aws::cognito::company_id_attribute;
+use crate::utils::aws::ses::Emailer;
 use crate::utils::*;
 
 #[derive(Clone, Copy)]
@@ -132,44 +137,16 @@ impl UserApi {
         let request = UserRegistrationRequest::find(&mut conn, id)?
             .ok_or_else(|| Error::NotFound(PlainText("Request not found".to_string())))?;
         if is_accepted {
-            // Add the user to the cognito user pool. This will trigger an invitation email to the user.
-            let mut attrs = vec![
-                email_attribute(&request.email),
-                email_verified_attribute(false),
-            ];
-            if let Some(affiliate_account_address) = request.affiliate_account_address {
-                attrs.push(affiliate_account_address_attribute(
-                    &affiliate_account_address,
-                ));
-            }
-            user_pool
-                .admin_create_temp_user(&request.email, attrs)
-                .await
-                .map_err(|e| {
-                    error!("Error creating user in user pool: {:?}", e);
-                    e
-                })?;
+            admin_create_temp_user(
+                user_pool,
+                &request.email,
+                request.affiliate_account_address.as_deref(),
+            )
+            .await?;
         }
 
         UserRegistrationRequest::delete(&mut conn, id)?;
         Ok(())
-    }
-
-    #[oai(path = "/user/register", method = "get", tag = "ApiTags::User")]
-    pub async fn get_user_register(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(id_statement): Data<&IdStatement>,
-    ) -> JsonResult<UserRegisterGetRes> {
-        let id_statement = serde_json::to_value(id_statement).map_err(|_| {
-            Error::InternalServer(PlainText("Failed to serialize id statement".to_string()))
-        })?;
-        let challenge = concordium::identity::generate_challenge(claims.sub.as_str());
-        let challenge = hex::encode(challenge);
-        Ok(Json(UserRegisterGetRes {
-            challenge,
-            id_statement,
-        }))
     }
 
     /// Registers a user in the Cognito user pool and in the database.
@@ -245,6 +222,7 @@ impl UserApi {
             affiliate_commission: affiliate_commission.commission,
             desired_investment_amount: req.desired_investment_amount,
             affiliate_account_address: affiliate_account.clone(),
+            company_id: None,
         }
         .upsert(&mut conn)?;
         let kyc_verified = Identity::exists(
@@ -311,6 +289,7 @@ impl UserApi {
                 .unwrap_or(affiliate_commission.commission),
             desired_investment_amount: req.desired_investment_amount,
             affiliate_account_address: req.affiliate_account_address.clone(),
+            company_id:                None,
         }
         .upsert(&mut conn)?;
         let kyc_verified = Identity::exists(
@@ -773,6 +752,314 @@ impl UserApi {
         };
         Ok(Json(notification))
     }
+
+    #[oai(path = "/company", method = "get", tag = "ApiTags::User")]
+    pub async fn user_company_get(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> JsonResult<Option<Company>> {
+        let conn = &mut db_pool.get()?;
+        let company_id = match claims.company_id {
+            Some(company_id) => company_id,
+            None => return Ok(Json(None)),
+        };
+        let company = Company::find(conn, company_id)?;
+        Ok(Json(company))
+    }
+
+    #[oai(path = "/company", method = "post", tag = "ApiTags::User")]
+    pub async fn user_company_create(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Json(req): Json<UserCompanyCreateUpdateReq>,
+    ) -> JsonResult<Company> {
+        let conn = &mut db_pool.get()?;
+        let company = conn.transaction(|conn| {
+            let company = Company {
+                id:                   Uuid::new_v4(),
+                name:                 req.name.clone(),
+                registration_address: Some(req.registration_address.clone()),
+                vat_no:               Some(req.vat_no.clone()),
+                country:              Some(req.country.clone()),
+                profile_picture_url:  Some(req.profile_picture_url.clone()),
+                created_at:           Utc::now().naive_utc(),
+                updated_at:           Utc::now().naive_utc(),
+            }
+            .insert(conn)
+            .map_err(|e| {
+                error!("Error creating company: {:?}", e);
+                Error::InternalServer(PlainText("Failed to create company".to_string()))
+            })?;
+            User::update_company_id(conn, &claims.sub, Some(company.id)).map_err(|e| {
+                error!("Error updating user: {:?}", e);
+                Error::InternalServer(PlainText("Failed to update user".to_string()))
+            })?;
+            Result::Ok(company)
+        })?;
+        user_pool
+            .admin_update_user_attributes(&claims.sub, vec![company_id_attribute(Some(
+                &company.id,
+            ))])
+            .await
+            .map_err(|e| {
+                error!("Error updating user in user pool: {:?}", e);
+                Error::InternalServer(PlainText("Failed to update user in user pool".to_string()))
+            })?;
+        Ok(Json(company))
+    }
+
+    #[oai(path = "/company", method = "put", tag = "ApiTags::User")]
+    pub async fn user_company_update(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Json(req): Json<UserCompanyCreateUpdateReq>,
+    ) -> JsonResult<Company> {
+        let conn = &mut db_pool.get()?;
+        let company = Company::find(conn, claims.company_id.unwrap_or_default())?
+            .ok_or_else(|| Error::NotFound(PlainText("Company not found".to_string())))?;
+        let company = Company {
+            id:                   company.id,
+            name:                 req.name.clone(),
+            registration_address: Some(req.registration_address.clone()),
+            vat_no:               Some(req.vat_no.clone()),
+            country:              Some(req.country.clone()),
+            profile_picture_url:  Some(req.profile_picture_url.clone()),
+            created_at:           company.created_at,
+            updated_at:           Utc::now().naive_utc(),
+        }
+        .update(conn)
+        .map_err(|e| {
+            error!("Error updating company: {:?}", e);
+            Error::InternalServer(PlainText("Failed to update company".to_string()))
+        })?;
+        Ok(Json(company))
+    }
+
+
+    #[oai(path = "/company/invitation", method = "post", tag = "ApiTags::User")]
+    pub async fn user_company_invitation_create(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(emailer): Data<&Emailer>,
+        Data(db_pool): Data<&DbPool>,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Json(req): Json<UserCompanyInvitationCreateReq>,
+    ) -> JsonResult<CompanyInvitation> {
+        let company_id = claims.company_id.ok_or_else(|| {
+            Error::BadRequest(PlainText(
+                "User is not associated with a company".to_string(),
+            ))
+        })?;
+        let conn = &mut db_pool.get()?;
+        let company = Company::find(conn, company_id)?
+            .ok_or_else(|| Error::BadRequest(PlainText("Company not found".to_string())))?;
+        if CompanyInvitation::find_by_email(conn, company_id, &req.email)?.is_some() {
+            return Err(Error::BadRequest(PlainText(
+                "Invitation already exists".to_string(),
+            )));
+        }
+        let user = user_pool
+            .find_user_by_email(&req.email)
+            .await
+            .map_err(|e| {
+                error!("Error finding user in user pool: {:?}", e);
+                Error::InternalServer(PlainText("Failed to find user in user pool".to_string()))
+            })?;
+        if user.is_none() {
+            admin_create_temp_user(user_pool, &req.email, None).await?;
+        }
+        let invitation_id = Uuid::new_v4();
+        emailer
+            .send_company_invitation_email(&invitation_id, &req.email, &claims.email, &company)
+            .await
+            .map_err(|e| {
+                error!("Error sending company invitation email: {:?}", e);
+                Error::InternalServer(PlainText(
+                    "Failed to send company invitation email".to_string(),
+                ))
+            })?;
+        let invitation = CompanyInvitation {
+            id: invitation_id,
+            company_id,
+            email: req.email.clone(),
+            created_at: Utc::now().naive_utc(),
+            created_by: claims.sub.to_string(),
+        }
+        .insert(conn)
+        .map_err(|e| {
+            error!("Error creating company invitation: {:?}", e);
+            Error::InternalServer(PlainText("Failed to create company invitation".to_string()))
+        })?;
+        JsonResult::Ok(Json(invitation))
+    }
+
+    #[oai(path = "/company/invitation", method = "put", tag = "ApiTags::User")]
+    pub async fn user_company_invitation_update(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Query(invitation_id): Query<Uuid>,
+        Query(accepted): Query<bool>,
+    ) -> NoResResult {
+        let conn = &mut db_pool.get()?;
+        let invitation = CompanyInvitation::find(conn, invitation_id)?
+            .ok_or_else(|| Error::BadRequest(PlainText("Invitation not found".to_string())))?;
+        if invitation.email != claims.email {
+            return Err(Error::UnAuthorized(PlainText("Invalid email".to_string())));
+        }
+        let company = Company::find(conn, invitation.company_id)?
+            .ok_or_else(|| Error::BadRequest(PlainText("Company not found".to_string())))?;
+        if accepted {
+            user_pool
+                .admin_update_user_attributes(&claims.sub, vec![company_id_attribute(Some(
+                    &company.id,
+                ))])
+                .await
+                .map_err(|e| {
+                    error!("Error updating user in user pool: {:?}", e);
+                    Error::InternalServer(PlainText(
+                        "Failed to update user in user pool".to_string(),
+                    ))
+                })?;
+            User::update_company_id(conn, &claims.sub, Some(company.id)).map_err(|e| {
+                error!("Error updating user: {:?}", e);
+                Error::InternalServer(PlainText("Failed to update user".to_string()))
+            })?;
+        }
+        CompanyInvitation::delete(conn, invitation_id).map_err(|e| {
+            error!("Error deleting company invitation: {:?}", e);
+            Error::InternalServer(PlainText("Failed to delete company invitation".to_string()))
+        })?;
+        Ok(())
+    }
+
+    #[oai(path = "/company/invitation", method = "delete", tag = "ApiTags::User")]
+    pub async fn user_company_invitation_delete(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Query(invitation_id): Query<Uuid>,
+    ) -> NoResResult {
+        let conn = &mut db_pool.get()?;
+        let invitation = CompanyInvitation::find(conn, invitation_id)?
+            .ok_or_else(|| Error::BadRequest(PlainText("Invitation not found".to_string())))?;
+        if claims.company_id != Some(invitation.company_id) {
+            return Err(Error::UnAuthorized(PlainText(
+                "Invalid company".to_string(),
+            )));
+        }
+        CompanyInvitation::delete(conn, invitation_id).map_err(|e| {
+            error!("Error deleting company invitation: {:?}", e);
+            Error::InternalServer(PlainText("Failed to delete company invitation".to_string()))
+        })?;
+        Ok(())
+    }
+
+    #[oai(
+        path = "/company/invitation/list",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
+    pub async fn user_company_invitation_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> JsonResult<PagedResponse<CompanyInvitation>> {
+        let conn = &mut db_pool.get()?;
+        let company_id = claims.company_id.ok_or_else(|| {
+            Error::BadRequest(PlainText(
+                "User is not associated with a company".to_string(),
+            ))
+        })?;
+        let (invitations, page_count) =
+            CompanyInvitation::list_by_company_id(conn, company_id, 0, PAGE_SIZE)?;
+        Ok(Json(PagedResponse {
+            data: invitations,
+            page: 0,
+            page_count,
+        }))
+    }
+
+    #[oai(path = "/company/members/list", method = "get", tag = "ApiTags::User")]
+    pub async fn user_company_users_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+    ) -> JsonResult<PagedResponse<UserKYCModel>> {
+        let conn = &mut db_pool.get()?;
+        let company_id = claims.company_id.ok_or_else(|| {
+            Error::BadRequest(PlainText(
+                "User is not associated with a company".to_string(),
+            ))
+        })?;
+        let (users, page_count) = UserKYCModel::list_by_company_id(
+            conn,
+            contracts.identity_registry_contract_index,
+            company_id,
+            0,
+            PAGE_SIZE,
+        )?;
+        Ok(Json(PagedResponse {
+            data: users,
+            page: 0,
+            page_count,
+        }))
+    }
+
+    #[oai(path = "/company/members", method = "delete", tag = "ApiTags::User")]
+    pub async fn user_company_users_delete(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(user_pool): Data<&aws::cognito::UserPool>,
+        Query(user_id): Query<String>,
+    ) -> NoResResult {
+        let conn = &mut db_pool.get()?;
+        let company_id = claims.company_id.ok_or_else(|| {
+            Error::BadRequest(PlainText(
+                "User is not associated with a company".to_string(),
+            ))
+        })?;
+        let user = User::find(conn, &user_id)?
+            .ok_or_else(|| Error::BadRequest(PlainText("User not found".to_string())))?;
+        if user.company_id != Some(company_id) {
+            return Err(Error::BadRequest(PlainText(
+                "User not in company".to_string(),
+            )));
+        }
+        user_pool
+            .admin_update_user_attributes(&user.cognito_user_id, vec![company_id_attribute(None)])
+            .await
+            .map_err(|e| {
+                error!("Error updating user in user pool: {:?}", e);
+                Error::InternalServer(PlainText("Failed to update user in user pool".to_string()))
+            })?;
+        User::update_company_id(conn, &user_id, None).map_err(|e| {
+            error!("Error updating user: {:?}", e);
+            Error::InternalServer(PlainText("Failed to update user".to_string()))
+        })?;
+        Ok(())
+    }
+}
+
+#[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
+pub struct UserCompanyCreateUpdateReq {
+    pub name:                 String,
+    pub registration_address: String,
+    pub vat_no:               String,
+    pub country:              String,
+    pub profile_picture_url:  String,
+}
+
+#[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
+pub struct UserCompanyInvitationCreateReq {
+    pub email: String,
 }
 
 #[derive(Object, Debug, serde::Serialize, serde::Deserialize)]
@@ -955,13 +1242,6 @@ async fn verify_presentation(
 }
 
 #[derive(Object, serde::Serialize, serde::Deserialize)]
-pub struct UserRegisterGetRes {
-    pub id_statement: serde_json::Value,
-    /// The hex of the challenge
-    pub challenge:    String,
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize)]
 pub struct UserCreatePostReq {
     pub email:                     String,
     pub temp_password:             String,
@@ -994,4 +1274,26 @@ pub struct UserCreatePostReqAdmin {
     pub nationality:               String,
     pub affiliate_commission:      Option<Decimal>,
     pub affiliate_account_address: Option<String>,
+}
+
+/// Adds the user to the Cognito user pool and triggers an invitation email to the user.
+async fn admin_create_temp_user(
+    user_pool: &aws::cognito::UserPool,
+    email: &str,
+    affiliate_account_address: Option<&str>,
+) -> Result<()> {
+    let mut attrs = vec![email_attribute(email), email_verified_attribute(false)];
+    if let Some(affiliate_account_address) = affiliate_account_address {
+        attrs.push(affiliate_account_address_attribute(
+            affiliate_account_address,
+        ));
+    }
+    user_pool
+        .admin_create_temp_user(email, attrs)
+        .await
+        .map_err(|e| {
+            error!("Error creating user in user pool: {:?}", e);
+            e
+        })?;
+    Ok(())
 }

@@ -15,6 +15,7 @@ interface ButtonProps {
 	loading?: boolean;
 	type?: "button" | "submit";
 	linkTarget?: string;
+	form?: string;
 }
 export default function Button({
 	text,
@@ -31,11 +32,13 @@ export default function Button({
 	linkTarget,
 	loading,
 	type,
+	form,
 }: ButtonProps) {
 	return (
 		<>
 			{!link ? (
 				<button
+					form={form}
 					type={type || "button"}
 					disabled={disabled || loading}
 					className={`button ${radius16 ? "radius16" : ""} ${style || ""} ${active ? "active" : ""} ${danger ? "danger" : ""} ${disabled ? "disabled" : ""} ${loading ? "button__loader" : ""}`}

@@ -1,27 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
 import closeIcon from "../assets/close.svg";
 import Button from "./Button";
-import editRow from "../assets/editRow.svg";
-import saveRow from "../assets/saveRow.svg";
-import Avatar from "../assets/Avatar.svg";
 import Remove from "../assets/remove.svg";
-import OtpInput from "./OtpInput";
+import {
+	Company,
+	PagedResponse_CompanyInvitation,
+	PagedResponse_UserKYCModel,
+	UserCompanyCreateUpdateReq,
+	UserKYCModel,
+	UserService,
+} from "../apiClient";
+import CompanyForm from "./CompanyForm";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { CompanyInvitation } from "../apiClient/models/CompanyInvitation";
+import { UserCompanyInvitationCreateReq } from "../apiClient/models/UserCompanyInvitationCreateReq";
+
 interface EditCompanyProps {
 	close?: () => void;
+	filesBaseUrl: string;
+	company: Company;
+	onUpdated: (company: Company) => Promise<unknown>;
 }
 interface Member {
 	email: string;
 	status: string;
 }
-export default function EditCompany({ close = () => {} }: EditCompanyProps) {
-	const [companyName, setCompanyName] = useState("SIA Upwood");
-	const [companyNameEdit, setCompanyNameEdit] = useState(false);
-	const [email, setEmail] = useState("Jonh@gmail.com");
-	const [emailEdit, setEmailEdit] = useState(false);
-	const [emailEditOtpScreen, setEmailEditOtpScreen] = useState(false);
-	const [membersScreen, setMembersScreen] = useState(false);
-	const [memberemail, setMemberEmail] = useState("");
-	const [members, setMembers] = useState<Member[]>([]);
+
+export default function EditCompany({ close = () => {}, filesBaseUrl, company, onUpdated }: EditCompanyProps) {
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
 			if (e.key === "Escape" && close) {
@@ -41,112 +46,96 @@ export default function EditCompany({ close = () => {} }: EditCompanyProps) {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
 	}, [handleKeyDown]);
-	const handleAddMember = () => {
-		setMembers((prevMembers) => [
-			...prevMembers,
-			{
-				email: memberemail,
-				status: "Sent",
-			},
-		]);
-		setMemberEmail("");
+
+	// const [members, setMembers] = useState<Member[]>([]);
+	const [refreshCounter, setRefreshCounter] = useState(0);
+	const [members, setMembers] = useState<PagedResponse_UserKYCModel>();
+	const [invitations, setInvitations] = useState<PagedResponse_CompanyInvitation>();
+	useEffect(() => {
+		UserService.getCompanyMembersList().then(setMembers);
+		UserService.getCompanyInvitationList().then(setInvitations);
+	}, [company, refreshCounter]);
+
+	const [membersScreen, setMembersScreen] = useState(false);
+
+	const {
+		register,
+		handleSubmit,
+		formState: { errors, isValid },
+		reset,
+	} = useForm<UserCompanyInvitationCreateReq>({});
+	const onInviteMemberSubmit: SubmitHandler<UserCompanyInvitationCreateReq> = async (invitation) => {
+		console.log("Inviting member", invitation);
+		try {
+			await UserService.postCompanyInvitation(invitation);
+			// Handle member invitation logic here using the invitation object
+			setRefreshCounter((prev) => prev + 1);
+			reset();
+		} catch {
+			alert("Error inviting member");
+		}
 		setMembersScreen(false);
 	};
+
+	const onSubmit: SubmitHandler<UserCompanyCreateUpdateReq> = (data) => {
+		UserService.putCompany(data)
+			.then(onUpdated)
+			.then(close)
+			.catch((err) => {
+				console.error(err);
+				alert("Error updating company");
+			});
+	};
+
+	const [isRemovingMember, setIsRemovingMember] = useState(false);
+	const onRemoveMember = (user: UserKYCModel) => {
+		if (isRemovingMember) {
+			return;
+		}
+		setIsRemovingMember(true);
+		UserService.deleteCompanyMembers(user.cognito_user_id)
+			.then(() => {
+				setRefreshCounter((prev) => prev + 1);
+			})
+			.catch((err) => {
+				console.error(err);
+				alert("Error removing member");
+			})
+			.finally(() => {
+				setIsRemovingMember(false);
+			});
+	};
+
+	const [isRemovingInvitation, setIsRemovingInvitation] = useState(false);
+	const onRemoveInvitation = (invitation: CompanyInvitation) => {
+		if (isRemovingInvitation) {
+			return;
+		}
+		setIsRemovingInvitation(true);
+		UserService.deleteCompanyInvitation(invitation.id)
+			.then(() => {
+				setRefreshCounter((prev) => prev + 1);
+			})
+			.catch((err) => {
+				console.error(err);
+				alert("Error removing invitation");
+			})
+			.finally(() => {
+				setIsRemovingInvitation(false);
+			});
+	};
+
 	return (
 		<div className="popup-overlay" onClick={handleOverlayClick}>
 			<div className="popup" onClick={(e) => e.stopPropagation()}>
 				<>
 					<img src={closeIcon} alt="Close icon" width={32} height={32} className="close" onClick={close} />
-					<div className="heading">Edit company profile</div>
+					<div className="heading">Edit Company</div>
 					<div className="cl-area edo">
 						<div className="container">
 							<div className="container-in">
 								<div className="space-20"></div>
-								<div className="col-12">
-									<div className="text-align-center">
-										<img src={Avatar} alt="" className="Avatar" />
-									</div>
-									<div className="space-15"></div>
-									<div className="links">
-										<span>CHANGE</span>
-										<span className="danger">DELETE</span>
-									</div>
-								</div>
-								<div className="space-20"></div>
-								<div className="col-12">
-									<div className="head">Company data</div>
-								</div>
-								<div className="clr"></div>
-								<div className="col-4 fl col-m-full">
-									<div className="boxl">Company name</div>
-								</div>
-								<div className="col-8 fr col-m-full">
-									{companyNameEdit ? (
-										<div>
-											<input
-												type="text"
-												placeholder="Enter full name"
-												value={companyName}
-												className="boxt withedit fl"
-												onChange={(e) => setCompanyName(e.target.value)}
-											/>
-											<img src={saveRow} alt="" className="saverow fr" onClick={() => setCompanyNameEdit(false)} />
-											<div className="clr"></div>
-										</div>
-									) : (
-										<div className="boxl lg">
-											{companyName}{" "}
-											<span className="fr">
-												<img src={editRow} onClick={() => setCompanyNameEdit(true)} />
-											</span>
-										</div>
-									)}
-								</div>
-								<div className="clr"></div>
-								<div className="space-15"></div>
-								<div className="clr"></div>
-								<div className="col-4 fl col-m-full">
-									<div className="boxl">Company email</div>
-								</div>
-								<div className="col-8 fr col-m-full">
-									{emailEdit ? (
-										<div>
-											<input
-												type="text"
-												placeholder="Enter email"
-												value={email}
-												className="boxt withedit fl"
-												onChange={(e) => setEmail(e.target.value)}
-											/>
-											<img
-												src={saveRow}
-												alt=""
-												className="saverow fr"
-												onClick={() => {
-													setEmailEdit(false);
-													setEmailEditOtpScreen(true);
-												}}
-											/>
-											<div className="clr"></div>
-										</div>
-									) : (
-										<div className="boxl lg">
-											{email}{" "}
-											<span className="fr">
-												<img src={editRow} onClick={() => setEmailEdit(true)} />
-											</span>
-										</div>
-									)}
-								</div>
-								<div className="clr"></div>
-								<div className="space-15"></div>
-								<div className="clr"></div>
-								<div className="col-4 fl col-m-full">
-									<div className="boxl">Registration №</div>
-								</div>
-								<div className="col-8 fr col-m-full">
-									<div className="boxl lg">12343678</div>
-								</div>
+								<CompanyForm id="company-form" company={company} filesBaseUrl={filesBaseUrl} onSubmit={onSubmit} />
 								<div className="clr"></div>
 								<div className="space-30"></div>
 								<div className="col-12">
@@ -158,28 +147,49 @@ export default function EditCompany({ close = () => {} }: EditCompanyProps) {
 									</div>
 								</div>
 								<div className="space-15"></div>
-								{members.length === 0 && (
+								{members?.data.length === 0 && (
 									<div className="col-12">
-										<div className="twofactor">Members absent</div>
+										<div className="twofactor">No Members</div>
 									</div>
 								)}
-								{members.length !== 0 && (
-									<>
-										{members.map((item, index) => (
-											<div key={index}>
-												<div className="col-9 fl">
-													<div className="twofactor">{item.email}</div>
-												</div>
-												<div className="col-3 fr">
-													<span className={`sty ${item.status}`}>{item.status}</span>
-													<img src={Remove} alt="" className="styremove fr" />
-												</div>
-												<div className="clr"></div>
-												<div className="space-15"></div>
-											</div>
-										))}
-									</>
-								)}
+								{invitations?.data.map((invitation, index) => (
+									<div key={index}>
+										<div className="col-9 fl">
+											<div className="twofactor">{invitation.email}</div>
+										</div>
+										<div className="col-3 fr">
+											<span className="sty Sent">Sent</span>
+											<button
+												className="reset-button styremove fr"
+												onClick={() => onRemoveInvitation(invitation)}
+												disabled={isRemovingInvitation}
+											>
+												<img src={Remove} alt="" width="100%" height="100%" />
+											</button>
+										</div>
+										<div className="clr"></div>
+										<div className="space-15"></div>
+									</div>
+								))}
+								{members?.data.map((member) => (
+									<div key={member.cognito_user_id}>
+										<div className="col-9 fl">
+											<div className="twofactor">{member.email}</div>
+										</div>
+										<div className="col-3 fr">
+											<span className="sty Accepted">Accept</span>
+											<button
+												className="reset-button styremove fr"
+												onClick={() => onRemoveMember(member)}
+												disabled={isRemovingMember}
+											>
+												<img src={Remove} alt="" width="100%" height="100%" />
+											</button>
+										</div>
+										<div className="clr"></div>
+										<div className="space-15"></div>
+									</div>
+								))}
 
 								<div className="col-12"></div>
 								<div className="space-30"></div>
@@ -188,7 +198,7 @@ export default function EditCompany({ close = () => {} }: EditCompanyProps) {
 									<Button text="CLOSE" call={() => close()} />
 								</div>
 								<div className="col-5 fr col-m-full">
-									<Button text="SAVE" active />
+									<Button text="SAVE" active type="submit" form="company-form" />
 								</div>
 								<div className="clr"></div>
 							</div>
@@ -197,62 +207,38 @@ export default function EditCompany({ close = () => {} }: EditCompanyProps) {
 				</>
 			</div>
 
-			{emailEditOtpScreen && (
-				<div className="popup" onClick={(e) => e.stopPropagation()}>
-					<div className="heading">Change Email</div>
-					<div className="cl-area edo">
-						<div className="container">
-							<div className="container-in">
-								<div className="space-20"></div>
-								<div className="col-12">
-									<div className="head text-align-center">To change, you need to confirm your new email address</div>
-									<div className="space-15"></div>
-									<div className="text-align-center">We’ve sent a code to Jonh23@gmail.com</div>
-									<div className="space-30"></div>
-									{/* <OtpInput /> */}
-								</div>
-								<div className="clr"></div>
-								<div className="col-5 fl col-m-full col-mr-bottom-20 ">
-									<Button text="CANCEL" call={() => setEmailEditOtpScreen(false)} />
-								</div>
-								<div className="col-5 fr col-m-full">
-									<Button text="CONFIRM" active />
-								</div>
-								<div className="clr"></div>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-
 			{membersScreen && (
-				<div className="popup" onClick={(e) => e.stopPropagation()}>
+				<div className="popup" onClick={(e) => e.stopPropagation()} id="add-member-popup">
 					<div className="heading">Add members</div>
 					<div className="cl-area edo">
 						<div className="container">
 							<div className="container-in">
 								<div className="space-20"></div>
-								<div className="col-12">
-									<div className="text-align-center">Specify the member's email address</div>
-									<div className="space-15"></div>
-									<div className="field">
-										<input
-											className="textField center"
-											placeholder="Enter email address"
-											value={memberemail}
-											onChange={(e) => setMemberEmail(e.target.value)}
-										/>
+								<form onSubmit={handleSubmit(onInviteMemberSubmit)}>
+									<div className="col-12">
+										<div className="text-align-center">Specify the member's email address</div>
+										<div className="space-15"></div>
+										<div className="field">
+											<input
+												className={`textField center ${errors.email ? "error" : ""}`}
+												placeholder="Enter email address"
+												{...register("email", {
+													required: true,
+													pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+												})}
+											/>
+										</div>
+										<div className="space-30"></div>
 									</div>
-									<div className="space-30"></div>
-								</div>
-								<div className="clr"></div>
-								<div className="col-5 fl col-m-full col-mr-bottom-20">
-									<Button text="CANCEL" call={() => setMembersScreen(false)} />
-								</div>
-								<div className="col-5 fr col-m-full">
-									<Button text="SEND" active call={() => handleAddMember()} />
-								</div>
-								<div className="clr"></div>
+									<div className="clr"></div>
+									<div className="col-5 fl col-m-full col-mr-bottom-20">
+										<Button text="CANCEL" call={() => setMembersScreen(false)} />
+									</div>
+									<div className="col-5 fr col-m-full">
+										<Button text="SEND" active type="submit" disabled={!isValid} />
+									</div>
+									<div className="clr"></div>
+								</form>
 							</div>
 						</div>
 					</div>

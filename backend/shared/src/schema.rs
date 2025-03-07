@@ -114,6 +114,34 @@ diesel::table! {
 }
 
 diesel::table! {
+    companies (id) {
+        id -> Uuid,
+        #[max_length = 255]
+        name -> Varchar,
+        registration_address -> Nullable<Text>,
+        #[max_length = 255]
+        vat_no -> Nullable<Varchar>,
+        #[max_length = 255]
+        country -> Nullable<Varchar>,
+        profile_picture_url -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    company_invitations (id) {
+        id -> Uuid,
+        company_id -> Uuid,
+        #[max_length = 255]
+        email -> Varchar,
+        #[max_length = 255]
+        created_by -> Varchar,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     forest_project_legal_contract_user_signatures (project_id, cognito_user_id) {
         project_id -> Uuid,
         cognito_user_id -> Varchar,
@@ -624,6 +652,7 @@ diesel::table! {
         affiliate_account_address -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        company_id -> Nullable<Uuid>,
     }
 }
 
@@ -634,6 +663,8 @@ diesel::joinable!(cis2_recovery_records -> listener_contracts (cis2_address));
 diesel::joinable!(cis2_token_holder_balance_updates -> listener_contracts (cis2_address));
 diesel::joinable!(cis2_token_holders -> listener_contracts (cis2_address));
 diesel::joinable!(cis2_tokens -> listener_contracts (cis2_address));
+diesel::joinable!(company_invitations -> companies (company_id));
+diesel::joinable!(company_invitations -> users (created_by));
 diesel::joinable!(forest_project_legal_contract_user_signatures -> forest_projects (project_id));
 diesel::joinable!(forest_project_legal_contract_user_signatures -> users (cognito_user_id));
 diesel::joinable!(forest_project_legal_contracts -> forest_projects (project_id));
@@ -664,6 +695,7 @@ diesel::joinable!(security_p2p_trading_markets -> security_p2p_trading_contracts
 diesel::joinable!(security_p2p_trading_traders -> listener_contracts (token_contract_address));
 diesel::joinable!(security_p2p_trading_traders -> security_p2p_trading_contracts (contract_address));
 diesel::joinable!(support_questions -> users (cognito_user_id));
+diesel::joinable!(users -> companies (company_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     cis2_agents,
@@ -674,6 +706,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     cis2_token_holder_balance_updates,
     cis2_token_holders,
     cis2_tokens,
+    companies,
+    company_invitations,
     forest_project_legal_contract_user_signatures,
     forest_project_legal_contracts,
     forest_project_notifications,

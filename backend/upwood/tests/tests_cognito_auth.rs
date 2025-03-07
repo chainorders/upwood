@@ -43,9 +43,9 @@ async fn cognito_auth_test() {
     let sdk_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let mut user_pool = UserPool::new(
         &sdk_config,
-        api_config.aws_user_pool_id,
-        api_config.aws_user_pool_client_id,
-        api_config.aws_user_pool_region,
+        &api_config.aws_user_pool_id,
+        &api_config.aws_user_pool_client_id,
+        &api_config.aws_user_pool_region,
     )
     .await
     .expect("Failed to create user pool");

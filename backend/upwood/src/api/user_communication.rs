@@ -1,6 +1,6 @@
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
-use poem_openapi::payload::{Json, PlainText};
+use poem_openapi::payload::Json;
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db_app::user_communication::{
@@ -9,9 +9,7 @@ use shared::db_app::user_communication::{
 use shared::db_shared::DbPool;
 use uuid::Uuid;
 
-use super::{
-    ensure_is_admin, ApiTags, BearerAuthorization, Error, JsonResult, NoResResult, PAGE_SIZE,
-};
+use super::{ensure_is_admin, ApiTags, BearerAuthorization, JsonResult, NoResResult, PAGE_SIZE};
 
 pub struct Api;
 
@@ -48,11 +46,9 @@ impl Api {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(id): Path<Uuid>,
-    ) -> JsonResult<NewsArticle> {
+    ) -> JsonResult<Option<NewsArticle>> {
         let mut conn = db_pool.get()?;
-        let news_article = NewsArticle::find(&mut conn, id)?
-            .ok_or_else(|| Error::NotFound(PlainText("News article not found".to_string())))?;
-        Ok(Json(news_article))
+        Ok(Json(NewsArticle::find(&mut conn, id)?))
     }
 
     #[oai(
@@ -121,11 +117,9 @@ impl Api {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(id): Path<Uuid>,
-    ) -> JsonResult<PlatformUpdate> {
+    ) -> JsonResult<Option<PlatformUpdate>> {
         let mut conn = db_pool.get()?;
-        let platform_update = PlatformUpdate::find(&mut conn, id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Platform update not found".to_string())))?;
-        Ok(Json(platform_update))
+        Ok(Json(PlatformUpdate::find(&mut conn, id)?))
     }
 
     #[oai(
@@ -137,11 +131,9 @@ impl Api {
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<PlatformUpdate> {
+    ) -> JsonResult<Option<PlatformUpdate>> {
         let mut conn = db_pool.get()?;
-        let platform_update = PlatformUpdate::find_first(&mut conn)?
-            .ok_or_else(|| Error::NotFound(PlainText("Platform update not found".to_string())))?;
-        Ok(Json(platform_update))
+        Ok(Json(PlatformUpdate::find_first(&mut conn)?))
     }
 
     #[oai(
@@ -210,12 +202,9 @@ impl Api {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(id): Path<Uuid>,
-    ) -> JsonResult<MaintenanceMessage> {
+    ) -> JsonResult<Option<MaintenanceMessage>> {
         let mut conn = db_pool.get()?;
-        let maintenance_message = MaintenanceMessage::find(&mut conn, id)?.ok_or_else(|| {
-            Error::NotFound(PlainText("Maintenance message not found".to_string()))
-        })?;
-        Ok(Json(maintenance_message))
+        Ok(Json(MaintenanceMessage::find(&mut conn, id)?))
     }
 
     #[oai(
@@ -227,12 +216,9 @@ impl Api {
         &self,
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
-    ) -> JsonResult<MaintenanceMessage> {
+    ) -> JsonResult<Option<MaintenanceMessage>> {
         let mut conn = db_pool.get()?;
-        let maintenance_message = MaintenanceMessage::find_first(&mut conn)?.ok_or_else(|| {
-            Error::NotFound(PlainText("Maintenance message not found".to_string()))
-        })?;
-        Ok(Json(maintenance_message))
+        Ok(Json(MaintenanceMessage::find_first(&mut conn)?))
     }
 
     #[oai(
@@ -300,11 +286,9 @@ impl Api {
         BearerAuthorization(_claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(id): Path<Uuid>,
-    ) -> JsonResult<Guide> {
+    ) -> JsonResult<Option<Guide>> {
         let mut conn = db_pool.get()?;
-        let guide = Guide::find(&mut conn, id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Guide not found".to_string())))?;
-        Ok(Json(guide))
+        Ok(Json(Guide::find(&mut conn, id)?))
     }
 
     #[oai(
@@ -374,12 +358,10 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(id): Path<Uuid>,
-    ) -> JsonResult<SupportQuestion> {
+    ) -> JsonResult<Option<SupportQuestion>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let support_question = SupportQuestion::find(&mut conn, id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Support question not found".to_string())))?;
-        Ok(Json(support_question))
+        Ok(Json(SupportQuestion::find(&mut conn, id)?))
     }
 
     #[oai(

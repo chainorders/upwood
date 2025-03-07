@@ -47,6 +47,9 @@ export class CognitoStack extends cdk.Stack {
 				nationality: new StringAttribute({
 					mutable: true,
 				}),
+				company_id: new StringAttribute({
+					mutable: true,
+				}),
 			},
 			autoVerify: { email: true },
 			accountRecovery: AccountRecovery.EMAIL_ONLY,
@@ -97,9 +100,12 @@ export class CognitoStack extends cdk.Stack {
 						emailVerified: true,
 						familyName: true,
 						givenName: true,
+						profilePicture: true,
 					})
 					.withCustomAttributes("con_accnt")
-					.withCustomAttributes("nationality"),
+					.withCustomAttributes("nationality")
+					.withCustomAttributes("affiliate_con_accnt")
+					.withCustomAttributes("company_id"),
 			},
 		);
 		cdk.Tags.of(client).add("organization", props.organization);

@@ -71,7 +71,7 @@ pub mod cognito {
     pub struct UserPool {
         key_set:                 KeySet,
         verifier:                jsonwebtokens::Verifier,
-        cognito_client:          CognitoClient,
+        client:                  CognitoClient,
         pub user_pool_id:        String,
         pub user_pool_client_id: String,
     }
@@ -79,23 +79,23 @@ pub mod cognito {
     impl UserPool {
         pub async fn new(
             sdk_config: &aws_config::SdkConfig,
-            user_pool_id: String,
-            user_pool_client_id: String,
-            user_pool_region: String,
+            user_pool_id: &str,
+            user_pool_client_id: &str,
+            user_pool_region: &str,
         ) -> Result<Self> {
-            let cognito_client = CognitoClient::new(sdk_config);
-            let key_set = KeySet::new(user_pool_region, user_pool_id.clone())
-                .map_err(Error::CognitoKeySet)?;
+            let client = CognitoClient::new(sdk_config);
+            let key_set =
+                KeySet::new(user_pool_region, user_pool_id).map_err(Error::CognitoKeySet)?;
             key_set.prefetch_jwks().await.map_err(Error::CognitoJWKS)?;
             let verifier = key_set
-                .new_id_token_verifier(&[&user_pool_client_id])
+                .new_id_token_verifier(&[user_pool_client_id])
                 .ignore_iat()
                 .build()
                 .map_err(Error::JsonToken)?;
             Ok(Self {
                 key_set,
                 verifier,
-                cognito_client,
+                client,
                 user_pool_id: user_pool_id.to_string(),
                 user_pool_client_id: user_pool_client_id.to_string(),
             })
@@ -104,7 +104,7 @@ pub mod cognito {
         #[instrument(skip_all)]
         pub async fn find_user_by_email(&self, email: &str) -> Result<Option<UserType>> {
             let users = self
-                .cognito_client
+                .client
                 .list_users()
                 .user_pool_id(self.user_pool_id.clone())
                 .filter(format!("email = \"{email}\""))
@@ -136,7 +136,7 @@ pub mod cognito {
             username: &str,
             password: &str,
         ) -> Result<()> {
-            self.cognito_client
+            self.client
                 .admin_set_user_password()
                 .user_pool_id(&self.user_pool_id)
                 .username(username)
@@ -152,7 +152,7 @@ pub mod cognito {
             username: &str,
             attributes: Vec<AttributeType>,
         ) -> Result<()> {
-            self.cognito_client
+            self.client
                 .admin_update_user_attributes()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
@@ -174,7 +174,7 @@ pub mod cognito {
             password: &str,
             attributes: Vec<AttributeType>,
         ) -> Result<AdminGetUserOutput> {
-            self.cognito_client
+            self.client
                 .admin_update_user_attributes()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
@@ -182,14 +182,14 @@ pub mod cognito {
                 .send()
                 .await?;
             let user = self
-                .cognito_client
+                .client
                 .admin_get_user()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
                 .send()
                 .await?;
             if let Some(UserStatusType::Unconfirmed) = user.user_status {
-                self.cognito_client
+                self.client
                     .confirm_sign_up()
                     .client_id(&self.user_pool_client_id)
                     .confirmation_code(temp_password)
@@ -197,7 +197,7 @@ pub mod cognito {
                     .send()
                     .await?;
             }
-            self.cognito_client
+            self.client
                 .admin_set_user_password()
                 .user_pool_id(&self.user_pool_id)
                 .username(username)
@@ -215,7 +215,7 @@ pub mod cognito {
             attributes: Vec<AttributeType>,
         ) -> Result<UserType> {
             let user = self
-                .cognito_client
+                .client
                 .admin_create_user()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
@@ -230,7 +230,7 @@ pub mod cognito {
 
         #[instrument(skip_all)]
         pub async fn admin_add_to_admin_group(&mut self, username: &str) {
-            self.cognito_client
+            self.client
                 .admin_add_user_to_group()
                 .user_pool_id(self.user_pool_id.to_owned())
                 .username(username.to_owned())
@@ -245,7 +245,7 @@ pub mod cognito {
             email: &str,
             password: &str,
         ) -> Result<InitiateAuthOutput> {
-            self.cognito_client
+            self.client
                 .initiate_auth()
                 .client_id(&self.user_pool_client_id)
                 .auth_flow(AuthFlowType::UserPasswordAuth)
@@ -269,7 +269,7 @@ pub mod cognito {
 
         #[instrument(skip_all)]
         pub async fn set_email_verified(&self, username: &str) -> Result<()> {
-            self.cognito_client
+            self.client
                 .admin_update_user_attributes()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
@@ -281,7 +281,7 @@ pub mod cognito {
 
         #[instrument(skip_all)]
         pub async fn reset_password(&self, username: &str) -> Result<()> {
-            self.cognito_client
+            self.client
                 .admin_set_user_password()
                 .user_pool_id(&self.user_pool_id)
                 .username(username)
@@ -294,7 +294,7 @@ pub mod cognito {
 
         #[instrument(skip_all)]
         pub async fn update_account_address(&self, username: &str, address: &str) -> Result<()> {
-            self.cognito_client
+            self.client
                 .admin_update_user_attributes()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
@@ -306,7 +306,7 @@ pub mod cognito {
 
         #[instrument(skip_all)]
         pub async fn disable_user(&self, username: &str) -> Result<()> {
-            self.cognito_client
+            self.client
                 .admin_disable_user()
                 .user_pool_id(self.user_pool_id.clone())
                 .username(username)
@@ -363,6 +363,8 @@ pub mod cognito {
         pub last_name:         Option<String>,
         #[serde(rename = "custom:nationallity")]
         pub nationality:       Option<String>,
+        #[serde(rename = "custom:company_id")]
+        pub company_id:        Option<uuid::Uuid>,
     }
 
     impl Claims {
@@ -446,6 +448,14 @@ pub mod cognito {
             .build()
             .unwrap()
     }
+
+    pub fn company_id_attribute(company_id: Option<&uuid::Uuid>) -> AttributeType {
+        AttributeType::builder()
+            .name("custom:company_id".to_string())
+            .set_value(company_id.map(|id| id.to_string()))
+            .build()
+            .unwrap()
+    }
 }
 
 pub mod s3 {
@@ -522,6 +532,42 @@ pub mod s3 {
                 .key(file_name)
                 .send()
                 .await?;
+            Ok(())
+        }
+    }
+}
+
+pub mod ses {
+    use shared::db_app::users::Company;
+    use tracing::info;
+    use uuid::Uuid;
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum Error {}
+
+    #[derive(Debug, Clone)]
+    pub struct Emailer {
+        pub client: aws_sdk_sesv2::Client,
+        pub from_email: String,
+        pub company_invitation_accept_url: String,
+    }
+
+    impl Emailer {
+        pub async fn send_company_invitation_email(
+            &self,
+            invitation_id: &Uuid,
+            invitee_email: &str,
+            inviter_email: &str,
+            company: &Company,
+        ) -> Result<(), Error> {
+            info!(
+                "Sending company invitation email to {} from {} for company {}, invitation url: {}, reject url: {}",
+                invitee_email,
+                inviter_email,
+                company.name,
+                format!("{}/{}/accept", self.company_invitation_accept_url, invitation_id),
+                format!("{}/{}/reject", self.company_invitation_accept_url, invitation_id),
+            );
             Ok(())
         }
     }

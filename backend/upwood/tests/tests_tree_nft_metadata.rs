@@ -78,6 +78,7 @@ async fn signature_tests() {
                 last_name:         None,
                 nationality:       None,
                 affiliate_account: None,
+                company_id:        None,
             }),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
@@ -282,6 +283,7 @@ async fn signature_tests() {
         last_name:         None,
         nationality:       None,
         affiliate_account: None,
+        company_id:        None,
     });
 
     let poem_openapi::payload::Json(random_metadata) = tree_nft::Api
