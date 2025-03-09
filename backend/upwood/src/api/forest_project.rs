@@ -4,7 +4,6 @@ use itertools::Itertools;
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Attachment, AttachmentType};
-use poem_openapi::types::ToJSON;
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db::security_mint_fund::{SecurityMintFund, SecurityMintFundContract};
@@ -69,14 +68,10 @@ impl ForestProjectApi {
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectAggApiModel> {
+    ) -> JsonResult<Option<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
         let project = ForestProjectAggApiModel::list(conn, contracts, &[project_id], &claims.sub)?
-            .pop()
-            .ok_or(Error::NotFound(PlainText(format!(
-                "Project not found: {}",
-                project_id
-            ))))?;
+            .pop();
         Ok(Json(project))
     }
 
@@ -340,14 +335,14 @@ impl ForestProjectApi {
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
         Path(media_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectMedia> {
+    ) -> JsonResult<Option<ForestProjectMedia>> {
         let conn = &mut db_pool.get()?;
-        let media = ForestProjectMedia::find(conn, media_id)?.ok_or(Error::NotFound(PlainText(
-            format!(
-                "Media not found for project: {} at {}",
-                project_id, media_id
-            ),
-        )))?;
+        let media = ForestProjectMedia::find(conn, media_id)?;
+        if let Some(ref media) = media {
+            if media.project_id != project_id {
+                return Ok(Json(None));
+            }
+        }
         Ok(Json(media))
     }
 
@@ -514,12 +509,10 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<LegalContractUserModel> {
+    ) -> JsonResult<Option<LegalContractUserModel>> {
         let conn = &mut db_pool.get()?;
         let contract =
-            LegalContractUserModel::find(conn, project_id, &claims.sub)?.ok_or(Error::NotFound(
-                PlainText(format!("Legal contract not found: {}", project_id)),
-            ))?;
+            LegalContractUserModel::find(conn, project_id, &claims.sub)?;
         Ok(Json(contract))
     }
 }
@@ -817,12 +810,10 @@ impl ForestProjectAdminApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProject> {
+    ) -> JsonResult<Option<ForestProject>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let project = ForestProject::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-            format!("Forest project not found: {}", project_id),
-        )))?;
+        let project = ForestProject::find(conn, project_id)?;
         Ok(Json(project))
     }
 
@@ -973,12 +964,10 @@ impl ForestProjectAdminApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<ForestProjectPrice> {
+    ) -> JsonResult<Option<ForestProjectPrice>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let price = ForestProjectPrice::latest(conn, project_id)?.ok_or(Error::NotFound(
-            PlainText(format!("Price not found for project: {}", project_id)),
-        ))?;
+        let price = ForestProjectPrice::latest(conn, project_id)?;
         Ok(Json(price))
     }
 
@@ -993,15 +982,10 @@ impl ForestProjectAdminApi {
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
         Path(price_at): Path<chrono::NaiveDateTime>,
-    ) -> JsonResult<ForestProjectPrice> {
+    ) -> JsonResult<Option<ForestProjectPrice>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let price = ForestProjectPrice::find(conn, project_id, price_at)?.ok_or(
-            Error::NotFound(PlainText(format!(
-                "Price not found for project: {} at {}",
-                project_id, price_at
-            ))),
-        )?;
+        let price = ForestProjectPrice::find(conn, project_id, price_at)?;
         Ok(Json(price))
     }
 
@@ -1118,13 +1102,10 @@ impl ForestProjectAdminApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(contract_address): Path<Decimal>,
-    ) -> JsonResult<ForestProjectTokenContract> {
+    ) -> JsonResult<Option<ForestProjectTokenContract>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let contract =
-            ForestProjectTokenContract::find(conn, contract_address)?.ok_or(Error::NotFound(
-                PlainText(format!("Token contract not found: {}", contract_address)),
-            ))?;
+        let contract = ForestProjectTokenContract::find(conn, contract_address)?;
         Ok(Json(contract))
     }
 
@@ -1139,15 +1120,10 @@ impl ForestProjectAdminApi {
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
         Path(contract_type): Path<SecurityTokenContractType>,
-    ) -> JsonResult<ForestProjectTokenContract> {
+    ) -> JsonResult<Option<ForestProjectTokenContract>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let contract = ForestProjectTokenContract::find_by_type(conn, project_id, contract_type)?
-            .ok_or(Error::NotFound(PlainText(format!(
-            "Token contract not found: {}, {}",
-            project_id,
-            contract_type.to_json_string()
-        ))))?;
+        let contract = ForestProjectTokenContract::find_by_type(conn, project_id, contract_type)?;
         Ok(Json(contract))
     }
 
@@ -1279,15 +1255,10 @@ impl ForestProjectAdminApi {
         Data(db_pool): Data<&DbPool>,
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
-    ) -> JsonResult<TokenMetadata> {
+    ) -> JsonResult<Option<TokenMetadata>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let metadata = TokenMetadata::find(conn, contract_address, token_id)?.ok_or(
-            Error::NotFound(PlainText(format!(
-                "Token metadata not found: {}, {}",
-                contract_address, token_id
-            ))),
-        )?;
+        let metadata = TokenMetadata::find(conn, contract_address, token_id)?;
         Ok(Json(metadata))
     }
 
@@ -1386,12 +1357,10 @@ impl ForestProjectAdminApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Path(project_id): Path<uuid::Uuid>,
-    ) -> JsonResult<LegalContract> {
+    ) -> JsonResult<Option<LegalContract>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
-        let contract = LegalContract::find(conn, project_id)?.ok_or(Error::NotFound(PlainText(
-            format!("Legal contract not found: {}", project_id),
-        )))?;
+        let contract = LegalContract::find(conn, project_id)?;
         Ok(Json(contract))
     }
 
