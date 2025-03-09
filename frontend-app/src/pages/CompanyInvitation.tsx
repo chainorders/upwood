@@ -59,7 +59,7 @@ export default function CompanyInvitation({ accepted }: { accepted: boolean }) {
 						{state === "error" && "An error occurred. Please try again later."}
 					</Typography>
 					<Link to="/settings">
-						<Button variant="text" sx={{color: "green"}}>
+						<Button variant="text" sx={{ color: "green" }}>
 							<FaArrowCircleLeft />
 							<Typography ml="5px">Back to Home</Typography>
 						</Button>

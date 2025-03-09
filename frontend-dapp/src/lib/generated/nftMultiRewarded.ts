@@ -18,7 +18,7 @@ export type initRequest = {
 export const initRequestSchemaBase64 =
 	"FAABAAAADAAAAHJld2FyZF90b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAA==";
 export const initErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type AddAgentError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -28,14 +28,14 @@ export type AddAgentError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const addAgentErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type AddAgentRequest = {
 	address:
 		| { Account: [string] }
@@ -52,14 +52,14 @@ export type BalanceOfError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const balanceOfErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type BalanceOfRequest = Array<{
 	token_id: string;
 	address:
@@ -79,14 +79,14 @@ export type IsAgentError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const isAgentErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type IsAgentRequest = {
 	address:
 		| { Account: [string] }
@@ -105,36 +105,55 @@ export type MintError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const mintErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type MintRequest = {
-	token_id: string;
-	amount: string;
-	from:
-		| { Account: [string] }
-		| { Contract: [{ index: number; subindex: number }] };
-	data: {
-		signed_metadata: {
-			contract_address: { index: number; subindex: number };
-			metadata_url: {
-				url: string;
-				hash: { None: Record<string, never> } | { Some: [string] };
-			};
-			account: string;
-			account_nonce: bigint;
+	signed_metadata: {
+		contract_address: { index: number; subindex: number };
+		metadata_url: {
+			url: string;
+			hash: { None: Record<string, never> } | { Some: [string] };
 		};
-		signer: string;
-		signature: [number, [number, { Ed25519: [string] }][]][];
+		account: string;
+		account_nonce: bigint;
 	};
+	signer: string;
+	signature: [number, [number, { Ed25519: [string] }][]][];
 };
 export const mintRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAwAAAA8AAABzaWduZWRfbWV0YWRhdGEUAAQAAAAQAAAAY29udHJhY3RfYWRkcmVzcwwMAAAAbWV0YWRhdGFfdXJsFAACAAAAAwAAAHVybBYBBAAAAGhhc2gVAgAAAAQAAABOb25lAgQAAABTb21lAQEAAAAeIAAAAAcAAABhY2NvdW50Cw0AAABhY2NvdW50X25vbmNlBQYAAABzaWduZXILCQAAAHNpZ25hdHVyZRIAAhIAAhUBAAAABwAAAEVkMjU1MTkBAQAAAB5AAAAA";
+	"FAADAAAADwAAAHNpZ25lZF9tZXRhZGF0YRQABAAAABAAAABjb250cmFjdF9hZGRyZXNzDAwAAABtZXRhZGF0YV91cmwUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAABwAAAGFjY291bnQLDQAAAGFjY291bnRfbm9uY2UFBgAAAHNpZ25lcgsJAAAAc2lnbmF0dXJlEgACEgACFQEAAAAHAAAARWQyNTUxOQEBAAAAHkAAAAA=";
+export type MintAgentError =
+	| { ParseError: Record<string, never> }
+	| { LogError: Record<string, never> }
+	| { InvalidTokenId: Record<string, never> }
+	| { InsufficientFunds: Record<string, never> }
+	| { Unauthorized: Record<string, never> }
+	| { InvalidAmount: Record<string, never> }
+	| { InvalidAddress: Record<string, never> }
+	| { TransferInvokeError: Record<string, never> }
+	| { UnauthorizedInvalidAgent: Record<string, never> }
+	| { CheckSignature: Record<string, never> }
+	| { InvalidSignature: Record<string, never> }
+	| { InvalidNonce: Record<string, never> }
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
+export const mintAgentErrorSchemaBase64 =
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
+export type MintAgentRequest = {
+	metadata_url: {
+		url: string;
+		hash: { None: Record<string, never> } | { Some: [string] };
+	};
+	account: string;
+};
+export const mintAgentRequestSchemaBase64 =
+	"FAACAAAADAAAAG1ldGFkYXRhX3VybBQAAgAAAAMAAAB1cmwWAgQAAABoYXNoFQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFgIHAAAAYWNjb3VudAs=";
 export type OperatorOfError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -144,14 +163,14 @@ export type OperatorOfError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const operatorOfErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type OperatorOfRequest = Array<{
 	owner:
 		| { Account: [string] }
@@ -173,14 +192,14 @@ export type RemoveAgentError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const removeAgentErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type RemoveAgentRequest =
 	| { Account: [string] }
 	| { Contract: [{ index: number; subindex: number }] };
@@ -195,14 +214,14 @@ export type SupportsError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const supportsErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type SupportsRequest = Array<string>;
 export const supportsRequestSchemaBase64 = "EAEWAA==";
 export type SupportsResponse = Array<
@@ -221,14 +240,14 @@ export type TokenMetadataError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const tokenMetadataErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type TokenMetadataRequest = Array<string>;
 export const tokenMetadataRequestSchemaBase64 = "EAEdAA==";
 export type TokenMetadataResponse = Array<{
@@ -246,14 +265,14 @@ export type TransferError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const transferErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type TransferRequest = Array<{
 	token_id: string;
 	amount: string;
@@ -267,38 +286,6 @@ export type TransferRequest = Array<{
 }>;
 export const transferRequestSchemaBase64 =
 	"EAEUAAUAAAAIAAAAdG9rZW5faWQdAAYAAABhbW91bnQbJQAAAAQAAABmcm9tFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAIAAAB0bxUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAgAAAAwWAQQAAABkYXRhHQE=";
-export type TransferMintError =
-	| { ParseError: Record<string, never> }
-	| { LogError: Record<string, never> }
-	| { InvalidTokenId: Record<string, never> }
-	| { InsufficientFunds: Record<string, never> }
-	| { Unauthorized: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { InvalidAddress: Record<string, never> }
-	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
-	| { UnauthorizedInvalidAgent: Record<string, never> }
-	| { CheckSignature: Record<string, never> }
-	| { InvalidSignature: Record<string, never> }
-	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
-export const transferMintErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
-export type TransferMintRequest = {
-	signed_metadata: {
-		contract_address: { index: number; subindex: number };
-		metadata_url: {
-			url: string;
-			hash: { None: Record<string, never> } | { Some: [string] };
-		};
-		account: string;
-		account_nonce: bigint;
-	};
-	signer: string;
-	signature: [number, [number, { Ed25519: [string] }][]][];
-};
-export const transferMintRequestSchemaBase64 =
-	"FAADAAAADwAAAHNpZ25lZF9tZXRhZGF0YRQABAAAABAAAABjb250cmFjdF9hZGRyZXNzDAwAAABtZXRhZGF0YV91cmwUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAABwAAAGFjY291bnQLDQAAAGFjY291bnRfbm9uY2UFBgAAAHNpZ25lcgsJAAAAc2lnbmF0dXJlEgACEgACFQEAAAAHAAAARWQyNTUxOQEBAAAAHkAAAAA=";
 export type UpdateOperatorError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -308,14 +295,14 @@ export type UpdateOperatorError =
 	| { InvalidAmount: Record<string, never> }
 	| { InvalidAddress: Record<string, never> }
 	| { TransferInvokeError: Record<string, never> }
-	| { InvalidRewardToken: Record<string, never> }
 	| { UnauthorizedInvalidAgent: Record<string, never> }
 	| { CheckSignature: Record<string, never> }
 	| { InvalidSignature: Record<string, never> }
 	| { InvalidNonce: Record<string, never> }
-	| { InvalidContractAddress: Record<string, never> };
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
 export const updateOperatorErrorSchemaBase64 =
-	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgISAAAASW52YWxpZFJld2FyZFRva2VuAhgAAABVbmF1dGhvcml6ZWRJbnZhbGlkQWdlbnQCDgAAAENoZWNrU2lnbmF0dXJlAhAAAABJbnZhbGlkU2lnbmF0dXJlAgwAAABJbnZhbGlkTm9uY2UCFgAAAEludmFsaWRDb250cmFjdEFkZHJlc3MC";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
 export type UpdateOperatorRequest = Array<{
 	update: { Remove: Record<string, never> } | { Add: Record<string, never> };
 	operator:
@@ -419,12 +406,12 @@ export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
 	balanceOf: EntrypointName.fromString("balanceOf"),
 	isAgent: EntrypointName.fromString("isAgent"),
 	mint: EntrypointName.fromString("mint"),
+	mintAgent: EntrypointName.fromString("mintAgent"),
 	operatorOf: EntrypointName.fromString("operatorOf"),
 	removeAgent: EntrypointName.fromString("removeAgent"),
 	supports: EntrypointName.fromString("supports"),
 	tokenMetadata: EntrypointName.fromString("tokenMetadata"),
 	transfer: EntrypointName.fromString("transfer"),
-	transferMint: EntrypointName.fromString("transferMint"),
 	updateOperator: EntrypointName.fromString("updateOperator"),
 };
 export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
@@ -432,18 +419,18 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 	balanceOf: "Balance Of",
 	isAgent: "Is Agent",
 	mint: "Mint",
+	mintAgent: "Mint Agent",
 	operatorOf: "Operator Of",
 	removeAgent: "Remove Agent",
 	supports: "Supports",
 	tokenMetadata: "Token Metadata",
 	transfer: "Transfer",
-	transferMint: "Transfer Mint",
 	updateOperator: "Update Operator",
 };
 export const nftMultiRewarded = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"324dc585302b27f64bb42c00f393110b8005e3d6a40dfaedbb68b17de1dea760",
+			"d3d06b77ad157ac58338075ec3bc0ef033f98031bf5e2a4eb94716ae2a983445",
 		),
 		ContractName.fromString("nft_multi_rewarded"),
 		initRequestSchemaBase64,
@@ -479,6 +466,13 @@ export const nftMultiRewarded = {
 		mintRequestSchemaBase64,
 		undefined,
 		mintErrorSchemaBase64,
+	),
+	mintAgent: new ReceiveMethod<MintAgentRequest, never, MintAgentError>(
+		ContractName.fromString("nft_multi_rewarded"),
+		EntrypointName.fromString("mintAgent"),
+		mintAgentRequestSchemaBase64,
+		undefined,
+		mintAgentErrorSchemaBase64,
 	),
 	operatorOf: new ReceiveMethod<
 		OperatorOfRequest,
@@ -522,17 +516,6 @@ export const nftMultiRewarded = {
 		transferRequestSchemaBase64,
 		undefined,
 		transferErrorSchemaBase64,
-	),
-	transferMint: new ReceiveMethod<
-		TransferMintRequest,
-		never,
-		TransferMintError
-	>(
-		ContractName.fromString("nft_multi_rewarded"),
-		EntrypointName.fromString("transferMint"),
-		transferMintRequestSchemaBase64,
-		undefined,
-		transferMintErrorSchemaBase64,
 	),
 	updateOperator: new ReceiveMethod<
 		UpdateOperatorRequest,

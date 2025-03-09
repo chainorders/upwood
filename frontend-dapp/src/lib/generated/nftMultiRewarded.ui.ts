@@ -53,12 +53,12 @@ export const initErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -140,16 +140,6 @@ export const initErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -198,6 +188,12 @@ export const initErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -211,12 +207,12 @@ export type initErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const addAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Agent Request",
@@ -280,12 +276,12 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -367,16 +363,6 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -425,6 +411,12 @@ export const addAgentErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -438,12 +430,12 @@ export type AddAgentErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const balanceOfRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -524,12 +516,12 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -611,16 +603,6 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -669,6 +651,12 @@ export const balanceOfErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -682,12 +670,12 @@ export type BalanceOfErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const isAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Is Agent Request",
@@ -756,12 +744,12 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -843,16 +831,6 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -901,6 +879,12 @@ export const isAgentErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -914,193 +898,126 @@ export type IsAgentErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const mintRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Mint Request",
 	properties: {
-		token_id: {
-			type: "string",
-			title: "Token Id",
-			default: "",
-			format: "byte",
-		},
-		amount: { type: "string", title: "Amount" },
-		from: {
+		signed_metadata: {
 			type: "object",
-			title: "From",
-			properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
-			required: ["tag"],
-			dependencies: {
-				tag: {
-					oneOf: [
-						{
-							properties: {
-								tag: { enum: ["Account"] },
-								Account: {
-									type: "array",
-									items: { type: "string", title: "" },
-								},
-							},
-						},
-						{
-							properties: {
-								tag: { enum: ["Contract"] },
-								Contract: {
-									type: "array",
-									items: {
-										type: "object",
-										title: "",
-										properties: {
-											index: { type: "integer", minimum: 0 },
-											subindex: { type: "integer", minimum: 0 },
-										},
-									},
-								},
-							},
-						},
-					],
-				},
-			},
-		},
-		data: {
-			type: "object",
-			title: "Data",
+			title: "Signed Metadata",
 			properties: {
-				signed_metadata: {
+				contract_address: {
 					type: "object",
-					title: "Signed Metadata",
+					title: "Contract Address",
 					properties: {
-						contract_address: {
+						index: { type: "integer", minimum: 0 },
+						subindex: { type: "integer", minimum: 0 },
+					},
+				},
+				metadata_url: {
+					type: "object",
+					title: "Metadata Url",
+					properties: {
+						url: { type: "string", title: "Url", default: "" },
+						hash: {
 							type: "object",
-							title: "Contract Address",
-							properties: {
-								index: { type: "integer", minimum: 0 },
-								subindex: { type: "integer", minimum: 0 },
-							},
-						},
-						metadata_url: {
-							type: "object",
-							title: "Metadata Url",
-							properties: {
-								url: { type: "string", title: "Url", default: "" },
-								hash: {
-									type: "object",
-									title: "Hash",
-									properties: {
-										tag: { type: "string", enum: ["None", "Some"] },
-									},
-									required: ["tag"],
-									dependencies: {
-										tag: {
-											oneOf: [
-												{
-													properties: {
-														tag: { enum: ["None"] },
-														None: {
-															type: "object",
-															title: "None",
-															properties: {},
-														},
-													},
-												},
-												{
-													properties: {
-														tag: { enum: ["Some"] },
-														Some: {
-															type: "array",
-															items: {
-																type: "string",
-																title: "",
-																default: "",
-																format: "byte",
-															},
-														},
-													},
-												},
-											],
+							title: "Hash",
+							properties: { tag: { type: "string", enum: ["None", "Some"] } },
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["None"] },
+												None: { type: "object", title: "None", properties: {} },
+											},
 										},
-									},
+										{
+											properties: {
+												tag: { enum: ["Some"] },
+												Some: {
+													type: "array",
+													items: {
+														type: "string",
+														title: "",
+														default: "",
+														format: "byte",
+													},
+												},
+											},
+										},
+									],
 								},
 							},
-						},
-						account: { type: "string", title: "Account" },
-						account_nonce: {
-							type: "integer",
-							minimum: 0,
-							title: "Account Nonce",
 						},
 					},
 				},
-				signer: { type: "string", title: "Signer" },
-				signature: {
+				account: { type: "string", title: "Account" },
+				account_nonce: { type: "integer", minimum: 0, title: "Account Nonce" },
+			},
+		},
+		signer: { type: "string", title: "Signer" },
+		signature: {
+			type: "array",
+			items: [
+				{ type: "integer", minimum: 0, maximum: 255, title: "Key" },
+				{
 					type: "array",
 					items: [
 						{ type: "integer", minimum: 0, maximum: 255, title: "Key" },
 						{
-							type: "array",
-							items: [
-								{ type: "integer", minimum: 0, maximum: 255, title: "Key" },
-								{
-									type: "object",
-									title: "Value",
-									properties: { tag: { type: "string", enum: ["Ed25519"] } },
-									required: ["tag"],
-									dependencies: {
-										tag: {
-											oneOf: [
-												{
-													properties: {
-														tag: { enum: ["Ed25519"] },
-														Ed25519: {
-															type: "array",
-															items: {
-																type: "string",
-																title: "",
-																default: "",
-																format: "byte",
-															},
-														},
+							type: "object",
+							title: "Value",
+							properties: { tag: { type: "string", enum: ["Ed25519"] } },
+							required: ["tag"],
+							dependencies: {
+								tag: {
+									oneOf: [
+										{
+											properties: {
+												tag: { enum: ["Ed25519"] },
+												Ed25519: {
+													type: "array",
+													items: {
+														type: "string",
+														title: "",
+														default: "",
+														format: "byte",
 													},
 												},
-											],
+											},
 										},
-									},
+									],
 								},
-							],
-							title: "Value",
+							},
 						},
 					],
-					title: "Signature",
+					title: "Value",
 				},
-			},
+			],
+			title: "Signature",
 		},
 	},
 };
 export type MintRequestUi = {
-	token_id: string;
-	amount: string;
-	from:
-		| { tag: "Account"; Account: [string] }
-		| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
-	data: {
-		signed_metadata: {
-			contract_address: { index: number; subindex: number };
-			metadata_url: {
-				url: string;
-				hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
-			};
-			account: string;
-			account_nonce: number;
+	signed_metadata: {
+		contract_address: { index: number; subindex: number };
+		metadata_url: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
 		};
-		signer: string;
-		signature: [number, [number, { tag: "Ed25519"; Ed25519: [string] }][]][];
+		account: string;
+		account_nonce: number;
 	};
+	signer: string;
+	signature: [number, [number, { tag: "Ed25519"; Ed25519: [string] }][]][];
 };
 export const mintErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -1117,12 +1034,12 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -1204,10 +1121,223 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
+						tag: { enum: ["UnauthorizedInvalidAgent"] },
+						UnauthorizedInvalidAgent: {
 							type: "object",
-							title: "InvalidRewardToken",
+							title: "UnauthorizedInvalidAgent",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CheckSignature"] },
+						CheckSignature: {
+							type: "object",
+							title: "CheckSignature",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidSignature"] },
+						InvalidSignature: {
+							type: "object",
+							title: "InvalidSignature",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidNonce"] },
+						InvalidNonce: {
+							type: "object",
+							title: "InvalidNonce",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidContractAddress"] },
+						InvalidContractAddress: {
+							type: "object",
+							title: "InvalidContractAddress",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
+			],
+		},
+	},
+};
+export type MintErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "InvalidTokenId"; InvalidTokenId: never }
+	| { tag: "InsufficientFunds"; InsufficientFunds: never }
+	| { tag: "Unauthorized"; Unauthorized: never }
+	| { tag: "InvalidAmount"; InvalidAmount: never }
+	| { tag: "InvalidAddress"; InvalidAddress: never }
+	| { tag: "TransferInvokeError"; TransferInvokeError: never }
+	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
+	| { tag: "CheckSignature"; CheckSignature: never }
+	| { tag: "InvalidSignature"; InvalidSignature: never }
+	| { tag: "InvalidNonce"; InvalidNonce: never }
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
+export const mintAgentRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Mint Agent Request",
+	properties: {
+		metadata_url: {
+			type: "object",
+			title: "Metadata Url",
+			properties: {
+				url: { type: "string", title: "Url", default: "" },
+				hash: {
+					type: "object",
+					title: "Hash",
+					properties: { tag: { type: "string", enum: ["None", "Some"] } },
+					required: ["tag"],
+					dependencies: {
+						tag: {
+							oneOf: [
+								{
+									properties: {
+										tag: { enum: ["None"] },
+										None: { type: "object", title: "None", properties: {} },
+									},
+								},
+								{
+									properties: {
+										tag: { enum: ["Some"] },
+										Some: {
+											type: "array",
+											items: { type: "string", title: "", default: "" },
+										},
+									},
+								},
+							],
+						},
+					},
+				},
+			},
+		},
+		account: { type: "string", title: "Account" },
+	},
+};
+export type MintAgentRequestUi = {
+	metadata_url: {
+		url: string;
+		hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+	};
+	account: string;
+};
+export const mintAgentErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Mint Agent Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"InvalidTokenId",
+				"InsufficientFunds",
+				"Unauthorized",
+				"InvalidAmount",
+				"InvalidAddress",
+				"TransferInvokeError",
+				"UnauthorizedInvalidAgent",
+				"CheckSignature",
+				"InvalidSignature",
+				"InvalidNonce",
+				"InvalidContractAddress",
+				"BurnError",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidTokenId"] },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InsufficientFunds"] },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["Unauthorized"] },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAmount"] },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAddress"] },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TransferInvokeError"] },
+						TransferInvokeError: {
+							type: "object",
+							title: "TransferInvokeError",
 							properties: {},
 						},
 					},
@@ -1262,11 +1392,17 @@ export const mintErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
 };
-export type MintErrorUi =
+export type MintAgentErrorUi =
 	| { tag: "ParseError"; ParseError: never }
 	| { tag: "LogError"; LogError: never }
 	| { tag: "InvalidTokenId"; InvalidTokenId: never }
@@ -1275,12 +1411,12 @@ export type MintErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const operatorOfRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -1394,12 +1530,12 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -1481,16 +1617,6 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -1539,6 +1665,12 @@ export const operatorOfErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -1552,12 +1684,12 @@ export type OperatorOfErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const removeAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Remove Agent Request",
@@ -1610,12 +1742,12 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -1697,16 +1829,6 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -1755,6 +1877,12 @@ export const removeAgentErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -1768,12 +1896,12 @@ export type RemoveAgentErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const supportsRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: { type: "string", title: "", default: "" },
@@ -1849,12 +1977,12 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -1936,16 +2064,6 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -1994,6 +2112,12 @@ export const supportsErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -2007,12 +2131,12 @@ export type SupportsErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const tokenMetadataRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: { type: "string", title: "", default: "", format: "byte" },
@@ -2081,12 +2205,12 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -2168,16 +2292,6 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -2226,6 +2340,12 @@ export const tokenMetadataErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -2239,12 +2359,12 @@ export type TokenMetadataErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const transferRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -2369,12 +2489,12 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -2456,16 +2576,6 @@ export const transferErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -2512,6 +2622,12 @@ export const transferErrorJsonSchema: RJSFSchema = {
 							title: "InvalidContractAddress",
 							properties: {},
 						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
 					},
 				},
 			],
@@ -2527,306 +2643,12 @@ export type TransferErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
-export const transferMintRequestJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Transfer Mint Request",
-	properties: {
-		signed_metadata: {
-			type: "object",
-			title: "Signed Metadata",
-			properties: {
-				contract_address: {
-					type: "object",
-					title: "Contract Address",
-					properties: {
-						index: { type: "integer", minimum: 0 },
-						subindex: { type: "integer", minimum: 0 },
-					},
-				},
-				metadata_url: {
-					type: "object",
-					title: "Metadata Url",
-					properties: {
-						url: { type: "string", title: "Url", default: "" },
-						hash: {
-							type: "object",
-							title: "Hash",
-							properties: { tag: { type: "string", enum: ["None", "Some"] } },
-							required: ["tag"],
-							dependencies: {
-								tag: {
-									oneOf: [
-										{
-											properties: {
-												tag: { enum: ["None"] },
-												None: { type: "object", title: "None", properties: {} },
-											},
-										},
-										{
-											properties: {
-												tag: { enum: ["Some"] },
-												Some: {
-													type: "array",
-													items: {
-														type: "string",
-														title: "",
-														default: "",
-														format: "byte",
-													},
-												},
-											},
-										},
-									],
-								},
-							},
-						},
-					},
-				},
-				account: { type: "string", title: "Account" },
-				account_nonce: { type: "integer", minimum: 0, title: "Account Nonce" },
-			},
-		},
-		signer: { type: "string", title: "Signer" },
-		signature: {
-			type: "array",
-			items: [
-				{ type: "integer", minimum: 0, maximum: 255, title: "Key" },
-				{
-					type: "array",
-					items: [
-						{ type: "integer", minimum: 0, maximum: 255, title: "Key" },
-						{
-							type: "object",
-							title: "Value",
-							properties: { tag: { type: "string", enum: ["Ed25519"] } },
-							required: ["tag"],
-							dependencies: {
-								tag: {
-									oneOf: [
-										{
-											properties: {
-												tag: { enum: ["Ed25519"] },
-												Ed25519: {
-													type: "array",
-													items: {
-														type: "string",
-														title: "",
-														default: "",
-														format: "byte",
-													},
-												},
-											},
-										},
-									],
-								},
-							},
-						},
-					],
-					title: "Value",
-				},
-			],
-			title: "Signature",
-		},
-	},
-};
-export type TransferMintRequestUi = {
-	signed_metadata: {
-		contract_address: { index: number; subindex: number };
-		metadata_url: {
-			url: string;
-			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
-		};
-		account: string;
-		account_nonce: number;
-	};
-	signer: string;
-	signature: [number, [number, { tag: "Ed25519"; Ed25519: [string] }][]][];
-};
-export const transferMintErrorJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Transfer Mint Error",
-	properties: {
-		tag: {
-			type: "string",
-			enum: [
-				"ParseError",
-				"LogError",
-				"InvalidTokenId",
-				"InsufficientFunds",
-				"Unauthorized",
-				"InvalidAmount",
-				"InvalidAddress",
-				"TransferInvokeError",
-				"InvalidRewardToken",
-				"UnauthorizedInvalidAgent",
-				"CheckSignature",
-				"InvalidSignature",
-				"InvalidNonce",
-				"InvalidContractAddress",
-			],
-		},
-	},
-	required: ["tag"],
-	dependencies: {
-		tag: {
-			oneOf: [
-				{
-					properties: {
-						tag: { enum: ["ParseError"] },
-						ParseError: { type: "object", title: "ParseError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["LogError"] },
-						LogError: { type: "object", title: "LogError", properties: {} },
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidTokenId"] },
-						InvalidTokenId: {
-							type: "object",
-							title: "InvalidTokenId",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InsufficientFunds"] },
-						InsufficientFunds: {
-							type: "object",
-							title: "InsufficientFunds",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["Unauthorized"] },
-						Unauthorized: {
-							type: "object",
-							title: "Unauthorized",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAmount"] },
-						InvalidAmount: {
-							type: "object",
-							title: "InvalidAmount",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidAddress"] },
-						InvalidAddress: {
-							type: "object",
-							title: "InvalidAddress",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["TransferInvokeError"] },
-						TransferInvokeError: {
-							type: "object",
-							title: "TransferInvokeError",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["UnauthorizedInvalidAgent"] },
-						UnauthorizedInvalidAgent: {
-							type: "object",
-							title: "UnauthorizedInvalidAgent",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["CheckSignature"] },
-						CheckSignature: {
-							type: "object",
-							title: "CheckSignature",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidSignature"] },
-						InvalidSignature: {
-							type: "object",
-							title: "InvalidSignature",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidNonce"] },
-						InvalidNonce: {
-							type: "object",
-							title: "InvalidNonce",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
-						tag: { enum: ["InvalidContractAddress"] },
-						InvalidContractAddress: {
-							type: "object",
-							title: "InvalidContractAddress",
-							properties: {},
-						},
-					},
-				},
-			],
-		},
-	},
-};
-export type TransferMintErrorUi =
-	| { tag: "ParseError"; ParseError: never }
-	| { tag: "LogError"; LogError: never }
-	| { tag: "InvalidTokenId"; InvalidTokenId: never }
-	| { tag: "InsufficientFunds"; InsufficientFunds: never }
-	| { tag: "Unauthorized"; Unauthorized: never }
-	| { tag: "InvalidAmount"; InvalidAmount: never }
-	| { tag: "InvalidAddress"; InvalidAddress: never }
-	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
-	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
-	| { tag: "CheckSignature"; CheckSignature: never }
-	| { tag: "InvalidSignature"; InvalidSignature: never }
-	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const updateOperatorRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: {
@@ -2919,12 +2741,12 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				"InvalidAmount",
 				"InvalidAddress",
 				"TransferInvokeError",
-				"InvalidRewardToken",
 				"UnauthorizedInvalidAgent",
 				"CheckSignature",
 				"InvalidSignature",
 				"InvalidNonce",
 				"InvalidContractAddress",
+				"BurnError",
 			],
 		},
 	},
@@ -3006,16 +2828,6 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 				},
 				{
 					properties: {
-						tag: { enum: ["InvalidRewardToken"] },
-						InvalidRewardToken: {
-							type: "object",
-							title: "InvalidRewardToken",
-							properties: {},
-						},
-					},
-				},
-				{
-					properties: {
 						tag: { enum: ["UnauthorizedInvalidAgent"] },
 						UnauthorizedInvalidAgent: {
 							type: "object",
@@ -3064,6 +2876,12 @@ export const updateOperatorErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
 			],
 		},
 	},
@@ -3077,12 +2895,12 @@ export type UpdateOperatorErrorUi =
 	| { tag: "InvalidAmount"; InvalidAmount: never }
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "TransferInvokeError"; TransferInvokeError: never }
-	| { tag: "InvalidRewardToken"; InvalidRewardToken: never }
 	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
 	| { tag: "CheckSignature"; CheckSignature: never }
 	| { tag: "InvalidSignature"; InvalidSignature: never }
 	| { tag: "InvalidNonce"; InvalidNonce: never }
-	| { tag: "InvalidContractAddress"; InvalidContractAddress: never };
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
 	uiSchema?: UiSchema;
@@ -3182,6 +3000,24 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.mintRequestSchemaBase64,
 			errorJsonSchema: mintErrorJsonSchema,
 			errorSchemaBase64: types.mintErrorSchemaBase64,
+		}),
+	mintAgent: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.MintAgentRequest,
+			MintAgentRequestUi,
+			types.MintAgentError,
+			MintAgentErrorUi
+		>({
+			...props,
+			method: client.mintAgent,
+			requestJsonSchema: mintAgentRequestJsonSchema,
+			requestSchemaBase64: types.mintAgentRequestSchemaBase64,
+			errorJsonSchema: mintAgentErrorJsonSchema,
+			errorSchemaBase64: types.mintAgentErrorSchemaBase64,
 		}),
 	operatorOf: (props: {
 		contract: ContractAddress.Type;
@@ -3284,24 +3120,6 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.transferRequestSchemaBase64,
 			errorJsonSchema: transferErrorJsonSchema,
 			errorSchemaBase64: types.transferErrorSchemaBase64,
-		}),
-	transferMint: (props: {
-		contract: ContractAddress.Type;
-		uiSchema?: UiSchema;
-		uiWidgets?: RegistryWidgetsType;
-	}) =>
-		GenericUpdate<
-			types.TransferMintRequest,
-			TransferMintRequestUi,
-			types.TransferMintError,
-			TransferMintErrorUi
-		>({
-			...props,
-			method: client.transferMint,
-			requestJsonSchema: transferMintRequestJsonSchema,
-			requestSchemaBase64: types.transferMintRequestSchemaBase64,
-			errorJsonSchema: transferMintErrorJsonSchema,
-			errorSchemaBase64: types.transferMintErrorSchemaBase64,
 		}),
 	updateOperator: (props: {
 		contract: ContractAddress.Type;
