@@ -3,32 +3,27 @@ mod test_utils;
 use std::sync::Arc;
 
 use chrono::{DateTime, NaiveDateTime};
-use cis2_conversions::to_token_id_vec;
-use cis2_security::{Cis2Payloads, Cis2SecurityTestClient};
-use compliance::{init_nationalities, NationalitiesModuleTestClient};
-use concordium_cis2::{TokenIdUnit, UpdateOperator};
+use cis2_security::Cis2SecurityTestClient;
+use concordium_cis2::TokenIdUnit;
 use concordium_protocols::concordium_cis2_security::{
-    SecurityParams, TokenAmountSecurity, TokenUId,
+    AgentWithRoles, TokenAmountSecurity, TokenUId,
 };
-use concordium_rust_sdk::base::contracts_common::attributes::NATIONALITY;
 use concordium_rust_sdk::types::WalletAccount;
-use concordium_rwa_identity_registry::types::{
-    Identity, IdentityAttribute, RegisterIdentityParams,
-};
 use concordium_smart_contract_testing::*;
 use contract_base::{ContractPayloads, ContractTestClient};
 use diesel::r2d2::ConnectionManager;
-use euroe::EuroETestClient;
 use events_listener::listener::{ContractCall, ParsedBlock, ParsedTxn};
 use events_listener::processors::cis2_utils::{ContractAddressToDecimal, TokenIdToDecimal};
 use events_listener::processors::Processors;
-use identity_registry::{IdentityRegistryPayloads, IdentityRegistryTestClient};
+use integration_tests::cis2_security::Cis2SecurityPayloads;
 use integration_tests::*;
 use nft_multi_rewarded::types::{Agent, ContractMetadataUrl};
-use nft_multi_rewarded::{MintData, SignedMetadata};
+use nft_multi_rewarded::{MintAgentParams, SignedMetadata};
 use nft_multi_rewarded_client::{NftMultiRewardedClientPayloads, NftMultiRewardedTestClient};
 use poem::web::Data;
+use poem_openapi::payload::Json;
 use rust_decimal::Decimal;
+use security_sft_single::types::AgentRole;
 use security_sft_single_client::SftSingleTestClient;
 use shared::db::txn_listener::ListenerBlock;
 use shared::db_setup;
@@ -43,7 +38,6 @@ const ADMIN: AccountAddress = AccountAddress([0; 32]);
 const HOLDER: AccountAddress = AccountAddress([1; 32]);
 const NFT_AGENT: AccountAddress = AccountAddress([2; 32]);
 const DEFAULT_BALANCE_AMOUNT: Amount = Amount::from_micro_ccd(1_000_000_000);
-const COMPLIANT_NATIONALITIES: [&str; 3] = ["IN", "US", "GB"];
 const REWARD_SFT_METADATA: &str = "https://metadata.com/rewarded_sft_token";
 const NFT_METADATA: &str = "https://metadata.com/nft_token";
 
@@ -66,20 +60,22 @@ async fn signature_tests() {
 
     // api
     let metadata_admin_api = api::tree_nft::Api;
+    let admin_api_claims = BearerAuthorization(Claims {
+        sub:               "USER_ID".to_string(),
+        email:             "admin@example.com".to_string(),
+        cognito_groups:    Some(vec!["admin".to_string()]),
+        email_verified:    Some(true),
+        account:           None,
+        first_name:        None,
+        last_name:         None,
+        nationality:       None,
+        affiliate_account: None,
+        company_id:        None,
+    });
+
     metadata_admin_api
         .admin_tree_nft_metadata_insert(
-            BearerAuthorization(Claims {
-                sub:               "USER_ID".to_string(),
-                email:             "admin@example.com".to_string(),
-                cognito_groups:    Some(vec!["admin".to_string()]),
-                email_verified:    Some(true),
-                account:           None,
-                first_name:        None,
-                last_name:         None,
-                nationality:       None,
-                affiliate_account: None,
-                company_id:        None,
-            }),
+            admin_api_claims.clone(),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
                 metadata_url:          api::tree_nft::MetadataUrl {
@@ -106,7 +102,7 @@ async fn signature_tests() {
     chain.create_account(agent.clone());
 
     let contracts = {
-        let (contracts, contract_calls) = setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
+        let (contracts, contract_calls) = setup_chain(&mut chain, &admin);
         let block = ParsedBlock {
             block:        ListenerBlock {
                 block_slot_time: to_utc(&chain.block_time()),
@@ -126,73 +122,12 @@ async fn signature_tests() {
             .expect("process block");
         contracts
     };
-    let identity_registry_client = IdentityRegistryTestClient::new(contracts.identity_registry());
     let tree_ft_contract = SftSingleTestClient::new(contracts.tree_ft());
     let tree_nft_contract = NftMultiRewardedTestClient::new(contracts.tree_nft());
 
     {
         chain.tick_block_time(block_duration).unwrap();
-
-        let contract_call_1 = chain
-            .contract_update(
-                Signer::with_one_key(),
-                admin.address,
-                admin.address.into(),
-                30_000.into(),
-                identity_registry_client.register_identity_payload(&RegisterIdentityParams {
-                    address:  holder.address.into(),
-                    identity: Identity {
-                        attributes:  vec![IdentityAttribute {
-                            tag:   NATIONALITY.0,
-                            value: COMPLIANT_NATIONALITIES[0].to_string(),
-                        }],
-                        credentials: vec![],
-                    },
-                }),
-            )
-            .map(|call| to_contract_call_update(&call))
-            .expect("register identity holder");
-        let contract_call_2 = chain
-            .contract_update(
-                Signer::with_one_key(),
-                admin.address,
-                admin.address.into(),
-                30_000.into(),
-                identity_registry_client.register_identity_payload(&RegisterIdentityParams {
-                    address:  contracts.tree_nft().into(),
-                    identity: Identity {
-                        attributes:  vec![IdentityAttribute {
-                            tag:   NATIONALITY.0,
-                            value: COMPLIANT_NATIONALITIES[0].to_string(),
-                        }],
-                        credentials: vec![],
-                    },
-                }),
-            )
-            .map(|call| to_contract_call_update(&call))
-            .expect("register identity tree nft");
-        let block = ParsedBlock {
-            block:        ListenerBlock {
-                block_slot_time: to_utc(&chain.block_time()),
-                block_height:    2.into(),
-                block_hash:      [2, 32].to_vec(),
-            },
-            transactions: vec![ParsedTxn {
-                index:          1,
-                hash:           [2, 32].to_vec(),
-                sender:         admin.address.to_string(),
-                contract_calls: [contract_call_1, contract_call_2].concat(),
-            }],
-        };
-        processors
-            .process_block(&mut processor_db_conn, &block)
-            .await
-            .expect("process block");
-    }
-
-    {
-        chain.tick_block_time(block_duration).unwrap();
-        let add_agent_res = chain
+        let add_nft_agent_res = chain
             .contract_update(
                 Signer::with_one_key(),
                 admin.address,
@@ -203,7 +138,20 @@ async fn signature_tests() {
                 }),
             )
             .map(|call| to_contract_call_update(&call))
-            .expect("add agent");
+            .expect("add nft agent");
+        let add_ft_agent_res = chain
+            .contract_update(
+                Signer::with_one_key(),
+                admin.address,
+                admin.address.into(),
+                30_000.into(),
+                tree_ft_contract.add_agent_payload(&AgentWithRoles {
+                    address: tree_nft_contract.contract_address().into(),
+                    roles:   vec![AgentRole::Operator],
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("add ft agent");
 
         let mint_res = tree_ft_contract
             .mint(
@@ -212,27 +160,13 @@ async fn signature_tests() {
                 &security_sft_single::types::MintParams {
                     token_id: TokenIdUnit(),
                     owners:   vec![security_sft_single::types::MintParam {
-                        amount:  TokenAmountSecurity::new_un_frozen(1.into()),
+                        amount:  TokenAmountSecurity::new_un_frozen(2.into()),
                         address: holder.address.into(),
                     }],
                 },
             )
             .map(|call| to_contract_call_update(&call))
             .expect("sft mint");
-        let update_op_res = chain
-            .contract_update(
-                Signer::with_one_key(),
-                holder.address,
-                holder.address.into(),
-                30_000.into(),
-                tree_ft_contract.update_operator_single_payload(UpdateOperator {
-                    operator: contracts.tree_nft().into(),
-                    update:   concordium_cis2::OperatorUpdate::Add,
-                }),
-            )
-            .map(|call| to_contract_call_update(&call))
-            .expect("update operator");
-
         let block = ParsedBlock {
             block:        ListenerBlock {
                 block_slot_time: to_utc(&chain.block_time()),
@@ -244,7 +178,7 @@ async fn signature_tests() {
                     index:          1,
                     hash:           [3, 32].to_vec(),
                     sender:         admin.address.to_string(),
-                    contract_calls: add_agent_res,
+                    contract_calls: add_nft_agent_res,
                 },
                 ParsedTxn {
                     index:          2,
@@ -255,8 +189,8 @@ async fn signature_tests() {
                 ParsedTxn {
                     index:          3,
                     hash:           [5, 32].to_vec(),
-                    sender:         holder.address.to_string(),
-                    contract_calls: update_op_res,
+                    sender:         admin.address.to_string(),
+                    contract_calls: add_ft_agent_res,
                 },
             ],
         };
@@ -286,31 +220,36 @@ async fn signature_tests() {
         company_id:        None,
     });
 
-    let poem_openapi::payload::Json(random_metadata) = tree_nft::Api
-        .tree_nft_metadata_get_random(
-            api_user_claims.clone(),
-            Data(&pool),
-            Data(&tree_nft_config),
-            Data(&contracts),
-        )
-        .await
-        .expect("metadata get random");
+    let mint_res = {
+        let Json(random_metadata) = tree_nft::Api
+            .get_metadata_random_signed(
+                api_user_claims.clone(),
+                Data(&pool),
+                Data(&tree_nft_config),
+                Data(&contracts),
+            )
+            .await
+            .expect("metadata get random signed");
 
-    {
-        let transfer_mint_res = chain
+        chain
             .contract_update(
                 Signer::with_one_key(),
                 holder.address,
                 holder.address.into(),
                 30_000.into(),
-                tree_nft_contract.transfer_mint_payload(&MintData {
+                tree_nft_contract.mint_payload(&nft_multi_rewarded::MintParams {
                     signed_metadata: SignedMetadata {
                         account:          holder.address,
                         account_nonce:    0,
                         contract_address: contracts.tree_nft(),
                         metadata_url:     nft_multi_rewarded::MetadataUrl {
                             url:  random_metadata.signed_metadata.metadata_url.url,
-                            hash: None,
+                            hash: random_metadata.signed_metadata.metadata_url.hash.map(|h| {
+                                hex::decode(h)
+                                    .expect("hash decode")
+                                    .try_into()
+                                    .expect("hash")
+                            }),
                         },
                     },
                     signer:          agent.address,
@@ -319,19 +258,59 @@ async fn signature_tests() {
                 }),
             )
             .map(|call| to_contract_call_update(&call))
-            .expect("mint");
+            .expect("mint")
+    };
+
+    let mint_agent_res = {
+        let Json(random_metadata) = tree_nft::Api
+            .get_metadata_random_unsigned(admin_api_claims.clone(), Data(&pool))
+            .await
+            .expect("metadata get random unsigned");
+
+        chain
+            .contract_update(
+                Signer::with_one_key(),
+                agent.address,
+                agent.address.into(),
+                30_000.into(),
+                tree_nft_contract.mint_agent_payload(&MintAgentParams {
+                    account:      holder.address,
+                    metadata_url: ContractMetadataUrl {
+                        url:  random_metadata.url,
+                        hash: random_metadata.hash.map(|h| {
+                            hex::decode(h)
+                                .expect("hash decode")
+                                .try_into()
+                                .expect("hash")
+                        }),
+                    },
+                }),
+            )
+            .map(|call| to_contract_call_update(&call))
+            .expect("agent mint")
+    };
+
+    {
         let block = ParsedBlock {
             block:        ListenerBlock {
                 block_slot_time: to_utc(&chain.block_time()),
                 block_height:    4.into(),
                 block_hash:      [4, 32].to_vec(),
             },
-            transactions: vec![ParsedTxn {
-                index:          1,
-                hash:           [6, 32].to_vec(),
-                sender:         holder.address.to_string(),
-                contract_calls: transfer_mint_res,
-            }],
+            transactions: vec![
+                ParsedTxn {
+                    index:          1,
+                    hash:           [6, 32].to_vec(),
+                    sender:         holder.address.to_string(),
+                    contract_calls: mint_res,
+                },
+                ParsedTxn {
+                    index:          1,
+                    hash:           [7, 32].to_vec(),
+                    sender:         holder.address.to_string(),
+                    contract_calls: mint_agent_res,
+                },
+            ],
         };
 
         processors
@@ -356,70 +335,18 @@ async fn signature_tests() {
         .tree_nft_contract_self_nonce(api_user_claims, Data(&pool), Data(&contracts))
         .await
         .expect("nonce");
-    assert_eq!(nonce, 1);
+    assert_eq!(nonce, 2);
 }
 
-fn setup_chain(
-    chain: &mut Chain,
-    admin: &Account,
-    compliant_nationalities: &[&str],
-) -> (SystemContractsConfig, Vec<ContractCall>) {
+fn setup_chain(chain: &mut Chain, admin: &Account) -> (SystemContractsConfig, Vec<ContractCall>) {
     chain.create_account(admin.clone());
 
-    euroe::deploy_module(chain, admin);
-    identity_registry::deploy_module(chain, admin);
-    compliance::deploy_module(chain, admin);
     security_sft_single_client::deploy_module(chain, admin);
     nft_multi_rewarded_client::deploy_module(chain, admin);
 
-    let (ir_contract_call, ir_contract) = identity_registry::init(chain, admin)
-        .map(|(res, mod_ref, name)| {
-            (
-                to_contract_call_init(&res, mod_ref, name),
-                IdentityRegistryTestClient(res.contract_address),
-            )
-        })
-        .expect("init identity registry");
-    let (compliance_module_call, nationality_module) = init_nationalities(
-        chain,
-        admin,
-        &concordium_rwa_compliance::compliance_modules::allowed_nationalities::types::InitParams {
-            nationalities:     compliant_nationalities
-                .iter()
-                .map(|n| n.to_string())
-                .collect(),
-            identity_registry: ir_contract.contract_address(),
-        },
-    )
-    .map(|(res, mod_ref, name)| {
-        (
-            to_contract_call_init(&res, mod_ref, name),
-            NationalitiesModuleTestClient(res.contract_address),
-        )
-    })
-    .expect("init nationalities module");
-
-    let (compliance, compliance_module_ref, compliance_contract_name) =
-        compliance::init(chain, admin, vec![nationality_module.contract_address()])
-            .expect("init compliance module");
-    let compliance_contract_call =
-        to_contract_call_init(&compliance, compliance_module_ref, compliance_contract_name);
-
-    let (euroe_contract_call, euroe_contract) = euroe::init(chain, admin)
-        .map(|(res, mod_ref, name)| {
-            (
-                to_contract_call_init(&res, mod_ref, name),
-                EuroETestClient(res.contract_address),
-            )
-        })
-        .expect("euroe init");
-
     let (sft_contract_call, sft) =
         security_sft_single_client::init(chain, admin, &security_sft_single::types::InitParam {
-            security:     Some(SecurityParams {
-                compliance:        compliance.contract_address,
-                identity_registry: ir_contract.contract_address(),
-            }),
+            security:     None,
             metadata_url: ContractMetadataUrl {
                 url:  REWARD_SFT_METADATA.to_string(),
                 hash: None,
@@ -439,7 +366,7 @@ fn setup_chain(
         nft_multi_rewarded_client::init(chain, admin, &nft_multi_rewarded::types::InitParam {
             reward_token: TokenUId {
                 contract: sft.contract_address(),
-                id:       to_token_id_vec(TokenIdUnit()),
+                id:       TokenIdUnit(),
             },
         })
         .map(|(res, mod_ref, name)| {
@@ -449,38 +376,17 @@ fn setup_chain(
             )
         })
         .expect("nft init");
-    let contract_calls = vec![
-        ir_contract_call,
-        compliance_module_call,
-        compliance_contract_call,
-        euroe_contract_call,
-        sft_contract_call,
-        nft_contract_call,
-    ];
+    let contract_calls = vec![sft_contract_call, nft_contract_call];
 
-    let grant_role_calls = to_contract_call_update(
-        &euroe_contract
-            .grant_role(chain, admin, &euroe::RoleTypes {
-                mintrole:  admin.address.into(),
-                burnrole:  admin.address.into(),
-                blockrole: admin.address.into(),
-                pauserole: admin.address.into(),
-                adminrole: admin.address.into(),
-            })
-            .expect("grant role"),
-    );
-    let contract_calls = contract_calls
-        .into_iter()
-        .chain(grant_role_calls)
-        .collect::<Vec<_>>();
+    let contract_calls = contract_calls.into_iter().collect::<Vec<_>>();
 
     let system_contracts = SystemContractsConfig {
         carbon_credit_contract_index:     Decimal::ZERO,
         carbon_credit_token_id:           Decimal::ZERO,
-        compliance_contract_index:        compliance.contract_address.to_decimal(),
-        euro_e_contract_index:            euroe_contract.contract_address().to_decimal(),
+        compliance_contract_index:        Decimal::ZERO,
+        euro_e_contract_index:            Decimal::ZERO,
         euro_e_token_id:                  TokenIdUnit().to_decimal(),
-        identity_registry_contract_index: ir_contract.contract_address().to_decimal(),
+        identity_registry_contract_index: Decimal::ZERO,
         tree_ft_contract_index:           sft.contract_address().to_decimal(),
         tree_nft_contract_index:          nft.contract_address().to_decimal(),
         offchain_rewards_contract_index:  Decimal::ZERO,

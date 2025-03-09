@@ -17,12 +17,12 @@ pub enum Error {
     /// Triggered when the provided address is invalid.
     InvalidAddress,
     TransferInvokeError,
-    InvalidRewardToken,
     UnauthorizedInvalidAgent,
     CheckSignature,
     InvalidSignature,
     InvalidNonce,
     InvalidContractAddress,
+    BurnError,
 }
 
 impl Error {
@@ -37,13 +37,13 @@ impl Error {
             Error::LogError => -2,
             Error::InvalidAmount => -3,
             Error::InvalidAddress => -4,
-            Error::TransferInvokeError => -6,
-            Error::InvalidRewardToken => -7,
-            Error::UnauthorizedInvalidAgent => -8,
-            Error::CheckSignature => -9,
-            Error::InvalidSignature => -10,
-            Error::InvalidNonce => -11,
-            Error::InvalidContractAddress => -12,
+            Error::TransferInvokeError => -5,
+            Error::UnauthorizedInvalidAgent => -6,
+            Error::CheckSignature => -7,
+            Error::InvalidSignature => -8,
+            Error::InvalidNonce => -9,
+            Error::InvalidContractAddress => -10,
+            Error::BurnError => -11,
         })
         .unwrap()
     }

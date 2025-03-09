@@ -3,7 +3,8 @@ mod state;
 pub mod types;
 
 use concordium_cis2::*;
-use concordium_protocols::concordium_cis2_security::TokenUId;
+use concordium_protocols::concordium_cis2_security::cis2_security_client::Cis2SecurityClient;
+use concordium_protocols::concordium_cis2_security::Burn;
 use concordium_std::*;
 pub use concordium_std::{MetadataUrl, Timestamp};
 use error::Error;
@@ -26,7 +27,7 @@ pub fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
-    let reward_token = params.reward_token.clone();
+    let reward_token = params.reward_token;
     let state = State {
         reward_token,
         curr_token_id: 0.into(),
@@ -336,18 +337,10 @@ pub fn transfer(
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct MintData {
+pub struct MintParams {
     pub signed_metadata: SignedMetadata,
     pub signer:          AccountAddress,
     pub signature:       AccountSignatures,
-}
-
-impl From<&MintData> for Vec<u8> {
-    fn from(val: &MintData) -> Self {
-        let mut data = Vec::new();
-        val.serial(&mut data).unwrap();
-        data
-    }
 }
 
 #[derive(Serialize, SchemaType)]
@@ -375,39 +368,6 @@ impl SignedMetadata {
     }
 }
 
-pub type TransferMintParams = MintData;
-
-#[receive(
-    contract = "nft_multi_rewarded",
-    name = "transferMint",
-    mutable,
-    parameter = "TransferMintParams",
-    error = "Error"
-)]
-pub fn transfer_mint(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
-    let params: TransferMintParams = ctx.parameter_cursor().get()?;
-    let reward_token = host.state().reward_token.clone();
-    host.invoke_contract(
-        &reward_token.contract,
-        &concordium_cis2::TransferParams(vec![concordium_cis2::Transfer {
-            amount:   TokenAmountU64(1),
-            token_id: reward_token.id,
-            from:     ctx.sender(),
-            to:       Receiver::Contract(
-                ctx.self_address(),
-                OwnedEntrypointName::new_unchecked("mint".to_string()),
-            ),
-            data:     AdditionalData::from(Into::<Vec<u8>>::into(&params)),
-        }]),
-        EntrypointName::new_unchecked("transfer"),
-        Amount::zero(),
-    )
-    .map_err(|_| Error::TransferInvokeError)?;
-    Ok(())
-}
-
-pub type MintParams = OnReceivingCis2DataParams<RewardTokenId, TokenAmountU64, MintData>;
-
 #[receive(
     contract = "nft_multi_rewarded",
     name = "mint",
@@ -424,68 +384,116 @@ pub fn mint(
     crypto_primitives: &CryptoPrimitives,
 ) -> ContractResult<()> {
     let MintParams {
-        token_id,
-        amount,
-        from,
-        data:
-            MintData {
-                signed_metadata,
-                signer,
-                signature,
-            },
-    }: MintParams = ctx.parameter_cursor().get()?;
+        signed_metadata,
+        signer: agent,
+        signature,
+    } = ctx.parameter_cursor().get()?;
     ensure!(
         signed_metadata.contract_address.eq(&ctx.self_address()),
         Error::InvalidContractAddress
     );
-    ensure!(amount.eq(&1.into()), Error::InvalidAmount);
-    ensure!(
-        from.matches_account(&signed_metadata.account),
-        Error::Unauthorized
-    );
     let hash = signed_metadata.hash(|data| crypto_primitives.hash_sha2_256(&data).0)?;
     ensure!(
-        host.check_account_signature(signer, &signature, &hash)
-            .map_err(|_| { Error::CheckSignature })?,
+        host.check_account_signature(agent, &signature, &hash)
+            .map_err(|_| Error::CheckSignature)?,
         Error::InvalidSignature
     );
 
-    let reward_token = TokenUId {
-        id:       token_id,
-        contract: match ctx.sender() {
-            Address::Account(_) => bail!(Error::Unauthorized),
-            Address::Contract(contract) => contract,
-        },
-    };
-    let state: &State = host.state();
-    ensure!(
-        state.reward_token.eq(&reward_token),
-        Error::InvalidRewardToken
-    );
+    let (state, builder) = host.state_and_builder();
     ensure!(
         state
             .addresses
-            .get(&signer.into())
+            .get(&agent.into())
             .is_some_and(|a| a.is_agent),
         Error::UnauthorizedInvalidAgent
     );
+    let (..) = mint_token(
+        state,
+        builder,
+        signed_metadata.account.into(),
+        signed_metadata.metadata_url,
+        Some(signed_metadata.account_nonce),
+        logger,
+    )?;
+    let reward_token = state.reward_token;
+    host.invoke_burn_single(&reward_token.contract, Burn {
+        amount:   TokenAmountU64(1),
+        token_id: reward_token.id,
+        owner:    signed_metadata.account.into(),
+    })
+    .map_err(|_| Error::BurnError)?;
 
+    Ok(())
+}
+
+#[derive(Serialize, SchemaType)]
+pub struct MintAgentParams {
+    pub metadata_url: ContractMetadataUrl,
+    pub account:      AccountAddress,
+}
+
+#[receive(
+    contract = "nft_multi_rewarded",
+    name = "mintAgent",
+    mutable,
+    parameter = "MintAgentParams",
+    error = "Error",
+    enable_logger
+)]
+pub fn mint_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let MintAgentParams {
+        account: owner,
+        metadata_url,
+    }: MintAgentParams = ctx.parameter_cursor().get()?;
+    let owner: Address = owner.into();
     let (state, builder) = host.state_and_builder();
+    let is_agent = state
+        .addresses
+        .get(&ctx.sender())
+        .map(|a| a.is_agent)
+        .unwrap_or(false);
+    ensure!(is_agent, Error::UnauthorizedInvalidAgent);
+
+    mint_token(state, builder, owner, metadata_url.into(), None, logger)?;
+    let reward_token = state.reward_token;
+    host.invoke_burn_single(&reward_token.contract, Burn {
+        amount: TokenAmountU64(1),
+        token_id: reward_token.id,
+        owner,
+    })
+    .map_err(|_| Error::BurnError)?;
+    Ok(())
+}
+
+/// Mints a new token and assigns it to the given owner.
+/// Returns the minted token ID and the new nonce.
+fn mint_token(
+    state: &mut State,
+    builder: &mut StateBuilder,
+    owner: Address,
+    metadata_url: MetadataUrl,
+    account_nonce: Option<u64>,
+    logger: &mut Logger,
+) -> ContractResult<(TokenIdU64, u64)> {
     let curr_token_id = state.curr_token_id;
     state
         .tokens
         .entry(curr_token_id)
         .vacant_or(Error::InvalidTokenId)?
-        .insert(signed_metadata.metadata_url.clone());
+        .insert(metadata_url.clone());
+
     let nonce = state
         .addresses
-        .entry(from)
+        .entry(owner)
         .or_insert_with(|| HolderState::new(builder))
         .try_modify(|holder| {
-            ensure!(
-                holder.nonce.eq(&signed_metadata.account_nonce),
-                Error::InvalidNonce
-            );
+            if let Some(account_nonce) = account_nonce {
+                ensure!(holder.nonce.eq(&account_nonce), Error::InvalidNonce);
+            }
             holder.balances.insert(curr_token_id);
             holder.nonce += 1;
             Ok(holder.nonce)
@@ -494,15 +502,15 @@ pub fn mint(
 
     // logs
     logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
-        token_id:     curr_token_id,
-        metadata_url: signed_metadata.metadata_url,
+        token_id: curr_token_id,
+        metadata_url,
     })))?;
     logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
         token_id: curr_token_id,
-        amount:   1.into(),
-        owner:    from,
+        amount: 1.into(),
+        owner,
     })))?;
-    logger.log(&Event::NonceUpdated(from, nonce))?;
+    logger.log(&Event::NonceUpdated(owner, nonce))?;
 
-    Ok(())
+    Ok((curr_token_id, nonce))
 }

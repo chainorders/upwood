@@ -108,11 +108,11 @@ impl Api {
     /// # Returns
     /// A `MintData` object containing the signed metadata and the signer's address and signature.
     #[oai(
-        path = "/tree_nft/metadata/random",
+        path = "/tree_nft/metadata/random/signed",
         method = "get",
         tag = "ApiTags::TreeNftMetadata"
     )]
-    pub async fn tree_nft_metadata_get_random(
+    pub async fn get_metadata_random_signed(
         &self,
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
@@ -148,6 +148,26 @@ impl Api {
             signed_metadata: metadata,
             signer: config.agent.address().to_string(),
             signature,
+        }))
+    }
+
+    #[oai(
+        path = "/tree_nft/metadata/random/unsigned",
+        method = "get",
+        tag = "ApiTags::TreeNftMetadata"
+    )]
+    pub async fn get_metadata_random_unsigned(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+    ) -> JsonResult<MetadataUrl> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let metadata = TreeNftMetadata::find_random(&mut conn)?
+            .ok_or(Error::NotFound(PlainText("No metadata found".to_string())))?;
+        Ok(Json(MetadataUrl {
+            url:  metadata.metadata_url,
+            hash: metadata.metadata_hash,
         }))
     }
 

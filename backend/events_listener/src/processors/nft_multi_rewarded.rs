@@ -73,7 +73,7 @@ pub fn process_events(
                     block_time,
                 )
                 .upsert(conn)?;
-                info!("Reward token updated: {}", e.reward_token.id.to_string());
+                info!("Reward token updated: {:?}", e.reward_token);
             }
             Event::NonceUpdated(address, nonce) => {
                 AddressNonce {

@@ -1,4 +1,4 @@
-use concordium_cis2::{Cis2Event, TokenIdU64, TokenIdVec};
+use concordium_cis2::{Cis2Event, TokenIdU64, TokenIdUnit};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, TokenUId};
 use concordium_std::{Address, SchemaType, Serialize};
@@ -8,7 +8,12 @@ use super::error::Error;
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU8;
 pub type TokenId = TokenIdU64;
-pub type RewardTokenId = TokenIdVec;
+
+/// The reward token id is a unit type, as it is not used in the contract. This also means that only fungible tokens can be used as reward tokens.
+/// This should match the token id type used in `security-sft-single` contract.
+pub type RewardTokenId = TokenIdUnit;
+/// The reward token is a u64, as it is used in the contract.
+/// This should match the token type used in `security-sft-single` contract.
 pub type RewardTokenAmount = concordium_cis2::TokenAmountU64;
 
 pub type Agent = concordium_cis2_security::Agent;

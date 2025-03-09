@@ -1336,7 +1336,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:                 user_1.id.clone(),
                 transaction_hash:
-                    "cc74c0c353fe2c007aff8dc7db556638f52260fea1dc0bce2f04002db6ad90ce".to_string(),
+                    "1fc244af2b96d0169a177e2559af29e0484744e4b8501d1044d76c9f7b3cf307".to_string(),
                 transaction_type:                "buy".to_string(),
                 forest_project_id:               fp_1.id,
                 currency_amount:                 Decimal::from(25),
@@ -1350,7 +1350,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:                 user_1.id.clone(),
                 transaction_hash:
-                    "5a05f87d329a8321f2006f4f3b11b810aeddcd21cb383b61df03824074eaffc9".to_string(),
+                    "daceee899cdb68711b2b16b1708d684b193062163a2ef8ca80e5a3f002212822".to_string(),
                 transaction_type:                "sell".to_string(),
                 forest_project_id:               fp_1.id,
                 currency_amount:                 Decimal::from(25),
@@ -1364,7 +1364,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:                 user_1.id.clone(),
                 transaction_hash:
-                    "e882dd6a247f4ada1f700f1918bd23b7c730ad62af15f5cec8de976cbad09691".to_string(),
+                    "51be0458d20b1ce2ff5316e7e473109c26f5d8b457037edf8c4529f6ff82bddb".to_string(),
                 forest_project_id:               fp_1.id,
                 transaction_type:                "claimed".to_string(),
                 currency_amount:                 Decimal::from(100),
@@ -1378,7 +1378,7 @@ pub async fn test_forest_projects() {
             UserTransaction {
                 cognito_user_id:                 user_1.id.clone(),
                 transaction_hash:
-                    "2de44621c76edf2debbc2df62ccb52c5036b1919dca3af0c0a886cc48dbfaeba".to_string(),
+                    "83440636eff7b2ec0f78ef7b8e480a033e8aeb67e6ecb657ce9bcdfdb21aa744".to_string(),
                 transaction_type:                "invested".to_string(),
                 forest_project_id:               fp_1.id,
                 currency_amount:                 Decimal::from(100),
@@ -1682,13 +1682,24 @@ pub fn deploy_upwood_contracts(
                 NftMultiRewardedTestClient::init_payload(&nft_multi_rewarded::types::InitParam {
                     reward_token: TokenUId {
                         contract: tree_sft.0,
-                        id:       TokenIdVec(vec![]),
+                        id:       TokenIdUnit(),
                     },
                 }),
             )
         })
         .map(NftMultiRewardedTestClient)
         .expect("Failed to init tree nft contract");
+    admin
+        .transact(|account| {
+            chain.update(
+                account,
+                tree_sft.add_agent_payload(&AgentWithRoles {
+                    address: tree_nft.contract_address().into(),
+                    roles:   vec![security_sft_single::types::AgentRole::Operator],
+                }),
+            )
+        })
+        .expect("Failed to add agent to tree sft contract");
     let offchain_rewards = admin
         .transact(|account| {
             chain.init(

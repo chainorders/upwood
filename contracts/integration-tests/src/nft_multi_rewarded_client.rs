@@ -2,7 +2,7 @@ use concordium_base::smart_contracts::WasmModule;
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use nft_multi_rewarded::types::{Agent, InitParam};
-use nft_multi_rewarded::TransferMintParams;
+use nft_multi_rewarded::{MintAgentParams, MintParams};
 
 pub use super::cis2::*;
 use crate::contract_base::{ContractPayloads, ContractTestClient};
@@ -64,13 +64,25 @@ pub trait NftMultiRewardedClientPayloads: ContractPayloads<InitParam> {
         }
     }
 
-    fn transfer_mint_payload(&self, params: &TransferMintParams) -> UpdateContractPayload {
+    fn mint_payload(&self, params: &MintParams) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
             receive_name: OwnedReceiveName::construct_unchecked(
                 Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("transferMint"),
+                EntrypointName::new_unchecked("mint"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    fn mint_agent_payload(&self, params: &MintAgentParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("mintAgent"),
             ),
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
@@ -93,18 +105,33 @@ impl NftMultiRewardedTestClient {
         )
     }
 
-    pub fn transfer_mint(
+    pub fn mint(
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &TransferMintParams,
+        params: &MintParams,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_update(
             Signer::with_one_key(),
             sender.address,
             sender.address.into(),
             MAX_ENERGY,
-            self.transfer_mint_payload(params),
+            self.mint_payload(params),
+        )
+    }
+
+    pub fn mint_agent(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &MintAgentParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.mint_agent_payload(params),
         )
     }
 }
