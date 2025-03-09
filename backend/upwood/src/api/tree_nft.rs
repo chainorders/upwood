@@ -216,7 +216,7 @@ impl Api {
     /// # Returns
     /// A vector of `TreeNftMetadata` records for the given page.
     #[oai(
-        path = "/admin/tree_nft/metadata/list/:page",
+        path = "/admin/tree_nft/metadata/list",
         method = "get",
         tag = "ApiTags::TreeNftMetadata"
     )]

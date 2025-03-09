@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AddMetadataRequest } from "../models/AddMetadataRequest";
+import type { MetadataUrl } from "../models/MetadataUrl";
 import type { MintData } from "../models/MintData";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { TreeNftMetadata } from "../models/TreeNftMetadata";
@@ -25,10 +26,21 @@ export class TreeNftMetadataService {
 	 * @returns MintData
 	 * @throws ApiError
 	 */
-	public static getTreeNftMetadataRandom(): CancelablePromise<MintData> {
+	public static getTreeNftMetadataRandomSigned(): CancelablePromise<MintData> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/tree_nft/metadata/random",
+			url: "/tree_nft/metadata/random/signed",
+		});
+	}
+
+	/**
+	 * @returns MetadataUrl
+	 * @throws ApiError
+	 */
+	public static getTreeNftMetadataRandomUnsigned(): CancelablePromise<MetadataUrl> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/tree_nft/metadata/random/unsigned",
 		});
 	}
 
@@ -74,7 +86,7 @@ export class TreeNftMetadataService {
 	public static getAdminTreeNftMetadataList(page: number): CancelablePromise<Array<TreeNftMetadata>> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/tree_nft/metadata/list/{page}",
+			url: "/admin/tree_nft/metadata/list",
 			query: {
 				page: page,
 			},

@@ -27,7 +27,7 @@ use shared::db_app::forest_project_crypto::{
 };
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::users::{
-    Company, CompanyInvitation, User, UserKYCModel, UserRegistrationRequest,
+    Company, CompanyInvitation, User, UserKYCModel, UserRegistrationRequest, UserTokenHolder,
 };
 use uuid::Uuid;
 
@@ -395,6 +395,35 @@ impl UserApi {
             page_count,
         }))
     }
+
+    #[oai(path = "/admin/holder/:token_id/:contract/list", method = "get", tag = "ApiTags::User")]
+    pub async fn admin_holder_list(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(token_id): Path<Decimal>,
+        Path(contract): Path<Decimal>,
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<UserTokenHolder>> {
+        ensure_is_admin(&claims)?;
+        let page = page.unwrap_or(0);
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let conn = &mut db_pool.get()?;
+        let (users, page_count) = UserTokenHolder::list(
+            conn,
+            token_id,
+            contract,
+            page,
+            page_size,
+        )?;
+        Ok(Json(PagedResponse {
+            data: users,
+            page,
+            page_count,
+        }))
+    }
+
 
     #[oai(
         path = "/user/investments/list/:page",

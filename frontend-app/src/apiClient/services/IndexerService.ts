@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
+import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
 import type { Token } from "../models/Token";
 import type { YieldApiModel } from "../models/YieldApiModel";
@@ -164,6 +165,34 @@ export class IndexerService {
 			path: {
 				contract_address: contractAddress,
 				token_id: tokenId,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
+	 * @param tokenId
+	 * @param page
+	 * @param pageSize
+	 * @returns PagedResponse_TokenHolder
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2TokenHolderList(
+		contractAddress: string,
+		tokenId: string,
+		page?: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_TokenHolder> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/list",
+			path: {
+				contract_address: contractAddress,
+				token_id: tokenId,
+			},
+			query: {
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

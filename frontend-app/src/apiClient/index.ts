@@ -62,6 +62,7 @@ export type { PagedResponse_TokenHolder } from "./models/PagedResponse_TokenHold
 export type { PagedResponse_TokenMetadata } from "./models/PagedResponse_TokenMetadata";
 export type { PagedResponse_UserKYCModel } from "./models/PagedResponse_UserKYCModel";
 export type { PagedResponse_UserRegistrationRequest } from "./models/PagedResponse_UserRegistrationRequest";
+export type { PagedResponse_UserTokenHolder } from "./models/PagedResponse_UserTokenHolder";
 export type { PagedResponse_UserTransaction } from "./models/PagedResponse_UserTransaction";
 export type { PlatformUpdate } from "./models/PlatformUpdate";
 export type { PortfolioValue } from "./models/PortfolioValue";
@@ -86,6 +87,7 @@ export type { UserCreatePostReqAdmin } from "./models/UserCreatePostReqAdmin";
 export type { UserKYCModel } from "./models/UserKYCModel";
 export type { UserRegistrationRequest } from "./models/UserRegistrationRequest";
 export type { UserRegistrationRequestApi } from "./models/UserRegistrationRequestApi";
+export type { UserTokenHolder } from "./models/UserTokenHolder";
 export type { UserTransaction } from "./models/UserTransaction";
 export type { UserYieldsAggregate } from "./models/UserYieldsAggregate";
 export type { Yield } from "./models/Yield";

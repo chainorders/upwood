@@ -8,6 +8,7 @@ import type { Notification } from "../models/Notification";
 import type { PagedResponse_CompanyInvitation } from "../models/PagedResponse_CompanyInvitation";
 import type { PagedResponse_UserKYCModel } from "../models/PagedResponse_UserKYCModel";
 import type { PagedResponse_UserRegistrationRequest } from "../models/PagedResponse_UserRegistrationRequest";
+import type { PagedResponse_UserTokenHolder } from "../models/PagedResponse_UserTokenHolder";
 import type { SystemContractsConfigApiModel } from "../models/SystemContractsConfigApiModel";
 import type { UserCompanyCreateUpdateReq } from "../models/UserCompanyCreateUpdateReq";
 import type { UserCompanyInvitationCreateReq } from "../models/UserCompanyInvitationCreateReq";
@@ -163,6 +164,34 @@ export class UserService {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/user/list",
+			query: {
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param tokenId
+	 * @param contract
+	 * @param page
+	 * @param pageSize
+	 * @returns PagedResponse_UserTokenHolder
+	 * @throws ApiError
+	 */
+	public static getAdminHolderList(
+		tokenId: string,
+		contract: string,
+		page?: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_UserTokenHolder> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/holder/{token_id}/{contract}/list",
+			path: {
+				token_id: tokenId,
+				contract: contract,
+			},
 			query: {
 				page: page,
 				page_size: pageSize,

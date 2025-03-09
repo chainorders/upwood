@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
+use crate::db::cis2_security::TokenHolder;
 use crate::db::identity_registry::Identity;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::users;
@@ -256,6 +257,65 @@ impl UserKYCModel {
             .get_results(conn)?
             .into_iter()
             .map(|(user, identity)| UserKYCModel::new(user, identity.is_some()));
+
+        let count: i64 = query.count().get_result(conn)?;
+        let page_count = (count as f64 / page_size as f64).ceil() as i64;
+        Ok((ret.collect(), page_count))
+    }
+}
+
+#[derive(Object, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct UserTokenHolder {
+    pub cognito_user_id:        String,
+    pub account_address:        String,
+    pub first_name:             String,
+    pub last_name:              String,
+    pub email:                  String,
+    pub token_id:               Decimal,
+    pub token_contract_address: Decimal,
+    pub balance_frozen:         Decimal,
+    pub balance_unfrozen:       Decimal,
+    pub balance_total:          Decimal,
+}
+
+impl UserTokenHolder {
+    pub fn new(user: User, token_holder: TokenHolder) -> Self {
+        UserTokenHolder {
+            cognito_user_id: user.cognito_user_id,
+            account_address: user.account_address,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            token_id: token_holder.token_id,
+            token_contract_address: token_holder.cis2_address,
+            balance_frozen: token_holder.frozen_balance,
+            balance_unfrozen: token_holder.un_frozen_balance,
+            balance_total: token_holder.frozen_balance + token_holder.un_frozen_balance,
+        }
+    }
+
+    pub fn list(
+        conn: &mut DbConn,
+        token_id_cis2: Decimal,
+        token_contract_address: Decimal,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        use crate::schema::cis2_token_holders::dsl::*;
+        use crate::schema::users::dsl::*;
+
+        let query = users
+            .inner_join(cis2_token_holders.on(holder_address.eq(account_address)))
+            .select((User::as_select(), TokenHolder::as_select()))
+            .filter(token_id.eq(token_id_cis2))
+            .filter(cis2_address.eq(token_contract_address));
+
+        let ret = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .get_results(conn)?
+            .into_iter()
+            .map(|(user, token_holder)| UserTokenHolder::new(user, token_holder));
 
         let count: i64 = query.count().get_result(conn)?;
         let page_count = (count as f64 / page_size as f64).ceil() as i64;

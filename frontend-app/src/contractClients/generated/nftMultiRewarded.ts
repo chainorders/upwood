@@ -276,46 +276,42 @@ export type event =
 	| { AgentRemoved: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }] }
 	| { NonceUpdated: [{ Account: [string] } | { Contract: [{ index: number; subindex: number }] }, bigint] }
 	| {
-			Cis2: [
-				| {
-						TokenMetadata: {
-							token_id: string;
-							metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
-						};
-				  }
-				| {
-						UpdateOperator: {
-							update: { Remove: Record<string, never> } | { Add: Record<string, never> };
-							owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-							operator: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-						};
-				  }
-				| {
-						Burn: {
-							token_id: string;
-							amount: string;
-							owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-						};
-				  }
-				| {
-						Mint: {
-							token_id: string;
-							amount: string;
-							owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-						};
-				  }
-				| {
-						Transfer: {
-							token_id: string;
-							amount: string;
-							from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-							to: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
-						};
-				  },
-			];
+			TokenMetadata: {
+				token_id: string;
+				metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
+			};
+	  }
+	| {
+			UpdateOperator: {
+				update: { Remove: Record<string, never> } | { Add: Record<string, never> };
+				owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+				operator: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+			};
+	  }
+	| {
+			Burn: {
+				token_id: string;
+				amount: string;
+				owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+			};
+	  }
+	| {
+			Mint: {
+				token_id: string;
+				amount: string;
+				owner: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+			};
+	  }
+	| {
+			Transfer: {
+				token_id: string;
+				amount: string;
+				from: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+				to: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
+			};
 	  };
 export const eventSchemaBase64 =
-	"FQUAAAASAAAAUmV3YXJkVG9rZW5VcGRhdGVkAQEAAAAUAAEAAAAMAAAAcmV3YXJkX3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ACgAAAEFnZW50QWRkZWQBAQAAABUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMDAAAAE5vbmNlVXBkYXRlZAECAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAUEAAAAQ2lzMgEBAAAAHwUAAAD7DQAAAFRva2VuTWV0YWRhdGEAAgAAAAgAAAB0b2tlbl9pZB0ADAAAAG1ldGFkYXRhX3VybBQAAgAAAAMAAAB1cmwWAQQAAABoYXNoFQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAHiAAAAD8DgAAAFVwZGF0ZU9wZXJhdG9yAAMAAAAGAAAAdXBkYXRlFQIAAAAGAAAAUmVtb3ZlAgMAAABBZGQCBQAAAG93bmVyFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAgAAABvcGVyYXRvchUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAz9BAAAAEJ1cm4AAwAAAAgAAAB0b2tlbl9pZB0ABgAAAGFtb3VudBslAAAABQAAAG93bmVyFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADP4EAAAATWludAADAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAFAAAAb3duZXIVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM/wgAAABUcmFuc2ZlcgAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwCAAAAdG8VAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM";
+	"HwkAAAAAEgAAAFJld2FyZFRva2VuVXBkYXRlZAEBAAAAFAABAAAADAAAAHJld2FyZF90b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAEKAAAAQWdlbnRBZGRlZAEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAIMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMAwwAAABOb25jZVVwZGF0ZWQBAgAAABUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwF+w0AAABUb2tlbk1ldGFkYXRhAAIAAAAIAAAAdG9rZW5faWQdAAwAAABtZXRhZGF0YV91cmwUAAIAAAADAAAAdXJsFgEEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAAB4gAAAA/A4AAABVcGRhdGVPcGVyYXRvcgADAAAABgAAAHVwZGF0ZRUCAAAABgAAAFJlbW92ZQIDAAAAQWRkAgUAAABvd25lchUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwIAAAAb3BlcmF0b3IVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAM/QQAAABCdXJuAAMAAAAIAAAAdG9rZW5faWQdAAYAAABhbW91bnQbJQAAAAUAAABvd25lchUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAz+BAAAAE1pbnQAAwAAAAgAAAB0b2tlbl9pZB0ABgAAAGFtb3VudBslAAAABQAAAG93bmVyFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADP8IAAAAVHJhbnNmZXIABAAAAAgAAAB0b2tlbl9pZB0ABgAAAGFtb3VudBslAAAABAAAAGZyb20VAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMAgAAAHRvFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
 	addAgent: EntrypointName.fromString("addAgent"),
 	balanceOf: EntrypointName.fromString("balanceOf"),
@@ -344,7 +340,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const nftMultiRewarded = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("d3d06b77ad157ac58338075ec3bc0ef033f98031bf5e2a4eb94716ae2a983445"),
+		ModuleReference.fromHexString("0535cd3dd8633b115996b51fdba0bf7914edef3ad4bcc36662802bcfd7cedf64"),
 		ContractName.fromString("nft_multi_rewarded"),
 		initRequestSchemaBase64,
 	),

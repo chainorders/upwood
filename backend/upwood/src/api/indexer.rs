@@ -3,7 +3,8 @@ use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
 use rust_decimal::Decimal;
-use shared::db::cis2_security::Token;
+use shared::api::PagedResponse;
+use shared::db::cis2_security::{Token, TokenHolder};
 use shared::db::security_mint_fund::SecurityMintFund;
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::Yield;
@@ -219,6 +220,32 @@ impl Api {
         })
         .collect();
         Ok(Json(yields))
+    }
+
+    #[oai(
+        path = "/admin/indexer/cis2/:contract_address/token/:token_id/holder/list",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2_token_holder_list(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+        Path(token_id): Path<Decimal>,
+        Query(page): Query<Option<i64>>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<TokenHolder>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let page = page.unwrap_or(0);
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let (holders, page_count) = TokenHolder::list(&mut conn, contract_address, token_id, page, page_size)?;
+        Ok(Json(PagedResponse {
+            data: holders,
+            page_count,
+            page
+        }))
     }
 }
 

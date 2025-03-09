@@ -21,8 +21,12 @@ import HandymanIcon from "@mui/icons-material/Handyman";
 import UpdateIcon from "@mui/icons-material/Update";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import ForestIcon from "@mui/icons-material/Forest";
+import LandscapeIcon from "@mui/icons-material/Landscape";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
+import TreeFungibleHoldersList from "./pages/TreeFungibleHoldersList.tsx";
+import TreeMetadataList from "./pages/TreeMetadataList.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -107,6 +111,18 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/support",
 			icon: <SupportAgentIcon />,
 			isActive: pathname.startsWith("/admin/support"),
+		},
+		{
+			name: "Tree Fungible",
+			url: "/admin/tree/fungible/holders",
+			icon: <ForestIcon />,
+			isActive: pathname.startsWith("/admin/tree/fungible/holders"),
+		},
+		{
+			name: "Tree metadatas",
+			url: "/admin/tree/metadata",
+			icon: <LandscapeIcon />,
+			isActive: pathname.startsWith("/admin/tree/metadata"),
 		},
 	];
 
@@ -201,6 +217,8 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							<Route index element={<Navigate to="list" />} />
 							<Route path="list" element={<QuestionsList />} />
 						</Route>
+						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
+						<Route path="tree/metadata" element={<TreeMetadataList user={user} />} />
 					</Routes>
 				</Suspense>
 			</Box>

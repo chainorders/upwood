@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 use concordium_rust_sdk::id::types::AccountAddress;
 use concordium_rust_sdk::types::Address;
 use diesel::prelude::*;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::ToPrimitive;
 use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -357,24 +357,26 @@ impl TokenHolder {
     }
 
     #[instrument(skip(conn))]
-    pub fn list_by_tokens(
+    pub fn list(
         conn: &mut DbConn,
-        tokens: Vec<(Decimal, Decimal)>,
-        holder_address: &Address,
-    ) -> DbResult<Vec<TokenHolder>> {
-        let contract_addresses = tokens.iter().map(|(a, _)| a);
-        let token_ids = tokens.iter().map(|(_, t)| t);
-        let holders = cis2_token_holders::table
-            .filter(
-                cis2_token_holders::cis2_address
-                    .eq_any(contract_addresses)
-                    .and(cis2_token_holders::token_id.eq_any(token_ids))
-                    .and(cis2_token_holders::holder_address.eq(holder_address.to_string()))
-                    .and(cis2_token_holders::un_frozen_balance.gt(Decimal::zero())),
-            )
+        contract: Decimal,
+        token_id: Decimal,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<TokenHolder>, i64)> {
+        let query = cis2_token_holders::table.filter(
+            cis2_token_holders::cis2_address
+                .eq(contract)
+                .and(cis2_token_holders::token_id.eq(token_id)),
+        );
+        let holders = query
             .select(TokenHolder::as_select())
+            .order(cis2_token_holders::create_time)
+            .offset(page * page_size)
+            .limit(page_size)
             .get_results(conn)?;
-        Ok(holders)
+        let total_count: i64 = query.count().get_result(conn)?;
+        Ok((holders, total_count))
     }
 }
 

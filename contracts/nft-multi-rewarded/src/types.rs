@@ -1,7 +1,7 @@
 use concordium_cis2::{Cis2Event, TokenIdU64, TokenIdUnit};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, TokenUId};
-use concordium_std::{Address, SchemaType, Serialize};
+use concordium_std::{Address, SchemaType, Serialize, Cursor};
 
 use super::error::Error;
 
@@ -36,10 +36,12 @@ pub struct InitParam {
 }
 
 #[derive(Serialize, SchemaType, Debug)]
+#[concordium(repr(u8))]
 pub enum Event {
     RewardTokenUpdated(InitParam),
     AgentAdded(Address),
     AgentRemoved(Address),
     NonceUpdated(Address, u64),
+    #[concordium(forward = cis2_events)]
     Cis2(Cis2Event<TokenId, TokenAmount>),
 }
