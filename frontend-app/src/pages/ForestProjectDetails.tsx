@@ -37,7 +37,6 @@ function ForestProjectMediaSection({
 						{medias.map((im, index) => (
 							<div
 								className="col-3 col-m-full col-mr-bottom-10 fl"
-								style={{ paddingLeft: "2px", paddingRight: "2px" }}
 								key={index}
 							>
 								<div className="im">
@@ -46,7 +45,7 @@ function ForestProjectMediaSection({
 										alt=""
 										width="100%"
 										height="auto"
-										style={{ objectFit: "cover", maxHeight: "300px" }}
+										style={{ objectFit: "cover", maxHeight: "200px" }}
 										effect="opacity"
 									/>
 								</div>
@@ -226,9 +225,36 @@ export default function ForestProjectDetails({ user, source }: Props) {
 							{
 								{
 									0: project && <ForestProjectMediaSection project={project!} medias={medias?.data || []} />,
-									1: <SingleImageLayout data={singleimagedata} />,
-									2: <SingleImageLayout data={singleimagedata} />,
-									3: <SingleImageLayout data={singleimagedata} />,
+									1: (
+										<SingleImageLayout
+											data={{
+												title: project?.forest_project.offering_doc_title || "Offering Documentation",
+												header: project?.forest_project.offering_doc_header,
+												footer: project?.forest_project.offering_doc_footer,
+												image: project?.forest_project.offering_doc_img_url,
+											}}
+										/>
+									),
+									2: (
+										<SingleImageLayout
+											data={{
+												title: project.forest_project.financial_projection_title || "Financial Projections",
+												header: project.forest_project.financial_projection_header,
+												footer: project.forest_project.financial_projection_footer,
+												image: project.forest_project.financial_projection_img_url,
+											}}
+										/>
+									),
+									3: (
+										<SingleImageLayout
+											data={{
+												title: project.forest_project.geo_title || "Geospatial Data",
+												header: project.forest_project.geo_header,
+												footer: project.forest_project.geo_img_url,
+												image: project.forest_project.geo_img_url,
+											}}
+										/>
+									),
 								}[tabIndex]
 							}
 						</div>

@@ -33,6 +33,7 @@ import {
 	AccordionDetails,
 	TablePagination,
 	Breadcrumbs,
+	Divider,
 } from "@mui/material";
 import { Link } from "react-router";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -151,11 +152,15 @@ export default function ProjectDetails() {
 									Update Project
 								</Button>
 							</Box>
+							<Typography variant="h6" gutterBottom>Basic Information</Typography>
 							<Typography variant="body1" gutterBottom>
 								{project.desc_short}
 							</Typography>
 							<Typography variant="body1" gutterBottom>
 								{project.desc_long}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Label: {project.label}
 							</Typography>
 							<Typography variant="body2" color="textSecondary">
 								Area: {project.area}
@@ -178,7 +183,71 @@ export default function ProjectDetails() {
 							<Typography variant="body2" color="textSecondary">
 								Updated At: {new Date(project.updated_at).toLocaleDateString()}
 							</Typography>
+
+							<Divider sx={{ my: 2 }} />
+							<Typography variant="h6" gutterBottom>Property Media</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Header: {project.property_media_header}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Footer: {project.property_media_footer}
+							</Typography>
+
+							<Divider sx={{ my: 2 }} />
+							<Typography variant="h6" gutterBottom>Offering Document</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Title: {project.offering_doc_title || 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Header: {project.offering_doc_header || 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Image URL: {project.offering_doc_img_url ? 
+									<a href={project.offering_doc_img_url} target="_blank" rel="noopener noreferrer">
+										View Image
+									</a> : 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Footer: {project.offering_doc_footer || 'N/A'}
+							</Typography>
+
+							<Divider sx={{ my: 2 }} />
+							<Typography variant="h6" gutterBottom>Financial Projection</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Title: {project.financial_projection_title || 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Header: {project.financial_projection_header || 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Image URL: {project.financial_projection_img_url ? 
+									<a href={project.financial_projection_img_url} target="_blank" rel="noopener noreferrer">
+										View Image
+									</a> : 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Footer: {project.financial_projection_footer || 'N/A'}
+							</Typography>
+
+							<Divider sx={{ my: 2 }} />
+							<Typography variant="h6" gutterBottom>Geospatial Information</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Title: {project.geo_title || 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Header: {project.geo_header || 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Image URL: {project.geo_img_url ? 
+									<a href={project.geo_img_url} target="_blank" rel="noopener noreferrer">
+										View Image
+									</a> : 'N/A'}
+							</Typography>
+							<Typography variant="body2" color="textSecondary">
+								Footer: {project.geo_footer || 'N/A'}
+							</Typography>
 						</Paper>
+						
 						<Accordion sx={{ marginTop: 2 }}>
 							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
 								<Typography variant="h6">Smart Contracts</Typography>

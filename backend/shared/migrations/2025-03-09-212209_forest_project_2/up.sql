@@ -1,0 +1,15 @@
+ALTER TABLE forest_projects
+ADD COLUMN offering_doc_title TEXT,
+ADD COLUMN offering_doc_header TEXT,
+ADD COLUMN offering_doc_img_url TEXT,
+ADD COLUMN offering_doc_footer TEXT,
+ADD COLUMN financial_projection_title TEXT,
+ADD COLUMN financial_projection_header TEXT,
+ADD COLUMN financial_projection_img_url TEXT,
+ADD COLUMN financial_projection_footer TEXT,
+ADD COLUMN geo_title TEXT,
+ADD COLUMN geo_header TEXT,
+ADD COLUMN geo_img_url TEXT,
+ADD COLUMN geo_footer TEXT,
+DROP COLUMN geo_spatial_url,
+DROP COLUMN offering_doc_link;

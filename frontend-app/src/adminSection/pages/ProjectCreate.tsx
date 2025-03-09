@@ -11,6 +11,7 @@ import {
 	Box,
 	Breadcrumbs,
 	Typography,
+	Divider,
 } from "@mui/material";
 import { formatDate } from "../../lib/conversions";
 import { Link, useNavigate } from "react-router";
@@ -48,6 +49,7 @@ export default function ProjectCreate() {
 			</Breadcrumbs>
 			<div>
 				<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+					<Typography variant="h6">Basic Information</Typography>
 					<TextField
 						label="Name"
 						{...register("name", { required: true })}
@@ -117,7 +119,6 @@ export default function ProjectCreate() {
 						error={!!errors.image_small_url}
 						helperText={errors.image_small_url ? "This field is required" : ""}
 					/>
-					<TextField label="Geo Spatial URL" {...register("geo_spatial_url")} />
 					<TextField
 						label="Shares Available"
 						type="number"
@@ -125,7 +126,9 @@ export default function ProjectCreate() {
 						error={!!errors.shares_available}
 						helperText={errors.shares_available ? "This field is required" : ""}
 					/>
-					<TextField label="Offering Document Link" {...register("offering_doc_link")} />
+
+					<Divider sx={{ my: 2 }} />
+					<Typography variant="h6">Property Media</Typography>
 					<TextField
 						label="Property Media Header"
 						multiline
@@ -142,7 +145,29 @@ export default function ProjectCreate() {
 						error={!!errors.property_media_footer}
 						helperText={errors.property_media_footer ? "This field is required" : ""}
 					/>
-					<Button type="submit" variant="contained" color="primary">
+
+					<Divider sx={{ my: 2 }} />
+					<Typography variant="h6">Offering Document</Typography>
+					<TextField label="Offering Document Title" {...register("offering_doc_title")} />
+					<TextField label="Offering Document Header" multiline rows={4} {...register("offering_doc_header")} />
+					<TextField label="Offering Document Image URL" {...register("offering_doc_img_url")} />
+					<TextField label="Offering Document Footer" multiline rows={4} {...register("offering_doc_footer")} />
+
+					<Divider sx={{ my: 2 }} />
+					<Typography variant="h6">Financial Projection</Typography>
+					<TextField label="Financial Projection Title" {...register("financial_projection_title")} />
+					<TextField label="Financial Projection Header" multiline rows={4} {...register("financial_projection_header")} />
+					<TextField label="Financial Projection Image URL" {...register("financial_projection_img_url")} />
+					<TextField label="Financial Projection Footer" multiline rows={4} {...register("financial_projection_footer")} />
+
+					<Divider sx={{ my: 2 }} />
+					<Typography variant="h6">Geospatial Information</Typography>
+					<TextField label="Geo Title" {...register("geo_title")} />
+					<TextField label="Geo Header" multiline rows={4} {...register("geo_header")} />
+					<TextField label="Geo Image URL" {...register("geo_img_url")} />
+					<TextField label="Geo Footer" multiline rows={4} {...register("geo_footer")} />
+
+					<Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
 						Create Project
 					</Button>
 				</Box>
