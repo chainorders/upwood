@@ -839,7 +839,6 @@ impl UserApi {
         Ok(Json(company))
     }
 
-
     #[oai(path = "/company/invitation", method = "post", tag = "ApiTags::User")]
     pub async fn user_company_invitation_create(
         &self,

@@ -387,9 +387,11 @@ impl Company {
     }
 
     pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
-        diesel::update(crate::schema::companies::table.filter(crate::schema::companies::id.eq(self.id)))
-            .set(self)
-            .get_result(conn)
+        diesel::update(
+            crate::schema::companies::table.filter(crate::schema::companies::id.eq(self.id)),
+        )
+        .set(self)
+        .get_result(conn)
     }
 }
 

@@ -561,12 +561,19 @@ pub mod ses {
             company: &Company,
         ) -> Result<(), Error> {
             info!(
-                "Sending company invitation email to {} from {} for company {}, invitation url: {}, reject url: {}",
+                "Sending company invitation email to {} from {} for company {}, invitation url: \
+                 {}, reject url: {}",
                 invitee_email,
                 inviter_email,
                 company.name,
-                format!("{}/{}/accept", self.company_invitation_accept_url, invitation_id),
-                format!("{}/{}/reject", self.company_invitation_accept_url, invitation_id),
+                format!(
+                    "{}/{}/accept",
+                    self.company_invitation_accept_url, invitation_id
+                ),
+                format!(
+                    "{}/{}/reject",
+                    self.company_invitation_accept_url, invitation_id
+                ),
             );
             Ok(())
         }

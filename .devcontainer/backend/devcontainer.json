@@ -43,6 +43,7 @@
 					"cargo",
 					"clippy",
 					"--no-deps",
+					"--all-targets",
 					"--message-format=json"
 				],
 				"rust-analyzer.checkOnSave.command": "check",
@@ -59,7 +60,13 @@
 						"path": "/bin/zsh",
 						"icon": "terminal"
 					}
-				}
+				},
+				"github.copilot.chat.commitMessageGeneration.instructions": [
+					{
+						"text": "Be descriptive of the changes made. Its always better to name of the changed files and the changes made in them."
+					}
+				],
+				"github.copilot.chat.edits.codesearch.enabled": true
 			},
 			"extensions": [
 				"ms-azuretools.vscode-docker",
