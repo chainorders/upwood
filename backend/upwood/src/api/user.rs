@@ -50,29 +50,27 @@ impl UserApi {
         &self,
         Data(db_pool): Data<&DbPool>,
         Json(req): Json<UserRegistrationRequestApi>,
-    ) -> NoResResult {
+    ) -> JsonResult<UserRegistrationRequest> {
         let mut conn = db_pool.get()?;
         if User::find_by_email(&mut conn, &req.email)?.is_some() {
             return Err(Error::BadRequest(PlainText(
                 "User already registered".to_string(),
             )));
         }
-        if UserRegistrationRequest::find_by_email(&mut conn, &req.email)?.is_some() {
-            return Err(Error::BadRequest(PlainText(
-                "Request already exists".to_string(),
-            )));
-        }
+        let ret = match UserRegistrationRequest::find_by_email(&mut conn, &req.email)? {
+            Some(r) => r,
+            None => UserRegistrationRequest {
+                id: uuid::Uuid::new_v4(),
+                email: req.email.clone(),
+                affiliate_account_address: req.affiliate_account_address.clone(),
+                is_accepted: false,
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: chrono::Utc::now().naive_utc(),
+            }
+            .insert(&mut conn)?,
+        };
 
-        UserRegistrationRequest {
-            id: uuid::Uuid::new_v4(),
-            email: req.email.clone(),
-            affiliate_account_address: req.affiliate_account_address.clone(),
-            is_accepted: false,
-            created_at: chrono::Utc::now().naive_utc(),
-            updated_at: chrono::Utc::now().naive_utc(),
-        }
-        .insert(&mut conn)?;
-        Ok(())
+        Ok(Json(ret))
     }
 
     #[oai(
@@ -396,7 +394,11 @@ impl UserApi {
         }))
     }
 
-    #[oai(path = "/admin/holder/:token_id/:contract/list", method = "get", tag = "ApiTags::User")]
+    #[oai(
+        path = "/admin/holder/:token_id/:contract/list",
+        method = "get",
+        tag = "ApiTags::User"
+    )]
     pub async fn admin_holder_list(
         &self,
         Data(db_pool): Data<&DbPool>,
@@ -410,20 +412,13 @@ impl UserApi {
         let page = page.unwrap_or(0);
         let page_size = page_size.unwrap_or(PAGE_SIZE);
         let conn = &mut db_pool.get()?;
-        let (users, page_count) = UserTokenHolder::list(
-            conn,
-            token_id,
-            contract,
-            page,
-            page_size,
-        )?;
+        let (users, page_count) = UserTokenHolder::list(conn, token_id, contract, page, page_size)?;
         Ok(Json(PagedResponse {
             data: users,
             page,
             page_count,
         }))
     }
-
 
     #[oai(
         path = "/user/investments/list/:page",
