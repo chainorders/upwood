@@ -15,12 +15,13 @@ import { ILogGroup } from "aws-cdk-lib/aws-logs";
 import { IBucket } from "aws-cdk-lib/aws-s3";
 import { INamespace } from "aws-cdk-lib/aws-servicediscovery";
 import { Construct } from "constructs";
+import * as ses from "aws-cdk-lib/aws-ses";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 
 import { constructName, OrganizationEnv, StackProps as SP } from "./shared";
 
 interface StackProps extends SP {
 	certificateArn: string;
-	userPoolArn: string;
 	filesBucket: IBucket;
 	domainName: string;
 	vpcLink: IVpcLink;
@@ -35,6 +36,8 @@ interface StackProps extends SP {
 	apiSocketPort: number;
 	environment: Record<string, string>;
 	secrets: Record<string, ecs.Secret>;
+	emailIdentity: ses.IEmailIdentity;
+	cognito: cognito.IUserPool;
 }
 
 export class BackendApiStack extends Stack {
@@ -71,27 +74,21 @@ export class BackendApiStack extends Stack {
 				? RemovalPolicy.RETAIN
 				: RemovalPolicy.DESTROY,
 		);
-		taskDef.addToTaskRolePolicy(
-			new PolicyStatement({
-				actions: ["s3:*"],
-				resources: [props.filesBucket.bucketArn + "/*"],
-			}),
-		);
-		taskDef.addToTaskRolePolicy(
-			new PolicyStatement({
-				actions: [
-					"cognito-idp:AdminCreateUser",
-					"cognito-idp:AdminDeleteUser",
-					"cognito-idp:AdminDisableUser",
-					"cognito-idp:AdminEnableUser",
-					"cognito-idp:AdminGetUser",
-					"cognito-idp:AdminSetUserPassword",
-					"cognito-idp:AdminUpdateUserAttributes",
-					"cognito-idp:AdminResetUserPassword",
-					"cognito-idp:ListUsers",
-				],
-				resources: [props.userPoolArn],
-			}),
+		props.filesBucket.grantWrite(taskDef.taskRole);
+		props.filesBucket.grantRead(taskDef.taskRole);
+		props.filesBucket.grantDelete(taskDef.taskRole);
+		props.emailIdentity.grantSendEmail(taskDef.taskRole);
+		props.cognito.grant(
+			taskDef.taskRole,
+			"cognito-idp:AdminCreateUser",
+			"cognito-idp:AdminDeleteUser",
+			"cognito-idp:AdminDisableUser",
+			"cognito-idp:AdminEnableUser",
+			"cognito-idp:AdminGetUser",
+			"cognito-idp:AdminSetUserPassword",
+			"cognito-idp:AdminUpdateUserAttributes",
+			"cognito-idp:AdminResetUserPassword",
+			"cognito-idp:ListUsers",
 		);
 		let apiContainer = taskDef.addContainer("backend-api", {
 			image: ecs.ContainerImage.fromDockerImageAsset(containerImage),

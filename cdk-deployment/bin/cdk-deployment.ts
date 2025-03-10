@@ -15,6 +15,7 @@ import { DbStack } from "../lib/db-stack";
 import { FilesS3Stack } from "../lib/files-s3-stack";
 import { FrontendAppWebsiteStack } from "../lib/frontend-app-website-stack";
 import { InfraStack } from "../lib/infra-stack";
+import { SESStack } from "../lib/ses-stack";
 import { OrganizationEnv } from "../lib/shared";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
@@ -35,7 +36,22 @@ const app = new cdk.App({
 		"@aws-cdk/core:newStyleStackSynthesis": true,
 	},
 });
-let cognitoStack = new CognitoStack(app, "CognitoStack", {
+
+const sesStack = new SESStack(app, "SESStack", {
+	env: {
+		account: ACCOUNT,
+		region: REGION,
+	},
+	organization: ORGANIZATION,
+	organization_env: ORGANIZATION_ENV,
+	tags: {
+		organization: ORGANIZATION,
+		environment: ORGANIZATION_ENV,
+	},
+	baseDomain: process.env.SES_DOMAIN_NAME!,
+});
+
+const cognitoStack = new CognitoStack(app, "CognitoStack", {
 	appDomain: process.env.APP_DOMAIN_NAME!,
 	env: {
 		account: ACCOUNT,
@@ -47,7 +63,12 @@ let cognitoStack = new CognitoStack(app, "CognitoStack", {
 		organization: ORGANIZATION,
 		environment: ORGANIZATION_ENV,
 	},
+	fromEmail: process.env.COGNITO_FROM_EMAIL!,
+	fromName: process.env.COGNITO_FROM_NAME!,
+	replyTo: process.env.COGNITO_REPLY_TO!,
+	sesDomain: process.env.SES_DOMAIN_NAME!,
 });
+cognitoStack.addDependency(sesStack, "Cogntito sends emails through SES");
 
 const infraStack = new InfraStack(app, "InfraStack", {
 	env: {
@@ -90,7 +111,7 @@ const dbStack = new DbStack(app, "DbStack", {
 	dbStorageGiB: parseInt(process.env.DB_STORAGE_GB!),
 });
 
-new BackendListenerStack(app, "BackendListenerStack", {
+const listenerStack = new BackendListenerStack(app, "BackendListenerStack", {
 	env: {
 		account: ACCOUNT,
 		region: REGION,
@@ -142,6 +163,8 @@ new BackendListenerStack(app, "BackendListenerStack", {
 			process.env.LISTENER_RETRY_MAX_DELAY_MILLIS!,
 	},
 });
+listenerStack.addDependency(dbStack, "Listener uses RDS for data storage");
+listenerStack.addDependency(infraStack, "Listener runs on ECS");
 
 const filesStack = new FilesS3Stack(app, "FilesS3Stack", {
 	env: {
@@ -158,7 +181,7 @@ const filesStack = new FilesS3Stack(app, "FilesS3Stack", {
 	certificateArn: process.env.FILES_FRONT_CERTIFICATE_ARN!,
 });
 
-new BackendApiStack(app, "BackendApiStack", {
+const apiStack = new BackendApiStack(app, "BackendApiStack", {
 	env: {
 		account: ACCOUNT,
 		region: REGION,
@@ -175,7 +198,6 @@ new BackendApiStack(app, "BackendApiStack", {
 	discoveryNamespace: infraStack.discoveryNamespace,
 	logGroup: infraStack.logGroup,
 	apiSocketPort: parseInt(process.env.API_SOCKET_PORT!),
-	userPoolArn: cognitoStack.userPool.userPoolArn,
 	filesBucket: filesStack.filesBucket,
 	containerCount: 1,
 	memoryReservationSoftMiB: parseInt(process.env.MEMORY_RESERVATION_SOFT_MIB!),
@@ -185,6 +207,8 @@ new BackendApiStack(app, "BackendApiStack", {
 		POSTGRES_PASSWORD: ecs.Secret.fromSsmParameter(dbStack.dbPasswordParam),
 		POSTGRES_USER: ecs.Secret.fromSsmParameter(dbStack.dbUsernameParam),
 	},
+	cognito: cognitoStack.userPool,
+	emailIdentity: sesStack.emailIdentity,
 	environment: {
 		//secrets
 		TREE_NFT_AGENT_WALLET_JSON_STR: process.env.TREE_NFT_AGENT_WALLET_JSON_STR!,
@@ -230,8 +254,14 @@ new BackendApiStack(app, "BackendApiStack", {
 		COMPANY_INVITATION_ACCEPT_URL: process.env.COMPANY_INVITATION_ACCEPT_URL!,
 	},
 });
+apiStack.addDependency(sesStack, "Backend API sends emails through SES");
+apiStack.addDependency(cognitoStack, "Backend API uses Cognito for user management");
+apiStack.addDependency(filesStack, "Backend API uses S3 for file storage");
+apiStack.addDependency(dbStack, "Backend API uses RDS for data storage");
+apiStack.addDependency(infraStack, "Backend API runs on ECS");
+apiStack.addDependency(listenerStack, "Backend API needs Indexer for Concordium");
 
-new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
+const websiteStack = new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
 	env: {
 		account: ACCOUNT,
 		region: REGION,
@@ -245,5 +275,8 @@ new FrontendAppWebsiteStack(app, "FrontendAppWebsiteStack", {
 	domainName: process.env.APP_DOMAIN_NAME!,
 	certificateArn: process.env.APP_FRONT_CERTIFICATE_ARN!,
 });
+websiteStack.addDependency(apiStack, "Frontend app consumes the backend API");
+websiteStack.addDependency(filesStack, "Frontend app uses S3 for file storage");
+websiteStack.addDependency(cognitoStack, "Frontend app uses Cognito for user management");
 
 app.synth();

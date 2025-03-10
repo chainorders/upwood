@@ -69,7 +69,9 @@ export class FilesS3Stack extends Stack {
 					viewerProtocolPolicy:
 						cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
 					compress: true,
-					responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT,
+					responseHeadersPolicy:
+						cloudfront.ResponseHeadersPolicy
+							.CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT,
 				},
 				certificate: certificate,
 			},

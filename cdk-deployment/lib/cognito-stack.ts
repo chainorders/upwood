@@ -15,6 +15,10 @@ import {
 } from "aws-cdk-lib/aws-cognito";
 
 export interface CognitoStackProps extends StackProps {
+	fromEmail: string;
+	fromName: string;
+	replyTo: string;
+	sesDomain: string;
 	appDomain: string;
 }
 
@@ -55,7 +59,12 @@ export class CognitoStack extends cdk.Stack {
 			accountRecovery: AccountRecovery.EMAIL_ONLY,
 			selfSignUpEnabled: true,
 			signInAliases: { email: true },
-			email: UserPoolEmail.withCognito(), // TODO: Implement email configuration with SES
+			email: UserPoolEmail.withSES({
+				fromEmail: props.fromEmail,
+				fromName: props.fromName,
+				replyTo: props.replyTo,
+				sesVerifiedDomain: props.sesDomain,
+			}), // TODO: Implement email configuration with SES
 			userInvitation: {
 				emailSubject: "Your Upwood account is ready",
 				emailBody: `
