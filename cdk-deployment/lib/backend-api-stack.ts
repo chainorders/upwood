@@ -55,13 +55,6 @@ export class BackendApiStack extends Stack {
 				assetName: "backend-api",
 			},
 		);
-		const fileBucketAccessPolicy: PolicyDocument = new PolicyDocument();
-		fileBucketAccessPolicy.addStatements(
-			new PolicyStatement({
-				actions: ["s3:*"],
-				resources: [props.filesBucket.bucketArn + "/*"],
-			}),
-		);
 		const taskDef = new ecs.Ec2TaskDefinition(
 			this,
 			constructName(props, "backend-api-task-definition"),

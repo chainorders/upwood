@@ -81,6 +81,8 @@ export class BackendListenerStack extends Stack {
 				deploymentController: {
 					type: ecs.DeploymentControllerType.ECS,
 				},
+				minHealthyPercent: 0,
+				maxHealthyPercent: 100,
 			},
 		);
 		Tags.of(service).add("organization", props.organization);
