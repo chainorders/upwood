@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { ForestProject, ForestProjectService, ForestProjectState } from "../../apiClient";
+import { FilesService, ForestProject, ForestProjectService, ForestProjectState } from "../../apiClient";
 import { v4 as uuidv4 } from "uuid";
 import {
 	Button,
@@ -15,12 +15,16 @@ import {
 } from "@mui/material";
 import { formatDate } from "../../lib/conversions";
 import { Link, useNavigate } from "react-router";
+import ImageUploader from "../../components/ImageUploader";
+import { adminUploadImage } from "../libs/utils";
 
-export default function ProjectCreate() {
+export default function ProjectCreate({ fileBaseUrl }: { fileBaseUrl: string }) {
 	const {
 		register,
 		handleSubmit,
 		formState: { errors },
+		setValue,
+		watch,
 	} = useForm<ForestProject>();
 	const navigate = useNavigate();
 
@@ -111,13 +115,32 @@ export default function ProjectCreate() {
 						label="Large Image URL"
 						{...register("image_large_url", { required: true })}
 						error={!!errors.image_large_url}
+						disabled
 						helperText={errors.image_large_url ? "This field is required" : ""}
+						InputLabelProps={{ shrink: !!watch("image_large_url") }}
+					/>
+					<ImageUploader
+						aspectRatio={2.5}
+						onChange={(v) =>
+							adminUploadImage(fileBaseUrl, "image_large_url", v).then((url) => setValue("image_large_url", url))
+						}
+						url={watch("image_large_url")}
 					/>
 					<TextField
+						variant="outlined"
 						label="Small Image URL"
 						{...register("image_small_url", { required: true })}
 						error={!!errors.image_small_url}
+						disabled
 						helperText={errors.image_small_url ? "This field is required" : ""}
+						InputLabelProps={{ shrink: !!watch("image_small_url") }}
+					/>
+					<ImageUploader
+						aspectRatio={2.2}
+						onChange={(v) =>
+							adminUploadImage(fileBaseUrl, "image_small_url", v).then((url) => setValue("image_small_url", url))
+						}
+						url={watch("image_small_url")}
 					/>
 					<TextField
 						label="Shares Available"
@@ -150,21 +173,57 @@ export default function ProjectCreate() {
 					<Typography variant="h6">Offering Document</Typography>
 					<TextField label="Offering Document Title" {...register("offering_doc_title")} />
 					<TextField label="Offering Document Header" multiline rows={4} {...register("offering_doc_header")} />
-					<TextField label="Offering Document Image URL" {...register("offering_doc_img_url")} />
+					<TextField
+						label="Offering Document Image URL"
+						{...register("offering_doc_img_url")}
+						disabled
+						InputLabelProps={{ shrink: !!watch("offering_doc_img_url") }}
+					/>
+					<ImageUploader
+						aspectRatio={2.5}
+						onChange={(v) =>
+							adminUploadImage(fileBaseUrl, "offering_doc_img_url", v).then((url) => setValue("offering_doc_img_url", url))
+						}
+						url={watch("offering_doc_img_url")}
+					/>
 					<TextField label="Offering Document Footer" multiline rows={4} {...register("offering_doc_footer")} />
 
 					<Divider sx={{ my: 2 }} />
 					<Typography variant="h6">Financial Projection</Typography>
 					<TextField label="Financial Projection Title" {...register("financial_projection_title")} />
 					<TextField label="Financial Projection Header" multiline rows={4} {...register("financial_projection_header")} />
-					<TextField label="Financial Projection Image URL" {...register("financial_projection_img_url")} />
+					<TextField
+						label="Financial Projection Image URL"
+						{...register("financial_projection_img_url")}
+						disabled={true}
+						InputLabelProps={{ shrink: !!watch("financial_projection_img_url") }}
+					/>
+					<ImageUploader
+						aspectRatio={2.5}
+						onChange={(v) =>
+							adminUploadImage(fileBaseUrl, "financial_projection_img_url", v).then((url) =>
+								setValue("financial_projection_img_url", url),
+							)
+						}
+						url={watch("financial_projection_img_url")}
+					/>
 					<TextField label="Financial Projection Footer" multiline rows={4} {...register("financial_projection_footer")} />
 
 					<Divider sx={{ my: 2 }} />
 					<Typography variant="h6">Geospatial Information</Typography>
 					<TextField label="Geo Title" {...register("geo_title")} />
 					<TextField label="Geo Header" multiline rows={4} {...register("geo_header")} />
-					<TextField label="Geo Image URL" {...register("geo_img_url")} />
+					<TextField
+						label="Geo Image URL"
+						{...register("geo_img_url")}
+						disabled={true}
+						InputLabelProps={{ shrink: !!watch("geo_img_url") }}
+					/>
+					<ImageUploader
+						aspectRatio={2.5}
+						onChange={(v) => adminUploadImage(fileBaseUrl, "geo_img_url", v).then((url) => setValue("geo_img_url", url))}
+						url={watch("geo_img_url")}
+					/>
 					<TextField label="Geo Footer" multiline rows={4} {...register("geo_footer")} />
 
 					<Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>

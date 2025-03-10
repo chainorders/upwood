@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router";
 import {
 	ForestProject,
@@ -48,7 +48,7 @@ import AddMediaPopup from "./components/AddMediaPopup";
 import DeleteIcon from "@mui/icons-material/Delete"; // Add this import
 import { toDisplayAmount } from "../../lib/conversions";
 
-export default function ProjectDetails() {
+export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string }) {
 	const { id } = useParams<{ id: string }>();
 	const location = useLocation();
 	const [project, setProject] = useState<ForestProject>(location.state?.project);
@@ -111,14 +111,14 @@ export default function ProjectDetails() {
 		});
 	};
 
-	const fetchLegalContractHtml = () => {
+	const fetchLegalContractHtml = useCallback(() => {
 		if (legalContract?.text_url) {
 			fetch(legalContract.text_url)
 				.then((response) => response.text())
 				.then((data) => setLegalContractHtml(data))
 				.catch((error) => console.error("Failed to fetch HTML content", error));
 		}
-	};
+	}, [legalContract?.text_url]);
 
 	const handleLegalContractAccordionChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
 		setLegalContractAccordionExpanded(isExpanded);
@@ -131,7 +131,7 @@ export default function ProjectDetails() {
 		if (legalContractAccordionExpanded) {
 			fetchLegalContractHtml();
 		}
-	}, [legalContract, refreshCounter, legalContractAccordionExpanded]);
+	}, [legalContract, refreshCounter, legalContractAccordionExpanded, fetchLegalContractHtml]);
 
 	useEffect(() => {
 		ForestProjectService.getAdminForestProjects(id!).then(setProject);
@@ -179,17 +179,17 @@ export default function ProjectDetails() {
 									Update Project
 								</Button>
 							</Box>
-							
+
 							{/* Display project images at the top */}
 							<Grid container spacing={2} sx={{ mb: 3 }}>
 								<Grid item xs={12} md={6}>
-									<img src={project.image_large_url} alt={project.name} style={{ width: "100%", borderRadius: '4px' }} />
+									<img src={project.image_large_url} alt={project.name} style={{ width: "100%", borderRadius: "4px" }} />
 								</Grid>
 								<Grid item xs={12} md={6}>
-									<img src={project.image_small_url} alt={project.name} style={{ width: "100%", borderRadius: '4px' }} />
+									<img src={project.image_small_url} alt={project.name} style={{ width: "100%", borderRadius: "4px" }} />
 								</Grid>
 							</Grid>
-							
+
 							<Typography variant="h6" gutterBottom>
 								Basic Information
 							</Typography>
@@ -225,7 +225,7 @@ export default function ProjectDetails() {
 							</Typography>
 
 							<Divider sx={{ my: 2 }} />
-							
+
 							{/* Offering Document section with image preview */}
 							<Grid container spacing={2}>
 								<Grid item xs={12} md={project.offering_doc_img_url ? 8 : 12}>
@@ -243,12 +243,12 @@ export default function ProjectDetails() {
 									</Typography>
 								</Grid>
 								{project.offering_doc_img_url && (
-									<Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-										<Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-											<img 
-												src={project.offering_doc_img_url} 
-												alt="Offering Document" 
-												style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+									<Grid item xs={12} md={4} sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+										<Box sx={{ p: 1, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+											<img
+												src={project.offering_doc_img_url}
+												alt="Offering Document"
+												style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "contain" }}
 											/>
 											<Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
 												<a href={project.offering_doc_img_url} target="_blank" rel="noopener noreferrer">
@@ -261,7 +261,7 @@ export default function ProjectDetails() {
 							</Grid>
 
 							<Divider sx={{ my: 2 }} />
-							
+
 							{/* Financial Projection section with image preview */}
 							<Grid container spacing={2}>
 								<Grid item xs={12} md={project.financial_projection_img_url ? 8 : 12}>
@@ -279,12 +279,12 @@ export default function ProjectDetails() {
 									</Typography>
 								</Grid>
 								{project.financial_projection_img_url && (
-									<Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-										<Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-											<img 
-												src={project.financial_projection_img_url} 
-												alt="Financial Projection" 
-												style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+									<Grid item xs={12} md={4} sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+										<Box sx={{ p: 1, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+											<img
+												src={project.financial_projection_img_url}
+												alt="Financial Projection"
+												style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "contain" }}
 											/>
 											<Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
 												<a href={project.financial_projection_img_url} target="_blank" rel="noopener noreferrer">
@@ -297,7 +297,7 @@ export default function ProjectDetails() {
 							</Grid>
 
 							<Divider sx={{ my: 2 }} />
-							
+
 							{/* Geospatial Information section with image preview */}
 							<Grid container spacing={2}>
 								<Grid item xs={12} md={project.geo_img_url ? 8 : 12}>
@@ -315,12 +315,12 @@ export default function ProjectDetails() {
 									</Typography>
 								</Grid>
 								{project.geo_img_url && (
-									<Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-										<Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-											<img 
-												src={project.geo_img_url} 
-												alt="Geospatial Information" 
-												style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+									<Grid item xs={12} md={4} sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+										<Box sx={{ p: 1, border: "1px solid #e0e0e0", borderRadius: 1 }}>
+											<img
+												src={project.geo_img_url}
+												alt="Geospatial Information"
+												style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "contain" }}
 											/>
 											<Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
 												<a href={project.geo_img_url} target="_blank" rel="noopener noreferrer">
@@ -453,7 +453,9 @@ export default function ProjectDetails() {
 							<AccordionDetails>
 								{/* Add Property Media information at the top */}
 								<Paper elevation={0} sx={{ p: 2, mb: 3 }}>
-									<Typography variant="subtitle1" gutterBottom>Property Media Information</Typography>
+									<Typography variant="subtitle1" gutterBottom>
+										Property Media Information
+									</Typography>
 									<Typography variant="body2" color="textSecondary">
 										Header: {project.property_media_header}
 									</Typography>
@@ -515,8 +517,8 @@ export default function ProjectDetails() {
 								/>
 							</AccordionDetails>
 						</Accordion>
-						<Accordion 
-							sx={{ marginTop: 2 }} 
+						<Accordion
+							sx={{ marginTop: 2 }}
 							expanded={legalContractAccordionExpanded}
 							onChange={handleLegalContractAccordionChange}
 						>
@@ -547,38 +549,22 @@ export default function ProjectDetails() {
 													)}
 												</Grid>
 												<Grid item xs={12}>
-													<Typography variant="subtitle1" gutterBottom>Available Formats:</Typography>
-													<Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+													<Typography variant="subtitle1" gutterBottom>
+														Available Formats:
+													</Typography>
+													<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
 														{legalContract.text_url && (
-															<Button 
-																variant="outlined" 
-																color="primary" 
-																size="small"
-																href={legalContract.text_url}
-																target="_blank"
-															>
+															<Button variant="outlined" color="primary" size="small" href={legalContract.text_url} target="_blank">
 																Text Version
 															</Button>
 														)}
 														{legalContract.edoc_url && (
-															<Button 
-																variant="outlined" 
-																color="primary" 
-																size="small"
-																href={legalContract.edoc_url}
-																target="_blank"
-															>
+															<Button variant="outlined" color="primary" size="small" href={legalContract.edoc_url} target="_blank">
 																E-Document
 															</Button>
 														)}
 														{legalContract.pdf_url && (
-															<Button 
-																variant="outlined" 
-																color="primary" 
-																size="small"
-																href={legalContract.pdf_url}
-																target="_blank"
-															>
+															<Button variant="outlined" color="primary" size="small" href={legalContract.pdf_url} target="_blank">
 																PDF Version
 															</Button>
 														)}
@@ -586,18 +572,22 @@ export default function ProjectDetails() {
 												</Grid>
 												<Grid item xs={12}>
 													<Typography variant="body2" color="textSecondary">
-														Created: {new Date(legalContract.created_at).toLocaleDateString()} at {new Date(legalContract.created_at).toLocaleTimeString()}
+														Created: {new Date(legalContract.created_at).toLocaleDateString()} at{" "}
+														{new Date(legalContract.created_at).toLocaleTimeString()}
 													</Typography>
 													<Typography variant="body2" color="textSecondary">
-														Last updated: {new Date(legalContract.updated_at).toLocaleDateString()} at {new Date(legalContract.updated_at).toLocaleTimeString()}
+														Last updated: {new Date(legalContract.updated_at).toLocaleDateString()} at{" "}
+														{new Date(legalContract.updated_at).toLocaleTimeString()}
 													</Typography>
 												</Grid>
 											</Grid>
 										</Paper>
 										{legalContractHtml && (
-											<Card variant="outlined" sx={{ marginTop: 2, maxHeight: '500px', overflow: 'auto' }}>
+											<Card variant="outlined" sx={{ marginTop: 2, maxHeight: "500px", overflow: "auto" }}>
 												<CardContent>
-													<Typography variant="h6" gutterBottom>Contract Content Preview:</Typography>
+													<Typography variant="h6" gutterBottom>
+														Contract Content Preview:
+													</Typography>
 													<Box sx={{ mt: 2 }} dangerouslySetInnerHTML={{ __html: legalContractHtml }} />
 												</CardContent>
 											</Card>
@@ -631,7 +621,12 @@ export default function ProjectDetails() {
 					onClose={handleCloseLegalContractPopup}
 					projectId={project.id}
 				/>
-				<AddMediaPopup open={openAddMediaPopup} onClose={handleCloseAddMediaPopup} projectId={id!} />
+				<AddMediaPopup
+					open={openAddMediaPopup}
+					onClose={handleCloseAddMediaPopup}
+					projectId={id!}
+					fileBaseUrl={fileBaseUrl}
+				/>
 			</Box>
 		</>
 	);
