@@ -538,12 +538,17 @@ pub mod s3 {
 }
 
 pub mod ses {
+    use aws_sdk_sesv2::operation::send_email::SendEmailError;
+    use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
     use shared::db_app::users::Company;
     use tracing::info;
     use uuid::Uuid;
 
     #[derive(Debug, thiserror::Error)]
-    pub enum Error {}
+    pub enum Error {
+        #[error("SES error: {0}")]
+        SES(#[from] aws_sdk_sesv2::error::SdkError<SendEmailError>),
+    }
 
     #[derive(Debug, Clone)]
     pub struct Emailer {
@@ -560,21 +565,55 @@ pub mod ses {
             inviter_email: &str,
             company: &Company,
         ) -> Result<(), Error> {
-            info!(
-                "Sending company invitation email to {} from {} for company {}, invitation url: \
-                 {}, reject url: {}",
-                invitee_email,
-                inviter_email,
-                company.name,
-                format!(
-                    "{}/{}/accept",
-                    self.company_invitation_accept_url, invitation_id
-                ),
-                format!(
-                    "{}/{}/reject",
-                    self.company_invitation_accept_url, invitation_id
-                ),
+            let accept_link = format!(
+                "{}/{}/accept",
+                self.company_invitation_accept_url, invitation_id
             );
+            let reject_link = format!(
+                "{}/{}/reject",
+                self.company_invitation_accept_url, invitation_id
+            );
+
+            let email_body = format!(
+                "Dear {},\n\nYou have been invited to join the company '{}' by {}.\n\nTo accept \
+                 the invitation, please copy and paste the following link into your \
+                 browser:\n{}\n\n\n\nIf you do not wish to join the company, you can reject the \
+                 invitation by copying and pasting the following link into your \
+                 browser:\n{}\n\nBest regards,\nThe Upwood Team\n\n
+                 Confidentiality Notice: This email and any attachments are confidential and \
+                 intended solely for the use of the individual or entity to whom they are \
+                 addressed. If you have received this email in error, please notify the sender \
+                 immediately and delete it from your system. Do not disclose, copy, distribute, \
+                 or take any action in reliance on the contents of this information.",
+                invitee_email, company.name, inviter_email, accept_link, reject_link
+            );
+
+            self.client
+                .send_email()
+                .from_email_address(&self.from_email)
+                .destination(Destination::builder().to_addresses(invitee_email).build())
+                .content(
+                    EmailContent::builder()
+                        .simple(
+                            Message::builder()
+                                .subject(
+                                    Content::builder()
+                                        .data("Upwood: Company Invitation")
+                                        .build()
+                                        .unwrap(),
+                                )
+                                .body(
+                                    Body::builder()
+                                        .text(Content::builder().data(email_body).build().unwrap())
+                                        .build(),
+                                )
+                                .build(),
+                        )
+                        .build(),
+                )
+                .send()
+                .await?;
+            info!("Company invitation email sent to {}", invitee_email);
             Ok(())
         }
     }
