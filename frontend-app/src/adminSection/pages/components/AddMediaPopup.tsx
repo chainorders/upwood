@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from "@mui/material";
 import { ForestProjectMedia, ForestProjectService } from "../../../apiClient";
-import ImageUploader from "../../../components/ImageUploader";
+import ImageUploader from "../../components/ImageUploader";
 import { adminUploadImage } from "../../libs/utils";
 
 interface AddMediaPopupProps {

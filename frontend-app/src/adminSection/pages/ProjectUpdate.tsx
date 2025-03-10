@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { formatDate } from "../../lib/conversions";
 import { Link } from "react-router";
-import ImageUploader from "../../components/ImageUploader";
+import ImageUploader from "../components/ImageUploader";
 import { adminUploadImage } from "../libs/utils";
 
 export default function ProjectUpdate({ fileBaseUrl }: { fileBaseUrl: string }) {
