@@ -34,6 +34,8 @@ import {
 	TablePagination,
 	Breadcrumbs,
 	Divider,
+	Card,
+	CardContent,
 } from "@mui/material";
 import { Link } from "react-router";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -62,6 +64,8 @@ export default function ProjectDetails() {
 	const [openUpdateLegalContractPopup, setOpenUpdateLegalContractPopup] = useState(false);
 	const [openAddMediaPopup, setOpenAddMediaPopup] = useState(false);
 	const [refreshCounter, setRefreshCounter] = useState(0);
+	const [legalContractHtml, setLegalContractHtml] = useState<string | null>(null);
+	const [legalContractAccordionExpanded, setLegalContractAccordionExpanded] = useState(false);
 
 	const handleOpenAddPricePopup = () => {
 		setOpenAddPricePopup(true);
@@ -107,6 +111,28 @@ export default function ProjectDetails() {
 		});
 	};
 
+	const fetchLegalContractHtml = () => {
+		if (legalContract?.text_url) {
+			fetch(legalContract.text_url)
+				.then((response) => response.text())
+				.then((data) => setLegalContractHtml(data))
+				.catch((error) => console.error("Failed to fetch HTML content", error));
+		}
+	};
+
+	const handleLegalContractAccordionChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
+		setLegalContractAccordionExpanded(isExpanded);
+		if (isExpanded && !legalContractHtml) {
+			fetchLegalContractHtml();
+		}
+	};
+
+	useEffect(() => {
+		if (legalContractAccordionExpanded) {
+			fetchLegalContractHtml();
+		}
+	}, [legalContract, refreshCounter, legalContractAccordionExpanded]);
+
 	useEffect(() => {
 		ForestProjectService.getAdminForestProjects(id!).then(setProject);
 		ForestProjectService.getForestProjectsContractList(id!).then(setTokenContracts);
@@ -142,7 +168,8 @@ export default function ProjectDetails() {
 			</Breadcrumbs>
 			<Box sx={{ flexGrow: 1, padding: 2 }}>
 				<Grid container spacing={2}>
-					<Grid item xs={12} md={8}>
+					{/* Change md={8} to md={12} to take full width */}
+					<Grid item xs={12} md={12}>
 						<Paper sx={{ padding: 2 }}>
 							<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
 								<Typography variant="h4" gutterBottom>
@@ -152,7 +179,20 @@ export default function ProjectDetails() {
 									Update Project
 								</Button>
 							</Box>
-							<Typography variant="h6" gutterBottom>Basic Information</Typography>
+							
+							{/* Display project images at the top */}
+							<Grid container spacing={2} sx={{ mb: 3 }}>
+								<Grid item xs={12} md={6}>
+									<img src={project.image_large_url} alt={project.name} style={{ width: "100%", borderRadius: '4px' }} />
+								</Grid>
+								<Grid item xs={12} md={6}>
+									<img src={project.image_small_url} alt={project.name} style={{ width: "100%", borderRadius: '4px' }} />
+								</Grid>
+							</Grid>
+							
+							<Typography variant="h6" gutterBottom>
+								Basic Information
+							</Typography>
 							<Typography variant="body1" gutterBottom>
 								{project.desc_short}
 							</Typography>
@@ -185,69 +225,115 @@ export default function ProjectDetails() {
 							</Typography>
 
 							<Divider sx={{ my: 2 }} />
-							<Typography variant="h6" gutterBottom>Property Media</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Header: {project.property_media_header}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Footer: {project.property_media_footer}
-							</Typography>
+							
+							{/* Offering Document section with image preview */}
+							<Grid container spacing={2}>
+								<Grid item xs={12} md={project.offering_doc_img_url ? 8 : 12}>
+									<Typography variant="h6" gutterBottom>
+										Offering Document
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Title: {project.offering_doc_title || "N/A"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Header: {project.offering_doc_header || "N/A"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Footer: {project.offering_doc_footer || "N/A"}
+									</Typography>
+								</Grid>
+								{project.offering_doc_img_url && (
+									<Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+										<Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+											<img 
+												src={project.offering_doc_img_url} 
+												alt="Offering Document" 
+												style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+											/>
+											<Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+												<a href={project.offering_doc_img_url} target="_blank" rel="noopener noreferrer">
+													View Full Size
+												</a>
+											</Typography>
+										</Box>
+									</Grid>
+								)}
+							</Grid>
 
 							<Divider sx={{ my: 2 }} />
-							<Typography variant="h6" gutterBottom>Offering Document</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Title: {project.offering_doc_title || 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Header: {project.offering_doc_header || 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Image URL: {project.offering_doc_img_url ? 
-									<a href={project.offering_doc_img_url} target="_blank" rel="noopener noreferrer">
-										View Image
-									</a> : 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Footer: {project.offering_doc_footer || 'N/A'}
-							</Typography>
+							
+							{/* Financial Projection section with image preview */}
+							<Grid container spacing={2}>
+								<Grid item xs={12} md={project.financial_projection_img_url ? 8 : 12}>
+									<Typography variant="h6" gutterBottom>
+										Financial Projection
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Title: {project.financial_projection_title || "N/A"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Header: {project.financial_projection_header || "N/A"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Footer: {project.financial_projection_footer || "N/A"}
+									</Typography>
+								</Grid>
+								{project.financial_projection_img_url && (
+									<Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+										<Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+											<img 
+												src={project.financial_projection_img_url} 
+												alt="Financial Projection" 
+												style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+											/>
+											<Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+												<a href={project.financial_projection_img_url} target="_blank" rel="noopener noreferrer">
+													View Full Size
+												</a>
+											</Typography>
+										</Box>
+									</Grid>
+								)}
+							</Grid>
 
 							<Divider sx={{ my: 2 }} />
-							<Typography variant="h6" gutterBottom>Financial Projection</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Title: {project.financial_projection_title || 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Header: {project.financial_projection_header || 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Image URL: {project.financial_projection_img_url ? 
-									<a href={project.financial_projection_img_url} target="_blank" rel="noopener noreferrer">
-										View Image
-									</a> : 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Footer: {project.financial_projection_footer || 'N/A'}
-							</Typography>
-
-							<Divider sx={{ my: 2 }} />
-							<Typography variant="h6" gutterBottom>Geospatial Information</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Title: {project.geo_title || 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Header: {project.geo_header || 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Image URL: {project.geo_img_url ? 
-									<a href={project.geo_img_url} target="_blank" rel="noopener noreferrer">
-										View Image
-									</a> : 'N/A'}
-							</Typography>
-							<Typography variant="body2" color="textSecondary">
-								Footer: {project.geo_footer || 'N/A'}
-							</Typography>
+							
+							{/* Geospatial Information section with image preview */}
+							<Grid container spacing={2}>
+								<Grid item xs={12} md={project.geo_img_url ? 8 : 12}>
+									<Typography variant="h6" gutterBottom>
+										Geospatial Information
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Title: {project.geo_title || "N/A"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Header: {project.geo_header || "N/A"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Footer: {project.geo_footer || "N/A"}
+									</Typography>
+								</Grid>
+								{project.geo_img_url && (
+									<Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+										<Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+											<img 
+												src={project.geo_img_url} 
+												alt="Geospatial Information" 
+												style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+											/>
+											<Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+												<a href={project.geo_img_url} target="_blank" rel="noopener noreferrer">
+													View Full Size
+												</a>
+											</Typography>
+										</Box>
+									</Grid>
+								)}
+							</Grid>
 						</Paper>
-						
+
+						{/* Accordion sections remain the same */}
 						<Accordion sx={{ marginTop: 2 }}>
 							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
 								<Typography variant="h6">Smart Contracts</Typography>
@@ -365,6 +451,17 @@ export default function ProjectDetails() {
 								<Typography variant="h6">Forest Project Media</Typography>
 							</AccordionSummary>
 							<AccordionDetails>
+								{/* Add Property Media information at the top */}
+								<Paper elevation={0} sx={{ p: 2, mb: 3 }}>
+									<Typography variant="subtitle1" gutterBottom>Property Media Information</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Header: {project.property_media_header}
+									</Typography>
+									<Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+										Footer: {project.property_media_footer}
+									</Typography>
+								</Paper>
+
 								<Box sx={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 2 }}>
 									<Button variant="outlined" color="primary" onClick={handleOpenAddMediaPopup}>
 										Add Media
@@ -377,7 +474,7 @@ export default function ProjectDetails() {
 												<TableCell>Preview</TableCell>
 												<TableCell>ID</TableCell>
 												<TableCell>Image URL</TableCell>
-												<TableCell>Action</TableCell> {/* Add this TableCell */}
+												<TableCell>Action</TableCell>
 											</TableRow>
 										</TableHead>
 										<TableBody>
@@ -418,27 +515,103 @@ export default function ProjectDetails() {
 								/>
 							</AccordionDetails>
 						</Accordion>
+						<Accordion 
+							sx={{ marginTop: 2 }} 
+							expanded={legalContractAccordionExpanded}
+							onChange={handleLegalContractAccordionChange}
+						>
+							<AccordionSummary expandIcon={<ExpandMoreIcon />}>
+								<Typography variant="h6">Legal Contract</Typography>
+							</AccordionSummary>
+							<AccordionDetails>
+								<Box sx={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 2 }}>
+									<Button
+										variant="outlined"
+										color="primary"
+										onClick={handleOpenLegalContractPopup}
+										startIcon={legalContract ? <EditIcon /> : <AddIcon />}
+									>
+										{legalContract ? "Update Legal Contract" : "Add Legal Contract"}
+									</Button>
+								</Box>
+								{legalContract ? (
+									<>
+										<Paper elevation={0} sx={{ p: 2, mb: 2 }}>
+											<Grid container spacing={2}>
+												<Grid item xs={12}>
+													<Typography variant="h6">{legalContract.name || "Contract"}</Typography>
+													{legalContract.tag && (
+														<Typography variant="body2" color="textSecondary" gutterBottom>
+															Tag: {legalContract.tag}
+														</Typography>
+													)}
+												</Grid>
+												<Grid item xs={12}>
+													<Typography variant="subtitle1" gutterBottom>Available Formats:</Typography>
+													<Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+														{legalContract.text_url && (
+															<Button 
+																variant="outlined" 
+																color="primary" 
+																size="small"
+																href={legalContract.text_url}
+																target="_blank"
+															>
+																Text Version
+															</Button>
+														)}
+														{legalContract.edoc_url && (
+															<Button 
+																variant="outlined" 
+																color="primary" 
+																size="small"
+																href={legalContract.edoc_url}
+																target="_blank"
+															>
+																E-Document
+															</Button>
+														)}
+														{legalContract.pdf_url && (
+															<Button 
+																variant="outlined" 
+																color="primary" 
+																size="small"
+																href={legalContract.pdf_url}
+																target="_blank"
+															>
+																PDF Version
+															</Button>
+														)}
+													</Box>
+												</Grid>
+												<Grid item xs={12}>
+													<Typography variant="body2" color="textSecondary">
+														Created: {new Date(legalContract.created_at).toLocaleDateString()} at {new Date(legalContract.created_at).toLocaleTimeString()}
+													</Typography>
+													<Typography variant="body2" color="textSecondary">
+														Last updated: {new Date(legalContract.updated_at).toLocaleDateString()} at {new Date(legalContract.updated_at).toLocaleTimeString()}
+													</Typography>
+												</Grid>
+											</Grid>
+										</Paper>
+										{legalContractHtml && (
+											<Card variant="outlined" sx={{ marginTop: 2, maxHeight: '500px', overflow: 'auto' }}>
+												<CardContent>
+													<Typography variant="h6" gutterBottom>Contract Content Preview:</Typography>
+													<Box sx={{ mt: 2 }} dangerouslySetInnerHTML={{ __html: legalContractHtml }} />
+												</CardContent>
+											</Card>
+										)}
+									</>
+								) : (
+									<Typography variant="body1" align="center" sx={{ py: 2 }}>
+										No legal contract has been added yet.
+									</Typography>
+								)}
+							</AccordionDetails>
+						</Accordion>
 					</Grid>
-					<Grid item xs={12} md={4}>
-						<Paper sx={{ padding: 2 }}>
-							<Typography variant="h6" gutterBottom>
-								Actions
-							</Typography>
-							<List>
-								<ListItem button onClick={handleOpenLegalContractPopup}>
-									<ListItemIcon>{legalContract ? <EditIcon /> : <AddIcon />}</ListItemIcon>
-									<ListItemText primary={legalContract ? "Update Legal Contract" : "Add Legal Contract"} />
-								</ListItem>
-							</List>
-						</Paper>
-						<Paper sx={{ padding: 2 }}>
-							<Typography variant="h6" gutterBottom>
-								Display Images
-							</Typography>
-							<img src={project.image_large_url} alt={project.name} style={{ width: "100%", marginBottom: 10 }} />
-							<img src={project.image_small_url} alt={project.name} style={{ width: "100%" }} />
-						</Paper>
-					</Grid>
+					{/* Remove the entire sidebar Grid item */}
 				</Grid>
 				{contracts?.euro_e_metadata && (
 					<AddPricePopup
