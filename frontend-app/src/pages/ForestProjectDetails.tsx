@@ -235,20 +235,20 @@ export default function ForestProjectDetails({ user, source }: Props) {
 									2: (
 										<SingleImageLayout
 											data={{
-												title: project.forest_project.financial_projection_title || "Financial Projections",
-												header: project.forest_project.financial_projection_header,
-												footer: project.forest_project.financial_projection_footer,
-												image: project.forest_project.financial_projection_img_url,
+												title: project?.forest_project.financial_projection_title || "Financial Projections",
+												header: project?.forest_project.financial_projection_header,
+												footer: project?.forest_project.financial_projection_footer,
+												image: project?.forest_project.financial_projection_img_url,
 											}}
 										/>
 									),
 									3: (
 										<SingleImageLayout
 											data={{
-												title: project.forest_project.geo_title || "Geospatial Data",
-												header: project.forest_project.geo_header,
-												footer: project.forest_project.geo_img_url,
-												image: project.forest_project.geo_img_url,
+												title: project?.forest_project.geo_title || "Geospatial Data",
+												header: project?.forest_project.geo_header,
+												footer: project?.forest_project.geo_img_url,
+												image: project?.forest_project.geo_img_url,
 											}}
 										/>
 									),
