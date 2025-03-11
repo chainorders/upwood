@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useForm } from "react-hook-form";
 import {
@@ -8,6 +8,7 @@ import {
 	SystemContractsConfigApiModel,
 	UserService,
 	ForestProject,
+	FilesService,
 } from "../../apiClient";
 import {
 	Button,
@@ -19,7 +20,15 @@ import {
 	Box,
 	Breadcrumbs,
 	Typography,
+	Accordion,
+	AccordionSummary,
+	AccordionDetails,
+	Alert,
+	CircularProgress,
+	IconButton,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { formatDate, parseFinalizedInit } from "../../lib/conversions";
 import securitySftMulti from "../../contractClients/generated/securitySftMulti";
 import { detectConcordiumProvider, WalletApi } from "@concordium/browser-wallet-api-helpers";
@@ -27,10 +36,12 @@ import { AccountAddress, TransactionHash } from "@concordium/web-sdk";
 import { useEffect, useState } from "react";
 import { User } from "../../lib/user";
 import concordiumNodeClient from "../../contractClients/ConcordiumNodeClient";
-import CircularProgress from "@mui/material/CircularProgress";
 import { Link } from "react-router";
+import TokenMetadataForm from "../components/TokenMetadataForm";
+import { TokenMetadata } from "../libs/types";
+import { adminUploadJson, hashMetadata } from "../libs/utils";
 
-const ProjectContractCreate = ({ user }: { user: User }) => {
+const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 
@@ -38,6 +49,80 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 	const [walletApi, setWalletApi] = useState<WalletApi>();
 	const [txnStatus, setTxnStatus] = useState<"sending" | "waiting" | "success" | "error" | "none">("none");
 	const [project, setProject] = useState<ForestProject | null>(null);
+	const [expanded, setExpanded] = useState<boolean>(false);
+	const [metadata, setMetadata] = useState<TokenMetadata>({
+		name: "",
+		symbol: "",
+		decimals: 0,
+		description: "",
+	});
+	const [isMetadataLoading, setIsMetadataLoading] = useState<boolean>(false);
+	const [metadataError, setMetadataError] = useState<string | null>(null);
+
+	const {
+		register,
+		handleSubmit,
+		setValue,
+		formState: { errors },
+		watch,
+	} = useForm<ForestProjectTokenContract>();
+
+	// Get current values
+	const contractAddress = watch("contract_address");
+	const metadataUrl = watch("metadata_url");
+	const symbol = watch("symbol");
+	const decimals = watch("decimals");
+
+	// Fetch metadata from URL
+	const fetchMetadata = useCallback(
+		async (url: string) => {
+			if (!url || url.trim() === "") {
+				// Reset to default metadata if URL is empty
+				setMetadata({
+					name: project?.name || "",
+					symbol: symbol || "",
+					decimals: decimals || 0,
+					description: project?.desc_long || "",
+				});
+				setValue("metadata_hash", undefined);
+				return;
+			}
+
+			setIsMetadataLoading(true);
+			setMetadataError(null);
+
+			try {
+				const response = await fetch(url);
+
+				if (!response.ok) {
+					throw new Error(`Failed to fetch metadata: ${response.status} ${response.statusText}`);
+				}
+
+				const data = await response.json();
+				setMetadata(data);
+				hashMetadata(data).then((hash) => setValue("metadata_hash", hash));
+			} catch (error) {
+				console.error("Error fetching metadata:", error);
+				setMetadataError(error instanceof Error ? error.message : "Failed to fetch metadata");
+
+				// Set default values on error
+				setMetadata({
+					name: project?.name || "",
+					symbol: symbol || "",
+					decimals: decimals || 0,
+					description: project?.desc_long || "",
+				});
+			} finally {
+				setIsMetadataLoading(false);
+			}
+		},
+		[decimals, project?.desc_long, project?.name, symbol, setValue],
+	);
+
+	// Trigger metadata fetch when URL changes
+	useEffect(() => {
+		fetchMetadata(metadataUrl);
+	}, [decimals, fetchMetadata, metadataUrl]);
 
 	useEffect(() => {
 		UserService.getSystemConfig()
@@ -50,21 +135,22 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 		detectConcordiumProvider().then((walletApi) => {
 			setWalletApi(walletApi);
 		});
-	}, [walletApi]);
+	}, []);
 
 	useEffect(() => {
 		if (id) {
-			ForestProjectService.getAdminForestProjects(id).then(setProject);
+			ForestProjectService.getAdminForestProjects(id).then((project) => {
+				setProject(project);
+
+				// Initialize metadata with project data
+				setMetadata((prev) => ({
+					...prev,
+					name: project.name || prev.name,
+					description: project.desc_long || prev.description,
+				}));
+			});
 		}
 	}, [id]);
-
-	const {
-		register,
-		handleSubmit,
-		setValue,
-		formState: { errors },
-		watch,
-	} = useForm<ForestProjectTokenContract>();
 
 	const onSubmit = (data: ForestProjectTokenContract) => {
 		const now = new Date();
@@ -81,6 +167,15 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 			.catch(() => {
 				alert("Failed to create contract");
 			});
+	};
+
+	const handleMetadataSubmit = async (data: TokenMetadata) => {
+		const jsonData = JSON.stringify(data);
+		const url = await adminUploadJson(fileBaseUrl, "metadata", jsonData);
+		setValue("metadata_url", url);
+		const jsonDataHash = await hashMetadata(data);
+		setValue("metadata_hash", jsonDataHash);
+		setExpanded(false);
 	};
 
 	const initializeContract = async () => {
@@ -189,7 +284,6 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 			case "success": {
 				setTxnStatus("success");
 				setValue("contract_address", txnResult.value.index.toString());
-				// TODO: wait for indexer to index the contract
 				break;
 			}
 			case "error": {
@@ -200,11 +294,63 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 		}
 	};
 
-	const contractAddress = watch("contract_address");
-
 	if (!project) {
 		return <div>Loading...</div>;
 	}
+
+	// Render metadata form or loading state
+	const renderMetadataContent = () => {
+		if (isMetadataLoading) {
+			return (
+				<Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+					<CircularProgress />
+				</Box>
+			);
+		}
+
+		if (metadataError) {
+			return (
+				<>
+					<Alert
+						severity="error"
+						sx={{ mb: 2 }}
+						action={
+							<IconButton color="inherit" size="small" onClick={() => metadataUrl && fetchMetadata(metadataUrl)}>
+								<RefreshIcon />
+							</IconButton>
+						}
+					>
+						{metadataError}
+					</Alert>
+					<TokenMetadataForm
+						initialData={{
+							...metadata,
+							symbol: symbol || metadata.symbol,
+							decimals: decimals || metadata.decimals,
+						}}
+						onSubmit={handleMetadataSubmit}
+						submitButtonText="Generate Metadata URL"
+						noForm={true}
+						fileBaseUrl={fileBaseUrl}
+					/>
+				</>
+			);
+		}
+
+		return (
+			<TokenMetadataForm
+				initialData={{
+					...metadata,
+					symbol: symbol || metadata.symbol,
+					decimals: decimals || metadata.decimals,
+				}}
+				onSubmit={handleMetadataSubmit}
+				submitButtonText="Generate Metadata URL"
+				noForm={true}
+				fileBaseUrl={fileBaseUrl}
+			/>
+		);
+	};
 
 	return (
 		<>
@@ -268,15 +414,46 @@ const ProjectContractCreate = ({ user }: { user: User }) => {
 						error={!!errors.decimals}
 						helperText={errors.decimals ? "This field is required" : ""}
 					/>
-					<TextField
-						label="Metadata URL"
-						{...register("metadata_url", { required: true })}
-						error={!!errors.metadata_url}
-						helperText={errors.metadata_url ? "This field is required" : ""}
-					/>
+
+					<Box sx={{ display: "flex", alignItems: "center" }}>
+						<TextField
+							label="Metadata URL"
+							{...register("metadata_url", { required: true })}
+							error={!!errors.metadata_url}
+							value={metadataUrl || ""}
+							helperText={
+								errors.metadata_url ? "This field is required" : "Enter a URL to fetch metadata or generate it below"
+							}
+							fullWidth
+							sx={{ mr: 1 }}
+							InputLabelProps={{ shrink: !!metadataUrl }}
+						/>
+						{metadataUrl && (
+							<IconButton
+								onClick={() => fetchMetadata(metadataUrl)}
+								disabled={isMetadataLoading}
+								sx={{ mt: errors.metadata_url ? -3 : -1 }}
+							>
+								<RefreshIcon />
+							</IconButton>
+						)}
+					</Box>
+
+					<Accordion expanded={expanded} onChange={() => setExpanded(!expanded)} sx={{ mb: 2 }}>
+						<AccordionSummary
+							expandIcon={<ExpandMoreIcon />}
+							aria-controls="token-metadata-form-content"
+							id="token-metadata-form-header"
+						>
+							<Typography>Token Metadata Editor</Typography>
+						</AccordionSummary>
+						<AccordionDetails>{renderMetadataContent()}</AccordionDetails>
+					</Accordion>
+
 					<TextField
 						label="Metadata Hash (optional)"
 						{...register("metadata_hash", { setValueAs: (val: string) => val || undefined })}
+						InputLabelProps={{ shrink: !!watch("metadata_hash") }}
 					/>
 					<Button type="submit" variant="contained" color="primary" disabled={!contractsConfig || !walletApi}>
 						Create Contract

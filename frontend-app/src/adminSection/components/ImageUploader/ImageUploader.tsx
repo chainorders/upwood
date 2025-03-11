@@ -23,7 +23,8 @@ import Cropper, { Area } from "react-easy-crop";
 
 interface ImageUploaderProps {
 	url?: string;
-	onChange: (url: string | undefined) => void;
+	mimeType?: string;
+	onChange: (url: string | undefined, mimeType?: string) => void; // Updated to include mimeType
 	aspectRatio?: number;
 	maxSizeMB?: number;
 	label?: string;
@@ -34,6 +35,7 @@ interface ImageUploaderProps {
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
 	url,
+	mimeType,
 	onChange,
 	aspectRatio = 1,
 	maxSizeMB = 5,
@@ -46,6 +48,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 	const [isEditMode, setIsEditMode] = useState<boolean>(false);
 	const [imageFile, setImageFile] = useState<File | null>(null);
 	const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+	const [currentMimeType, setCurrentMimeType] = useState<string | undefined>(mimeType);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [isCropperOpen, setIsCropperOpen] = useState<boolean>(false);
 
@@ -56,9 +59,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
 	// Handlers
 	const handleDelete = () => {
-		onChange(undefined);
+		onChange(undefined, undefined); // Pass undefined for both url and mimeType
 		setImageFile(null);
 		setImageDataUrl(null);
+		setCurrentMimeType(undefined);
 	};
 
 	const handleEdit = () => {
@@ -77,6 +81,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 				}
 
 				setImageFile(file);
+				setCurrentMimeType(file.type); // Store the file's MIME type
 
 				// Create a preview
 				const reader = new FileReader();
@@ -113,7 +118,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
 			setIsLoading(false);
 			setIsCropperOpen(false);
-			onChange(croppedImageUrl);
+
+			// Pass both the URL and MIME type to the onChange handler
+			onChange(croppedImageUrl, currentMimeType);
 			setIsEditMode(false);
 		} catch (e) {
 			console.error("Error cropping image:", e);
@@ -210,9 +217,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 							cropShape="rect"
 							style={{
 								cropAreaStyle: {
-									border: '2px solid #fff',
-									boxShadow: '0 0 0 9999em rgba(0, 0, 0, 0.5)',
-								}
+									border: "2px solid #fff",
+									boxShadow: "0 0 0 9999em rgba(0, 0, 0, 0.5)",
+								},
 							}}
 						/>
 					)}
@@ -224,9 +231,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<AspectRatioIcon fontSize="small" />
 					<Typography variant="body2" color="text.secondary">
-						Aspect Ratio: {aspectRatio === 1 ? '1:1 (Square)' : aspectRatio.toFixed(2)}
+						Aspect Ratio: {aspectRatio === 1 ? "1:1 (Square)" : aspectRatio.toFixed(2)}
 					</Typography>
 				</Box>
+
+				{currentMimeType && (
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+						<Typography variant="body2" color="text.secondary">
+							Type: {currentMimeType}
+						</Typography>
+					</Box>
+				)}
 			</DialogContent>
 			<DialogActions>
 				<Button onClick={handleCancelCrop}>Cancel</Button>
@@ -261,6 +276,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 						Cancel
 					</Button>
 				</Box>
+			)}
+
+			{url && mimeType && (
+				<Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+					{mimeType}
+				</Typography>
 			)}
 		</Box>
 	);

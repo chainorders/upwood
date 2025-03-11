@@ -179,10 +179,16 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 								<Route path="update" element={<ProjectUpdate fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />} />
 								<Route path="details" element={<ProjectDetails fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />} />
 								<Route path="contract">
-									<Route path="create" element={<ProjectContractCreate user={user} />} />
+									<Route
+										path="create"
+										element={<ProjectContractCreate user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />}
+									/>
 									<Route path=":contract_address">
 										<Route path="details" element={<ProjectContractDetails user={user} />} />
-										<Route path="update" element={<ProjectContractUpdate user={user} />} />
+										<Route
+											path="update"
+											element={<ProjectContractUpdate user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />}
+										/>
 										<Route path="token">
 											<Route path=":token_id">
 												<Route path="details" element={<ProjectTokenDetails user={user} />} />

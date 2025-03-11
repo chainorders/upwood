@@ -35,10 +35,7 @@ function ForestProjectMediaSection({
 				<div className="container">
 					<div className="container-in">
 						{medias.map((im, index) => (
-							<div
-								className="col-3 col-m-full col-mr-bottom-10 fl"
-								key={index}
-							>
+							<div className="col-3 col-m-full col-mr-bottom-10 fl" key={index}>
 								<div className="im">
 									<LazyLoadImage
 										src={im.image_url}

@@ -35,13 +35,13 @@ const AddMediaPopup: React.FC<AddMediaPopupProps> = ({ open, onClose, projectId,
 						control={control}
 						defaultValue=""
 						render={({ field }) => (
-							<TextField 
-								{...field} 
-								autoFocus 
-								margin="dense" 
-								label="Image URL" 
-								type="url" 
-								fullWidth 
+							<TextField
+								{...field}
+								autoFocus
+								margin="dense"
+								label="Image URL"
+								type="url"
+								fullWidth
 								variant="standard"
 								disabled
 								InputLabelProps={{ shrink: !!field.value }}
@@ -50,9 +50,7 @@ const AddMediaPopup: React.FC<AddMediaPopupProps> = ({ open, onClose, projectId,
 					/>
 					<ImageUploader
 						aspectRatio={2.5}
-						onChange={(v) =>
-							adminUploadImage(fileBaseUrl, "project_media", v).then((url) => setValue("image_url", url))
-						}
+						onChange={(v) => adminUploadImage(fileBaseUrl, "project_media", v).then((url) => setValue("image_url", url))}
 						url={watch("image_url")}
 					/>
 				</DialogContent>

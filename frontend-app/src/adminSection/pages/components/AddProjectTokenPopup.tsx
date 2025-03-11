@@ -89,9 +89,13 @@ export function AddProjectTokenPopup({ token_contract, token_id, onDone, user }:
 			/>
 			<TextField
 				label="Metadata Hash"
+				{...register("metadata_hash")}
+				error={!!errors.metadata_hash}
+				helperText={errors.metadata_hash ? "This field is required" : ""}
 				InputProps={{
 					readOnly: true,
 				}}
+				InputLabelProps={{ shrink: true }}
 			/>
 			<TransactionButton
 				type="submit"

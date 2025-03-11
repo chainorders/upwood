@@ -196,9 +196,9 @@ export default function ProjectUpdate({ fileBaseUrl }: { fileBaseUrl: string }) 
 							<Typography variant="h6">Offering Document</Typography>
 							<TextField label="Offering Document Title" {...register("offering_doc_title")} />
 							<TextField label="Offering Document Header" multiline rows={4} {...register("offering_doc_header")} />
-							<TextField 
-								label="Offering Document Image URL" 
-								{...register("offering_doc_img_url")} 
+							<TextField
+								label="Offering Document Image URL"
+								{...register("offering_doc_img_url")}
 								disabled
 								InputLabelProps={{ shrink: !!watch("offering_doc_img_url") }}
 							/>
@@ -215,16 +215,18 @@ export default function ProjectUpdate({ fileBaseUrl }: { fileBaseUrl: string }) 
 							<Typography variant="h6">Financial Projection</Typography>
 							<TextField label="Financial Projection Title" {...register("financial_projection_title")} />
 							<TextField label="Financial Projection Header" multiline rows={4} {...register("financial_projection_header")} />
-							<TextField 
-								label="Financial Projection Image URL" 
-								{...register("financial_projection_img_url")} 
+							<TextField
+								label="Financial Projection Image URL"
+								{...register("financial_projection_img_url")}
 								disabled
 								InputLabelProps={{ shrink: !!watch("financial_projection_img_url") }}
 							/>
 							<ImageUploader
 								aspectRatio={2.5}
 								onChange={(v) =>
-									adminUploadImage(fileBaseUrl, "financial_projection_img_url", v).then((url) => setValue("financial_projection_img_url", url))
+									adminUploadImage(fileBaseUrl, "financial_projection_img_url", v).then((url) =>
+										setValue("financial_projection_img_url", url),
+									)
 								}
 								url={watch("financial_projection_img_url")}
 							/>
@@ -234,17 +236,15 @@ export default function ProjectUpdate({ fileBaseUrl }: { fileBaseUrl: string }) 
 							<Typography variant="h6">Geospatial Information</Typography>
 							<TextField label="Geo Title" {...register("geo_title")} />
 							<TextField label="Geo Header" multiline rows={4} {...register("geo_header")} />
-							<TextField 
-								label="Geo Image URL" 
-								{...register("geo_img_url")} 
+							<TextField
+								label="Geo Image URL"
+								{...register("geo_img_url")}
 								disabled
 								InputLabelProps={{ shrink: !!watch("geo_img_url") }}
 							/>
 							<ImageUploader
 								aspectRatio={2.5}
-								onChange={(v) =>
-									adminUploadImage(fileBaseUrl, "geo_img_url", v).then((url) => setValue("geo_img_url", url))
-								}
+								onChange={(v) => adminUploadImage(fileBaseUrl, "geo_img_url", v).then((url) => setValue("geo_img_url", url))}
 								url={watch("geo_img_url")}
 							/>
 							<TextField label="Geo Footer" multiline rows={4} {...register("geo_footer")} />
