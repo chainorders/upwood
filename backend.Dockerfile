@@ -1,5 +1,4 @@
 FROM rust:1.85 AS builder
-RUN rustup toolchain install nightly-x86_64-unknown-linux-gnu --profile minimal
 WORKDIR /app
 COPY . .
 WORKDIR /app/backend
