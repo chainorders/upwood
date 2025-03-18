@@ -2,6 +2,7 @@ use chrono::NaiveDateTime;
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
+use diesel::Connection;
 use rust_decimal::Decimal;
 use security_p2p_trading::{AddMarketParams, AgentRole, Event, ExchangeEvent};
 use shared::db::cis2_security::Agent;
@@ -72,28 +73,31 @@ pub fn process_events(
                 Agent::delete(conn, contract.to_decimal(), &agent)?;
             }
             Event::MarketAdded(AddMarketParams { token, market }) => {
-                let contract = P2PTradeContract::find(conn, contract.to_decimal())?.ok_or(
-                    ProcessorError::TradeContractNotFound {
-                        contract: contract.to_decimal(),
-                    },
-                )?;
-                Market {
-                    contract_address: contract.contract_address,
-                    token_contract_address: token.contract.to_decimal(),
-                    token_id: token.id.to_decimal(),
-                    currency_token_id: contract.currency_token_id,
-                    currency_token_contract_address: contract.currency_token_contract_address,
-                    liquidity_provider: market.liquidity_provider.to_string(),
-                    buy_rate_numerator: market.buy_rate.numerator.into(),
-                    buy_rate_denominator: market.buy_rate.denominator.into(),
-                    sell_rate_numerator: market.sell_rate.numerator.into(),
-                    sell_rate_denominator: market.sell_rate.denominator.into(),
-                    total_sell_currency_amount: 0.into(),
-                    total_sell_token_amount: 0.into(),
-                    create_time: block_time,
-                    update_time: block_time,
-                }
-                .insert(conn)?;
+                conn.transaction::<_, ProcessorError, _>(|conn| {
+                    let contract = P2PTradeContract::find(conn, contract.to_decimal())?.ok_or(
+                        ProcessorError::TradeContractNotFound {
+                            contract: contract.to_decimal(),
+                        },
+                    )?;
+                    Market {
+                        contract_address: contract.contract_address,
+                        token_contract_address: token.contract.to_decimal(),
+                        token_id: token.id.to_decimal(),
+                        currency_token_id: contract.currency_token_id,
+                        currency_token_contract_address: contract.currency_token_contract_address,
+                        liquidity_provider: market.liquidity_provider.to_string(),
+                        buy_rate_numerator: market.buy_rate.numerator.into(),
+                        buy_rate_denominator: market.buy_rate.denominator.into(),
+                        sell_rate_numerator: market.sell_rate.numerator.into(),
+                        sell_rate_denominator: market.sell_rate.denominator.into(),
+                        total_sell_currency_amount: 0.into(),
+                        total_sell_token_amount: 0.into(),
+                        create_time: block_time,
+                        update_time: block_time,
+                    }
+                    .insert(conn)?;
+                    Ok(())
+                })?;
                 info!("Market added: {:?}", market);
             }
             Event::MarketRemoved(market) => {
@@ -114,97 +118,105 @@ pub fn process_events(
                 token_id,
                 currency_amount,
             }) => {
-                let market = Market::find(
-                    conn,
-                    contract.to_decimal(),
-                    token_contract.to_decimal(),
-                    token_id.to_decimal(),
-                )?
-                .map(|mut market| {
-                    market.total_sell_currency_amount += currency_amount.to_decimal();
-                    market.total_sell_token_amount += token_amount.to_decimal();
-                    market.update_time = block_time;
-                    market
-                })
-                .ok_or(ProcessorError::MarketNotFound {
-                    contract:       contract.to_decimal(),
-                    token_id:       token_id.to_decimal(),
-                    token_contract: token_contract.to_decimal(),
-                })?
-                .update(conn)?;
-                Trader::find(
-                    conn,
-                    contract.to_decimal(),
-                    token_id.to_decimal(),
-                    token_contract.to_decimal(),
-                    seller.to_string(),
-                )?
-                .map(|mut seller| {
-                    seller.token_out_amount += token_amount.to_decimal();
-                    seller.currency_in_amount += currency_amount.to_decimal();
-                    seller.update_time = block_time;
-                    seller
-                })
-                .unwrap_or_else(|| Trader {
-                    contract_address: contract.to_decimal(),
-                    token_contract_address: token_contract.to_decimal(),
-                    token_id: token_id.to_decimal(),
-                    trader: seller.to_string(),
-                    token_in_amount: 0.into(),
-                    token_out_amount: token_amount.to_decimal(),
-                    currency_in_amount: currency_amount.to_decimal(),
-                    currency_out_amount: 0.into(),
-                    currency_token_id: market.currency_token_id,
-                    currency_token_contract_address: market.currency_token_contract_address,
-                    create_time: block_time,
-                    update_time: block_time,
-                })
-                .upsert(conn)?;
-                Trader::find(
-                    conn,
-                    contract.to_decimal(),
-                    token_id.to_decimal(),
-                    token_contract.to_decimal(),
-                    buyer.to_string(),
-                )?
-                .map(|mut buyer| {
-                    buyer.token_in_amount += token_amount.to_decimal();
-                    buyer.currency_out_amount += currency_amount.to_decimal();
-                    buyer.update_time = block_time;
-                    buyer
-                })
-                .unwrap_or_else(|| Trader {
-                    contract_address: contract.to_decimal(),
-                    token_contract_address: token_contract.to_decimal(),
-                    token_id: token_id.to_decimal(),
-                    trader: buyer.to_string(),
-                    token_in_amount: token_amount.to_decimal(),
-                    token_out_amount: 0.into(),
-                    currency_in_amount: 0.into(),
-                    currency_out_amount: currency_amount.to_decimal(),
-                    currency_token_id: market.currency_token_id,
-                    currency_token_contract_address: market.currency_token_contract_address,
-                    create_time: block_time,
-                    update_time: block_time,
-                })
-                .upsert(conn)?;
-                ExchangeRecord {
-                    id: Uuid::new_v4(),
-                    block_height,
-                    txn_index,
-                    contract_address: contract.to_decimal(),
-                    token_id: token_id.to_decimal(),
-                    token_contract_address: token_contract.to_decimal(),
-                    currency_token_id: market.currency_token_id,
-                    currency_token_contract_address: market.currency_token_contract_address,
-                    seller: seller.to_string(),
-                    buyer: buyer.to_string(),
-                    currency_amount: currency_amount.to_decimal(),
-                    token_amount: token_amount.to_decimal(),
-                    create_time: block_time,
-                    rate: rate.to_decimal(),
-                }
-                .insert(conn)?;
+                conn.transaction::<_, ProcessorError, _>(|conn| {
+                    let market = Market::find(
+                        conn,
+                        contract.to_decimal(),
+                        token_contract.to_decimal(),
+                        token_id.to_decimal(),
+                    )?
+                    .map(|mut market| {
+                        market.total_sell_currency_amount += currency_amount.to_decimal();
+                        market.total_sell_token_amount += token_amount.to_decimal();
+                        market.update_time = block_time;
+                        market
+                    })
+                    .ok_or(ProcessorError::MarketNotFound {
+                        contract:       contract.to_decimal(),
+                        token_id:       token_id.to_decimal(),
+                        token_contract: token_contract.to_decimal(),
+                    })?
+                    .update(conn)?;
+
+                    Trader::find(
+                        conn,
+                        contract.to_decimal(),
+                        token_id.to_decimal(),
+                        token_contract.to_decimal(),
+                        seller.to_string(),
+                    )?
+                    .map(|mut seller| {
+                        seller.token_out_amount += token_amount.to_decimal();
+                        seller.currency_in_amount += currency_amount.to_decimal();
+                        seller.update_time = block_time;
+                        seller
+                    })
+                    .unwrap_or_else(|| Trader {
+                        contract_address: contract.to_decimal(),
+                        token_contract_address: token_contract.to_decimal(),
+                        token_id: token_id.to_decimal(),
+                        trader: seller.to_string(),
+                        token_in_amount: 0.into(),
+                        token_out_amount: token_amount.to_decimal(),
+                        currency_in_amount: currency_amount.to_decimal(),
+                        currency_out_amount: 0.into(),
+                        currency_token_id: market.currency_token_id,
+                        currency_token_contract_address: market.currency_token_contract_address,
+                        create_time: block_time,
+                        update_time: block_time,
+                    })
+                    .upsert(conn)?;
+
+                    Trader::find(
+                        conn,
+                        contract.to_decimal(),
+                        token_id.to_decimal(),
+                        token_contract.to_decimal(),
+                        buyer.to_string(),
+                    )?
+                    .map(|mut buyer| {
+                        buyer.token_in_amount += token_amount.to_decimal();
+                        buyer.currency_out_amount += currency_amount.to_decimal();
+                        buyer.update_time = block_time;
+                        buyer
+                    })
+                    .unwrap_or_else(|| Trader {
+                        contract_address: contract.to_decimal(),
+                        token_contract_address: token_contract.to_decimal(),
+                        token_id: token_id.to_decimal(),
+                        trader: buyer.to_string(),
+                        token_in_amount: token_amount.to_decimal(),
+                        token_out_amount: 0.into(),
+                        currency_in_amount: 0.into(),
+                        currency_out_amount: currency_amount.to_decimal(),
+                        currency_token_id: market.currency_token_id,
+                        currency_token_contract_address: market.currency_token_contract_address,
+                        create_time: block_time,
+                        update_time: block_time,
+                    })
+                    .upsert(conn)?;
+
+                    ExchangeRecord {
+                        id: Uuid::new_v4(),
+                        block_height,
+                        txn_index,
+                        contract_address: contract.to_decimal(),
+                        token_id: token_id.to_decimal(),
+                        token_contract_address: token_contract.to_decimal(),
+                        currency_token_id: market.currency_token_id,
+                        currency_token_contract_address: market.currency_token_contract_address,
+                        seller: seller.to_string(),
+                        buyer: buyer.to_string(),
+                        currency_amount: currency_amount.to_decimal(),
+                        token_amount: token_amount.to_decimal(),
+                        create_time: block_time,
+                        rate: rate.to_decimal(),
+                    }
+                    .insert(conn)?;
+
+                    Ok(())
+                })?;
+
                 info!(
                     "Exchanged: {:?}",
                     (seller, buyer, token_amount, currency_amount)
