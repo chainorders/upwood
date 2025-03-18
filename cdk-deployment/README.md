@@ -18,12 +18,38 @@ The deployment of Blockchain components is a prerequisite for the deployment of 
 
 - [ ] Concordium Blockchain Node: Amazon ECS
 - [x] User Authentication & Management: [Amazon Cognito](./lib/cognito-stack.ts)
+  - Creates an AWS Cognito User Pool for user management.
+  - Configures user attributes, custom attributes, and email settings.
+  - Sets up an admin group and a user pool client.
 - [x] Infra Stack: [ECS Cluster & Private DNS](./lib/infra-stack.ts)
+  - Sets up an ECS Cluster for running containerized applications.
+  - Creates a Private DNS Namespace for service discovery within the VPC.
+  - Configures a VPC Link for API Gateway integration with the VPC.
+  - Creates a Log Group for application logs.
 - [x] Database Server: [Amazon RDS](./lib/db-stack.ts)
+  - Deploys an Amazon RDS instance for database storage.
+  - Configures security groups for database access.
+  - Sets up SSM parameters for database username and password.
 - [x] Concordium Listener Server: [Amazon ECS](./lib/backend-listener-stack.ts)
+  - Deploys a Concordium Listener Server as an ECS service.
+  - Configures a task definition with the necessary environment variables and secrets.
+  - Sets up logging for the listener server.
 - [x] Upwood APIs/Web Server: [Amazon ECS](./lib/backend-api-stack.ts)
+  - Deploys the Upwood APIs as an ECS service.
+  - Configures a task definition with the necessary environment variables, secrets, and permissions.
+  - Sets up logging for the API server.
 - [x] API Gateway using Amazon API Gateway: [Amazon API Gateway](./lib/backend-api-stack.ts)
+  - Creates an API Gateway to proxy requests to the backend API.
+  - Configures CORS settings and integrates with the ECS service using a VPC Link.
+  - Sets up a domain name and certificate for the API Gateway.
 - [x] Frontend Deployment & Distribution: [Amazon S3 & Cloudfront](./lib/frontend-app-website-stack.ts)
+  - Creates an S3 bucket to host the frontend application.
+  - Configures CloudFront to distribute the frontend application.
+  - Sets up a domain name and certificate for the CloudFront distribution.
+- [x] Files S3 Stack: [Amazon S3 & Cloudfront](./lib/files-s3-stack.ts)
+  - Creates an S3 bucket to store files.
+  - Configures CloudFront to distribute the files.
+  - Sets up a domain name and certificate for the CloudFront distribution.
 - [ ] Dapp Frontend Deployment & Distribution: Amazon S3 & Cloudfront
 
 ### Prerequisites
