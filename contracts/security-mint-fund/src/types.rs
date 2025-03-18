@@ -50,14 +50,40 @@ pub struct FundAddedEvent {
 
 #[derive(Serialize, SchemaType, Debug)]
 pub enum Event {
+    /// Emitted when the contract is initialized with the currency token
+    /// Triggered in the init function
     Initialized(CurrencyTokenUId),
+
+    /// Emitted when a new agent with roles is added to the contract
+    /// Triggered in both init function (for initial agents) and add_agent function
     AgentAdded(AgentWithRoles<AgentRole>),
+
+    /// Emitted when an agent is removed from the contract
+    /// Triggered in the remove_agent function
     AgentRemoved(Address),
+
+    /// Emitted when a new fund is added to the contract
+    /// Triggered in the add_fund function
     FundAdded(FundAddedEvent),
+
+    /// Emitted when a fund is removed from the contract
+    /// Triggered in the remove_fund function
     FundRemoved(SecurityTokenUId),
+
+    /// Emitted when a fund's state is updated to either Success or Fail
+    /// Triggered in the update_fund_state function
     FundStateUpdated(UpdateFundStateParams),
+
+    /// Emitted when an investor makes an investment in an Open fund
+    /// Triggered in the invest function after adding investment and minting tokens
     Invested(InvestedEvent),
+
+    /// Emitted when an investment is claimed from a successful fund
+    /// Triggered in the claim_investment function when fund is in Success state
     InvestmentClaimed(InvestedEvent),
+
+    /// Emitted when an investment is cancelled and funds returned to investor
+    /// Triggered in the claim_investment function when fund is in Fail state
     InvestmentCancelled(InvestedEvent),
 }
 
@@ -69,20 +95,36 @@ pub struct InitParam {
 
 #[derive(Serialize, SchemaType, Reject)]
 pub enum Error {
+    /// Thrown when a caller doesn't have the required agent role or permissions to perform an action
     UnAuthorized,
+    /// Thrown when there's an error parsing function parameters or token data
     ParseError,
+    /// Thrown when the contract fails to log events
     LogError,
+    /// Thrown when transferring currency tokens fails (during investment or claiming)
     CurrencyTokenTransfer,
+    /// Thrown when rate conversion between currency and security token amounts fails
     InvalidConversion,
+    /// Thrown when an operation is attempted in an incompatible fund state
+    /// (e.g., claiming investment when fund is in Open state)
     InvalidFundState,
+    /// Thrown when minting security tokens fails
     TokenMint,
+    /// Thrown when burning security tokens fails
     TokenBurn,
+    /// Thrown when checking token balance fails
     TokenBalance,
+    /// Thrown when unfreezing tokens during investment claiming fails
     TokenUnFreeze,
+    /// Thrown when referring to a fund that doesn't exist in the contract state
     InvalidFundId,
+    /// Thrown when claiming investment for an address that has no investment in the fund
     InvalidInvestor,
+    /// Thrown when referring to a token that doesn't exist
     NonExistentToken,
+    /// Thrown when attempting to add an agent that already exists
     AgentExists,
+    /// Thrown when attempting to add a fund with a token ID that's already registered
     FundExists,
 }
 
