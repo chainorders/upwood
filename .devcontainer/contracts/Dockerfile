@@ -16,11 +16,11 @@ RUN apt-get update \
 RUN apt install build-essential libpq-dev
 RUN rustup default 1.81 \
    && rustup target add wasm32-unknown-unknown \
-   && rustup component add rustfmt clippy \
+   && rustup component add rustfmt clippy rust-analyzer \
    && rustup toolchain install nightly-2023-04-01 \
-   && rustup component add --toolchain nightly-2023-04-01 rustfmt clippy \
+   && rustup component add --toolchain nightly-2023-04-01 rustfmt clippy rust-analyzer \
    && rustup toolchain install nightly \
-   && rustup component add --toolchain nightly rustfmt clippy \
+   && rustup component add --toolchain nightly rustfmt clippy rust-analyzer \
    && cargo install cargo-concordium --version 3.3.0
 
 ADD "https://distribution.concordium.software/tools/linux/concordium-client_6.3.0-1" /usr/local/bin/concordium-client
