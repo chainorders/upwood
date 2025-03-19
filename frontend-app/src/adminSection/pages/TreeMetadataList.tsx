@@ -22,14 +22,15 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { TreeNftMetadataService } from "../../apiClient/services/TreeNftMetadataService";
 import { TreeNftMetadata } from "../../apiClient/models/TreeNftMetadata";
-import { CreateTreeNftMetadataPopup } from "./CreateTreeNftMetadataPopup";
+import { CreateTreeNftMetadataPopup } from "./components/CreateTreeNftMetadataPopup";
 import { User } from "../../lib/user";
 
 interface TreeMetadataListProps {
 	user: User;
+	fileBaseUrl: string;
 }
 
-const TreeMetadataList: React.FC<TreeMetadataListProps> = ({ user }) => {
+const TreeMetadataList: React.FC<TreeMetadataListProps> = ({ user, fileBaseUrl }) => {
 	const [metadatas, setMetadatas] = useState<TreeNftMetadata[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string>();
@@ -204,6 +205,7 @@ const TreeMetadataList: React.FC<TreeMetadataListProps> = ({ user }) => {
 				open={openCreatePopup}
 				onClose={() => setOpenCreatePopup(false)}
 				onSuccess={handleCreateSuccess}
+				fileBaseUrl={fileBaseUrl}
 			/>
 
 			<Snackbar

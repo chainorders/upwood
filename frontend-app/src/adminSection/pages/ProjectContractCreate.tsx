@@ -1,4 +1,3 @@
-import React, { useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useForm } from "react-hook-form";
 import {
@@ -8,7 +7,6 @@ import {
 	SystemContractsConfigApiModel,
 	UserService,
 	ForestProject,
-	FilesService,
 } from "../../apiClient";
 import {
 	Button,
@@ -23,12 +21,9 @@ import {
 	Accordion,
 	AccordionSummary,
 	AccordionDetails,
-	Alert,
 	CircularProgress,
-	IconButton,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import { formatDate, parseFinalizedInit } from "../../lib/conversions";
 import securitySftMulti from "../../contractClients/generated/securitySftMulti";
 import { detectConcordiumProvider, WalletApi } from "@concordium/browser-wallet-api-helpers";
@@ -37,9 +32,9 @@ import { useEffect, useState } from "react";
 import { User } from "../../lib/user";
 import concordiumNodeClient from "../../contractClients/ConcordiumNodeClient";
 import { Link } from "react-router";
-import TokenMetadataForm from "../components/TokenMetadataForm";
 import { TokenMetadata } from "../libs/types";
 import { adminUploadJson, hashMetadata } from "../libs/utils";
+import MetadataEditor from "../components/MetadataEditor";
 
 const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) => {
 	const { id } = useParams<{ id: string }>();
@@ -50,14 +45,6 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 	const [txnStatus, setTxnStatus] = useState<"sending" | "waiting" | "success" | "error" | "none">("none");
 	const [project, setProject] = useState<ForestProject | null>(null);
 	const [expanded, setExpanded] = useState<boolean>(false);
-	const [metadata, setMetadata] = useState<TokenMetadata>({
-		name: "",
-		symbol: "",
-		decimals: 0,
-		description: "",
-	});
-	const [isMetadataLoading, setIsMetadataLoading] = useState<boolean>(false);
-	const [metadataError, setMetadataError] = useState<string | null>(null);
 
 	const {
 		register,
@@ -72,57 +59,6 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 	const metadataUrl = watch("metadata_url");
 	const symbol = watch("symbol");
 	const decimals = watch("decimals");
-
-	// Fetch metadata from URL
-	const fetchMetadata = useCallback(
-		async (url: string) => {
-			if (!url || url.trim() === "") {
-				// Reset to default metadata if URL is empty
-				setMetadata({
-					name: project?.name || "",
-					symbol: symbol || "",
-					decimals: decimals || 0,
-					description: project?.desc_long || "",
-				});
-				setValue("metadata_hash", undefined);
-				return;
-			}
-
-			setIsMetadataLoading(true);
-			setMetadataError(null);
-
-			try {
-				const response = await fetch(url);
-
-				if (!response.ok) {
-					throw new Error(`Failed to fetch metadata: ${response.status} ${response.statusText}`);
-				}
-
-				const data = await response.json();
-				setMetadata(data);
-				hashMetadata(data).then((hash) => setValue("metadata_hash", hash));
-			} catch (error) {
-				console.error("Error fetching metadata:", error);
-				setMetadataError(error instanceof Error ? error.message : "Failed to fetch metadata");
-
-				// Set default values on error
-				setMetadata({
-					name: project?.name || "",
-					symbol: symbol || "",
-					decimals: decimals || 0,
-					description: project?.desc_long || "",
-				});
-			} finally {
-				setIsMetadataLoading(false);
-			}
-		},
-		[decimals, project?.desc_long, project?.name, symbol, setValue],
-	);
-
-	// Trigger metadata fetch when URL changes
-	useEffect(() => {
-		fetchMetadata(metadataUrl);
-	}, [decimals, fetchMetadata, metadataUrl]);
 
 	useEffect(() => {
 		UserService.getSystemConfig()
@@ -139,16 +75,7 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 
 	useEffect(() => {
 		if (id) {
-			ForestProjectService.getAdminForestProjects(id).then((project) => {
-				setProject(project);
-
-				// Initialize metadata with project data
-				setMetadata((prev) => ({
-					...prev,
-					name: project.name || prev.name,
-					description: project.desc_long || prev.description,
-				}));
-			});
+			ForestProjectService.getAdminForestProjects(id).then(setProject);
 		}
 	}, [id]);
 
@@ -298,60 +225,6 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 		return <div>Loading...</div>;
 	}
 
-	// Render metadata form or loading state
-	const renderMetadataContent = () => {
-		if (isMetadataLoading) {
-			return (
-				<Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-					<CircularProgress />
-				</Box>
-			);
-		}
-
-		if (metadataError) {
-			return (
-				<>
-					<Alert
-						severity="error"
-						sx={{ mb: 2 }}
-						action={
-							<IconButton color="inherit" size="small" onClick={() => metadataUrl && fetchMetadata(metadataUrl)}>
-								<RefreshIcon />
-							</IconButton>
-						}
-					>
-						{metadataError}
-					</Alert>
-					<TokenMetadataForm
-						initialData={{
-							...metadata,
-							symbol: symbol || metadata.symbol,
-							decimals: decimals || metadata.decimals,
-						}}
-						onSubmit={handleMetadataSubmit}
-						submitButtonText="Generate Metadata URL"
-						noForm={true}
-						fileBaseUrl={fileBaseUrl}
-					/>
-				</>
-			);
-		}
-
-		return (
-			<TokenMetadataForm
-				initialData={{
-					...metadata,
-					symbol: symbol || metadata.symbol,
-					decimals: decimals || metadata.decimals,
-				}}
-				onSubmit={handleMetadataSubmit}
-				submitButtonText="Generate Metadata URL"
-				noForm={true}
-				fileBaseUrl={fileBaseUrl}
-			/>
-		);
-	};
-
 	return (
 		<>
 			<Breadcrumbs aria-label="breadcrumb">
@@ -428,15 +301,6 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 							sx={{ mr: 1 }}
 							InputLabelProps={{ shrink: !!metadataUrl }}
 						/>
-						{metadataUrl && (
-							<IconButton
-								onClick={() => fetchMetadata(metadataUrl)}
-								disabled={isMetadataLoading}
-								sx={{ mt: errors.metadata_url ? -3 : -1 }}
-							>
-								<RefreshIcon />
-							</IconButton>
-						)}
 					</Box>
 
 					<Accordion expanded={expanded} onChange={() => setExpanded(!expanded)} sx={{ mb: 2 }}>
@@ -447,7 +311,19 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 						>
 							<Typography>Token Metadata Editor</Typography>
 						</AccordionSummary>
-						<AccordionDetails>{renderMetadataContent()}</AccordionDetails>
+						<AccordionDetails>
+							<MetadataEditor
+								defaultMetadata={{
+									name: project.name,
+									symbol: symbol,
+									decimals: decimals,
+									description: project.desc_long,
+								}}
+								metadataUrl={metadataUrl}
+								fileBaseUrl={fileBaseUrl}
+								onMetadataSubmit={handleMetadataSubmit}
+							/>
+						</AccordionDetails>
 					</Accordion>
 
 					<TextField

@@ -8,15 +8,25 @@ import {
 	TextField,
 	CircularProgress,
 	Alert,
+	Accordion,
+	AccordionSummary,
+	AccordionDetails,
+	Typography,
+	Box,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";
-import { TreeNftMetadataService } from "../../apiClient/services/TreeNftMetadataService";
-import { AddMetadataRequest } from "../../apiClient/models/AddMetadataRequest";
+import { TreeNftMetadataService } from "../../../apiClient/services/TreeNftMetadataService";
+import { AddMetadataRequest } from "../../../apiClient/models/AddMetadataRequest";
+import MetadataEditor from "../../components/MetadataEditor";
+import { TokenMetadata } from "../../libs/types";
+import { adminUploadJson, hashMetadata } from "../../libs/utils";
 
 interface CreateTreeNftMetadataPopupProps {
 	open: boolean;
 	onClose: () => void;
 	onSuccess: () => void;
+	fileBaseUrl: string;
 }
 
 interface FormData {
@@ -25,14 +35,17 @@ interface FormData {
 	probablity_percentage: number;
 }
 
-export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProps> = ({ open, onClose, onSuccess }) => {
+export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProps> = ({ open, onClose, onSuccess, fileBaseUrl }) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [expanded, setExpanded] = useState<boolean>(true);
 
 	const {
 		control,
 		handleSubmit,
 		reset,
+		setValue,
+		watch,
 		formState: { errors },
 	} = useForm<FormData>({
 		defaultValues: {
@@ -40,8 +53,26 @@ export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProp
 			metadata_hash: "",
 			probablity_percentage: 1,
 		},
-		mode: "onBlur", // Validate on blur for better UX
+		mode: "onBlur"
 	});
+
+	const metadataUrl = watch("metadata_url");
+
+	const handleMetadataSubmit = async (data: TokenMetadata) => {
+		setSubmitError(null);
+
+		try {
+			const jsonData = JSON.stringify(data);
+			const url = await adminUploadJson(fileBaseUrl, "nft-metadata", jsonData);
+			setValue("metadata_url", url);
+			const jsonDataHash = await hashMetadata(data);
+			setValue("metadata_hash", jsonDataHash);
+			setExpanded(false);
+		} catch (error) {
+			console.error("Error uploading metadata:", error);
+			setSubmitError("Failed to upload metadata. Please try again.");
+		}
+	};
 
 	const onSubmit: SubmitHandler<FormData> = async (data) => {
 		setSubmitError(null);
@@ -53,7 +84,7 @@ export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProp
 					url: data.metadata_url,
 					hash: data.metadata_hash || undefined,
 				},
-				probablity_percentage: data.probablity_percentage,
+				probablity_percentage: Number(data.probablity_percentage),
 			};
 
 			await TreeNftMetadataService.postAdminTreeNftMetadata(requestData);
@@ -82,7 +113,7 @@ export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProp
 	};
 
 	return (
-		<Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+		<Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
 			<DialogTitle>Create New Tree NFT Metadata</DialogTitle>
 			<form onSubmit={handleSubmit(onSubmit)}>
 				<DialogContent>
@@ -109,18 +140,50 @@ export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProp
 								fullWidth
 								margin="normal"
 								error={Boolean(errors.metadata_url)}
-								helperText={errors.metadata_url?.message}
+								helperText={errors.metadata_url?.message || "Enter a URL to fetch metadata or generate it below"}
 								required
 								disabled={isSubmitting}
+								InputLabelProps={{ shrink: !!field.value }}
 							/>
 						)}
 					/>
+
+					<Accordion expanded={expanded} onChange={() => setExpanded(!expanded)} sx={{ mb: 2, mt: 2 }}>
+						<AccordionSummary
+							expandIcon={<ExpandMoreIcon />}
+							aria-controls="metadata-editor-content"
+							id="metadata-editor-header"
+						>
+							<Typography>Metadata Editor</Typography>
+						</AccordionSummary>
+						<AccordionDetails>
+							<MetadataEditor
+								defaultMetadata={{
+									name: "Tree NFT",
+									symbol: "$TREE",
+									decimals: 0,
+									description: "Tree NFT",
+									unique: true,
+								}}
+								metadataUrl={metadataUrl}
+								fileBaseUrl={fileBaseUrl}
+								onMetadataSubmit={handleMetadataSubmit}
+							/>
+						</AccordionDetails>
+					</Accordion>
 
 					<Controller
 						name="metadata_hash"
 						control={control}
 						render={({ field }) => (
-							<TextField {...field} label="Metadata Hash (Optional)" fullWidth margin="normal" disabled={isSubmitting} />
+							<TextField
+								{...field}
+								label="Metadata Hash (Optional)"
+								fullWidth
+								margin="normal"
+								disabled={isSubmitting}
+								InputLabelProps={{ shrink: !!field.value }}
+							/>
 						)}
 					/>
 

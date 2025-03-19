@@ -8,8 +8,6 @@ import {
 	Switch,
 	FormControlLabel,
 	Grid,
-	Card,
-	CardContent,
 	Divider,
 } from "@mui/material";
 import { TokenMetadata } from "../libs/types";
@@ -47,7 +45,6 @@ const TokenMetadataForm: React.FC<TokenMetadataFormProps> = ({
 			description: "",
 			thumbnail: { url: "" },
 			display: { url: "" },
-			artifact: { url: "" },
 		},
 	});
 
@@ -69,10 +66,6 @@ const TokenMetadataForm: React.FC<TokenMetadataFormProps> = ({
 					url: initialData.display?.url || "",
 					mimeType: initialData.display?.mimeType || "",
 				},
-				artifact: {
-					url: initialData.artifact?.url || "",
-					mimeType: initialData.artifact?.mimeType || "",
-				},
 			});
 		}
 	}, [initialData, reset]);
@@ -82,8 +75,6 @@ const TokenMetadataForm: React.FC<TokenMetadataFormProps> = ({
 	const thumbnailMimeType = watch("thumbnail.mimeType");
 	const displayUrl = watch("display.url");
 	const displayMimeType = watch("display.mimeType");
-	const artifactUrl = watch("artifact.url");
-	const artifactMimeType = watch("artifact.mimeType");
 
 	// Create a submission handler that can be used directly with a button
 	const handleFormSubmit = () => {
@@ -227,39 +218,6 @@ const TokenMetadataForm: React.FC<TokenMetadataFormProps> = ({
 					aspectRatio={16 / 9} // Wider display image
 					height={200}
 				/>
-			</Grid>
-
-			{/* Artifact - Keep as manual input for non-image files */}
-			<Grid item xs={12}>
-				<Card variant="outlined">
-					<CardContent>
-						<Typography variant="subtitle1" gutterBottom>
-							Artifact
-						</Typography>
-						<Typography variant="caption" color="text.secondary" gutterBottom>
-							Reference to the actual content represented by this token (e.g., document, video, etc.)
-						</Typography>
-
-						<Grid container spacing={2} sx={{ mt: 1 }}>
-							<Grid item xs={12} md={6}>
-								<Controller
-									name="artifact.url"
-									control={control}
-									render={({ field }) => <TextField {...field} label="URL" fullWidth size="small" sx={{ mb: 2 }} />}
-								/>
-							</Grid>
-							<Grid item xs={12} md={6}>
-								<Controller
-									name="artifact.mimeType"
-									control={control}
-									render={({ field }) => (
-										<TextField {...field} label="MIME Type" fullWidth size="small" placeholder="e.g., application/pdf" />
-									)}
-								/>
-							</Grid>
-						</Grid>
-					</CardContent>
-				</Card>
 			</Grid>
 
 			<Grid item xs={12}>
