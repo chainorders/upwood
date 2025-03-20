@@ -1,7 +1,7 @@
 use concordium_cis2::{Cis2Event, TokenIdU64, TokenIdUnit};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, TokenUId};
-use concordium_std::{Address, SchemaType, Serialize, Cursor};
+use concordium_std::{Address, Cursor, SchemaType, Serialize};
 
 use super::error::Error;
 
