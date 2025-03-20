@@ -140,18 +140,14 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 					ForestProjectService.getAdminForestProjectsContractByType(
 						tokenContract.forest_project_id,
 						SecurityTokenContractType.PROPERTY_PRE_SALE,
-					).then((data) => {
-						setPreSaleTokenContract(data);
-					});
+					).then(setPreSaleTokenContract);
 					break;
 				}
 				case SecurityTokenContractType.BOND: {
 					ForestProjectService.getAdminForestProjectsContractByType(
 						tokenContract.forest_project_id,
 						SecurityTokenContractType.BOND_PRE_SALE,
-					).then((data) => {
-						setPreSaleTokenContract(data);
-					});
+					).then(setPreSaleTokenContract);
 					break;
 				}
 				default: {

@@ -224,7 +224,10 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							<Route path="list" element={<QuestionsList />} />
 						</Route>
 						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
-						<Route path="tree/metadata" element={<TreeMetadataList user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />} />
+						<Route
+							path="tree/metadata"
+							element={<TreeMetadataList user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />}
+						/>
 					</Routes>
 				</Suspense>
 			</Box>

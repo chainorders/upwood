@@ -35,7 +35,12 @@ interface FormData {
 	probablity_percentage: number;
 }
 
-export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProps> = ({ open, onClose, onSuccess, fileBaseUrl }) => {
+export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProps> = ({
+	open,
+	onClose,
+	onSuccess,
+	fileBaseUrl,
+}) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [expanded, setExpanded] = useState<boolean>(true);
@@ -53,7 +58,7 @@ export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProp
 			metadata_hash: "",
 			probablity_percentage: 1,
 		},
-		mode: "onBlur"
+		mode: "onBlur",
 	});
 
 	const metadataUrl = watch("metadata_url");

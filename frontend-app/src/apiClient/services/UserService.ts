@@ -25,10 +25,12 @@ import { request as __request } from "../core/request";
 export class UserService {
 	/**
 	 * @param requestBody
-	 * @returns any
+	 * @returns UserRegistrationRequest
 	 * @throws ApiError
 	 */
-	public static postUserRegistrationRequest(requestBody: UserRegistrationRequestApi): CancelablePromise<any> {
+	public static postUserRegistrationRequest(
+		requestBody: UserRegistrationRequestApi,
+	): CancelablePromise<UserRegistrationRequest> {
 		return __request(OpenAPI, {
 			method: "POST",
 			url: "/user/registration-request",

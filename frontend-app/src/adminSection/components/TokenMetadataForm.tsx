@@ -1,15 +1,6 @@
 import React, { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
-import {
-	Box,
-	TextField,
-	Button,
-	Typography,
-	Switch,
-	FormControlLabel,
-	Grid,
-	Divider,
-} from "@mui/material";
+import { Box, TextField, Button, Typography, Switch, FormControlLabel, Grid, Divider } from "@mui/material";
 import { TokenMetadata } from "../libs/types";
 import ImageUploader from "./ImageUploader/ImageUploader";
 import { adminUploadImage } from "../libs/utils";
