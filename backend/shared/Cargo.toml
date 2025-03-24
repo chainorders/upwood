@@ -15,7 +15,6 @@ diesel = { workspace = true, features = [
     "postgres",
     "r2d2",
     "chrono",
-    "64-column-tables",
     "uuid",
     "serde_json",
 ] }

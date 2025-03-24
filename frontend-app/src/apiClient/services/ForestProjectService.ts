@@ -9,7 +9,6 @@ import type { ForestProjectPrice } from "../models/ForestProjectPrice";
 import type { ForestProjectState } from "../models/ForestProjectState";
 import type { ForestProjectTokenContract } from "../models/ForestProjectTokenContract";
 import type { ForestProjectTokenUserYieldClaim } from "../models/ForestProjectTokenUserYieldClaim";
-import type { ForestProjectTokenYieldListApiModel } from "../models/ForestProjectTokenYieldListApiModel";
 import type { LegalContract } from "../models/LegalContract";
 import type { LegalContractUserModel } from "../models/LegalContractUserModel";
 import type { LegalContractUserSignature } from "../models/LegalContractUserSignature";
@@ -25,6 +24,7 @@ import type { PagedResponse_TokenMetadata } from "../models/PagedResponse_TokenM
 import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
 import type { TokenMetadata } from "../models/TokenMetadata";
 import type { UserYieldsAggregate } from "../models/UserYieldsAggregate";
+import type { Yield } from "../models/Yield";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -572,13 +572,13 @@ export class ForestProjectService {
 	/**
 	 * @param contractAddress
 	 * @param tokenId
-	 * @returns ForestProjectTokenYieldListApiModel
+	 * @returns Yield
 	 * @throws ApiError
 	 */
 	public static getAdminForestProjectsContractTokenYeildList(
 		contractAddress: string,
 		tokenId: string,
-	): CancelablePromise<Array<ForestProjectTokenYieldListApiModel>> {
+	): CancelablePromise<Array<Yield>> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/forest_projects/{project_id}/contract/{contract_address}/token/{token_id}/yeild/list",

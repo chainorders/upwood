@@ -565,6 +565,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    security_sft_multi_yielder_treasuries (contract_address) {
+        contract_address -> Numeric,
+        treasury_address -> Varchar,
+        create_time -> Timestamp,
+        update_time -> Timestamp,
+    }
+}
+
+diesel::table! {
     security_sft_multi_yielder_yeild_distributions (id) {
         id -> Uuid,
         contract_address -> Numeric,
@@ -750,6 +759,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     security_p2p_trading_contracts,
     security_p2p_trading_markets,
     security_p2p_trading_traders,
+    security_sft_multi_yielder_treasuries,
     security_sft_multi_yielder_yeild_distributions,
     security_sft_multi_yielder_yields,
     support_questions,

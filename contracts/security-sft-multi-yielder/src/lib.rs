@@ -50,10 +50,18 @@ pub enum AgentRole {
     AddYield,
     RemoveYield,
     Operator,
+    UpdateTreasury,
 }
 
 impl AgentRole {
-    pub fn owner() -> Vec<Self> { vec![Self::AddYield, Self::RemoveYield] }
+    pub fn owner() -> Vec<Self> {
+        vec![
+            Self::AddYield,
+            Self::RemoveYield,
+            Self::Operator,
+            Self::UpdateTreasury,
+        ]
+    }
 }
 
 #[derive(Serialize, SchemaType, Debug, Clone)]
@@ -113,6 +121,7 @@ pub enum Event {
     YieldAdded(UpsertYieldParams),
     YieldRemoved(YieldRemovedEvent),
     YieldDistributed(YieldDistributedEvent),
+    TreasuryUpdated(Address),
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -187,11 +196,40 @@ fn init(
 
         agents
     };
+    logger.log(&Event::TreasuryUpdated(params.treasury))?;
     Ok(State {
         treasury: params.treasury,
         agents,
         yields: state_builder.new_map(),
     })
+}
+
+#[receive(
+    contract = "security_sft_multi_yielder",
+    name = "setTreasury",
+    mutable,
+    parameter = "Address",
+    enable_logger
+)]
+fn set_treasury(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let treasury: Address = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    ensure!(
+        state.is_agent(&ctx.sender(), AgentRole::UpdateTreasury),
+        Error::UnAuthorized
+    );
+    state.treasury = treasury;
+    logger.log(&Event::TreasuryUpdated(treasury))?;
+    Ok(())
+}
+
+#[receive(contract = "security_sft_multi_yielder", name = "getTreasury")]
+fn get_treasury(_: &ReceiveContext, host: &Host<State>) -> ContractResult<Address> {
+    Ok(host.state().treasury)
 }
 
 #[receive(

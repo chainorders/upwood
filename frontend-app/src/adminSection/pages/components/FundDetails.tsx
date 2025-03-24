@@ -1,5 +1,4 @@
 import {
-	ButtonGroup,
 	Typography,
 	Button,
 	Dialog,
@@ -16,10 +15,18 @@ import {
 	TableHead,
 	TableRow,
 	TablePagination,
+	List,
+	Alert,
+	ListItem,
+	ListItemText,
+	IconButton,
+	Icon,
 } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import DeleteIcon from "@mui/icons-material/Delete";
 import WarningIcon from "@mui/icons-material/Warning";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useEffect, useState } from "react";
 import {
 	SecurityMintFund,
@@ -29,6 +36,8 @@ import {
 	SecurityMintFundState,
 	PagedResponse_ForestProjectFundInvestor,
 	ForestProjectFundInvestor,
+	IndexerService,
+	Agent,
 } from "../../../apiClient";
 import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
@@ -36,16 +45,20 @@ import { User } from "../../../lib/user";
 import securityMintFund from "../../../contractClients/generated/securityMintFund";
 import { toTokenId } from "../../../lib/conversions";
 import { useForm } from "react-hook-form";
+import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
 
 interface FundDetailsProps {
 	fund: SecurityMintFund;
+	// Security Token Contract
 	investmentTokenContract?: ForestProjectTokenContract;
+	// Presale Token Contract
 	tokenContract?: ForestProjectTokenContract;
 	currencyMetadata?: TokenMetadata;
 	user: User;
+	onRefresh: () => void;
 }
 
-export default function FundDetails({ fund, user }: FundDetailsProps) {
+export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps) {
 	const [fundTokenMetadata, setFundTokenMetadata] = useState<ForestProjectTokenContract>();
 	const [fundCurrencyMetadata, setFundCurrencyMetadata] = useState<TokenMetadata>();
 	const [deleteTxnStatus, setDeleteTxnStatus] = useState<TxnStatus>("none");
@@ -57,6 +70,13 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 	const [investorsRowsPerPage, setInvestorsRowsPerPage] = useState(10);
 	const [claimTxnStatus, setClaimTxnStatus] = useState<TxnStatus>("none");
 	const [refreshCounter, setRefreshCounter] = useState(0);
+	const [agentPresaleContract, setAgentPresaleContract] = useState<Agent>();
+	const [agentInvestmentContract, setAgentInvestmentContract] = useState<Agent>();
+
+	const [addAgentPreSaleTxnStatus, setAddAgentPreSaleTxnStatus] = useState<TxnStatus>("none");
+	const [addAgentInvestmentTxnStatus, setAddAgentInvestmentTxnStatus] = useState<TxnStatus>("none");
+	const [removeAgentPreSaleTxnStatus, setRemoveAgentPreSaleTxnStatus] = useState<TxnStatus>("none");
+	const [removeAgentInvestmentTxnStatus, setRemoveAgentInvestmentTxnStatus] = useState<TxnStatus>("none");
 
 	const {
 		register,
@@ -70,19 +90,21 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 
 	useEffect(() => {
 		ForestProjectService.getAdminForestProjectsContract(fund.token_contract_address)
-			.then((metadata) => {
-				setFundTokenMetadata(metadata);
-			})
+			.then(setFundTokenMetadata)
 			.catch(() => {
 				setFundTokenMetadata(undefined);
 			});
 		ForestProjectService.getAdminTokenMetadata(fund.currency_token_contract_address, fund.currency_token_id)
-			.then((metadata) => {
-				setFundCurrencyMetadata(metadata);
-			})
+			.then(setFundCurrencyMetadata)
 			.catch(() => {
 				setFundCurrencyMetadata(undefined);
 			});
+		IndexerService.getAdminIndexerCis2Agent(fund.token_contract_address, fund.contract_address, true).then(
+			setAgentPresaleContract,
+		);
+		IndexerService.getAdminIndexerCis2Agent(fund.investment_token_contract_address, fund.contract_address, true).then(
+			setAgentInvestmentContract,
+		);
 	}, [fund, refreshCounter]);
 	useEffect(() => {
 		if (fund) {
@@ -118,7 +140,7 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 			);
 			setMarkFailedTxnStatus("success");
 			alert("Marked failed successfully");
-			setRefreshCounter((c) => c + 1);
+			onRefresh();
 		} catch (e) {
 			console.error(e);
 			setMarkFailedTxnStatus("error");
@@ -143,7 +165,7 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 			);
 			setDeleteTxnStatus("success");
 			alert("Deletion successfully");
-			setRefreshCounter((c) => c + 1);
+			onRefresh();
 		} catch (e) {
 			console.error(e);
 			setDeleteTxnStatus("error");
@@ -177,7 +199,8 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 			);
 			setMarkSuccessTxnStatus("success");
 			alert("Marked success successfully");
-			setRefreshCounter((c) => c + 1);
+			setOpenSuccessPopup(false);
+			onRefresh();
 		} catch (e) {
 			console.error(e);
 			setMarkSuccessTxnStatus("error");
@@ -231,12 +254,93 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 		setRefreshCounter((c) => c + 1);
 	};
 
+	const addAgentPresaleContract = async () => {
+		try {
+			await updateContract(
+				user.concordiumAccountAddress,
+				fund.token_contract_address,
+				securitySftMulti.addAgent,
+				{
+					address: { Contract: [{ index: Number(fund.contract_address), subindex: 0 }] },
+					roles: [{ Mint: {} }, { Operator: {} }, { ForcedBurn: {} }],
+				},
+				setAddAgentPreSaleTxnStatus,
+			);
+			setAddAgentPreSaleTxnStatus("success");
+			alert("Agent added successfully");
+			setRefreshCounter((c) => c + 1);
+		} catch (e) {
+			console.error(e);
+			setAddAgentPreSaleTxnStatus("error");
+			alert(`Failed to add agent`);
+		}
+	};
+	const removeAgentPresaleContract = async () => {
+		try {
+			await updateContract(
+				user.concordiumAccountAddress,
+				fund.token_contract_address,
+				securitySftMulti.removeAgent,
+				{ Contract: [{ index: Number(fund.contract_address), subindex: 0 }] },
+				setRemoveAgentPreSaleTxnStatus,
+			);
+			setRemoveAgentPreSaleTxnStatus("success");
+			alert("Agent removed successfully");
+			setRefreshCounter((c) => c + 1);
+		} catch (e) {
+			console.error(e);
+			setRemoveAgentPreSaleTxnStatus("error");
+			alert(`Failed to remove agent`);
+		}
+	};
+	const addAgentInvestmentContract = async () => {
+		try {
+			await updateContract(
+				user.concordiumAccountAddress,
+				fund.investment_token_contract_address,
+				securitySftMulti.addAgent,
+				{
+					address: { Contract: [{ index: Number(fund.contract_address), subindex: 0 }] },
+					roles: [{ Mint: {} }, { Operator: {} }, { ForcedBurn: {} }],
+				},
+				setAddAgentInvestmentTxnStatus,
+			);
+			setAddAgentInvestmentTxnStatus("success");
+			alert("Agent added successfully");
+			setRefreshCounter((c) => c + 1);
+		} catch (e) {
+			console.error(e);
+			setAddAgentInvestmentTxnStatus("error");
+			alert(`Failed to add agent`);
+		}
+	};
+	const removeAgentInvestmentContract = async () => {
+		try {
+			await updateContract(
+				user.concordiumAccountAddress,
+				fund.investment_token_contract_address,
+				securitySftMulti.removeAgent,
+				{ Contract: [{ index: Number(fund.contract_address), subindex: 0 }] },
+				setRemoveAgentInvestmentTxnStatus,
+			);
+			setRemoveAgentInvestmentTxnStatus("success");
+			alert("Agent removed successfully");
+			setRefreshCounter((c) => c + 1);
+		} catch (e) {
+			console.error(e);
+			setRemoveAgentInvestmentTxnStatus("error");
+			alert(`Failed to remove agent`);
+		}
+	};
+
 	return (
 		<>
 			<Paper variant="outlined" sx={{ padding: 2, marginBottom: 2 }}>
-				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-					<Typography variant="h6">Fund Details</Typography>
-					<ButtonGroup>
+				<Grid container spacing={2}>
+					<Grid item xs={12} md={4}>
+						<Typography variant="h6">Fund Details</Typography>
+					</Grid>
+					<Grid item xs={12} md={8} justifyContent="flex-end" display="flex">
 						<TransactionButton
 							variant="outlined"
 							color="warning"
@@ -265,73 +369,172 @@ export default function FundDetails({ fund, user }: FundDetailsProps) {
 							loadingText="Deleting..."
 							onClick={deleteFund}
 						/>
-					</ButtonGroup>
-				</div>
-				<Typography>
-					<strong>Contract Address:</strong> {fund.contract_address}
-				</Typography>
-				<Typography>
-					<strong>Investment Token ID:</strong> {fund.investment_token_id}
-				</Typography>
-				<Typography>
-					<strong>Investment Token Contract Address:</strong> {fund.investment_token_contract_address}
-				</Typography>
-				<Typography>
-					<strong>Token ID:</strong> {fund.token_id}
-				</Typography>
-				<Typography>
-					<strong>Token Contract Address:</strong> {fund.token_contract_address}
-				</Typography>
-				{fundTokenMetadata && (
-					<>
+						<IconButton onClick={onRefresh} color="primary">
+							<Icon>
+								<RefreshIcon />
+							</Icon>
+						</IconButton>
+					</Grid>
+					<Grid item xs={12} md={6}>
 						<Typography>
-							<strong>Token Symbol:</strong> {fundTokenMetadata.symbol}
+							<strong>Contract Address:</strong> {fund.contract_address}
 						</Typography>
 						<Typography>
-							<strong>Token Decimals:</strong> {fundTokenMetadata.decimals}
-						</Typography>
-					</>
-				)}
-				<Typography>
-					<strong>Token Amount:</strong> {fund.token_amount}
-				</Typography>
-				<Typography>
-					<strong>Currency Token ID:</strong> {fund.currency_token_id}
-				</Typography>
-				<Typography>
-					<strong>Currency Token Contract Address:</strong> {fund.currency_token_contract_address}
-				</Typography>
-				<Typography>
-					<strong>Currency Amount:</strong> {fund.currency_amount}
-				</Typography>
-				{fundCurrencyMetadata && (
-					<>
-						<Typography>
-							<strong>Currency Symbol:</strong> {fundCurrencyMetadata.symbol}
+							<strong>Investment Token ID:</strong> {fund.investment_token_id}
 						</Typography>
 						<Typography>
-							<strong>Currency Decimals:</strong> {fundCurrencyMetadata.decimals}
+							<strong>Investment Token Contract Address:</strong> {fund.investment_token_contract_address}
 						</Typography>
-					</>
-				)}
-				<Typography>
-					<strong>Token Amount:</strong> {fund.token_amount}
-				</Typography>
-				<Typography>
-					<strong>Receiver Address:</strong> {fund.receiver_address || "N/A"}
-				</Typography>
-				<Typography>
-					<strong>Rate:</strong> {fund.rate_numerator} / {fund.rate_denominator}
-				</Typography>
-				<Typography>
-					<strong>Fund State:</strong> {fund.fund_state}
-				</Typography>
-				<Typography>
-					<strong>Create Time:</strong> {fund.create_time}
-				</Typography>
-				<Typography>
-					<strong>Update Time:</strong> {fund.update_time}
-				</Typography>
+						<Typography>
+							<strong>Token ID:</strong> {fund.token_id}
+						</Typography>
+						<Typography>
+							<strong>Token Contract Address:</strong> {fund.token_contract_address}
+						</Typography>
+						{fundTokenMetadata && (
+							<>
+								<Typography>
+									<strong>Token Symbol:</strong> {fundTokenMetadata.symbol}
+								</Typography>
+								<Typography>
+									<strong>Token Decimals:</strong> {fundTokenMetadata.decimals}
+								</Typography>
+							</>
+						)}
+						<Typography>
+							<strong>Token Amount:</strong> {fund.token_amount}
+						</Typography>
+						<Typography>
+							<strong>Currency Token ID:</strong> {fund.currency_token_id}
+						</Typography>
+						<Typography>
+							<strong>Currency Token Contract Address:</strong> {fund.currency_token_contract_address}
+						</Typography>
+						<Typography>
+							<strong>Currency Amount:</strong> {fund.currency_amount}
+						</Typography>
+						{fundCurrencyMetadata && (
+							<>
+								<Typography>
+									<strong>Currency Symbol:</strong> {fundCurrencyMetadata.symbol}
+								</Typography>
+								<Typography>
+									<strong>Currency Decimals:</strong> {fundCurrencyMetadata.decimals}
+								</Typography>
+							</>
+						)}
+						<Typography>
+							<strong>Token Amount:</strong> {fund.token_amount}
+						</Typography>
+						<Typography>
+							<strong>Receiver Address:</strong> {fund.receiver_address || "N/A"}
+						</Typography>
+						<Typography>
+							<strong>Rate:</strong> {fund.rate_numerator} / {fund.rate_denominator}
+						</Typography>
+						<Typography>
+							<strong>Fund State:</strong> {fund.fund_state}
+						</Typography>
+						<Typography>
+							<strong>Create Time:</strong> {fund.create_time}
+						</Typography>
+						<Typography>
+							<strong>Update Time:</strong> {fund.update_time}
+						</Typography>
+					</Grid>
+					<Grid item xs={12} md={6} id="fund-checks-section">
+						<Grid container spacing={2} direction={"row-reverse"}>
+							<Grid item xs={12} md={12} lg={6}>
+								{agentPresaleContract && (
+									<Alert severity="success">
+										<Typography>
+											Fund contract is an agent of the presale token contract. With the roles{" "}
+											{agentPresaleContract.roles.join(", ")}
+										</Typography>
+										<TransactionButton
+											txnStatus={removeAgentPreSaleTxnStatus}
+											defaultText="Remove Agent"
+											loadingText="Removing Agent..."
+											variant="outlined"
+											color="primary"
+											onClick={removeAgentPresaleContract}
+											sx={{ mt: 2 }}
+										/>
+									</Alert>
+								)}
+								{!agentPresaleContract && (
+									<Alert severity="warning" sx={{ mb: 2 }}>
+										<Typography>Fund contract is not an agent of the presale token contract.</Typography>
+										<TransactionButton
+											txnStatus={addAgentPreSaleTxnStatus}
+											defaultText="Add Agent"
+											loadingText="Adding Agent..."
+											variant="outlined"
+											color="primary"
+											onClick={addAgentPresaleContract}
+											sx={{ mt: 2 }}
+										/>
+									</Alert>
+								)}
+							</Grid>
+							<Grid item xs={12} md={12} lg={6}>
+								{agentInvestmentContract && (
+									<Alert severity="success">
+										<Typography>
+											Fund contract is an agent of the investment token contract. With the roles{" "}
+											{agentInvestmentContract.roles.join(", ")}
+										</Typography>
+										<TransactionButton
+											txnStatus={removeAgentInvestmentTxnStatus}
+											defaultText="Remove Agent"
+											loadingText="Removing Agent..."
+											variant="outlined"
+											color="primary"
+											onClick={removeAgentInvestmentContract}
+											sx={{ mt: 2 }}
+										/>
+									</Alert>
+								)}
+
+								{!agentInvestmentContract && (
+									<Alert severity="warning">
+										<Typography>Fund contract is not an agent of the investment token contract.</Typography>
+										<TransactionButton
+											txnStatus={addAgentInvestmentTxnStatus}
+											defaultText="Add Agent"
+											loadingText="Adding Agent..."
+											variant="outlined"
+											color="primary"
+											onClick={addAgentInvestmentContract}
+											sx={{ mt: 2 }}
+										/>
+									</Alert>
+								)}
+							</Grid>
+							<Grid item xs={12} md={12} lg={6}>
+								{
+									{
+										[SecurityMintFundState.OPEN]: (
+											<Alert severity="info">
+												<Typography>This fund is open for investment.</Typography>
+											</Alert>
+										),
+										[SecurityMintFundState.SUCCESS]: (
+											<Alert severity="success">
+												<Typography>This fund has been marked as successful.</Typography>
+											</Alert>
+										),
+										[SecurityMintFundState.FAIL]: (
+											<Alert severity="error">
+												<Typography>This fund has been marked as failed.</Typography>
+											</Alert>
+										),
+									}[fund.fund_state]
+								}
+							</Grid>
+						</Grid>
+					</Grid>
+				</Grid>
 			</Paper>
 			{/* Table of investors */}
 			<Paper variant="outlined" sx={{ padding: 2, marginBottom: 2 }}>

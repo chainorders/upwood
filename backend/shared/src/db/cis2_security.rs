@@ -92,6 +92,23 @@ impl Agent {
 
         Ok((res, page_count))
     }
+
+    #[instrument(skip(conn))]
+    pub fn find(
+        conn: &mut DbConn,
+        cis2_address: Decimal,
+        agent_address: &str,
+    ) -> DbResult<Option<Agent>> {
+        let select_filter = cis2_agents::cis2_address
+            .eq(cis2_address)
+            .and(cis2_agents::agent_address.eq(agent_address));
+        let res = cis2_agents::table
+            .filter(select_filter)
+            .select(Agent::as_select())
+            .first::<Agent>(conn)
+            .optional()?;
+        Ok(res)
+    }
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]

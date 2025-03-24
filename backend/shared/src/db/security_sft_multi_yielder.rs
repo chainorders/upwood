@@ -5,11 +5,10 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use crate::db_app::forest_project_crypto::TokenMetadata;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
-    security_sft_multi_yielder_yeild_distributions, security_sft_multi_yielder_yields,
-    token_metadatas,
+    security_sft_multi_yielder_treasuries, security_sft_multi_yielder_yeild_distributions,
+    security_sft_multi_yielder_yields,
 };
 
 #[derive(
@@ -66,27 +65,19 @@ impl Yield {
     #[instrument(skip_all)]
     pub fn list_for_token(
         conn: &mut DbConn,
-        contract_address: Decimal,
-        token_contract_address: Decimal,
-        token_id: Decimal,
-    ) -> DbResult<Vec<(Self, Option<TokenMetadata>)>> {
-        let yields = security_sft_multi_yielder_yields::table
-            .left_join(
-                token_metadatas::table.on(
-                    security_sft_multi_yielder_yields::yield_contract_address
-                        .eq(token_metadatas::contract_address)
-                        .and(
-                            security_sft_multi_yielder_yields::yield_token_id
-                                .eq(token_metadatas::token_id),
-                        ),
-                ),
-            )
-            .filter(security_sft_multi_yielder_yields::contract_address.eq(contract_address))
+        contract: Decimal,
+        token_contract: Decimal,
+        token: Decimal,
+    ) -> DbResult<Vec<Self>> {
+        use crate::schema::security_sft_multi_yielder_yields::dsl::*;
+
+        let yields = security_sft_multi_yielder_yields
             .filter(
-                security_sft_multi_yielder_yields::token_contract_address
-                    .eq(token_contract_address),
+                contract_address
+                    .eq(contract)
+                    .and(token_contract_address.eq(token_contract))
+                    .and(token_id.eq(token)),
             )
-            .filter(security_sft_multi_yielder_yields::token_id.eq(token_id))
             .load(conn)?;
         Ok(yields)
     }
@@ -325,5 +316,49 @@ impl YieldDistribution {
             .offset(offset)
             .load(conn)?;
         Ok(distributions)
+    }
+}
+
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    PartialEq,
+    AsChangeset,
+    Object,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(table_name = security_sft_multi_yielder_treasuries)]
+#[diesel(primary_key(contract_address))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Treasury {
+    pub contract_address: Decimal,
+    pub treasury_address: String,
+    pub create_time:      NaiveDateTime,
+    pub update_time:      NaiveDateTime,
+}
+
+impl Treasury {
+    #[instrument(skip_all)]
+    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<()> {
+        diesel::insert_into(security_sft_multi_yielder_treasuries::table)
+            .values(self)
+            .on_conflict(security_sft_multi_yielder_treasuries::contract_address)
+            .do_update()
+            .set(self)
+            .execute(conn)?;
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub fn find(conn: &mut DbConn, contract_address: Decimal) -> DbResult<Option<Self>> {
+        let treasury = security_sft_multi_yielder_treasuries::table
+            .filter(security_sft_multi_yielder_treasuries::contract_address.eq(contract_address))
+            .first(conn)
+            .optional()?;
+        Ok(treasury)
     }
 }

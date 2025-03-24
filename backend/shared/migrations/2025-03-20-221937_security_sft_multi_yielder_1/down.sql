@@ -1,0 +1,1 @@
+DROP TABLE security_sft_multi_yielder_treasuries;

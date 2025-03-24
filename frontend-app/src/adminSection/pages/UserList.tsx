@@ -13,6 +13,7 @@ import {
 	Button,
 	Box,
 	ButtonGroup,
+	Tooltip,
 } from "@mui/material";
 import { TxnStatus, updateContract } from "../../lib/concordium";
 import rwaIdentityRegistry from "../../contractClients/generated/rwaIdentityRegistry";
@@ -144,7 +145,11 @@ const UserList = ({ user }: { user: User }) => {
 						<TableBody>
 							{users?.data.map((user) => (
 								<TableRow key={user.cognito_user_id}>
-									<TableCell>{user.email}</TableCell>
+									<TableCell>
+										<Tooltip title={user.cognito_user_id}>
+											<span>{user.email}</span>
+										</Tooltip>
+									</TableCell>
 									<TableCell>{user.first_name}</TableCell>
 									<TableCell>{user.last_name}</TableCell>
 									<TableCell>{user.nationality}</TableCell>

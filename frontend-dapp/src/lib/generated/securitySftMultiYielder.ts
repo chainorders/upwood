@@ -24,11 +24,12 @@ export type initRequest = {
 			| { AddYield: Record<string, never> }
 			| { RemoveYield: Record<string, never> }
 			| { Operator: Record<string, never> }
+			| { UpdateTreasury: Record<string, never> }
 		>;
 	}>;
 };
 export const initRequestSchemaBase64 =
-	"FAACAAAACAAAAHRyZWFzdXJ5FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAYAAABhZ2VudHMQAhQAAgAAAAcAAABhZGRyZXNzFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAUAAAByb2xlcxACFQMAAAAIAAAAQWRkWWllbGQCCwAAAFJlbW92ZVlpZWxkAggAAABPcGVyYXRvcgI=";
+	"FAACAAAACAAAAHRyZWFzdXJ5FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAYAAABhZ2VudHMQAhQAAgAAAAcAAABhZGRyZXNzFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAUAAAByb2xlcxACFQQAAAAIAAAAQWRkWWllbGQCCwAAAFJlbW92ZVlpZWxkAggAAABPcGVyYXRvcgIOAAAAVXBkYXRlVHJlYXN1cnkC";
 export const initErrorSchemaBase64 =
 	"FQoAAAAMAAAAVW5BdXRob3JpemVkAgoAAABQYXJzZUVycm9yAggAAABMb2dFcnJvcgILAAAAQWdlbnRFeGlzdHMCDAAAAEludmFsaWRZaWVsZAIHAAAATm9ZaWVsZAIVAAAAWWllbGRDYWxjdWxhdGlvbkVycm9yAhEAAABZaWVsZERpc3RyaWJ1dGlvbgIJAAAAVG9rZW5CdXJuAgkAAABUb2tlbk1pbnQC";
 export type AddAgentRequest = {
@@ -39,10 +40,11 @@ export type AddAgentRequest = {
 		| { AddYield: Record<string, never> }
 		| { RemoveYield: Record<string, never> }
 		| { Operator: Record<string, never> }
+		| { UpdateTreasury: Record<string, never> }
 	>;
 };
 export const addAgentRequestSchemaBase64 =
-	"FAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVAwAAAAgAAABBZGRZaWVsZAILAAAAUmVtb3ZlWWllbGQCCAAAAE9wZXJhdG9yAg==";
+	"FAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVBAAAAAgAAABBZGRZaWVsZAILAAAAUmVtb3ZlWWllbGQCCAAAAE9wZXJhdG9yAg4AAABVcGRhdGVUcmVhc3VyeQI=";
 export type RemoveAgentRequest =
 	| { Account: [string] }
 	| { Contract: [{ index: number; subindex: number }] };
@@ -54,6 +56,11 @@ export type RemoveYieldRequest = {
 };
 export const removeYieldRequestSchemaBase64 =
 	"FAACAAAADgAAAHRva2VuX2NvbnRyYWN0DAgAAAB0b2tlbl9pZB0A";
+export type SetTreasuryRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const setTreasuryRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
 export type UpsertYieldRequest = {
 	token_contract: { index: number; subindex: number };
 	token_id: string;
@@ -89,6 +96,7 @@ export type event =
 						| { AddYield: Record<string, never> }
 						| { RemoveYield: Record<string, never> }
 						| { Operator: Record<string, never> }
+						| { UpdateTreasury: Record<string, never> }
 					>;
 				},
 			];
@@ -134,13 +142,20 @@ export type event =
 					to: string;
 				},
 			];
+	  }
+	| {
+			TreasuryUpdated: [
+				| { Account: [string] }
+				| { Contract: [{ index: number; subindex: number }] },
+			];
 	  };
 export const eventSchemaBase64 =
-	"FQUAAAAKAAAAQWdlbnRBZGRlZAEBAAAAFAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVAwAAAAgAAABBZGRZaWVsZAILAAAAUmVtb3ZlWWllbGQCCAAAAE9wZXJhdG9yAgwAAABBZ2VudFJlbW92ZWQBAQAAABUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwKAAAAWWllbGRBZGRlZAEBAAAAFAADAAAADgAAAHRva2VuX2NvbnRyYWN0DAgAAAB0b2tlbl9pZB0ABgAAAHlpZWxkcxACFAADAAAACAAAAGNvbnRyYWN0DAgAAAB0b2tlbl9pZB0ACwAAAGNhbGN1bGF0aW9uFQIAAAAIAAAAUXVhbnRpdHkBAQAAABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQ4AAABTaW1wbGVJbnRlcmVzdAEBAAAAFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFDAAAAFlpZWxkUmVtb3ZlZAEBAAAAFAACAAAADgAAAHRva2VuX2NvbnRyYWN0DAgAAAB0b2tlbl9pZB0AEAAAAFlpZWxkRGlzdHJpYnV0ZWQBAQAAABQABQAAAAoAAABmcm9tX3Rva2VuHQAIAAAAdG9fdG9rZW4dAAgAAABjb250cmFjdAwGAAAAYW1vdW50GyUAAAACAAAAdG8L";
+	"FQYAAAAKAAAAQWdlbnRBZGRlZAEBAAAAFAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVBAAAAAgAAABBZGRZaWVsZAILAAAAUmVtb3ZlWWllbGQCCAAAAE9wZXJhdG9yAg4AAABVcGRhdGVUcmVhc3VyeQIMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMCgAAAFlpZWxkQWRkZWQBAQAAABQAAwAAAA4AAAB0b2tlbl9jb250cmFjdAwIAAAAdG9rZW5faWQdAAYAAAB5aWVsZHMQAhQAAwAAAAgAAABjb250cmFjdAwIAAAAdG9rZW5faWQdAAsAAABjYWxjdWxhdGlvbhUCAAAACAAAAFF1YW50aXR5AQEAAAAUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUOAAAAU2ltcGxlSW50ZXJlc3QBAQAAABQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQwAAABZaWVsZFJlbW92ZWQBAQAAABQAAgAAAA4AAAB0b2tlbl9jb250cmFjdAwIAAAAdG9rZW5faWQdABAAAABZaWVsZERpc3RyaWJ1dGVkAQEAAAAUAAUAAAAKAAAAZnJvbV90b2tlbh0ACAAAAHRvX3Rva2VuHQAIAAAAY29udHJhY3QMBgAAAGFtb3VudBslAAAAAgAAAHRvCw8AAABUcmVhc3VyeVVwZGF0ZWQBAQAAABUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAw=";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
 	addAgent: EntrypointName.fromString("addAgent"),
 	removeAgent: EntrypointName.fromString("removeAgent"),
 	removeYield: EntrypointName.fromString("removeYield"),
+	setTreasury: EntrypointName.fromString("setTreasury"),
 	upsertYield: EntrypointName.fromString("upsertYield"),
 	yieldFor: EntrypointName.fromString("yieldFor"),
 };
@@ -148,13 +163,14 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 	addAgent: "Add Agent",
 	removeAgent: "Remove Agent",
 	removeYield: "Remove Yield",
+	setTreasury: "Set Treasury",
 	upsertYield: "Upsert Yield",
 	yieldFor: "Yield For",
 };
 export const securitySftMultiYielder = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"4ecccecc1c9e9567a684f952051a0c3c34d4cf9faca990b0e150154e17b8ba12",
+			"5479d6aa5a7d9bc920bff2ef2d5430b6bad2d545f3bdbbfd409593152424a8bc",
 		),
 		ContractName.fromString("security_sft_multi_yielder"),
 		initRequestSchemaBase64,
@@ -173,6 +189,11 @@ export const securitySftMultiYielder = {
 		ContractName.fromString("security_sft_multi_yielder"),
 		EntrypointName.fromString("removeYield"),
 		removeYieldRequestSchemaBase64,
+	),
+	setTreasury: new ReceiveMethod<SetTreasuryRequest>(
+		ContractName.fromString("security_sft_multi_yielder"),
+		EntrypointName.fromString("setTreasury"),
+		setTreasuryRequestSchemaBase64,
 	),
 	upsertYield: new ReceiveMethod<UpsertYieldRequest>(
 		ContractName.fromString("security_sft_multi_yielder"),

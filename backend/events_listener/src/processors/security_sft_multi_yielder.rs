@@ -10,7 +10,7 @@ use security_sft_multi_yielder::{
     AgentRole, Event, UpsertYieldParams, YieldCalculation, YieldDistributedEvent, YieldRemovedEvent,
 };
 use shared::db::cis2_security::Agent;
-use shared::db::security_sft_multi_yielder::{Yield, YieldDistribution, YieldType};
+use shared::db::security_sft_multi_yielder::{Treasury, Yield, YieldDistribution, YieldType};
 use shared::db_shared::DbConn;
 use tracing::{info, instrument};
 use uuid::Uuid;
@@ -145,6 +145,16 @@ pub fn process_events(
                     info!("Yield distributed: {:?}", yield_distribution)
                 });
             }
+            Event::TreasuryUpdated(address) => {
+                Treasury {
+                    contract_address: contract.to_decimal(),
+                    treasury_address: address.to_string(),
+                    create_time:      block_time,
+                    update_time:      block_time,
+                }
+                .upsert(conn)?;
+                info!("Treasury updated: {:?}", address.to_string());
+            }
         }
     }
 
@@ -156,6 +166,7 @@ fn role_to_string(r: AgentRole) -> String {
         AgentRole::AddYield => "AddYield".to_string(),
         AgentRole::RemoveYield => "RemoveYield".to_string(),
         AgentRole::Operator => "Operator".to_string(),
+        AgentRole::UpdateTreasury => "UpdateTreasury".to_string(),
     }
 }
 

@@ -2,12 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { Agent } from "../models/Agent";
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
 import type { Token } from "../models/Token";
-import type { YieldApiModel } from "../models/YieldApiModel";
+import type { Treasury } from "../models/Treasury";
+import type { Yield } from "../models/Yield";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -151,14 +153,39 @@ export class IndexerService {
 
 	/**
 	 * @param contractAddress
+	 * @param agentAddress
+	 * @param isContract Whether the agent_address is a contract or not
+	 * @returns Agent
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2Agent(
+		contractAddress: string,
+		agentAddress: string,
+		isContract: boolean,
+	): CancelablePromise<Agent> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/{contract_address}/agent/{agent_address}",
+			path: {
+				contract_address: contractAddress,
+				agent_address: agentAddress,
+			},
+			query: {
+				is_contract: isContract,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
 	 * @param tokenId
-	 * @returns YieldApiModel
+	 * @returns Yield
 	 * @throws ApiError
 	 */
 	public static getAdminIndexerCis2TokenYieldsList(
 		contractAddress: string,
 		tokenId: string,
-	): CancelablePromise<Array<YieldApiModel>> {
+	): CancelablePromise<Array<Yield>> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/yields/list",
@@ -193,6 +220,21 @@ export class IndexerService {
 			query: {
 				page: page,
 				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
+	 * @returns Treasury
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerYielderTreasury(contractAddress: string): CancelablePromise<Treasury> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/yielder/{contract_address}/treasury",
+			path: {
+				contract_address: contractAddress,
 			},
 		});
 	}

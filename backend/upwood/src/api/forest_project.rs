@@ -70,8 +70,8 @@ impl ForestProjectApi {
         Path(project_id): Path<uuid::Uuid>,
     ) -> JsonResult<Option<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
-        let project = ForestProjectAggApiModel::list(conn, contracts, &[project_id], &claims.sub)?
-            .pop();
+        let project =
+            ForestProjectAggApiModel::list(conn, contracts, &[project_id], &claims.sub)?.pop();
         Ok(Json(project))
     }
 
@@ -511,8 +511,7 @@ impl ForestProjectApi {
         Path(project_id): Path<uuid::Uuid>,
     ) -> JsonResult<Option<LegalContractUserModel>> {
         let conn = &mut db_pool.get()?;
-        let contract =
-            LegalContractUserModel::find(conn, project_id, &claims.sub)?;
+        let contract = LegalContractUserModel::find(conn, project_id, &claims.sub)?;
         Ok(Json(contract))
     }
 }
@@ -1204,7 +1203,7 @@ impl ForestProjectAdminApi {
         Data(contracts): Data<&SystemContractsConfig>,
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Vec<ForestProjectTokenYieldListApiModel>> {
+    ) -> JsonResult<Vec<Yield>> {
         ensure_is_admin(&claims)?;
         let conn = &mut db_pool.get()?;
         let yields = Yield::list_for_token(
@@ -1212,15 +1211,7 @@ impl ForestProjectAdminApi {
             contracts.yielder_contract_index,
             contract_address,
             token_id,
-        )?
-        .into_iter()
-        .map(
-            |(yield_data, token_metadata)| ForestProjectTokenYieldListApiModel {
-                yield_data,
-                token_metadata,
-            },
-        )
-        .collect::<Vec<_>>();
+        )?;
         Ok(Json(yields))
     }
 
@@ -1406,10 +1397,4 @@ impl ForestProjectAdminApi {
         })?;
         Ok(Json(contract))
     }
-}
-
-#[derive(Object, serde::Serialize, serde::Deserialize)]
-pub struct ForestProjectTokenYieldListApiModel {
-    pub yield_data:     Yield,
-    pub token_metadata: Option<TokenMetadata>,
 }

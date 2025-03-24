@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 
 import AddIcon from "@mui/icons-material/Add";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
 	Accordion,
 	AccordionDetails,
@@ -34,7 +35,7 @@ import {
 	Token,
 	TokenMetadata,
 	UserService,
-	YieldApiModel,
+	Yield,
 } from "../../apiClient";
 import AddFundPopup from "./components/AddFundPopup";
 import AddMarketPopup from "./components/AddMarketPopup";
@@ -56,7 +57,7 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 	const [marketCurrencyMetdata, setMarketCurrencyMetdata] = useState<TokenMetadata>();
 	const [fund, setFund] = useState<SecurityMintFund>();
 	const [fundCurrencyMetdata, setFundCurrencyMetdata] = useState<TokenMetadata>();
-	const [yields, setYields] = useState<YieldApiModel[]>([]);
+	const [yields, setYields] = useState<Yield[]>([]);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [project, setProject] = useState<ForestProject | null>(null);
@@ -207,6 +208,7 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 										market={market}
 										tokenMetadata={tokenContract}
 										currencyMetadata={marketCurrencyMetdata}
+										onRefresh={() => setRefreshCounter((c) => c + 1)}
 									/>
 								) : (
 									<Typography>No market details available</Typography>
@@ -242,6 +244,7 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 										tokenContract={preSaleTokenContract}
 										investmentTokenContract={tokenContract}
 										currencyMetadata={fundCurrencyMetdata}
+										onRefresh={() => setRefreshCounter((c) => c + 1)}
 									/>
 								) : (
 									<Typography>No fund details available</Typography>
@@ -260,7 +263,8 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 										tokenContract={tokenContract!}
 										yielderContract={contracts.yielder_contract_index}
 										yields={yields}
-										onRemoveYield={() => setRefreshCounter((c) => c + 1)}
+										onRefresh={() => setRefreshCounter((c) => c + 1)}
+										contracts={contracts}
 									/>
 								) : (
 									<Typography>No yields available</Typography>
@@ -274,6 +278,12 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 								Actions
 							</Typography>
 							<List>
+								<ListItemButton onClick={() => setRefreshCounter((c) => c + 1)}>
+									<ListItemIcon>
+										<RefreshIcon />
+									</ListItemIcon>
+									<ListItemText primary="Refresh" />
+								</ListItemButton>
 								<ListItemButton onClick={handleOpenYieldPopup}>
 									<ListItemIcon>
 										<AddIcon />
@@ -312,7 +322,10 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 							user={user}
 							contract_address={contract_address!}
 							token_id={token_id!}
-							onDone={() => setRefreshCounter((c) => c + 1)}
+							onDone={() => {
+								handleCloseYieldPopup();
+								setRefreshCounter((c) => c + 1);
+							}}
 						/>
 					</DialogContent>
 				</Dialog>

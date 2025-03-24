@@ -199,7 +199,13 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 							</AccordionSummary>
 							<AccordionDetails>
 								{market ? (
-									<MarketDetails user={user} market={market} currencyMetadata={marketCurrencyMetdata} tokenMetadata={contract} />
+									<MarketDetails
+										user={user}
+										market={market}
+										currencyMetadata={marketCurrencyMetdata}
+										tokenMetadata={contract}
+										onRefresh={() => setRefreshCounter((c) => c + 1)}
+									/>
 								) : (
 									<Typography>No market details available</Typography>
 								)}
@@ -217,6 +223,7 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 										currencyMetadata={fundCurrencyMetdata}
 										investmentTokenContract={contract}
 										tokenContract={preSaleTokenContract}
+										onRefresh={() => setRefreshCounter((c) => c + 1)}
 									/>
 								) : (
 									<Typography>No fund details available</Typography>

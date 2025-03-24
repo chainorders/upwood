@@ -1,20 +1,17 @@
 use poem::web::Data;
 use poem_openapi::param::{Path, Query};
-use poem_openapi::payload::{Json, PlainText};
-use poem_openapi::{Object, OpenApi};
+use poem_openapi::payload::Json;
+use poem_openapi::OpenApi;
 use rust_decimal::Decimal;
 use shared::api::PagedResponse;
-use shared::db::cis2_security::{Token, TokenHolder};
+use shared::db::cis2_security::{Agent, Token, TokenHolder};
 use shared::db::security_mint_fund::SecurityMintFund;
 use shared::db::security_p2p_trading::Market;
-use shared::db::security_sft_multi_yielder::Yield;
+use shared::db::security_sft_multi_yielder::{Treasury, Yield};
 use shared::db::txn_listener::{ListenerBlock, ListenerContract};
-use shared::db_app::forest_project_crypto::TokenMetadata;
 use shared::db_shared::DbPool;
 
-use super::{
-    ensure_is_admin, ApiTags, BearerAuthorization, Error, SystemContractsConfig, PAGE_SIZE,
-};
+use super::{ensure_is_admin, ApiTags, BearerAuthorization, SystemContractsConfig, PAGE_SIZE};
 use crate::api::JsonResult;
 
 pub struct Api;
@@ -86,12 +83,10 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Token> {
+    ) -> JsonResult<Option<Token>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        Token::find(&mut conn, contract_address, token_id)?
-            .ok_or_else(|| Error::NotFound(PlainText("Token not found".to_string())))
-            .map(Json)
+        Ok(Json(Token::find(&mut conn, contract_address, token_id)?))
     }
 
     #[oai(
@@ -106,17 +101,15 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Market> {
+    ) -> JsonResult<Option<Market>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        Market::find(
+        Ok(Json(Market::find(
             &mut conn,
             contracts.trading_contract_index,
             contract_address,
             token_id,
-        )?
-        .ok_or_else(|| Error::NotFound(PlainText("Market not found".to_string())))
-        .map(Json)
+        )?))
     }
 
     #[oai(
@@ -155,17 +148,15 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
-    ) -> JsonResult<SecurityMintFund> {
+    ) -> JsonResult<Option<SecurityMintFund>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        SecurityMintFund::find(
+        Ok(Json(SecurityMintFund::find(
             &mut conn,
             contracts.mint_funds_contract_index,
             token_id,
             contract_address,
-        )?
-        .ok_or_else(|| Error::NotFound(PlainText("Fund not found".to_string())))
-        .map(Json)
+        )?))
     }
 
     #[oai(
@@ -193,6 +184,32 @@ impl Api {
     }
 
     #[oai(
+        path = "/admin/indexer/cis2/:contract_address/agent/:agent_address",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2_agent(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+        Path(agent_address): Path<String>,
+        /// Whether the agent_address is a contract or not
+        Query(is_contract): Query<bool>,
+    ) -> JsonResult<Option<Agent>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let agent_address = if is_contract {
+            format!("<{},0>", agent_address)
+        } else {
+            agent_address
+        };
+
+        let agent = Agent::find(&mut conn, contract_address, &agent_address)?;
+        Ok(Json(agent))
+    }
+
+    #[oai(
         path = "/admin/indexer/cis2/:contract_address/token/:token_id/yields/list",
         method = "get",
         tag = "ApiTags::Indexer"
@@ -204,7 +221,7 @@ impl Api {
         BearerAuthorization(claims): BearerAuthorization,
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Vec<YieldApiModel>> {
+    ) -> JsonResult<Vec<Yield>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
         let yields = Yield::list_for_token(
@@ -212,13 +229,7 @@ impl Api {
             contracts.yielder_contract_index,
             contract_address,
             token_id,
-        )?
-        .into_iter()
-        .map(|(yield_, yield_token_metadata)| YieldApiModel {
-            yield_,
-            yield_token_metadata,
-        })
-        .collect();
+        )?;
         Ok(Json(yields))
     }
 
@@ -240,17 +251,29 @@ impl Api {
         let mut conn = db_pool.get()?;
         let page = page.unwrap_or(0);
         let page_size = page_size.unwrap_or(PAGE_SIZE);
-        let (holders, page_count) = TokenHolder::list(&mut conn, contract_address, token_id, page, page_size)?;
+        let (holders, page_count) =
+            TokenHolder::list(&mut conn, contract_address, token_id, page, page_size)?;
         Ok(Json(PagedResponse {
             data: holders,
             page_count,
-            page
+            page,
         }))
     }
-}
 
-#[derive(Object, serde::Serialize, serde::Deserialize)]
-pub struct YieldApiModel {
-    pub yield_:               Yield,
-    pub yield_token_metadata: Option<TokenMetadata>,
+    #[oai(
+        path = "/admin/indexer/yielder/:contract_address/treasury",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_yielder_treasury(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+    ) -> JsonResult<Option<Treasury>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let treasury = Treasury::find(&mut conn, contract_address)?;
+        Ok(Json(treasury))
+    }
 }

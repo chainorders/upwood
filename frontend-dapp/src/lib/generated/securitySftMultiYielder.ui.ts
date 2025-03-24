@@ -108,7 +108,12 @@ export const initRequestJsonSchema: RJSFSchema = {
 							properties: {
 								tag: {
 									type: "string",
-									enum: ["AddYield", "RemoveYield", "Operator"],
+									enum: [
+										"AddYield",
+										"RemoveYield",
+										"Operator",
+										"UpdateTreasury",
+									],
 								},
 							},
 							required: ["tag"],
@@ -145,6 +150,16 @@ export const initRequestJsonSchema: RJSFSchema = {
 												},
 											},
 										},
+										{
+											properties: {
+												tag: { enum: ["UpdateTreasury"] },
+												UpdateTreasury: {
+													type: "object",
+													title: "UpdateTreasury",
+													properties: {},
+												},
+											},
+										},
 									],
 								},
 							},
@@ -168,7 +183,8 @@ export type initRequestUi = {
 		roles:
 			| { tag: "AddYield"; AddYield: never }
 			| { tag: "RemoveYield"; RemoveYield: never }
-			| { tag: "Operator"; Operator: never }[];
+			| { tag: "Operator"; Operator: never }
+			| { tag: "UpdateTreasury"; UpdateTreasury: never }[];
 	}[];
 };
 export const initErrorJsonSchema: RJSFSchema = {
@@ -339,7 +355,7 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 				properties: {
 					tag: {
 						type: "string",
-						enum: ["AddYield", "RemoveYield", "Operator"],
+						enum: ["AddYield", "RemoveYield", "Operator", "UpdateTreasury"],
 					},
 				},
 				required: ["tag"],
@@ -376,6 +392,16 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 									},
 								},
 							},
+							{
+								properties: {
+									tag: { enum: ["UpdateTreasury"] },
+									UpdateTreasury: {
+										type: "object",
+										title: "UpdateTreasury",
+										properties: {},
+									},
+								},
+							},
 						],
 					},
 				},
@@ -391,7 +417,8 @@ export type AddAgentRequestUi = {
 	roles:
 		| { tag: "AddYield"; AddYield: never }
 		| { tag: "RemoveYield"; RemoveYield: never }
-		| { tag: "Operator"; Operator: never }[];
+		| { tag: "Operator"; Operator: never }
+		| { tag: "UpdateTreasury"; UpdateTreasury: never }[];
 };
 export const removeAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
@@ -454,6 +481,43 @@ export type RemoveYieldRequestUi = {
 	token_contract: { index: number; subindex: number };
 	token_id: string;
 };
+export const setTreasuryRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Set Treasury Request",
+	properties: { tag: { type: "string", enum: ["Account", "Contract"] } },
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["Account"] },
+						Account: { type: "array", items: { type: "string", title: "" } },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["Contract"] },
+						Contract: {
+							type: "array",
+							items: {
+								type: "object",
+								title: "",
+								properties: {
+									index: { type: "integer", minimum: 0 },
+									subindex: { type: "integer", minimum: 0 },
+								},
+							},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type SetTreasuryRequestUi =
+	| { tag: "Account"; Account: [string] }
+	| { tag: "Contract"; Contract: [{ index: number; subindex: number }] };
 export const upsertYieldRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Upsert Yield Request",
@@ -679,6 +743,19 @@ export const ENTRYPOINTS_UI: {
 				method: client.removeYield,
 				requestJsonSchema: removeYieldRequestJsonSchema,
 				requestSchemaBase64: types.removeYieldRequestSchemaBase64,
+			},
+		),
+	setTreasury: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<types.SetTreasuryRequest, SetTreasuryRequestUi, never, never>(
+			{
+				...props,
+				method: client.setTreasury,
+				requestJsonSchema: setTreasuryRequestJsonSchema,
+				requestSchemaBase64: types.setTreasuryRequestSchemaBase64,
 			},
 		),
 	upsertYield: (props: {

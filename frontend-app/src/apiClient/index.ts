@@ -24,7 +24,6 @@ export { ForestProjectState } from "./models/ForestProjectState";
 export type { ForestProjectTokenContract } from "./models/ForestProjectTokenContract";
 export type { ForestProjectTokenContractAggApiModel } from "./models/ForestProjectTokenContractAggApiModel";
 export type { ForestProjectTokenUserYieldClaim } from "./models/ForestProjectTokenUserYieldClaim";
-export type { ForestProjectTokenYieldListApiModel } from "./models/ForestProjectTokenYieldListApiModel";
 export type { Guide } from "./models/Guide";
 export type { InvestmentPortfolioUserAggregate } from "./models/InvestmentPortfolioUserAggregate";
 export { InvestmentRecordType } from "./models/InvestmentRecordType";
@@ -78,6 +77,7 @@ export type { SystemContractsConfigApiModel } from "./models/SystemContractsConf
 export type { Token } from "./models/Token";
 export type { TokenHolder } from "./models/TokenHolder";
 export type { TokenMetadata } from "./models/TokenMetadata";
+export type { Treasury } from "./models/Treasury";
 export type { TreeNftMetadata } from "./models/TreeNftMetadata";
 export type { UploadUrlResponse } from "./models/UploadUrlResponse";
 export type { UserCompanyCreateUpdateReq } from "./models/UserCompanyCreateUpdateReq";
@@ -91,7 +91,6 @@ export type { UserTokenHolder } from "./models/UserTokenHolder";
 export type { UserTransaction } from "./models/UserTransaction";
 export type { UserYieldsAggregate } from "./models/UserYieldsAggregate";
 export type { Yield } from "./models/Yield";
-export type { YieldApiModel } from "./models/YieldApiModel";
 export { YieldType } from "./models/YieldType";
 
 export { CarbonCreditsService } from "./services/CarbonCreditsService";
