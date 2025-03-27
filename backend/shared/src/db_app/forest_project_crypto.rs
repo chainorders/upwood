@@ -497,7 +497,14 @@ impl ForestProjectFundInvestor {
             )>(conn)?
             .into_iter()
             .map(
-                |(investor, forest_project_id, forest_project_name, contract_type, user_id, email)| Self {
+                |(
+                    investor,
+                    forest_project_id,
+                    forest_project_name,
+                    contract_type,
+                    user_id,
+                    email,
+                )| Self {
                     investor,
                     fund_type: contract_type,
                     forest_project_id,

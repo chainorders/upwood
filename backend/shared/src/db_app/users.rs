@@ -281,16 +281,16 @@ pub struct UserTokenHolder {
 impl UserTokenHolder {
     pub fn new(user: User, token_holder: TokenHolder) -> Self {
         UserTokenHolder {
-            cognito_user_id: user.cognito_user_id,
-            account_address: user.account_address,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email: user.email,
-            token_id: token_holder.token_id,
+            cognito_user_id:        user.cognito_user_id,
+            account_address:        user.account_address,
+            first_name:             user.first_name,
+            last_name:              user.last_name,
+            email:                  user.email,
+            token_id:               token_holder.token_id,
             token_contract_address: token_holder.cis2_address,
-            balance_frozen: token_holder.frozen_balance,
-            balance_unfrozen: token_holder.un_frozen_balance,
-            balance_total: token_holder.frozen_balance + token_holder.un_frozen_balance,
+            balance_frozen:         token_holder.frozen_balance,
+            balance_unfrozen:       token_holder.un_frozen_balance,
+            balance_total:          token_holder.frozen_balance + token_holder.un_frozen_balance,
         }
     }
 

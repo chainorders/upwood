@@ -23,7 +23,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ForestIcon from "@mui/icons-material/Forest";
 import LandscapeIcon from "@mui/icons-material/Landscape";
-import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
 import TreeFungibleHoldersList from "./pages/TreeFungibleHoldersList.tsx";

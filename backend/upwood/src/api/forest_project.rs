@@ -6,9 +6,7 @@ use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Attachment, AttachmentType};
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
-use shared::db::security_mint_fund::{
-    SecurityMintFund, SecurityMintFundContract,
-};
+use shared::db::security_mint_fund::{SecurityMintFund, SecurityMintFundContract};
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
@@ -16,10 +14,10 @@ use shared::db_app::forest_project::{
     LegalContractUserModel, LegalContractUserSignature, Notification,
 };
 use shared::db_app::forest_project_crypto::{
-    ForestProjectFundInvestor, ForestProjectSupply,
-    ForestProjectTokenContract, ForestProjectTokenContractUserBalanceAgg,
-    ForestProjectTokenContractUserYields, ForestProjectTokenUserYieldClaim,
-    ForestProjectUserBalanceAgg, SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
+    ForestProjectFundInvestor, ForestProjectSupply, ForestProjectTokenContract,
+    ForestProjectTokenContractUserBalanceAgg, ForestProjectTokenContractUserYields,
+    ForestProjectTokenUserYieldClaim, ForestProjectUserBalanceAgg, SecurityTokenContractType,
+    TokenMetadata, UserYieldsAggregate,
 };
 use shared::db_shared::DbConn;
 use tracing::{debug, info};

@@ -259,7 +259,7 @@ impl SecurityMintFund {
     Serialize,
     Deserialize,
     AsChangeset,
-    Clone
+    Clone,
 )]
 #[diesel(table_name = security_mint_fund_investors)]
 #[diesel(primary_key(
