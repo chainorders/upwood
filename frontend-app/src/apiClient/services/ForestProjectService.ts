@@ -270,12 +270,14 @@ export class ForestProjectService {
 	/**
 	 * @param page
 	 * @param state
+	 * @param pageSize
 	 * @returns PagedResponse_ForestProject
 	 * @throws ApiError
 	 */
 	public static getAdminForestProjectsList(
 		page: number,
 		state?: ForestProjectState,
+		pageSize?: number,
 	): CancelablePromise<PagedResponse_ForestProject> {
 		return __request(OpenAPI, {
 			method: "GET",
@@ -285,6 +287,7 @@ export class ForestProjectService {
 			},
 			query: {
 				state: state,
+				page_size: pageSize,
 			},
 		});
 	}

@@ -62,6 +62,7 @@ FROM
      LEFT JOIN forest_project_token_contracts fund_token_contract ON fund.token_contract_address = fund_token_contract.contract_address;
 
 -- All investors for all the currently active funds
+-- TODO: remove this view
 CREATE VIEW forest_project_fund_investor AS
 SELECT
      fund.forest_project_id,
@@ -92,6 +93,7 @@ FROM
      JOIN users usr ON investor.investor = usr.account_address;
 
 -- All investment records for all the funds
+-- TODO: remove this view
 CREATE VIEW forest_project_funds_investment_records AS
 SELECT
      investment_record.*,

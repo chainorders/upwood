@@ -23,7 +23,7 @@ use shared::db::offchain_rewards::OffchainRewardee;
 use shared::db::security_mint_fund::SecurityMintFundContract;
 use shared::db_app::forest_project::Notification;
 use shared::db_app::forest_project_crypto::{
-    ForestProjectFundsAffiliateRewardRecord, ForestProjectFundsInvestmentRecord, TokenMetadata,
+    ForestProjectFundsAffiliateRewardRecord, TokenMetadata,
 };
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::users::{
@@ -413,34 +413,6 @@ impl UserApi {
         let page_size = page_size.unwrap_or(PAGE_SIZE);
         let conn = &mut db_pool.get()?;
         let (users, page_count) = UserTokenHolder::list(conn, token_id, contract, page, page_size)?;
-        Ok(Json(PagedResponse {
-            data: users,
-            page,
-            page_count,
-        }))
-    }
-
-    #[oai(
-        path = "/user/investments/list/:page",
-        method = "get",
-        tag = "ApiTags::Wallet"
-    )]
-    pub async fn investments(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
-        Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<PagedResponse<ForestProjectFundsInvestmentRecord>> {
-        let mut conn = db_pool.get()?;
-        let (users, page_count) = ForestProjectFundsInvestmentRecord::list(
-            &mut conn,
-            contracts.mint_funds_contract_index,
-            &claims.sub,
-            page,
-            PAGE_SIZE,
-        )?;
-
         Ok(Json(PagedResponse {
             data: users,
             page,

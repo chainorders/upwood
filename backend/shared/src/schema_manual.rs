@@ -63,57 +63,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_fund_investor (forest_project_id, fund_contract_address, investor_cognito_user_id) {
-        forest_project_id -> Uuid,
-        fund_contract_address -> Numeric,
-        fund_token_id -> Numeric,
-        fund_token_contract_address -> Numeric,
-        investment_token_id -> Numeric,
-        investment_token_contract_address -> Numeric,
-        fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        currency_token_id -> Numeric,
-        currency_token_contract_address -> Numeric,
-        currency_token_symbol -> Varchar,
-        currency_token_decimals -> Integer,
-        investment_token_symbol -> Varchar,
-        investment_token_decimals -> Integer,
-        fund_token_symbol -> Varchar,
-        fund_token_decimals -> Integer,
-        investor_account_address -> Varchar,
-        investment_token_amount -> Numeric,
-        investment_currency_amount -> Numeric,
-        investor_cognito_user_id -> Varchar,
-        investor_email -> Varchar,
-    }
-}
-
-diesel::table! {
-    forest_project_funds_investment_records (id) {
-        id -> Uuid,
-        block_height -> Numeric,
-        txn_index -> Numeric,
-        contract_address -> Numeric,
-        investment_token_id -> Numeric,
-        investment_token_contract_address -> Numeric,
-        investor -> Varchar,
-        currency_amount -> Numeric,
-        token_amount -> Numeric,
-        currency_amount_balance -> Numeric,
-        token_amount_balance -> Numeric,
-        investment_record_type -> crate::schema::sql_types::SecurityMintFundInvestmentRecordType,
-        create_time -> Timestamp,
-        forest_project_id -> Uuid,
-        fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        is_default -> Bool,
-        investor_cognito_user_id -> Varchar,
-        investment_token_symbol -> Varchar,
-        investment_token_decimals -> Integer,
-        currency_token_symbol -> Varchar,
-        currency_token_decimals -> Integer,
-    }
-}
-
-diesel::table! {
     forest_project_user_investment_amounts(cognito_user_id) {
         cognito_user_id -> Varchar,
         currency_token_id -> Numeric,

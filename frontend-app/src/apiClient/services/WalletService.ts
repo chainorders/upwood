@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { ClaimRequest } from "../models/ClaimRequest";
 import type { PagedResponse_ForestProjectFundsAffiliateRewardRecord } from "../models/PagedResponse_ForestProjectFundsAffiliateRewardRecord";
-import type { PagedResponse_ForestProjectFundsInvestmentRecord } from "../models/PagedResponse_ForestProjectFundsInvestmentRecord";
 import type { PagedResponse_UserTransaction } from "../models/PagedResponse_UserTransaction";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
@@ -12,23 +11,6 @@ import { OpenAPI } from "../core/OpenAPI";
 import { request as __request } from "../core/request";
 
 export class WalletService {
-	/**
-	 * @param page
-	 * @returns PagedResponse_ForestProjectFundsInvestmentRecord
-	 * @throws ApiError
-	 */
-	public static getUserInvestmentsList(
-		page: number,
-	): CancelablePromise<PagedResponse_ForestProjectFundsInvestmentRecord> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/user/investments/list/{page}",
-			path: {
-				page: page,
-			},
-		});
-	}
-
 	/**
 	 * @param page
 	 * @returns PagedResponse_ForestProjectFundsAffiliateRewardRecord

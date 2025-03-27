@@ -667,7 +667,8 @@ pub async fn test_forest_projects() {
                                     .iter()
                                     .map(|i| security_mint_fund::types::ClaimInvestmentParam {
                                         investor:       i
-                                            .investor_account_address
+                                            .investor
+                                            .investor
                                             .parse()
                                             .expect("Failed to parse investor"),
                                         security_token: TokenUId {

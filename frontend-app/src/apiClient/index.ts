@@ -17,7 +17,6 @@ export type { ForestProject } from "./models/ForestProject";
 export type { ForestProjectAggApiModel } from "./models/ForestProjectAggApiModel";
 export type { ForestProjectFundInvestor } from "./models/ForestProjectFundInvestor";
 export type { ForestProjectFundsAffiliateRewardRecord } from "./models/ForestProjectFundsAffiliateRewardRecord";
-export type { ForestProjectFundsInvestmentRecord } from "./models/ForestProjectFundsInvestmentRecord";
 export type { ForestProjectMedia } from "./models/ForestProjectMedia";
 export type { ForestProjectPrice } from "./models/ForestProjectPrice";
 export { ForestProjectState } from "./models/ForestProjectState";
@@ -26,7 +25,7 @@ export type { ForestProjectTokenContractAggApiModel } from "./models/ForestProje
 export type { ForestProjectTokenUserYieldClaim } from "./models/ForestProjectTokenUserYieldClaim";
 export type { Guide } from "./models/Guide";
 export type { InvestmentPortfolioUserAggregate } from "./models/InvestmentPortfolioUserAggregate";
-export { InvestmentRecordType } from "./models/InvestmentRecordType";
+export type { Investor } from "./models/Investor";
 export type { LegalContract } from "./models/LegalContract";
 export type { LegalContractUserModel } from "./models/LegalContractUserModel";
 export type { LegalContractUserSignature } from "./models/LegalContractUserSignature";
@@ -46,7 +45,6 @@ export type { PagedResponse_ForestProject } from "./models/PagedResponse_ForestP
 export type { PagedResponse_ForestProjectAggApiModel } from "./models/PagedResponse_ForestProjectAggApiModel";
 export type { PagedResponse_ForestProjectFundInvestor } from "./models/PagedResponse_ForestProjectFundInvestor";
 export type { PagedResponse_ForestProjectFundsAffiliateRewardRecord } from "./models/PagedResponse_ForestProjectFundsAffiliateRewardRecord";
-export type { PagedResponse_ForestProjectFundsInvestmentRecord } from "./models/PagedResponse_ForestProjectFundsInvestmentRecord";
 export type { PagedResponse_ForestProjectMedia } from "./models/PagedResponse_ForestProjectMedia";
 export type { PagedResponse_ForestProjectPrice } from "./models/PagedResponse_ForestProjectPrice";
 export type { PagedResponse_ForestProjectTokenContractAggApiModel } from "./models/PagedResponse_ForestProjectTokenContractAggApiModel";

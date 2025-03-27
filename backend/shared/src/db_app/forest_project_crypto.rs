@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::forest_project::ForestProjectState;
-use crate::db::security_mint_fund::InvestmentRecordType;
+use crate::db;
 use crate::db_app::forest_project::ForestProject;
 use crate::db_shared::DbConn;
 
@@ -386,42 +386,14 @@ impl UserYieldsAggregate {
     }
 }
 
-#[derive(
-    Object,
-    Selectable,
-    Queryable,
-    Identifiable,
-    Debug,
-    PartialEq,
-    Serialize,
-    Deserialize,
-    Clone,
-    QueryableByName,
-)]
-#[diesel(table_name = crate::schema_manual::forest_project_fund_investor)]
-#[diesel(primary_key(forest_project_id, fund_contract_address, investor_cognito_user_id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ForestProjectFundInvestor {
-    pub forest_project_id: Uuid,
-    pub fund_contract_address: Decimal,
-    pub fund_token_id: Decimal,
-    pub fund_token_contract_address: Decimal,
-    pub investment_token_id: Decimal,
-    pub investment_token_contract_address: Decimal,
-    pub fund_type: SecurityTokenContractType,
-    pub currency_token_id: Decimal,
-    pub currency_token_contract_address: Decimal,
-    pub currency_token_symbol: String,
-    pub currency_token_decimals: i32,
-    pub investment_token_symbol: String,
-    pub investment_token_decimals: i32,
-    pub fund_token_symbol: String,
-    pub fund_token_decimals: i32,
-    pub investor_account_address: String,
-    pub investment_token_amount: Decimal,
-    pub investment_currency_amount: Decimal,
-    pub investor_cognito_user_id: String,
-    pub investor_email: String,
+    pub investor:            db::security_mint_fund::Investor,
+    pub fund_type:           SecurityTokenContractType,
+    pub forest_project_id:   Uuid,
+    pub forest_project_name: String,
+    pub cognito_user_id:     String,
+    pub email:               String,
 }
 
 impl ForestProjectFundInvestor {
@@ -436,50 +408,107 @@ impl ForestProjectFundInvestor {
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_fund_investor::dsl::*;
+        use crate::schema::{
+            forest_project_token_contracts, forest_projects, security_mint_fund_investors, users,
+        };
 
-        let mut total_count_query = forest_project_fund_investor
-            .filter(fund_contract_address.eq(fund_contract_addr))
-            .into_boxed();
+        let query = security_mint_fund_investors::table
+            .inner_join(
+                forest_project_token_contracts::table.on(
+                    security_mint_fund_investors::investment_token_contract_address
+                        .eq(forest_project_token_contracts::contract_address),
+                ),
+            )
+            .inner_join(
+                forest_projects::table
+                    .on(forest_project_token_contracts::forest_project_id.eq(forest_projects::id)),
+            )
+            .inner_join(
+                users::table.on(security_mint_fund_investors::investor.eq(users::account_address)),
+            );
+        let mut count_query = query.into_boxed();
+        let mut query = query.into_boxed();
 
-        let mut records_query = forest_project_fund_investor
-            .filter(fund_contract_address.eq(fund_contract_addr))
-            .limit(page_size)
-            .into_boxed();
+        query = query.filter(security_mint_fund_investors::contract_address.eq(fund_contract_addr));
+        count_query = count_query
+            .filter(security_mint_fund_investors::contract_address.eq(fund_contract_addr));
 
         if let Some(project_id) = project_id {
-            total_count_query = total_count_query.filter(forest_project_id.eq(project_id));
-            records_query = records_query.filter(forest_project_id.eq(project_id));
+            query = query.filter(forest_projects::id.eq(project_id));
+            count_query = count_query.filter(forest_projects::id.eq(project_id));
         }
 
         if let Some((currency_id, currency_contract_addr)) = currency {
-            total_count_query = total_count_query
-                .filter(currency_token_id.eq(currency_id))
-                .filter(currency_token_contract_address.eq(currency_contract_addr));
-
-            records_query = records_query
-                .filter(currency_token_id.eq(currency_id))
-                .filter(currency_token_contract_address.eq(currency_contract_addr));
+            query = query
+                .filter(security_mint_fund_investors::currency_token_id.eq(currency_id))
+                .filter(
+                    security_mint_fund_investors::currency_token_contract_address
+                        .eq(currency_contract_addr),
+                );
+            count_query = count_query
+                .filter(security_mint_fund_investors::currency_token_id.eq(currency_id))
+                .filter(
+                    security_mint_fund_investors::currency_token_contract_address
+                        .eq(currency_contract_addr),
+                );
         }
 
         if let Some(investment_token_id_filter) = investment_token_id_filter {
-            total_count_query =
-                total_count_query.filter(investment_token_id.eq(investment_token_id_filter));
-            records_query =
-                records_query.filter(investment_token_id.eq(investment_token_id_filter));
+            query = query.filter(
+                security_mint_fund_investors::investment_token_id.eq(investment_token_id_filter),
+            );
+            count_query = count_query.filter(
+                security_mint_fund_investors::investment_token_id.eq(investment_token_id_filter),
+            );
         }
 
         if let Some(investment_token_contract_addr) = investment_token_contract_addr {
-            total_count_query = total_count_query
-                .filter(investment_token_contract_address.eq(investment_token_contract_addr));
-            records_query = records_query
-                .filter(investment_token_contract_address.eq(investment_token_contract_addr));
+            query = query.filter(
+                security_mint_fund_investors::investment_token_contract_address
+                    .eq(investment_token_contract_addr),
+            );
+            count_query = count_query.filter(
+                security_mint_fund_investors::investment_token_contract_address
+                    .eq(investment_token_contract_addr),
+            );
         }
 
-        Ok((
-            records_query.offset(page * page_size).load::<Self>(conn)?,
-            total_count_query.count().get_result::<i64>(conn)?,
-        ))
+        let total_count = count_query.count().get_result::<i64>(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+
+        let records = query
+            .select((
+                security_mint_fund_investors::all_columns,
+                forest_projects::id,
+                forest_projects::name,
+                forest_project_token_contracts::contract_type,
+                users::cognito_user_id,
+                users::email,
+            ))
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<(
+                db::security_mint_fund::Investor,
+                Uuid,
+                String,
+                SecurityTokenContractType,
+                String,
+                String,
+            )>(conn)?
+            .into_iter()
+            .map(
+                |(investor, forest_project_id, forest_project_name, contract_type, user_id, email)| Self {
+                    investor,
+                    fund_type: contract_type,
+                    forest_project_id,
+                    forest_project_name,
+                    cognito_user_id: user_id,
+                    email,
+                },
+            )
+            .collect();
+
+        Ok((records, page_count))
     }
 }
 
@@ -512,63 +541,6 @@ impl std::fmt::Display for SecurityTokenContractType {
             SecurityTokenContractType::PropertyPreSale => write!(f, "PropertyPreSale"),
             SecurityTokenContractType::BondPreSale => write!(f, "BondPreSale"),
         }
-    }
-}
-
-#[derive(
-    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
-)]
-#[diesel(table_name = crate::schema_manual::forest_project_funds_investment_records)]
-#[diesel(primary_key(id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ForestProjectFundsInvestmentRecord {
-    pub id: Uuid,
-    pub block_height: Decimal,
-    pub txn_index: Decimal,
-    pub contract_address: Decimal,
-    pub investment_token_id: Decimal,
-    pub investment_token_contract_address: Decimal,
-    pub investor: String,
-    pub currency_amount: Decimal,
-    pub token_amount: Decimal,
-    pub currency_amount_balance: Decimal,
-    pub token_amount_balance: Decimal,
-    pub investment_record_type: InvestmentRecordType,
-    pub create_time: chrono::NaiveDateTime,
-    pub forest_project_id: Uuid,
-    pub fund_type: SecurityTokenContractType,
-    pub is_default: bool,
-    pub investor_cognito_user_id: String,
-    pub investment_token_symbol: String,
-    pub investment_token_decimals: i32,
-    pub currency_token_symbol: String,
-    pub currency_token_decimals: i32,
-}
-
-impl ForestProjectFundsInvestmentRecord {
-    pub fn list(
-        conn: &mut DbConn,
-        contract_addr: Decimal,
-        investor_id: &str,
-        page: i64,
-        page_size: i64,
-    ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_funds_investment_records::dsl::*;
-
-        let total_count = forest_project_funds_investment_records
-            .filter(contract_address.eq(contract_addr))
-            .filter(investor_cognito_user_id.eq(investor_id))
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let records = forest_project_funds_investment_records
-            .filter(contract_address.eq(contract_addr))
-            .filter(investor_cognito_user_id.eq(investor_id))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-
-        Ok((records, total_count))
     }
 }
 

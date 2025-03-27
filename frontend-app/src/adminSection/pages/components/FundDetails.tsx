@@ -226,7 +226,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 				{
 					investments: [
 						{
-							investor: investor.investor_account_address,
+							investor: investor.investor.investor,
 							security_token: {
 								id: toTokenId(BigInt(fund.investment_token_id), 8),
 								contract: {
@@ -552,11 +552,11 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 						</TableHead>
 						<TableBody>
 							{investors?.data.map((investor) => (
-								<TableRow key={investor.investor_account_address}>
-									<TableCell>{investor.investor_email}</TableCell>
-									<TableCell>{investor.investor_account_address}</TableCell>
-									<TableCell>{investor.investment_token_amount}</TableCell>
-									<TableCell>{investor.investment_currency_amount}</TableCell>
+								<TableRow key={investor.investor.investor}>
+									<TableCell>{investor.email}</TableCell>
+									<TableCell>{investor.investor.investor}</TableCell>
+									<TableCell>{investor.investor.token_amount}</TableCell>
+									<TableCell>{investor.investor.currency_amount}</TableCell>
 									<TableCell>
 										<TransactionButton
 											txnStatus={claimTxnStatus}

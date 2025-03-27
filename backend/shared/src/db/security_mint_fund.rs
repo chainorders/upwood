@@ -257,7 +257,9 @@ impl SecurityMintFund {
     PartialEq,
     Object,
     Serialize,
+    Deserialize,
     AsChangeset,
+    Clone
 )]
 #[diesel(table_name = security_mint_fund_investors)]
 #[diesel(primary_key(
