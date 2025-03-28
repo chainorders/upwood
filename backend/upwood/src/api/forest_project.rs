@@ -13,12 +13,7 @@ use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState, LegalContract,
     LegalContractUserModel, LegalContractUserSignature, Notification,
 };
-use shared::db_app::forest_project_crypto::{
-    ForestProjectFundInvestor, ForestProjectMarketTrader, ForestProjectSupply,
-    ForestProjectTokenContract, ForestProjectTokenContractUserBalanceAgg,
-    ForestProjectTokenContractUserYields, ForestProjectTokenUserYieldClaim,
-    ForestProjectUserBalanceAgg, SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
-};
+use shared::db_app::forest_project_crypto::prelude::*;
 use shared::db_shared::DbConn;
 use tracing::{debug, info};
 use uuid::Uuid;

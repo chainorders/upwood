@@ -22,9 +22,7 @@ use shared::db::identity_registry::Identity;
 use shared::db::offchain_rewards::OffchainRewardee;
 use shared::db::security_mint_fund::SecurityMintFundContract;
 use shared::db_app::forest_project::Notification;
-use shared::db_app::forest_project_crypto::{
-    ForestProjectFundsAffiliateRewardRecord, TokenMetadata,
-};
+use shared::db_app::forest_project_crypto::prelude::*;
 use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::users::{
     Company, CompanyInvitation, User, UserKYCModel, UserRegistrationRequest, UserTokenHolder,

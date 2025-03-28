@@ -9,7 +9,7 @@ use poem_openapi::{Object, OpenApi};
 use rust_decimal::{Decimal, MathematicalOps};
 use serde::{Deserialize, Serialize};
 use shared::db::cis2_security::Token;
-use shared::db_app::forest_project_crypto::TokenMetadata;
+use shared::db_app::forest_project_crypto::token_metadata::TokenMetadata;
 use shared::db_app::portfolio::ForestProjectUserInvestmentAmount;
 use shared::db_shared::{DbConn, DbPool};
 use shared::schema_manual::{
