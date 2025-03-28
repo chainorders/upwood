@@ -15,6 +15,7 @@ import type { LegalContractUserSignature } from "../models/LegalContractUserSign
 import type { PagedResponse_ForestProject } from "../models/PagedResponse_ForestProject";
 import type { PagedResponse_ForestProjectAggApiModel } from "../models/PagedResponse_ForestProjectAggApiModel";
 import type { PagedResponse_ForestProjectFundInvestor } from "../models/PagedResponse_ForestProjectFundInvestor";
+import type { PagedResponse_ForestProjectMarketTrader } from "../models/PagedResponse_ForestProjectMarketTrader";
 import type { PagedResponse_ForestProjectMedia } from "../models/PagedResponse_ForestProjectMedia";
 import type { PagedResponse_ForestProjectPrice } from "../models/PagedResponse_ForestProjectPrice";
 import type { PagedResponse_ForestProjectTokenContractAggApiModel } from "../models/PagedResponse_ForestProjectTokenContractAggApiModel";
@@ -479,6 +480,35 @@ export class ForestProjectService {
 				project_id: projectId,
 				investment_token_id: investmentTokenId,
 				investment_token_contract_address: investmentTokenContractAddress,
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param projectId
+	 * @param tokenId
+	 * @param tokenContractAddress
+	 * @param pageSize
+	 * @returns PagedResponse_ForestProjectMarketTrader
+	 * @throws ApiError
+	 */
+	public static getAdminForestProjectsMarketTraderList(
+		page: number,
+		projectId?: string,
+		tokenId?: string,
+		tokenContractAddress?: string,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_ForestProjectMarketTrader> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/forest_projects/market/trader/list",
+			query: {
+				project_id: projectId,
+				token_id: tokenId,
+				token_contract_address: tokenContractAddress,
 				page: page,
 				page_size: pageSize,
 			},

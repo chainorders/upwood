@@ -17,6 +17,7 @@ export type { ForestProject } from "./models/ForestProject";
 export type { ForestProjectAggApiModel } from "./models/ForestProjectAggApiModel";
 export type { ForestProjectFundInvestor } from "./models/ForestProjectFundInvestor";
 export type { ForestProjectFundsAffiliateRewardRecord } from "./models/ForestProjectFundsAffiliateRewardRecord";
+export type { ForestProjectMarketTrader } from "./models/ForestProjectMarketTrader";
 export type { ForestProjectMedia } from "./models/ForestProjectMedia";
 export type { ForestProjectPrice } from "./models/ForestProjectPrice";
 export { ForestProjectState } from "./models/ForestProjectState";
@@ -45,6 +46,7 @@ export type { PagedResponse_ForestProject } from "./models/PagedResponse_ForestP
 export type { PagedResponse_ForestProjectAggApiModel } from "./models/PagedResponse_ForestProjectAggApiModel";
 export type { PagedResponse_ForestProjectFundInvestor } from "./models/PagedResponse_ForestProjectFundInvestor";
 export type { PagedResponse_ForestProjectFundsAffiliateRewardRecord } from "./models/PagedResponse_ForestProjectFundsAffiliateRewardRecord";
+export type { PagedResponse_ForestProjectMarketTrader } from "./models/PagedResponse_ForestProjectMarketTrader";
 export type { PagedResponse_ForestProjectMedia } from "./models/PagedResponse_ForestProjectMedia";
 export type { PagedResponse_ForestProjectPrice } from "./models/PagedResponse_ForestProjectPrice";
 export type { PagedResponse_ForestProjectTokenContractAggApiModel } from "./models/PagedResponse_ForestProjectTokenContractAggApiModel";
@@ -75,6 +77,7 @@ export type { SystemContractsConfigApiModel } from "./models/SystemContractsConf
 export type { Token } from "./models/Token";
 export type { TokenHolder } from "./models/TokenHolder";
 export type { TokenMetadata } from "./models/TokenMetadata";
+export type { Trader } from "./models/Trader";
 export type { Treasury } from "./models/Treasury";
 export type { TreeNftMetadata } from "./models/TreeNftMetadata";
 export type { UploadUrlResponse } from "./models/UploadUrlResponse";

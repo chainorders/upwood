@@ -14,10 +14,10 @@ use shared::db_app::forest_project::{
     LegalContractUserModel, LegalContractUserSignature, Notification,
 };
 use shared::db_app::forest_project_crypto::{
-    ForestProjectFundInvestor, ForestProjectSupply, ForestProjectTokenContract,
-    ForestProjectTokenContractUserBalanceAgg, ForestProjectTokenContractUserYields,
-    ForestProjectTokenUserYieldClaim, ForestProjectUserBalanceAgg, SecurityTokenContractType,
-    TokenMetadata, UserYieldsAggregate,
+    ForestProjectFundInvestor, ForestProjectMarketTrader, ForestProjectSupply,
+    ForestProjectTokenContract, ForestProjectTokenContractUserBalanceAgg,
+    ForestProjectTokenContractUserYields, ForestProjectTokenUserYieldClaim,
+    ForestProjectUserBalanceAgg, SecurityTokenContractType, TokenMetadata, UserYieldsAggregate,
 };
 use shared::db_shared::DbConn;
 use tracing::{debug, info};
@@ -1087,6 +1087,42 @@ impl ForestProjectAdminApi {
         )?;
         Ok(Json(PagedResponse {
             data: investors,
+            page_count,
+            page,
+        }))
+    }
+
+    #[oai(
+        path = "/admin/forest_projects/market/trader/list",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    #[allow(clippy::too_many_arguments)]
+    pub async fn admin_forest_project_trader_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Query(project_id): Query<Option<uuid::Uuid>>,
+        Query(token_id): Query<Option<Decimal>>,
+        Query(token_contract_address): Query<Option<Decimal>>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<ForestProjectMarketTrader>> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let (traders, page_count) = ForestProjectMarketTrader::list(
+            conn,
+            contracts.trading_contract_index,
+            project_id,
+            Some((contracts.euro_e_token_id, contracts.euro_e_contract_index)),
+            token_id,
+            token_contract_address,
+            page,
+            page_size.unwrap_or(PAGE_SIZE),
+        )?;
+        Ok(Json(PagedResponse {
+            data: traders,
             page_count,
             page,
         }))

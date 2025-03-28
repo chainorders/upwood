@@ -231,11 +231,13 @@ impl Market {
     Queryable,
     Identifiable,
     Insertable,
+    AsChangeset,
     Debug,
     PartialEq,
     Object,
     Serialize,
-    AsChangeset,
+    Deserialize,
+    Clone,
 )]
 #[diesel(table_name = crate::schema::security_p2p_trading_traders)]
 #[diesel(primary_key(contract_address, token_id, token_contract_address, trader))]

@@ -24,11 +24,13 @@ import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ForestIcon from "@mui/icons-material/Forest";
 import LandscapeIcon from "@mui/icons-material/Landscape";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import StoreIcon from "@mui/icons-material/Store";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
 import TreeFungibleHoldersList from "./pages/TreeFungibleHoldersList.tsx";
 import TreeMetadataList from "./pages/TreeMetadataList.tsx";
 import InvestorsList from "./pages/InvestorsList.tsx";
+import TradersList from "./pages/TradersList.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -83,6 +85,12 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/investors",
 			icon: <CurrencyExchangeIcon />,
 			isActive: pathname.startsWith("/admin/investors"),
+		},
+		{
+			name: "Market Traders",
+			url: "/admin/traders",
+			icon: <StoreIcon />,
+			isActive: pathname.startsWith("/admin/traders"),
 		},
 		{
 			name: "Users",
@@ -207,6 +215,7 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							</Route>
 						</Route>
 						<Route path="investors" element={<InvestorsList />} />
+						<Route path="traders" element={<TradersList />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />
 							<Route path="list" element={<UserList user={user} />} />
