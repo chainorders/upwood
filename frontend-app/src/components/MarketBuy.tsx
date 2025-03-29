@@ -282,7 +282,7 @@ export default function MarketBuy({
 					<div className="container">
 						<div className="container-in">
 							<div className="col-12">
-								<Button text="GO TO INVESTMENT PORTFOLIO" link={"/portfolio"} active />
+								<Button text="GO TO INVESTMENT PORTFOLIO" link="/portfolio" active call={close} />
 							</div>
 						</div>
 					</div>

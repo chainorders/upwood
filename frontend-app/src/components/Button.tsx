@@ -54,6 +54,7 @@ export default function Button({
 					state={linkState}
 					target={linkTarget ? "_blank" : "_self"}
 					rel="noreferrer"
+					onClick={call}
 					className={`button ${radius16 ? "radius16" : ""} ${style || ""} ${active ? "active" : ""} ${danger ? "danger" : ""} ${disabled ? "disabled" : ""} ${loading ? "button__loader" : ""}`}
 				>
 					{icon && icon !== "" && !icononright && !loading && <img src={icon} width="14" height="14" className="left" />}

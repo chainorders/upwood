@@ -75,14 +75,14 @@ export default function ProjectCardOwned({ project, user, contracts }: Props) {
 					</div>
 				</div>
 			</div>
-			{fundInvestPopupOpen && project.property_fund ? (
+			{fundInvestPopupOpen && project.bond_fund ? (
 				<FundInvest
 					close={() => setFundInvestPopupOpen(false)}
 					user={user}
 					contracts={contracts}
-					fund={project.property_fund}
-					tokenContract={project.property_contract}
-					currencyMetadata={project.property_fund_currency_metadata}
+					fund={project.bond_fund}
+					tokenContract={project.bond_contract}
+					currencyMetadata={project.bond_fund_currency_metadata}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}

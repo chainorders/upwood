@@ -101,6 +101,12 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			isActive: pathname.startsWith("/admin/projects/token-holders"),
 		},
 		{
+			name: "Tree Fungible Token Holders",
+			url: "/admin/tree/fungible/holders",
+			icon: <ForestIcon />,
+			isActive: pathname.startsWith("/admin/tree/fungible/holders"),
+		},
+		{
 			name: "Users",
 			url: "/admin/users",
 			icon: <UsersIcon />,
@@ -135,12 +141,6 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/support",
 			icon: <SupportAgentIcon />,
 			isActive: pathname.startsWith("/admin/support"),
-		},
-		{
-			name: "Tree Fungible",
-			url: "/admin/tree/fungible/holders",
-			icon: <ForestIcon />,
-			isActive: pathname.startsWith("/admin/tree/fungible/holders"),
 		},
 		{
 			name: "Tree metadatas",
