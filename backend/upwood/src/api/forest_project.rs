@@ -1123,6 +1123,41 @@ impl ForestProjectAdminApi {
         }))
     }
 
+    #[allow(clippy::too_many_arguments)]
+    #[oai(
+        path = "/admin/forest_projects/token/holders/list",
+        method = "get",
+        tag = "ApiTags::ForestProject"
+    )]
+    pub async fn admin_forest_project_token_holders_list(
+        &self,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(db_pool): Data<&DbPool>,
+        Query(cis2_address): Query<Option<Decimal>>,
+        Query(token_id): Query<Option<Decimal>>,
+        Query(holder_address): Query<Option<String>>,
+        Query(project_id): Query<Option<uuid::Uuid>>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<ForestProjectTokenHolder>> {
+        ensure_is_admin(&claims)?;
+        let conn = &mut db_pool.get()?;
+        let (holders, page_count) = ForestProjectTokenHolder::list(
+            conn,
+            cis2_address,
+            token_id,
+            holder_address,
+            project_id,
+            page,
+            page_size.unwrap_or(PAGE_SIZE),
+        )?;
+        Ok(Json(PagedResponse {
+            data: holders,
+            page_count,
+            page,
+        }))
+    }
+
     #[oai(
         path = "/admin/forest_projects/contract/:contract_address",
         method = "get",

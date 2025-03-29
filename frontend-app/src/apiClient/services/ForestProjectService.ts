@@ -19,6 +19,7 @@ import type { PagedResponse_ForestProjectMarketTrader } from "../models/PagedRes
 import type { PagedResponse_ForestProjectMedia } from "../models/PagedResponse_ForestProjectMedia";
 import type { PagedResponse_ForestProjectPrice } from "../models/PagedResponse_ForestProjectPrice";
 import type { PagedResponse_ForestProjectTokenContractAggApiModel } from "../models/PagedResponse_ForestProjectTokenContractAggApiModel";
+import type { PagedResponse_ForestProjectTokenHolder } from "../models/PagedResponse_ForestProjectTokenHolder";
 import type { PagedResponse_LegalContract } from "../models/PagedResponse_LegalContract";
 import type { PagedResponse_LegalContractUserModel } from "../models/PagedResponse_LegalContractUserModel";
 import type { PagedResponse_TokenMetadata } from "../models/PagedResponse_TokenMetadata";
@@ -509,6 +510,38 @@ export class ForestProjectService {
 				project_id: projectId,
 				token_id: tokenId,
 				token_contract_address: tokenContractAddress,
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param cis2Address
+	 * @param tokenId
+	 * @param holderAddress
+	 * @param projectId
+	 * @param pageSize
+	 * @returns PagedResponse_ForestProjectTokenHolder
+	 * @throws ApiError
+	 */
+	public static getAdminForestProjectsTokenHoldersList(
+		page: number,
+		cis2Address?: string,
+		tokenId?: string,
+		holderAddress?: string,
+		projectId?: string,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_ForestProjectTokenHolder> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/forest_projects/token/holders/list",
+			query: {
+				cis2_address: cis2Address,
+				token_id: tokenId,
+				holder_address: holderAddress,
+				project_id: projectId,
 				page: page,
 				page_size: pageSize,
 			},

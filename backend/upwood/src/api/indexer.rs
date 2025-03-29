@@ -261,6 +261,25 @@ impl Api {
     }
 
     #[oai(
+        path = "/admin/indexer/cis2/:contract_address/token/:token_id/holder/:holder_address",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2_token_holder(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+        Path(token_id): Path<Decimal>,
+        Path(holder_address): Path<String>,
+    ) -> JsonResult<Option<TokenHolder>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let holder = TokenHolder::find(&mut conn, contract_address, token_id, &holder_address)?;
+        Ok(Json(holder))
+    }
+
+    #[oai(
         path = "/admin/indexer/yielder/:contract_address/treasury",
         method = "get",
         tag = "ApiTags::Indexer"

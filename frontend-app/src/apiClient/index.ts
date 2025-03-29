@@ -23,6 +23,7 @@ export type { ForestProjectPrice } from "./models/ForestProjectPrice";
 export { ForestProjectState } from "./models/ForestProjectState";
 export type { ForestProjectTokenContract } from "./models/ForestProjectTokenContract";
 export type { ForestProjectTokenContractAggApiModel } from "./models/ForestProjectTokenContractAggApiModel";
+export type { ForestProjectTokenHolder } from "./models/ForestProjectTokenHolder";
 export type { ForestProjectTokenUserYieldClaim } from "./models/ForestProjectTokenUserYieldClaim";
 export type { Guide } from "./models/Guide";
 export type { InvestmentPortfolioUserAggregate } from "./models/InvestmentPortfolioUserAggregate";
@@ -50,6 +51,7 @@ export type { PagedResponse_ForestProjectMarketTrader } from "./models/PagedResp
 export type { PagedResponse_ForestProjectMedia } from "./models/PagedResponse_ForestProjectMedia";
 export type { PagedResponse_ForestProjectPrice } from "./models/PagedResponse_ForestProjectPrice";
 export type { PagedResponse_ForestProjectTokenContractAggApiModel } from "./models/PagedResponse_ForestProjectTokenContractAggApiModel";
+export type { PagedResponse_ForestProjectTokenHolder } from "./models/PagedResponse_ForestProjectTokenHolder";
 export type { PagedResponse_Guide } from "./models/PagedResponse_Guide";
 export type { PagedResponse_LegalContract } from "./models/PagedResponse_LegalContract";
 export type { PagedResponse_LegalContractUserModel } from "./models/PagedResponse_LegalContractUserModel";

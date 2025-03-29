@@ -8,6 +8,7 @@ import type { Market } from "../models/Market";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
 import type { Token } from "../models/Token";
+import type { TokenHolder } from "../models/TokenHolder";
 import type { Treasury } from "../models/Treasury";
 import type { Yield } from "../models/Yield";
 
@@ -220,6 +221,29 @@ export class IndexerService {
 			query: {
 				page: page,
 				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
+	 * @param tokenId
+	 * @param holderAddress
+	 * @returns TokenHolder
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2TokenHolder(
+		contractAddress: string,
+		tokenId: string,
+		holderAddress: string,
+	): CancelablePromise<TokenHolder> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/{holder_address}",
+			path: {
+				contract_address: contractAddress,
+				token_id: tokenId,
+				holder_address: holderAddress,
 			},
 		});
 	}
