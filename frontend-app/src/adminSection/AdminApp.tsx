@@ -33,6 +33,7 @@ import TreeMetadataList from "./pages/TreeMetadataList.tsx";
 import InvestorsList from "./pages/InvestorsList.tsx";
 import TradersList from "./pages/TradersList.tsx";
 import TokenHoldersList from "./pages/TokenHoldersList.tsx";
+import TokenHolderBalanceUpdateList from "./pages/TokenHolderBalanceUpdateList.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -225,6 +226,11 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						<Route path="investors" element={<InvestorsList />} />
 						<Route path="traders" element={<TradersList />} />
 						<Route path="projects/token-holders" element={<TokenHoldersList />} />
+						<Route
+							path="projects/token-holders/balance-updates/:contract/:token_id/:holder"
+							element={<TokenHolderBalanceUpdateList />}
+						/>
+						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />
 							<Route path="list" element={<UserList user={user} />} />
@@ -250,7 +256,6 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							<Route index element={<Navigate to="list" />} />
 							<Route path="list" element={<QuestionsList />} />
 						</Route>
-						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
 						<Route
 							path="tree/metadata"
 							element={<TreeMetadataList user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />}

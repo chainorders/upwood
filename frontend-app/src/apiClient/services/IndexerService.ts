@@ -6,6 +6,7 @@ import type { Agent } from "../models/Agent";
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
+import type { PagedResponse_TokenHolderBalanceUpdate } from "../models/PagedResponse_TokenHolderBalanceUpdate";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
 import type { Token } from "../models/Token";
 import type { TokenHolder } from "../models/TokenHolder";
@@ -244,6 +245,37 @@ export class IndexerService {
 				contract_address: contractAddress,
 				token_id: tokenId,
 				holder_address: holderAddress,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
+	 * @param tokenId
+	 * @param holderAddress
+	 * @param page
+	 * @param pageSize
+	 * @returns PagedResponse_TokenHolderBalanceUpdate
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2TokenHolderBalanceUpdates(
+		contractAddress: string,
+		tokenId: string,
+		holderAddress: string,
+		page: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_TokenHolderBalanceUpdate> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/{holder_address}/balance-updates",
+			path: {
+				contract_address: contractAddress,
+				token_id: tokenId,
+				holder_address: holderAddress,
+			},
+			query: {
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

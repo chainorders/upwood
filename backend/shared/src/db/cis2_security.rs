@@ -431,6 +431,46 @@ pub struct TokenHolderBalanceUpdate {
 }
 
 impl TokenHolderBalanceUpdate {
+    pub fn list(
+        conn: &mut DbConn,
+        cis2_address: Option<Decimal>,
+        token_id: Option<Decimal>,
+        holder_address: Option<String>,
+        page: i64,
+        page_size: i64,
+    ) -> QueryResult<(Vec<Self>, i64)> {
+        use crate::schema::cis2_token_holder_balance_updates;
+        let query = cis2_token_holder_balance_updates::table;
+        let mut count_query = query.into_boxed();
+        let mut query = query.into_boxed();
+
+        if let Some(cis_address) = cis2_address {
+            query = query.filter(cis2_token_holder_balance_updates::cis2_address.eq(cis_address));
+            count_query =
+                count_query.filter(cis2_token_holder_balance_updates::cis2_address.eq(cis_address));
+        }
+
+        if let Some(token) = token_id {
+            query = query.filter(cis2_token_holder_balance_updates::token_id.eq(token));
+            count_query = count_query.filter(cis2_token_holder_balance_updates::token_id.eq(token));
+        }
+
+        if let Some(holder) = holder_address {
+            query =
+                query.filter(cis2_token_holder_balance_updates::holder_address.eq(holder.clone()));
+            count_query =
+                count_query.filter(cis2_token_holder_balance_updates::holder_address.eq(holder));
+        }
+
+        let results = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Self>(conn)?;
+        let total_count: i64 = count_query.count().get_result(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((results, page_count))
+    }
+
     #[instrument(skip_all)]
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
         diesel::insert_into(cis2_token_holder_balance_updates::table)
@@ -446,75 +486,6 @@ impl TokenHolderBalanceUpdate {
             .first::<TokenHolderBalanceUpdate>(conn)
             .optional()?;
         Ok(update)
-    }
-
-    // #[instrument(skip(conn))]
-    // pub fn sum_amount_by_type(
-    //     conn: &mut DbConn,
-    //     cis2_address: Decimal,
-    //     token_id: Decimal,
-    //     holder_address: &Address,
-    //     update_type: TokenHolderBalanceUpdateType,
-    // ) -> DbResult<Decimal> {
-    //     let amount = cis2_token_holder_balance_updates::table
-    //         .filter(
-    //             cis2_token_holder_balance_updates::cis2_address
-    //                 .eq(cis2_address)
-    //                 .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
-    //                 .and(
-    //                     cis2_token_holder_balance_updates::holder_address
-    //                         .eq(holder_address.to_string()),
-    //                 )
-    //                 .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
-    //         )
-    //         .select(diesel::dsl::sum(cis2_token_holder_balance_updates::amount))
-    //         .first::<Option<Decimal>>(conn)?
-    //         .unwrap_or(Decimal::ZERO);
-    //     Ok(amount)
-    // }
-
-    #[instrument(skip(conn))]
-    pub fn list_by_type(
-        conn: &mut DbConn,
-        cis2_address: Decimal,
-        token_id: Decimal,
-        holder_address: &Address,
-        update_type: TokenHolderBalanceUpdateType,
-        page_size: i64,
-        page: i64,
-    ) -> DbResult<(Vec<TokenHolderBalanceUpdate>, i64)> {
-        let updates = cis2_token_holder_balance_updates::table
-            .filter(
-                cis2_token_holder_balance_updates::cis2_address
-                    .eq(cis2_address)
-                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
-                    .and(
-                        cis2_token_holder_balance_updates::holder_address
-                            .eq(holder_address.to_string()),
-                    )
-                    .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
-            )
-            .select(TokenHolderBalanceUpdate::as_select())
-            .order(cis2_token_holder_balance_updates::create_time)
-            .offset(page * page_size)
-            .limit(page_size)
-            .get_results(conn)?;
-        let total_count = cis2_token_holder_balance_updates::table
-            .filter(
-                cis2_token_holder_balance_updates::cis2_address
-                    .eq(cis2_address)
-                    .and(cis2_token_holder_balance_updates::token_id.eq(token_id))
-                    .and(
-                        cis2_token_holder_balance_updates::holder_address
-                            .eq(holder_address.to_string()),
-                    )
-                    .and(cis2_token_holder_balance_updates::update_type.eq(update_type)),
-            )
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
-        Ok((updates, page_count))
     }
 }
 

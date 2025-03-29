@@ -4,7 +4,7 @@ use poem_openapi::payload::Json;
 use poem_openapi::OpenApi;
 use rust_decimal::Decimal;
 use shared::api::PagedResponse;
-use shared::db::cis2_security::{Agent, Token, TokenHolder};
+use shared::db::cis2_security::{Agent, Token, TokenHolder, TokenHolderBalanceUpdate};
 use shared::db::security_mint_fund::SecurityMintFund;
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::{Treasury, Yield};
@@ -277,6 +277,42 @@ impl Api {
         let mut conn = db_pool.get()?;
         let holder = TokenHolder::find(&mut conn, contract_address, token_id, &holder_address)?;
         Ok(Json(holder))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[oai(
+        path = "/admin/indexer/cis2/:contract_address/token/:token_id/holder/:holder_address/\
+                balance-updates",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis_token_holder_balance_updates(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+        Path(token_id): Path<Decimal>,
+        Path(holder_address): Path<String>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<TokenHolderBalanceUpdate>> {
+        ensure_is_admin(&claims)?;
+
+        let mut conn = db_pool.get()?;
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let (updates, page_count) = TokenHolderBalanceUpdate::list(
+            &mut conn,
+            Some(contract_address),
+            Some(token_id),
+            Some(holder_address),
+            page,
+            page_size,
+        )?;
+        Ok(Json(PagedResponse {
+            data: updates,
+            page_count,
+            page,
+        }))
     }
 
     #[oai(

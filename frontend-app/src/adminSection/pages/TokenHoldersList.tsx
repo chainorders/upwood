@@ -21,6 +21,7 @@ import {
 	TablePagination,
 	CircularProgress,
 	Tooltip,
+	Link as MuiLink,
 } from "@mui/material";
 import { ForestProjectService, ForestProjectTokenHolder } from "../../apiClient";
 
@@ -41,7 +42,7 @@ const TokenHoldersList = () => {
 	const [projects, setProjects] = useState<ForestProject[]>([]);
 	const [loading, setLoading] = useState<boolean>(false);
 	const [totalRows, setTotalRows] = useState<number>(0);
-	const [pageSize, setPageSize] = useState<number>(20);
+	const [pageSize, setPageSize] = useState<number>(25);
 	const [page, setPage] = useState<number>(0);
 
 	const { control, handleSubmit, reset } = useForm<FilterForm>({
@@ -195,8 +196,8 @@ const TokenHoldersList = () => {
 									<TableCell>Type</TableCell>
 									<TableCell>Token ID</TableCell>
 									<TableCell>Project</TableCell>
-									<TableCell>Frozen Balance</TableCell>
-									<TableCell>Unfrozen Balance</TableCell>
+									<TableCell>Locked Balance</TableCell>
+									<TableCell>Unlocked Balance</TableCell>
 									<TableCell>Actions</TableCell>
 								</TableRow>
 							</TableHead>
@@ -237,26 +238,12 @@ const TokenHoldersList = () => {
 											<TableCell>{holder.frozen_balance}</TableCell>
 											<TableCell>{holder.un_frozen_balance}</TableCell>
 											<TableCell>
-												{holder.forest_project_id && (
-													<Box sx={{ display: "flex", gap: 1 }}>
-														<Button
-															variant="outlined"
-															size="small"
-															component={Link}
-															to={`/admin/projects/${holder.forest_project_id}/contract/${holder.cis2_address}/details`}
-														>
-															Contract
-														</Button>
-														<Button
-															variant="outlined"
-															size="small"
-															component={Link}
-															to={`/admin/projects/${holder.forest_project_id}/contract/${holder.cis2_address}/token/${holder.token_id}/details`}
-														>
-															Token
-														</Button>
-													</Box>
-												)}
+												<MuiLink
+													component={Link}
+													to={`/admin/projects/token-holders/balance-updates/${holder.cis2_address}/${holder.token_id}/${holder.holder_address}`}
+												>
+													Balance Updates
+												</MuiLink>
 											</TableCell>
 										</TableRow>
 									))
