@@ -21,7 +21,7 @@ export default function ProfilePicture({
 	const [state, setState] = useState<"default" | "upload" | "uploading" | "deleting">(defaultState);
 	const [inputPicture, setInputPicture] = useState(picture);
 	const [imageData, setImageData] = useState<string>();
-	const [error, setError] = useState<string>();
+	const [_error, setError] = useState<string>();
 
 	const changeProfilePicture = (imageData: string) => {
 		const buf = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ""), "base64");

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Box,
 	Button,
@@ -71,7 +71,7 @@ const MaintenanceMessageList = () => {
 				page={messages?.page || 0}
 				rowsPerPageOptions={[10, 25, 50]}
 				count={messages?.page_count || 0 * rowsPerPage || 0}
-				onPageChange={(event, newPage) => setPage(newPage)}
+				onPageChange={(_event, newPage) => setPage(newPage)}
 				rowsPerPage={rowsPerPage}
 				onRowsPerPageChange={(event) => setRowsPerPage(parseInt(event.target.value, 10))}
 			/>

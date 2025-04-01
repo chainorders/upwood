@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { Box, Grid, TextField } from "@mui/material";
+import { useForm } from "react-hook-form";
+import { Box, Grid, Typography, Paper } from "@mui/material";
 import {
 	ForestProjectTokenContract,
 	SecurityMintFundContract,
@@ -11,6 +11,8 @@ import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import TransactionButton from "../../../components/TransactionButton";
 import { User } from "../../../lib/user";
 import securityMintFund from "../../../contractClients/generated/securityMintFund";
+import useCommonStyles from "../../../theme/useCommonStyles";
+import IntegerInput from "./IntegerInput";
 
 interface ProjectTokenAddFundPopupProps {
 	user: User;
@@ -36,12 +38,16 @@ export default function AddFundPopup({
 	tokenId,
 	onDone,
 }: ProjectTokenAddFundPopupProps) {
+	const styles = useCommonStyles();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
-	const { control, handleSubmit } = useForm<FundFormData>({
+	const { control, handleSubmit, watch } = useForm<FundFormData>({
+		mode: "onChange", // Enable validation on change
 		defaultValues: {
 			price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
 		},
 	});
+
+	const priceWatch = watch("price");
 
 	const onSubmit = async (data: FundFormData) => {
 		try {
@@ -80,45 +86,59 @@ export default function AddFundPopup({
 	};
 
 	return (
-		<div>
+		<Box sx={styles.dialogFormContainer}>
 			<form onSubmit={handleSubmit(onSubmit)}>
-				<Box mb={2} pt={2}>
-					<Grid container spacing={2} alignItems="center">
-						<Grid item xs={12}>
-							<Controller
-								name="price"
-								control={control}
-								defaultValue={0}
-								rules={{ required: true }}
-								render={({ field }) => (
-									<TextField
-										{...field}
-										label="Price"
-										type="number"
-										fullWidth
-										autoComplete="off"
-										required
-										InputProps={{ inputProps: { min: 0 } }}
-										helperText={`Price per token unit ${contracts.euro_e_metadata.symbol} ${toDisplayAmount(
-											field.value.toString(),
-											contracts.euro_e_metadata.decimals || 6,
-											contracts.euro_e_metadata.decimals || 6,
-										)}`}
-									/>
-								)}
-							/>
+				<Box sx={styles.dialogFormSection}>
+					<Paper
+						elevation={0}
+						sx={{
+							...styles.dialogFormField,
+							p: 2,
+							mb: 2,
+							backgroundColor: "rgba(0,0,0,0.02)",
+						}}
+					>
+						<Typography variant="h6" mb={1} color="primary">
+							{contracts.euro_e_metadata.symbol || "Euro"} Price
+						</Typography>
+						<Grid container spacing={2}>
+							<Grid item xs={12}>
+								<IntegerInput
+									name="price"
+									control={control}
+									label="Price"
+									min={0}
+									textFieldProps={{
+										fullWidth: true,
+										autoComplete: "off",
+										required: true,
+									}}
+								/>
+								<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
+									Price per token unit: {contracts.euro_e_metadata.symbol}{" "}
+									{toDisplayAmount(
+										priceWatch?.toString() || "0",
+										contracts.euro_e_metadata.decimals || 6,
+										contracts.euro_e_metadata.decimals || 6,
+									)}
+								</Typography>
+							</Grid>
 						</Grid>
-					</Grid>
+					</Paper>
 				</Box>
-				<TransactionButton
-					variant="contained"
-					type="submit"
-					txnStatus={txnStatus}
-					defaultText="Add Fund"
-					loadingText="Adding Fund..."
-					fullWidth
-				/>
+
+				<Box sx={styles.dialogFormActions}>
+					<TransactionButton
+						variant="contained"
+						type="submit"
+						txnStatus={txnStatus}
+						defaultText="Add Fund"
+						loadingText="Adding Fund..."
+						fullWidth
+						sx={styles.formSubmitButton}
+					/>
+				</Box>
 			</form>
-		</div>
+		</Box>
 	);
 }

@@ -195,7 +195,7 @@ export function sigsApiToContract(sigsApi: SigsApi): SigsContract {
 		for (const [key2, value2] of Object.entries(value.sigs)) {
 			const key2Num = parseInt(key2);
 			const sig = value2.signature;
-			const sigScheme = value2.signatureScheme;
+			// const sigScheme = value2.signatureScheme;
 			sigsArray.push([key2Num, { Ed25519: [sig] }]);
 		}
 		sigs.push([keyNum, sigsArray]);

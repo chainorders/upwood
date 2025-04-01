@@ -46,7 +46,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 }) => {
 	// States
 	const [isEditMode, setIsEditMode] = useState<boolean>(false);
-	const [imageFile, setImageFile] = useState<File | null>(null);
+	const [, setImageFile] = useState<File | null>(null);
 	const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
 	const [currentMimeType, setCurrentMimeType] = useState<string | undefined>(mimeType);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -102,7 +102,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 	});
 
 	// Cropper handlers
-	const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+	const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
 		setCroppedAreaPixels(croppedAreaPixels);
 	}, []);
 
@@ -226,7 +226,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 				</Box>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
 					<ZoomInIcon />
-					<Slider value={zoom} min={1} max={3} step={0.1} onChange={(e, newValue) => setZoom(newValue as number)} />
+					<Slider value={zoom} min={1} max={3} step={0.1} onChange={(_e, newValue) => setZoom(newValue as number)} />
 				</Box>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<AspectRatioIcon fontSize="small" />

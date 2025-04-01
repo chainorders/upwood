@@ -1,4 +1,3 @@
-import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Dialog, DialogActions, DialogContent, DialogTitle, TextField, Button } from "@mui/material";
 import { PlatformUpdate, UserCommunicationService } from "../../apiClient";

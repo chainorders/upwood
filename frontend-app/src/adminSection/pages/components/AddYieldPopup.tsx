@@ -12,9 +12,11 @@ import securitySftMultiYielder, {
 } from "../../../contractClients/generated/securitySftMultiYielder";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import { useForm, Controller } from "react-hook-form";
-import { TextField, Checkbox, FormControlLabel, Box, Typography, Grid } from "@mui/material";
+import { Checkbox, FormControlLabel, Box, Typography, Grid, Paper } from "@mui/material";
 import TransactionButton from "../../../components/TransactionButton";
 import { User } from "../../../lib/user";
+import useCommonStyles from "../../../theme/useCommonStyles";
+import IntegerInput from "./IntegerInput";
 
 interface ProjectTokenAddYieldPopupProps {
 	contract_address: string;
@@ -47,13 +49,22 @@ interface YieldFormData {
 }
 
 export default function AddYieldPopup({ contract_address, token_id, onDone, user }: ProjectTokenAddYieldPopupProps) {
+	const styles = useCommonStyles();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [projectTokenContract, setProjectTokenContract] = useState<ForestProjectTokenContract>();
 	const [euroeMetdata, setEuroMetadata] = useState<TokenMetadata>();
 	const [carbonCreditsMetadata, setCarbonCreditsMetadata] = useState<TokenMetadata>();
 	const [eTreesMetadata, setETreesMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
-	const { control, handleSubmit, watch } = useForm<YieldFormData>();
+	const { control, handleSubmit, watch } = useForm<YieldFormData>({
+		mode: "onChange", // This makes validation run on every change
+		defaultValues: {
+			carbonCredit: { numerator: 1, denominator: 1, added: false },
+			euro: { numerator: 1, denominator: 1, added: false },
+			eTrees: { numerator: 1, denominator: 1, added: false },
+			euroIntrest: { numerator: 1, denominator: 1, added: false },
+		},
+	});
 
 	useEffect(() => {
 		UserService.getSystemConfig()
@@ -162,182 +173,182 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 	const euroIntrestRateDenominatorWatch = watch("euroIntrest.denominator");
 
 	return (
-		<div>
+		<Box sx={styles.dialogFormContainer}>
 			<form onSubmit={handleSubmit(onSubmit)}>
-				<Box mb={2}>
-					<Typography variant="h6" mb={1}>
-						{carbonCreditsMetadata?.symbol ? `(${carbonCreditsMetadata?.symbol})` : ""} Carbon Credits
-					</Typography>
-					<Grid container spacing={2} alignItems="center">
-						<Grid item xs={2}>
-							<Controller
-								name="carbonCredit.added"
-								control={control}
-								defaultValue={false}
-								render={({ field }) => (
-									<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
-								)}
-							/>
+				<Box sx={styles.dialogFormSection}>
+					<Paper
+						elevation={0}
+						sx={{
+							...styles.dialogFormField,
+							p: 2,
+							mb: 2,
+							backgroundColor: "rgba(0,0,0,0.02)",
+						}}
+					>
+						<Typography variant="h6" mb={1} color="primary">
+							{carbonCreditsMetadata?.symbol ? `(${carbonCreditsMetadata?.symbol})` : ""} Carbon Credits
+						</Typography>
+						<Grid container spacing={2} alignItems="center">
+							<Grid item xs={2}>
+								<Controller
+									name="carbonCredit.added"
+									control={control}
+									defaultValue={false}
+									render={({ field }) => (
+										<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
+									)}
+								/>
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="carbonCredit.numerator" control={control} label="Numerator" />
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="carbonCredit.denominator" control={control} label="Denominator" />
+							</Grid>
+							<Grid item xs={12}>
+								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
+									{toDisplayAmount(carbonCreditRateNumeratorWatch.toString(), carbonCreditsMetadata?.decimals || 0)}{" "}
+									{carbonCreditsMetadata?.symbol || "Carbon Credits"} per{" "}
+									{toDisplayAmount(carbonCreditRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
+									{projectTokenContract?.symbol || "Project"} Tokens
+								</Typography>
+							</Grid>
 						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="carbonCredit.numerator"
-								control={control}
-								defaultValue={0}
-								rules={{ required: true }}
-								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
-							/>
+					</Paper>
+
+					<Paper
+						elevation={0}
+						sx={{
+							...styles.dialogFormField,
+							p: 2,
+							mb: 2,
+							backgroundColor: "rgba(0,0,0,0.02)",
+						}}
+					>
+						<Typography variant="h6" mb={1} color="primary">
+							{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro
+						</Typography>
+						<Grid container spacing={2} alignItems="center">
+							<Grid item xs={2}>
+								<Controller
+									name="euro.added"
+									control={control}
+									defaultValue={false}
+									render={({ field }) => (
+										<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
+									)}
+								/>
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="euro.numerator" control={control} label="Numerator" />
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="euro.denominator" control={control} label="Denominator" />
+							</Grid>
+							<Grid item xs={12}>
+								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
+									{toDisplayAmount(euroRateNumeratorWatch.toString(), euroeMetdata?.decimals || 0)}{" "}
+									{euroeMetdata?.symbol || "Euro"} per{" "}
+									{toDisplayAmount(euroRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
+									{projectTokenContract?.symbol || "Project"} Tokens
+								</Typography>
+							</Grid>
 						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="carbonCredit.denominator"
-								control={control}
-								defaultValue={1}
-								render={({ field }) => <TextField {...field} label="Denominator" type="number" />}
-							/>
+					</Paper>
+
+					<Paper
+						elevation={0}
+						sx={{
+							...styles.dialogFormField,
+							p: 2,
+							mb: 2,
+							backgroundColor: "rgba(0,0,0,0.02)",
+						}}
+					>
+						<Typography variant="h6" mb={1} color="primary">
+							{eTreesMetadata?.symbol ? `(${eTreesMetadata?.symbol})` : ""} E-Trees
+						</Typography>
+						<Grid container spacing={2} alignItems="center">
+							<Grid item xs={2}>
+								<Controller
+									name="eTrees.added"
+									control={control}
+									defaultValue={false}
+									render={({ field }) => (
+										<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
+									)}
+								/>
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="eTrees.numerator" control={control} label="Numerator" />
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="eTrees.denominator" control={control} label="Denominator" />
+							</Grid>
+							<Grid item xs={12}>
+								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
+									{toDisplayAmount(eTreesRateNumeratorWatch.toString(), eTreesMetadata?.decimals || 0)}{" "}
+									{eTreesMetadata?.symbol || "E-Trees"} per{" "}
+									{toDisplayAmount(eTreesRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
+									{projectTokenContract?.symbol || "Project"} Tokens
+								</Typography>
+							</Grid>
 						</Grid>
-						<Grid item xs={12}>
-							<Typography variant="body2" align="right">
-								{toDisplayAmount((carbonCreditRateNumeratorWatch || "0").toString(), carbonCreditsMetadata?.decimals || 0)}{" "}
-								{carbonCreditsMetadata?.symbol || "Carbon Credits"} per{" "}
-								{toDisplayAmount((carbonCreditRateDenominatorWatch || "1").toString(), projectTokenContract?.decimals || 0)}{" "}
-								{projectTokenContract?.symbol || "Project"} Tokens
-							</Typography>
+					</Paper>
+
+					<Paper
+						elevation={0}
+						sx={{
+							...styles.dialogFormField,
+							p: 2,
+							mb: 2,
+							backgroundColor: "rgba(0,0,0,0.02)",
+						}}
+					>
+						<Typography variant="h6" mb={1} color="primary">
+							{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro Interest
+						</Typography>
+						<Grid container spacing={2} alignItems="center">
+							<Grid item xs={2}>
+								<Controller
+									name="euroIntrest.added"
+									control={control}
+									defaultValue={false}
+									render={({ field }) => (
+										<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
+									)}
+								/>
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="euroIntrest.numerator" control={control} label="Numerator" />
+							</Grid>
+							<Grid item xs={5}>
+								<IntegerInput name="euroIntrest.denominator" control={control} label="Denominator" />
+							</Grid>
+							<Grid item xs={12}>
+								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
+									{toDisplayAmount(euroIntrestRateNumeratorWatch.toString(), euroeMetdata?.decimals || 6, 6)}{" "}
+									{euroeMetdata?.symbol || "Euro"} per{" "}
+									{toDisplayAmount(euroIntrestRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
+									{projectTokenContract?.symbol || "Project"} Tokens per token version
+								</Typography>
+							</Grid>
 						</Grid>
-					</Grid>
+					</Paper>
 				</Box>
-				<Box mb={2}>
-					<Typography variant="h6" mb={1}>
-						{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro
-					</Typography>
-					<Grid container spacing={2} alignItems="center">
-						<Grid item xs={2}>
-							<Controller
-								name="euro.added"
-								control={control}
-								defaultValue={false}
-								render={({ field }) => (
-									<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
-								)}
-							/>
-						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="euro.numerator"
-								control={control}
-								defaultValue={0}
-								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
-							/>
-						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="euro.denominator"
-								control={control}
-								defaultValue={1}
-								render={({ field }) => <TextField {...field} label="Denominator" type="number" />}
-							/>
-						</Grid>
-						<Grid item xs={12}>
-							<Typography variant="body2" align="right">
-								{toDisplayAmount((euroRateNumeratorWatch || "0").toString(), euroeMetdata?.decimals || 0)}{" "}
-								{euroeMetdata?.symbol || "Euro"} per{" "}
-								{toDisplayAmount((euroRateDenominatorWatch || "1").toString(), projectTokenContract?.decimals || 0)}{" "}
-								{projectTokenContract?.symbol || "Project"} Tokens
-							</Typography>
-						</Grid>
-					</Grid>
+
+				<Box sx={styles.dialogFormActions}>
+					<TransactionButton
+						variant="contained"
+						type="submit"
+						txnStatus={txnStatus}
+						defaultText="Add Yield"
+						loadingText="Adding Yield..."
+						fullWidth
+						sx={styles.formSubmitButton}
+					/>
 				</Box>
-				<Box mb={2}>
-					<Typography variant="h6" mb={1}>
-						{eTreesMetadata?.symbol ? `(${eTreesMetadata?.symbol})` : ""} E-Trees
-					</Typography>
-					<Grid container spacing={2} alignItems="center">
-						<Grid item xs={2}>
-							<Controller
-								name="eTrees.added"
-								control={control}
-								defaultValue={false}
-								render={({ field }) => (
-									<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
-								)}
-							/>
-						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="eTrees.numerator"
-								control={control}
-								defaultValue={0}
-								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
-							/>
-						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="eTrees.denominator"
-								control={control}
-								defaultValue={1}
-								render={({ field }) => <TextField {...field} label="Denominator" type="number" />}
-							/>
-						</Grid>
-						<Grid item xs={12}>
-							<Typography variant="body2" align="right">
-								{toDisplayAmount((eTreesRateNumeratorWatch || "0").toString(), eTreesMetadata?.decimals || 0)}{" "}
-								{eTreesMetadata?.symbol || "E-Trees"} per{" "}
-								{toDisplayAmount((eTreesRateDenominatorWatch || "1").toString(), projectTokenContract?.decimals || 0)}{" "}
-								{projectTokenContract?.symbol || "Project"} Tokens
-							</Typography>
-						</Grid>
-					</Grid>
-				</Box>
-				<Box mb={2}>
-					<Typography variant="h6" mb={1}>
-						{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro Interest
-					</Typography>
-					<Grid container spacing={2} alignItems="center">
-						<Grid item xs={2}>
-							<Controller
-								name="euroIntrest.added"
-								control={control}
-								defaultValue={false}
-								render={({ field }) => (
-									<FormControlLabel control={<Checkbox {...field} checked={field.value} />} label="Added" />
-								)}
-							/>
-						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="euroIntrest.numerator"
-								control={control}
-								defaultValue={0}
-								render={({ field }) => <TextField {...field} label="Numerator" type="number" />}
-							/>
-						</Grid>
-						<Grid item xs={5}>
-							<Controller
-								name="euroIntrest.denominator"
-								control={control}
-								defaultValue={1}
-								render={({ field }) => <TextField {...field} label="Denominator" type="number" />}
-							/>
-						</Grid>
-						<Grid item xs={12}>
-							<Typography variant="body2" align="right">
-								{toDisplayAmount((euroIntrestRateNumeratorWatch || "0").toString(), euroeMetdata?.decimals || 6)}{" "}
-								{euroeMetdata?.symbol || "Euro"} per{" "}
-								{toDisplayAmount((euroIntrestRateDenominatorWatch || "1").toString(), projectTokenContract?.decimals || 0)}{" "}
-								{projectTokenContract?.symbol || "Project"} Tokens per token version
-							</Typography>
-						</Grid>
-					</Grid>
-				</Box>
-				<TransactionButton
-					variant="contained"
-					type="submit"
-					txnStatus={txnStatus}
-					defaultText="Add Yield"
-					loadingText="Adding Yield..."
-					fullWidth
-				/>
 			</form>
-		</div>
+		</Box>
 	);
 }

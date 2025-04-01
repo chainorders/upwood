@@ -12,7 +12,6 @@ import {
 	AccordionSummary,
 	AccordionDetails,
 	Typography,
-	Box,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";

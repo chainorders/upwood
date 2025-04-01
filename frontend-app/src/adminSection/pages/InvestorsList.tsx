@@ -26,9 +26,19 @@ import {
 	InputLabel,
 	TablePagination,
 	Link as MuiLink,
+	Chip,
+	Tooltip,
+	Divider,
+	CircularProgress,
 } from "@mui/material";
 import { toDisplayAmount } from "../../lib/conversions";
 import { Link } from "react-router";
+import SearchIcon from "@mui/icons-material/Search";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import PersonIcon from "@mui/icons-material/Person";
+import useCommonStyles from "../../theme/useCommonStyles";
 
 type FilterFormValues = {
 	projectId: string;
@@ -37,10 +47,12 @@ type FilterFormValues = {
 };
 
 export default function InvestorsList() {
+	const classes = useCommonStyles();
 	const [projects, setProjects] = useState<ForestProject[]>([]);
 	const [filters, setFilters] = useSearchParams();
 	const [pageSize, setPageSize] = useState<number>(20);
 	const [page, setPage] = useState<number>(0);
+	const [loading, setLoading] = useState<boolean>(false);
 	const [investors, setInvestors] = useState<PagedResponse_ForestProjectFundInvestor>({
 		data: [],
 		page,
@@ -60,13 +72,22 @@ export default function InvestorsList() {
 	}, []);
 
 	useEffect(() => {
+		setLoading(true);
 		ForestProjectService.getAdminForestProjectsFundInvestorList(
 			page,
 			filters.get("projectId") || undefined,
 			filters.get("investmentTokenId") || undefined,
 			filters.get("investmentTokenContract") || undefined,
 			pageSize,
-		).then(setInvestors);
+		)
+			.then((data) => {
+				setInvestors(data);
+				setLoading(false);
+			})
+			.catch((error) => {
+				console.error("Failed to fetch investors:", error);
+				setLoading(false);
+			});
 	}, [filters, page, pageSize]);
 
 	const onSubmitFilters = (data: FilterFormValues) => {
@@ -78,8 +99,8 @@ export default function InvestorsList() {
 		setPage(0);
 	};
 
-	const handlePageChange = (event: unknown, newPage: number) => {
-		setPage(newPage); // TablePagination is zero-indexed, but our API is 1-indexed
+	const handlePageChange = (_event: unknown, newPage: number) => {
+		setPage(newPage);
 	};
 
 	const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,14 +113,44 @@ export default function InvestorsList() {
 		reset();
 	};
 
+	// Helper function to get contract type chip
+	const getFundTypeChip = (type: string) => {
+		let color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" = "default";
+
+		switch (type) {
+			case SecurityTokenContractType.PROPERTY:
+				color = "success";
+				break;
+			case SecurityTokenContractType.BOND:
+				color = "info";
+				break;
+			case SecurityTokenContractType.PROPERTY_PRE_SALE:
+				color = "warning";
+				break;
+			case SecurityTokenContractType.BOND_PRE_SALE:
+				color = "secondary";
+				break;
+			default:
+				color = "default";
+		}
+
+		return <Chip label={type} size="small" color={color} />;
+	};
+
 	return (
-		<Box sx={{ p: 3 }}>
-			<Typography variant="h4" component="h1" gutterBottom>
-				Fund Investors
+		<Box>
+			<Typography variant="h4" component="h1" gutterBottom sx={classes.detailsTitle}>
+				<AccountBalanceIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+				Fund Investors Management
 			</Typography>
 
-			<Paper sx={{ p: 2, mb: 3 }}>
+			<Paper sx={classes.filterFormSection}>
 				<form onSubmit={handleSubmit(onSubmitFilters)}>
+					<Typography variant="h6" mb={2}>
+						Filter Investors
+					</Typography>
+					<Divider sx={{ mb: 3 }} />
+
 					<Grid container spacing={2} alignItems="center">
 						<Grid item xs={12} sm={4}>
 							<FormControl fullWidth>
@@ -122,103 +173,139 @@ export default function InvestorsList() {
 								/>
 							</FormControl>
 						</Grid>
-						<Grid item xs={12} sm={3}>
+						<Grid item xs={12} sm={4}>
 							<Controller
 								name="investmentTokenId"
 								control={control}
-								render={({ field }) => <TextField {...field} label="Investment Token ID" type="number" fullWidth />}
+								render={({ field }) => <TextField {...field} label="Investment Token ID" fullWidth />}
 							/>
 						</Grid>
-						<Grid item xs={12} sm={3}>
+						<Grid item xs={12} sm={4}>
 							<Controller
 								name="investmentTokenContract"
 								control={control}
-								render={({ field }) => <TextField {...field} label="Investment Token Contract" type="number" fullWidth />}
+								render={({ field }) => <TextField {...field} label="Investment Token Contract" fullWidth />}
 							/>
 						</Grid>
-						<Grid item xs={12} sm={2}>
-							<Box sx={{ display: "flex", gap: 1 }}>
-								<Button variant="contained" type="submit">
-									Filter
-								</Button>
-								<Button variant="outlined" onClick={handleClearFilters}>
-									Clear
-								</Button>
-							</Box>
+						<Grid item xs={12}>
+							<Divider sx={{ my: 1 }} />
+						</Grid>
+						<Grid item xs={12} display="flex" justifyContent="flex-end" gap={2}>
+							<Button variant="outlined" color="secondary" onClick={handleClearFilters} startIcon={<RestartAltIcon />}>
+								Clear Filters
+							</Button>
+							<Button type="submit" variant="contained" color="primary" startIcon={<SearchIcon />}>
+								Search
+							</Button>
 						</Grid>
 					</Grid>
 				</form>
 			</Paper>
 
-			<TableContainer component={Paper}>
-				<Table aria-label="investors table">
-					<TableHead>
-						<TableRow>
-							<TableCell>Account</TableCell>
-							<TableCell>Email</TableCell>
-							<TableCell>Project</TableCell>
-							<TableCell>Contract</TableCell>
-							<TableCell>ID</TableCell>
-							<TableCell>Token Amount</TableCell>
-							<TableCell>Token Amount Total</TableCell>
-							<TableCell>Currency Amount</TableCell>
-							<TableCell>Currency Amount Total</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{investors.data.length > 0 ? (
-							investors.data.map((investor, index) => (
-								<TableRow key={index}>
-									<TableCell>{investor.investor.investor}</TableCell>
-									<TableCell title={investor.cognito_user_id}>{investor.email}</TableCell>
-									<TableCell title={investor.forest_project_id}>
-										<MuiLink component={Link} to={`/admin/projects/${investor.forest_project_id}/details`}>
-											{investor.forest_project_name}
-										</MuiLink>
-									</TableCell>
-									<TableCell>
-										<MuiLink
-											component={Link}
-											to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investor.investment_token_contract_address}/details`}
-										>
-											{investor.investor.investment_token_contract_address.substring(0, 8)}...
-										</MuiLink>{" "}
-										({investor.fund_type})
-									</TableCell>
-									<TableCell>
-										{investor.investor.investment_token_id && (
-											<MuiLink
-												component={Link}
-												to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investor.investment_token_contract_address}/token/${investor.investor.investment_token_id}/details`}
-											>
-												{investor.investor.investment_token_id}
-											</MuiLink>
-										)}
-									</TableCell>
-									<TableCell>{investor.investor.token_amount}</TableCell>
-									<TableCell>{investor.investor.token_amount_total}</TableCell>
-									<TableCell>{toDisplayAmount(investor.investor.currency_amount, 6, 2)}</TableCell>
-									<TableCell>{toDisplayAmount(investor.investor.currency_amount_total, 6, 2)}</TableCell>
+			<TableContainer component={Paper} sx={classes.tableContainer}>
+				{loading ? (
+					<Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+						<CircularProgress />
+					</Box>
+				) : (
+					<>
+						<Table aria-label="investors table">
+							<TableHead>
+								<TableRow>
+									<TableCell sx={classes.tableHeaderCell}>Account</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Email</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Project</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Contract</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Fund Type</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>ID</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Token Amount</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Token Total</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Currency Amount</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Currency Total</TableCell>
+									<TableCell sx={classes.tableHeaderCell}>Actions</TableCell>
 								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell colSpan={9} align="center">
-									No investors found
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
-				<TablePagination
-					component="div"
-					count={investors.page_count * pageSize} // Approximate total count
-					page={page} // TablePagination is zero-indexed, but our API is 1-indexed
-					onPageChange={handlePageChange}
-					rowsPerPage={pageSize}
-					onRowsPerPageChange={handleRowsPerPageChange}
-					rowsPerPageOptions={[10, 20, 50, 100]}
-				/>
+							</TableHead>
+							<TableBody>
+								{investors.data.length > 0 ? (
+									investors.data.map((investor, index) => (
+										<TableRow key={index} sx={classes.tableRow}>
+											<TableCell>
+												<Tooltip title={investor.investor.investor}>
+													<Typography noWrap sx={{ maxWidth: 150, display: "flex", alignItems: "center" }}>
+														<PersonIcon fontSize="small" sx={{ mr: 0.5, opacity: 0.7 }} />
+														{investor.investor.investor.substring(0, 10)}...
+													</Typography>
+												</Tooltip>
+											</TableCell>
+											<TableCell>
+												<Tooltip title={investor.cognito_user_id || ""}>
+													<span>{investor.email}</span>
+												</Tooltip>
+											</TableCell>
+											<TableCell>
+												<MuiLink component={Link} to={`/admin/projects/${investor.forest_project_id}/details`}>
+													{investor.forest_project_name}
+												</MuiLink>
+											</TableCell>
+											<TableCell>
+												<MuiLink
+													component={Link}
+													to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investor.investment_token_contract_address}/details`}
+												>
+													{investor.investor.investment_token_contract_address}
+												</MuiLink>
+											</TableCell>
+											<TableCell>{getFundTypeChip(investor.fund_type)}</TableCell>
+											<TableCell>
+												{investor.investor.investment_token_id && (
+													<MuiLink
+														component={Link}
+														to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investor.investment_token_contract_address}/token/${investor.investor.investment_token_id}/details`}
+													>
+														{investor.investor.investment_token_id}
+													</MuiLink>
+												)}
+											</TableCell>
+											<TableCell>{investor.investor.token_amount}</TableCell>
+											<TableCell>{investor.investor.token_amount_total}</TableCell>
+											<TableCell>{toDisplayAmount(investor.investor.currency_amount, 6, 6)}</TableCell>
+											<TableCell>{toDisplayAmount(investor.investor.currency_amount_total, 6, 6)}</TableCell>
+											<TableCell>
+												<Button
+													component={Link}
+													to={`/admin/fund/investment-records?investment_token_contract=${investor.investor.investment_token_contract_address}&investment_token_id=${investor.investor.investment_token_id || ""}&investor=${investor.investor.investor}`}
+													size="small"
+													variant="outlined"
+													color="primary"
+													startIcon={<VisibilityIcon fontSize="small" />}
+												>
+													Records
+												</Button>
+											</TableCell>
+										</TableRow>
+									))
+								) : (
+									<TableRow>
+										<TableCell colSpan={10} align="center">
+											<Typography variant="body1" sx={{ py: 4 }}>
+												No investors found
+											</Typography>
+										</TableCell>
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
+						<TablePagination
+							component="div"
+							count={investors.page_count * pageSize}
+							page={page}
+							onPageChange={handlePageChange}
+							rowsPerPage={pageSize}
+							onRowsPerPageChange={handleRowsPerPageChange}
+							rowsPerPageOptions={[10, 20, 50, 100]}
+						/>
+					</>
+				)}
 			</TableContainer>
 		</Box>
 	);

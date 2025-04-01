@@ -5,6 +5,7 @@
 import type { Agent } from "../models/Agent";
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
+import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { PagedResponse_TokenHolderBalanceUpdate } from "../models/PagedResponse_TokenHolderBalanceUpdate";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
@@ -139,16 +140,47 @@ export class IndexerService {
 	}
 
 	/**
-	 * @param contractAddress
+	 * @param investmentTokenContractAddress
 	 * @returns SecurityMintFund
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2FundList(contractAddress: string): CancelablePromise<Array<SecurityMintFund>> {
+	public static getAdminIndexerCis2FundList(
+		investmentTokenContractAddress: string,
+	): CancelablePromise<Array<SecurityMintFund>> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/fund/list",
-			path: {
-				contract_address: contractAddress,
+			url: "/admin/indexer/cis2/fund/list",
+			query: {
+				investment_token_contract_address: investmentTokenContractAddress,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param investmentTokenContract
+	 * @param investmentTokenId
+	 * @param investor
+	 * @param pageSize
+	 * @returns PagedResponse_InvestmentRecord
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2FundInvestmentRecordsList(
+		page: number,
+		investmentTokenContract?: string,
+		investmentTokenId?: string,
+		investor?: string,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_InvestmentRecord> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/fund/investment-records/list",
+			query: {
+				investment_token_contract: investmentTokenContract,
+				investment_token_id: investmentTokenId,
+				investor: investor,
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

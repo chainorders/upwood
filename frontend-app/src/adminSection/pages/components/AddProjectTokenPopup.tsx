@@ -4,10 +4,10 @@ import { ForestProjectTokenContract, Token } from "../../../apiClient";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
 import { toTokenId } from "../../../lib/conversions";
 import { useState } from "react";
-import Typography from "@mui/material/Typography";
 import { useForm } from "react-hook-form";
-import { Box, TextField } from "@mui/material";
+import { Box, TextField, Grid } from "@mui/material";
 import TransactionButton from "../../../components/TransactionButton";
+import useCommonStyles from "../../../theme/useCommonStyles";
 
 interface AddProjectTokenPopupProps {
 	token_contract: ForestProjectTokenContract;
@@ -17,6 +17,7 @@ interface AddProjectTokenPopupProps {
 }
 
 export function AddProjectTokenPopup({ token_contract, token_id, onDone, user }: AddProjectTokenPopupProps) {
+	const styles = useCommonStyles();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [tokenIdHex, setTokenIdHex] = useState<string>(toTokenId(BigInt(token_id || ""), 8));
 	const {
@@ -62,48 +63,83 @@ export function AddProjectTokenPopup({ token_contract, token_id, onDone, user }:
 	};
 
 	return (
-		<Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-			<Typography variant="h4" gutterBottom>
-				Create Token
-			</Typography>
-			<TextField
-				label="Token Id"
-				{...register("token_id", { required: true, valueAsNumber: true })}
-				onChange={onTokenIdChange}
-				error={!!errors.token_id}
-				helperText={errors.token_id ? "This field is required" : ""}
-				type="number"
-			/>
-			<TextField
-				label="Token Id Hex"
-				value={tokenIdHex}
-				InputProps={{
-					readOnly: true,
-				}}
-			/>
-			<TextField
-				label="Metadata Url"
-				{...register("metadata_url", { required: true })}
-				error={!!errors.metadata_url}
-				helperText={errors.metadata_url ? "This field is required" : ""}
-			/>
-			<TextField
-				label="Metadata Hash"
-				{...register("metadata_hash")}
-				error={!!errors.metadata_hash}
-				helperText={errors.metadata_hash ? "This field is required" : ""}
-				InputProps={{
-					readOnly: true,
-				}}
-				InputLabelProps={{ shrink: true }}
-			/>
-			<TransactionButton
-				type="submit"
-				txnStatus={txnStatus}
-				defaultText="Create Token"
-				loadingText="Creating..."
-				variant="contained"
-			/>
+		<Box sx={styles.dialogFormContainer}>
+			<form onSubmit={handleSubmit(onSubmit)}>
+				<Box sx={styles.dialogFormSection}>
+					<Grid container spacing={2}>
+						<Grid item xs={12}>
+							<Box sx={styles.dialogFormField}>
+								<TextField
+									label="Token Id"
+									{...register("token_id", { required: true, valueAsNumber: true })}
+									onChange={onTokenIdChange}
+									error={!!errors.token_id}
+									helperText={errors.token_id ? "This field is required" : ""}
+									type="number"
+									fullWidth
+									variant="outlined"
+									size="small"
+								/>
+							</Box>
+						</Grid>
+						<Grid item xs={12}>
+							<Box sx={styles.dialogFormField}>
+								<TextField
+									label="Token Id Hex"
+									value={tokenIdHex}
+									InputProps={{
+										readOnly: true,
+									}}
+									fullWidth
+									variant="outlined"
+									size="small"
+								/>
+							</Box>
+						</Grid>
+						<Grid item xs={12}>
+							<Box sx={styles.dialogFormField}>
+								<TextField
+									label="Metadata Url"
+									{...register("metadata_url", { required: true })}
+									error={!!errors.metadata_url}
+									helperText={errors.metadata_url ? "This field is required" : ""}
+									fullWidth
+									variant="outlined"
+									size="small"
+								/>
+							</Box>
+						</Grid>
+						<Grid item xs={12}>
+							<Box sx={styles.dialogFormField}>
+								<TextField
+									label="Metadata Hash"
+									{...register("metadata_hash")}
+									error={!!errors.metadata_hash}
+									helperText={errors.metadata_hash ? "This field is required" : ""}
+									InputProps={{
+										readOnly: true,
+									}}
+									InputLabelProps={{ shrink: true }}
+									fullWidth
+									variant="outlined"
+									size="small"
+								/>
+							</Box>
+						</Grid>
+					</Grid>
+				</Box>
+				<Box sx={styles.dialogFormActions}>
+					<TransactionButton
+						type="submit"
+						txnStatus={txnStatus}
+						defaultText="Create Token"
+						loadingText="Creating..."
+						variant="contained"
+						fullWidth
+						sx={styles.formSubmitButton}
+					/>
+				</Box>
+			</form>
 		</Box>
 	);
 }

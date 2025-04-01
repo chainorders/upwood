@@ -45,7 +45,6 @@ export default function FundInvest({
 	tokenContract,
 	currencyMetadata,
 	project,
-	supply,
 	legalContractSigned,
 }: BuyShareProps) {
 	const handleKeyDown = useCallback(
@@ -73,14 +72,14 @@ export default function FundInvest({
 	const [price, setPrice] = useState<bigint>(BigInt(0));
 	const [totalPayment, setTotalPayment] = useState(BigInt(0));
 	const [euroeBalance, setEuroeBalance] = useState(BigInt(0));
-	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
+	const [_txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isInvesting, setIsInvesting] = useState(false);
 
 	const {
 		control,
 		handleSubmit,
-		formState: { errors, isValid },
+		formState: { errors },
 		setError,
 		setValue,
 		clearErrors,

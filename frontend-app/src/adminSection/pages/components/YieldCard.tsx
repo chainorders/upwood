@@ -1,5 +1,5 @@
 import { SystemContractsConfigApiModel, Yield } from "../../../apiClient";
-import { Paper, Typography, Alert } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
 
 export default function YieldCard({ yield_, contracts }: { yield_: Yield; contracts: SystemContractsConfigApiModel }) {
 	return (

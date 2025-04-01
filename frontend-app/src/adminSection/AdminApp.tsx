@@ -10,6 +10,9 @@ import {
 	ListItemText,
 	ListItemIcon,
 	IconButton,
+	useTheme,
+	alpha,
+	Divider,
 } from "@mui/material";
 import { User } from "../lib/user.ts";
 import ProjectIcon from "@mui/icons-material/Folder";
@@ -34,6 +37,7 @@ import InvestorsList from "./pages/InvestorsList.tsx";
 import TradersList from "./pages/TradersList.tsx";
 import TokenHoldersList from "./pages/TokenHoldersList.tsx";
 import TokenHolderBalanceUpdateList from "./pages/TokenHolderBalanceUpdateList.tsx";
+import InvestmentRecordsList from "./pages/InvestmentRecordsList.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -51,6 +55,7 @@ const GuideList = lazy(() => import("./pages/GuideList.tsx"));
 const QuestionsList = lazy(() => import("./pages/QuestionsList.tsx"));
 
 function UserAvatar({ user }: { user: User }) {
+	const theme = useTheme();
 	return (
 		<Box display="flex" alignItems="center">
 			<Box
@@ -58,17 +63,19 @@ function UserAvatar({ user }: { user: User }) {
 					width: 40,
 					height: 40,
 					borderRadius: "50%",
-					backgroundColor: "primary.main",
+					background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
 					color: "white",
-					marginRight: 1,
+					marginRight: 1.5,
+					boxShadow: "0 3px 5px rgba(0,0,0,0.2)",
+					fontWeight: "bold",
 				}}
 			>
 				{user.initialis}
 			</Box>
-			<Typography>{user.fullName}</Typography>
+			<Typography fontWeight="500">{user.fullName}</Typography>
 		</Box>
 	);
 }
@@ -76,6 +83,8 @@ function UserAvatar({ user }: { user: User }) {
 export default function AdminApp({ user, logout }: { user?: User; logout: () => void }) {
 	const location = useLocation();
 	const pathname = location.pathname;
+	const theme = useTheme();
+
 	const navItems = [
 		{
 			name: "Projects",
@@ -85,15 +94,15 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 		},
 		{
 			name: "Fund Investors",
-			url: "/admin/investors",
+			url: "/admin/fund/investors",
 			icon: <CurrencyExchangeIcon />,
-			isActive: pathname.startsWith("/admin/investors"),
+			isActive: pathname.startsWith("/admin/fund"),
 		},
 		{
 			name: "Market Traders",
-			url: "/admin/traders",
+			url: "/admin/market/traders",
 			icon: <StoreIcon />,
-			isActive: pathname.startsWith("/admin/traders"),
+			isActive: pathname.startsWith("/admin/market"),
 		},
 		{
 			name: "Project Token Holders",
@@ -153,13 +162,39 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 
 	return user && user.isAdmin ? (
 		<Box sx={{ display: "flex" }}>
-			<AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+			<AppBar
+				position="fixed"
+				elevation={3}
+				sx={{
+					zIndex: (theme) => theme.zIndex.drawer + 1,
+					background: `linear-gradient(90deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+				}}
+			>
 				<Toolbar>
-					<IconButton edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
-						<img src={logoImage} alt="Website Logo" style={{ width: 40, height: 40, display: "block" }} />
+					<IconButton
+						edge="start"
+						color="inherit"
+						aria-label="menu"
+						sx={{
+							mr: 2,
+							background: alpha(theme.palette.common.white, 0.1),
+							borderRadius: 1,
+							"&:hover": {
+								background: alpha(theme.palette.common.white, 0.2),
+							},
+						}}
+					>
+						<img src={logoImage} alt="Website Logo" style={{ width: 36, height: 36, display: "block" }} />
 					</IconButton>
-					<Typography variant="h6" sx={{ flexGrow: 1 }}>
-						Admin
+					<Typography
+						variant="h6"
+						sx={{
+							flexGrow: 1,
+							fontWeight: 600,
+							letterSpacing: "0.5px",
+						}}
+					>
+						Admin Dashboard
 					</Typography>
 					<UserAvatar user={user} />
 				</Toolbar>
@@ -167,31 +202,100 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			<Drawer
 				variant="permanent"
 				sx={{
-					width: 240,
+					width: 260,
 					flexShrink: 0,
-					[`& .MuiDrawer-paper`]: { width: 240, boxSizing: "border-box" },
+					[`& .MuiDrawer-paper`]: {
+						width: 260,
+						boxSizing: "border-box",
+						boxShadow: "2px 0 10px rgba(0,0,0,0.05)",
+						borderRight: `1px solid ${theme.palette.divider}`,
+					},
 				}}
 			>
 				<Toolbar />
-				<Box sx={{ overflow: "auto" }}>
-					<List>
+				<Box sx={{ overflow: "auto", py: 2 }}>
+					<List sx={{ px: 1 }}>
 						{navItems.map((item) => (
-							<ListItem button key={item.url} component={Link} to={item.url} selected={item.isActive}>
-								<ListItemIcon>{item.icon}</ListItemIcon>
-								<ListItemText primary={item.name} />
+							<ListItem
+								button
+								key={item.url}
+								component={Link}
+								to={item.url}
+								selected={item.isActive}
+								sx={{
+									borderRadius: 1,
+									mb: 0.5,
+									position: "relative",
+									transition: "all 0.2s",
+									"&.Mui-selected": {
+										bgcolor: alpha(theme.palette.primary.main, 0.1),
+										color: theme.palette.primary.main,
+										"&::before": {
+											content: '""',
+											position: "absolute",
+											left: 0,
+											top: 0,
+											bottom: 0,
+											width: "4px",
+											bgcolor: theme.palette.primary.main,
+											borderRadius: "0 4px 4px 0",
+										},
+										"& .MuiListItemIcon-root": {
+											color: theme.palette.primary.main,
+										},
+									},
+									"&:hover": {
+										bgcolor: alpha(theme.palette.primary.main, 0.05),
+									},
+								}}
+							>
+								<ListItemIcon
+									sx={{
+										minWidth: 40,
+										color: item.isActive ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.7),
+									}}
+								>
+									{item.icon}
+								</ListItemIcon>
+								<ListItemText
+									primary={item.name}
+									primaryTypographyProps={{
+										fontWeight: item.isActive ? 600 : 400,
+										fontSize: "0.9rem",
+									}}
+								/>
 							</ListItem>
 						))}
-						<Box sx={{ flexGrow: 1 }} />
-						<ListItem button onClick={logout}>
-							<ListItemIcon>
+						<Divider sx={{ my: 2 }} />
+						<ListItem
+							button
+							onClick={logout}
+							sx={{
+								borderRadius: 1,
+								mb: 0.5,
+								color: theme.palette.error.main,
+								"&:hover": {
+									bgcolor: alpha(theme.palette.error.main, 0.05),
+								},
+							}}
+						>
+							<ListItemIcon sx={{ minWidth: 40, color: theme.palette.error.main }}>
 								<LogoutIcon />
 							</ListItemIcon>
-							<ListItemText primary="Logout" />
+							<ListItemText primary="Logout" primaryTypographyProps={{ fontWeight: 500, fontSize: "0.9rem" }} />
 						</ListItem>
 					</List>
 				</Box>
 			</Drawer>
-			<Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+			<Box
+				component="main"
+				sx={{
+					flexGrow: 1,
+					p: 3,
+					backgroundColor: alpha(theme.palette.background.default, 0.5),
+					minHeight: "100vh",
+				}}
+			>
 				<Toolbar />
 				<Suspense fallback={<div>Loading...</div>}>
 					<Routes>
@@ -223,8 +327,9 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 								</Route>
 							</Route>
 						</Route>
-						<Route path="investors" element={<InvestorsList />} />
-						<Route path="traders" element={<TradersList />} />
+						<Route path="fund/investors" element={<InvestorsList />} />
+						<Route path="fund/investment-records" element={<InvestmentRecordsList />} />
+						<Route path="market/traders" element={<TradersList />} />
 						<Route path="projects/token-holders" element={<TokenHoldersList />} />
 						<Route
 							path="projects/token-holders/balance-updates/:contract/:token_id/:holder"

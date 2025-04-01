@@ -21,10 +21,6 @@ interface EditCompanyProps {
 	company: Company;
 	onUpdated: (company: Company) => Promise<unknown>;
 }
-interface Member {
-	email: string;
-	status: string;
-}
 
 export default function EditCompany({ close = () => {}, filesBaseUrl, company, onUpdated }: EditCompanyProps) {
 	const handleKeyDown = useCallback(

@@ -16,10 +16,6 @@ import {
 	Typography,
 	Grid,
 	Paper,
-	List,
-	ListItem,
-	ListItemText,
-	ListItemIcon,
 	Table,
 	TableBody,
 	TableCell,
@@ -47,10 +43,15 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddMediaPopup from "./components/AddMediaPopup";
 import DeleteIcon from "@mui/icons-material/Delete"; // Add this import
 import { toDisplayAmount } from "../../lib/conversions";
+import HomeIcon from "@mui/icons-material/Home";
+import ForestIcon from "@mui/icons-material/Folder";
+import DescriptionIcon from "@mui/icons-material/Description";
+import useTheme from "@mui/material/styles/useTheme";
 
 export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string }) {
 	const { id } = useParams<{ id: string }>();
 	const location = useLocation();
+	const theme = useTheme();
 	const [project, setProject] = useState<ForestProject>(location.state?.project);
 	const [tokenContracts, setTokenContracts] = useState<ForestProjectTokenContract[]>([]);
 	const [prices, setPrices] = useState<PagedResponse_ForestProjectPrice>();
@@ -120,7 +121,7 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 		}
 	}, [legalContract?.text_url]);
 
-	const handleLegalContractAccordionChange = (event: React.SyntheticEvent, isExpanded: boolean) => {
+	const handleLegalContractAccordionChange = (_event: React.SyntheticEvent, isExpanded: boolean) => {
 		setLegalContractAccordionExpanded(isExpanded);
 		if (isExpanded && !legalContractHtml) {
 			fetchLegalContractHtml();
@@ -160,17 +161,37 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 
 	return (
 		<>
-			<Breadcrumbs aria-label="breadcrumb">
-				<Link to="/admin">Admin</Link>
-				<Link to="/admin/projects">Projects</Link>
-				<Link to={`/admin/projects/${id}/details`}>{project.name}</Link>
-				<Typography color="textPrimary">Details</Typography>
+			<Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+				<Link
+					to="/admin"
+					style={{ display: "flex", alignItems: "center", textDecoration: "none", color: theme.palette.text.secondary }}
+				>
+					<HomeIcon sx={{ mr: 0.5 }} fontSize="small" />
+					Admin
+				</Link>
+				<Link
+					to="/admin/projects"
+					style={{ display: "flex", alignItems: "center", textDecoration: "none", color: theme.palette.text.secondary }}
+				>
+					<ForestIcon sx={{ mr: 0.5 }} fontSize="small" />
+					Projects
+				</Link>
+				<Link
+					to={`/admin/projects/${id}/details`}
+					style={{ display: "flex", alignItems: "center", textDecoration: "none", color: theme.palette.text.secondary }}
+				>
+					{project.name}
+				</Link>
+				<Typography color="text.primary" sx={{ display: "flex", alignItems: "center" }}>
+					<DescriptionIcon sx={{ mr: 0.5 }} fontSize="small" />
+					Details
+				</Typography>
 			</Breadcrumbs>
 			<Box sx={{ flexGrow: 1, padding: 2 }}>
 				<Grid container spacing={2}>
 					{/* Change md={8} to md={12} to take full width */}
 					<Grid item xs={12} md={12}>
-						<Paper sx={{ padding: 2 }}>
+						<Paper sx={{ padding: 2 }} id="project-db-details">
 							<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
 								<Typography variant="h4" gutterBottom>
 									{project.name}

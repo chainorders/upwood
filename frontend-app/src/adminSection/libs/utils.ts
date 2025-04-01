@@ -2,7 +2,7 @@ import { FilesService } from "../../apiClient";
 import { Buffer } from "buffer/";
 import { TokenMetadata } from "./types";
 
-export const adminUploadImage = async (fileBaseUrl: string, field: string, imageData?: string): Promise<string> => {
+export const adminUploadImage = async (fileBaseUrl: string, _field: string, imageData?: string): Promise<string> => {
 	if (!imageData) {
 		return Promise.resolve("");
 	}
@@ -20,7 +20,7 @@ export const adminUploadImage = async (fileBaseUrl: string, field: string, image
 	});
 };
 
-export const adminUploadJson = async (fileBaseUrl: string, field: string, jsonData?: string): Promise<string> => {
+export const adminUploadJson = async (fileBaseUrl: string, _field: string, jsonData?: string): Promise<string> => {
 	if (!jsonData) {
 		return Promise.resolve("");
 	}

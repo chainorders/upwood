@@ -1,4 +1,6 @@
-import { createRoot } from "react-dom/client";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router";
 import "./styles/index.css";
 import "./styles/grid.css";
 import "./styles/globals.css";
@@ -19,10 +21,11 @@ import "./styles/responsive.css";
 import "./styles/button.css";
 
 import App from "./App";
-import { BrowserRouter } from "react-router";
 
-createRoot(document.getElementById("root")!).render(
-	<BrowserRouter>
-		<App />
-	</BrowserRouter>,
+ReactDOM.createRoot(document.getElementById("root")!).render(
+	<React.StrictMode>
+		<BrowserRouter>
+			<App />
+		</BrowserRouter>
+	</React.StrictMode>,
 );

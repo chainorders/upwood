@@ -28,7 +28,7 @@ const UserList = ({ user }: { user: User }) => {
 	const navigate = useNavigate();
 	const [registerIdentityTxnStatus, setRegisterIdentityTxnStatus] = useState<Record<string, TxnStatus>>({});
 	const [deleteIdentityTxnStatus, setRemoveIdentityTxnStatus] = useState<Record<string, TxnStatus>>({});
-	const [refreshCounter, setRefreshCounter] = useState(0);
+	const [refreshCounter] = useState(0);
 
 	useEffect(() => {
 		UserService.getSystemConfig().then(setContracts);

@@ -1,5 +1,8 @@
-import { Alert, Grid, Typography } from "@mui/material";
+import { Alert, Box, Grid, IconButton, Paper, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { ForestProjectTokenContract, Token } from "../../../apiClient";
 import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
@@ -7,15 +10,19 @@ import { useState } from "react";
 import { User } from "../../../lib/user";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
 import { toTokenId } from "../../../lib/conversions";
+import useCommonStyles from "../../../theme/useCommonStyles";
+import DetailRow from "./DetailRow";
 
 interface TokenDetailsProps {
 	user: User;
 	token: Token;
 	tokenContract?: ForestProjectTokenContract;
 	onDeleteToken: () => void;
+	onRefresh?: () => void;
 }
 
-export default function TokenDetails({ user, token, tokenContract, onDeleteToken }: TokenDetailsProps) {
+export default function TokenDetails({ user, token, tokenContract, onDeleteToken, onRefresh }: TokenDetailsProps) {
+	const classes = useCommonStyles();
 	const [deleteTxnStatus, setDeleteTxnStatus] = useState<TxnStatus>("none");
 	const [unpauseTxnStatus, setUnpauseTxnStatus] = useState<TxnStatus>("none");
 	const [pauseTxnStatus, setPauseTxnStatus] = useState<TxnStatus>("none");
@@ -34,6 +41,7 @@ export default function TokenDetails({ user, token, tokenContract, onDeleteToken
 			setUnpauseTxnStatus("success");
 			alert("Unpause successfully");
 			token.is_paused = false;
+			if (onRefresh) onRefresh();
 		} catch (e) {
 			console.error(e);
 			setUnpauseTxnStatus("error");
@@ -55,6 +63,7 @@ export default function TokenDetails({ user, token, tokenContract, onDeleteToken
 			setPauseTxnStatus("success");
 			alert("Pause successfully");
 			token.is_paused = true;
+			if (onRefresh) onRefresh();
 		} catch (e) {
 			console.error(e);
 			setPauseTxnStatus("error");
@@ -82,52 +91,86 @@ export default function TokenDetails({ user, token, tokenContract, onDeleteToken
 	};
 
 	return (
-		<Grid container>
-			<Grid item xs={12} md={6}>
-				<Typography variant="h6">Token Details ({tokenContract?.contract_type || "No Type"})</Typography>
-			</Grid>
-			<Grid item xs={12} md={6} style={{ display: "flex", justifyContent: "flex-end" }}>
-				<TransactionButton
-					variant="outlined"
-					color="error"
-					startIcon={<DeleteIcon />}
-					txnStatus={deleteTxnStatus}
-					defaultText="Delete"
-					loadingText="Deleting..."
-					onClick={deleteToken}
-				/>
-			</Grid>
-			<Grid item xs={12} md={6}>
-				<Typography>
-					<strong>Token Contract Address:</strong> {token.cis2_address}
+		<Paper sx={classes.detailsContainer}>
+			<Box sx={classes.detailsHeader}>
+				<Typography variant="h5" sx={classes.detailsTitle}>
+					Token Details {tokenContract?.contract_type && `(${tokenContract.contract_type})`}
 				</Typography>
-				<Typography>
-					<strong>Token Contract Type:</strong> {tokenContract?.contract_type}
-				</Typography>
-				<Typography>
-					<strong>Symbol:</strong> {tokenContract?.symbol || "N/A"}
-				</Typography>
-				<Typography>
-					<strong>Decimals:</strong> {tokenContract?.decimals !== undefined ? tokenContract.decimals : "N/A"}
-				</Typography>
-				<Typography>
-					<strong>Token ID:</strong> {token.token_id} ({toTokenId(BigInt(token.token_id), 8)})
-				</Typography>
-				<Typography>
-					<strong>Metadata URL:</strong> {token.metadata_url}
-				</Typography>
-				<Typography>
-					<strong>Is Paused:</strong> {token.is_paused ? "Yes" : "No"}
-				</Typography>
-				<Typography>
-					<strong>Supply:</strong> {token.supply}
-				</Typography>
-			</Grid>
-			<Grid item xs={12} md={6}>
-				<Grid container spacing={2} direction={"row-reverse"}>
-					<Grid item xs={12} md={12} lg={6}>
-						{token.is_paused && (
-							<Alert severity="warning" style={{ marginTop: "10px" }}>
+				<Box sx={classes.detailsActions}>
+					{!token.is_paused ? (
+						<TransactionButton
+							variant="outlined"
+							color="warning"
+							startIcon={<PauseIcon />}
+							txnStatus={pauseTxnStatus}
+							defaultText="Pause"
+							loadingText="Pausing..."
+							onClick={pauseToken}
+							sx={{ mx: 1 }}
+						/>
+					) : (
+						<TransactionButton
+							variant="outlined"
+							color="success"
+							startIcon={<PlayArrowIcon />}
+							txnStatus={unpauseTxnStatus}
+							defaultText="Unpause"
+							loadingText="Unpausing..."
+							onClick={unpauseToken}
+							sx={{ mx: 1 }}
+						/>
+					)}
+					<TransactionButton
+						variant="outlined"
+						color="error"
+						startIcon={<DeleteIcon />}
+						txnStatus={deleteTxnStatus}
+						defaultText="Delete"
+						loadingText="Deleting..."
+						onClick={deleteToken}
+						sx={{ mx: 1 }}
+					/>
+					{onRefresh && (
+						<IconButton onClick={onRefresh} color="primary">
+							<RefreshIcon />
+						</IconButton>
+					)}
+				</Box>
+			</Box>
+
+			<Grid container spacing={3} sx={classes.detailsGrid}>
+				<Grid item xs={12} md={6}>
+					<Box sx={classes.detailsSection}>
+						<Typography variant="h6" sx={classes.detailsSectionTitle}>
+							Basic Information
+						</Typography>
+
+						<DetailRow label="Token Contract Address" value={token.cis2_address} />
+						<DetailRow label="Token Contract Type" value={tokenContract?.contract_type || "N/A"} />
+						<DetailRow label="Symbol" value={tokenContract?.symbol || "N/A"} />
+						<DetailRow label="Decimals" value={tokenContract?.decimals !== undefined ? tokenContract.decimals : "N/A"} />
+						<DetailRow label="Token ID" value={`${token.token_id} (${toTokenId(BigInt(token.token_id), 8)})`} />
+					</Box>
+				</Grid>
+
+				<Grid item xs={12} md={6}>
+					<Box sx={classes.detailsSection}>
+						<Typography variant="h6" sx={classes.detailsSectionTitle}>
+							Additional Details
+						</Typography>
+
+						<DetailRow label="Metadata URL" value={token.metadata_url} />
+						<DetailRow label="Is Paused" value={token.is_paused ? "Yes" : "No"} />
+						<DetailRow label="Supply" value={token.supply} />
+					</Box>
+
+					<Box sx={classes.detailsSection}>
+						<Typography variant="h6" sx={classes.detailsSectionTitle}>
+							Token Status
+						</Typography>
+
+						{token.is_paused ? (
+							<Alert severity="warning" sx={classes.detailsAlert}>
 								<Typography>This token is paused. You cannot transfer or mint tokens until it is unpaused.</Typography>
 								<TransactionButton
 									variant="outlined"
@@ -136,12 +179,11 @@ export default function TokenDetails({ user, token, tokenContract, onDeleteToken
 									loadingText="Unpausing..."
 									onClick={unpauseToken}
 									txnStatus={unpauseTxnStatus}
-									style={{ marginTop: "10px" }}
+									sx={{ mt: 2 }}
 								/>
 							</Alert>
-						)}
-						{!token.is_paused && (
-							<Alert severity="success" style={{ marginTop: "10px" }}>
+						) : (
+							<Alert severity="success" sx={classes.detailsAlert}>
 								<Typography>This token is active. You can transfer and mint tokens.</Typography>
 								<TransactionButton
 									variant="outlined"
@@ -150,13 +192,13 @@ export default function TokenDetails({ user, token, tokenContract, onDeleteToken
 									loadingText="Pausing..."
 									onClick={pauseToken}
 									txnStatus={pauseTxnStatus}
-									style={{ marginTop: "10px" }}
+									sx={{ mt: 2 }}
 								/>
 							</Alert>
 						)}
-					</Grid>
+					</Box>
 				</Grid>
 			</Grid>
-		</Grid>
+		</Paper>
 	);
 }

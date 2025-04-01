@@ -5,7 +5,7 @@ use poem_openapi::OpenApi;
 use rust_decimal::Decimal;
 use shared::api::PagedResponse;
 use shared::db::cis2_security::{Agent, Token, TokenHolder, TokenHolderBalanceUpdate};
-use shared::db::security_mint_fund::SecurityMintFund;
+use shared::db::security_mint_fund::{InvestmentRecord, SecurityMintFund};
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::{Treasury, Yield};
 use shared::db::txn_listener::{ListenerBlock, ListenerContract};
@@ -160,7 +160,7 @@ impl Api {
     }
 
     #[oai(
-        path = "/admin/indexer/cis2/:contract_address/fund/list",
+        path = "/admin/indexer/cis2/fund/list",
         method = "get",
         tag = "ApiTags::Indexer"
     )]
@@ -169,18 +169,54 @@ impl Api {
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
-        Path(contract_address): Path<Decimal>,
+        Query(investment_token_contract_address): Query<Decimal>,
     ) -> JsonResult<Vec<SecurityMintFund>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let (funds, _) = SecurityMintFund::list(
+        let (funds, _) = SecurityMintFund::list_by_investment_contracts(
             &mut conn,
             contracts.mint_funds_contract_index,
-            Some(&[contract_address]),
+            Some(&[investment_token_contract_address]),
             0,
             i64::MAX,
         )?;
         Ok(Json(funds))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[oai(
+        path = "/admin/indexer/cis2/fund/investment-records/list",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2_fund_investment_records(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Query(investment_token_contract): Query<Option<Decimal>>,
+        Query(investment_token_id): Query<Option<Decimal>>,
+        Query(investor): Query<Option<String>>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<InvestmentRecord>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let (records, page_count) = InvestmentRecord::list(
+            &mut conn,
+            contracts.mint_funds_contract_index,
+            investment_token_contract,
+            investment_token_id,
+            investor.as_deref(),
+            page,
+            page_size,
+        )?;
+        Ok(Json(PagedResponse {
+            data: records,
+            page_count,
+            page,
+        }))
     }
 
     #[oai(

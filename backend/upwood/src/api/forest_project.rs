@@ -650,7 +650,7 @@ impl ForestProjectAggApiModel {
             .map(|contract| contract.contract_address)
             .collect::<Vec<_>>();
         info!("All Contracts Addresses: {:?}", project_contract_addresses);
-        let (funds, _) = SecurityMintFund::list(
+        let (funds, _) = SecurityMintFund::list_by_investment_contracts(
             conn,
             contracts.mint_funds_contract_index,
             Some(&project_contract_addresses),

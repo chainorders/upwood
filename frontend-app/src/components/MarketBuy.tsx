@@ -47,7 +47,6 @@ export default function MarketBuy({
 	tokenContract,
 	currencyMetadata,
 	project,
-	supply,
 	legalContractSigned,
 	userNotified,
 }: MarketBuyProps) {
@@ -74,10 +73,10 @@ export default function MarketBuy({
 
 	const [popupState, setPopupState] = useState<"buy" | "notify" | "bought">("buy");
 	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [totalPayment, setTotalPayment] = useState(BigInt(0));
+	const [_totalPayment, setTotalPayment] = useState(BigInt(0));
 	const [euroeBalanceBuyer, setEuroeBalanceBuyer] = useState(BigInt(0));
 	const [tokenBalanceSeller, setTokenBalanceSeller] = useState(BigInt(0));
-	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
+	const [_txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isUserNotified, setIsUserNotified] = useState(userNotified);
 	const [isBuying, setIsBuying] = useState(false);
@@ -85,7 +84,7 @@ export default function MarketBuy({
 	const {
 		control,
 		handleSubmit,
-		formState: { errors, isValid },
+		formState: { errors },
 		setError,
 		setValue,
 		clearErrors,

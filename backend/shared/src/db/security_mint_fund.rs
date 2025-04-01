@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::db_shared::{DbConn, DbResult};
+use crate::db_shared::DbConn;
 use crate::schema::{
     self, security_mint_fund_contracts, security_mint_fund_investment_records,
     security_mint_fund_investors, security_mint_funds,
@@ -53,7 +53,7 @@ pub struct SecurityMintFundContract {
 
 impl SecurityMintFundContract {
     #[instrument(skip_all)]
-    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+    pub fn insert(&self, conn: &mut DbConn) -> QueryResult<()> {
         diesel::insert_into(security_mint_fund_contracts::table)
             .values(self)
             .execute(conn)?;
@@ -61,38 +61,12 @@ impl SecurityMintFundContract {
     }
 
     #[instrument(skip_all)]
-    pub fn find(conn: &mut DbConn, contract_address: Decimal) -> DbResult<Option<Self>> {
+    pub fn find(conn: &mut DbConn, contract_address: Decimal) -> QueryResult<Option<Self>> {
         let contract = security_mint_fund_contracts::table
             .filter(security_mint_fund_contracts::contract_address.eq(contract_address))
             .first(conn)
             .optional()?;
         Ok(contract)
-    }
-
-    #[instrument(skip_all)]
-    pub fn update(&self, conn: &mut DbConn) -> DbResult<()> {
-        diesel::update(security_mint_fund_contracts::table)
-            .filter(security_mint_fund_contracts::contract_address.eq(self.contract_address))
-            .set(self)
-            .execute(conn)?;
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
-    pub fn delete(conn: &mut DbConn, contract_address: Decimal) -> DbResult<()> {
-        diesel::delete(security_mint_fund_contracts::table)
-            .filter(security_mint_fund_contracts::contract_address.eq(contract_address))
-            .execute(conn)?;
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
-    pub fn list_all(conn: &mut DbConn, limit: i64, offset: i64) -> DbResult<Vec<Self>> {
-        let contracts = security_mint_fund_contracts::table
-            .limit(limit)
-            .offset(offset)
-            .load(conn)?;
-        Ok(contracts)
     }
 }
 
@@ -137,13 +111,13 @@ pub struct SecurityMintFund {
 
 impl SecurityMintFund {
     #[instrument(skip_all)]
-    pub fn list(
+    pub fn list_by_investment_contracts(
         conn: &mut DbConn,
         contract_address: Decimal,
         investment_contracts: Option<&[Decimal]>,
         page: i64,
         page_size: i64,
-    ) -> DbResult<(Vec<Self>, i64)> {
+    ) -> QueryResult<(Vec<Self>, i64)> {
         let query = schema::security_mint_funds::table
             .filter(schema::security_mint_funds::contract_address.eq(contract_address))
             .into_boxed();
@@ -171,23 +145,7 @@ impl SecurityMintFund {
     }
 
     #[instrument(skip_all)]
-    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
-        let fund = diesel::insert_into(security_mint_funds::table)
-            .values(self)
-            .on_conflict((
-                security_mint_funds::contract_address,
-                security_mint_funds::investment_token_id,
-                security_mint_funds::investment_token_contract_address,
-            ))
-            .do_update()
-            .set(self)
-            .returning(Self::as_returning())
-            .get_result(conn)?;
-        Ok(fund)
-    }
-
-    #[instrument(skip_all)]
-    pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
+    pub fn insert(&self, conn: &mut DbConn) -> QueryResult<Self> {
         let fund = diesel::insert_into(security_mint_funds::table)
             .values(self)
             .returning(Self::as_returning())
@@ -201,7 +159,7 @@ impl SecurityMintFund {
         contract_address: Decimal,
         investment_token_id: Decimal,
         investment_token_contract_address: Decimal,
-    ) -> DbResult<Option<Self>> {
+    ) -> QueryResult<Option<Self>> {
         let fund = security_mint_funds::table
             .filter(security_mint_funds::contract_address.eq(contract_address))
             .filter(security_mint_funds::investment_token_id.eq(investment_token_id))
@@ -215,7 +173,7 @@ impl SecurityMintFund {
     }
 
     #[instrument(skip_all)]
-    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
+    pub fn update(&self, conn: &mut DbConn) -> QueryResult<Self> {
         let updated_fund = diesel::update(security_mint_funds::table)
             .filter(security_mint_funds::contract_address.eq(self.contract_address))
             .filter(security_mint_funds::investment_token_id.eq(self.investment_token_id))
@@ -235,7 +193,7 @@ impl SecurityMintFund {
         contract_address: Decimal,
         investment_token_id: Decimal,
         investment_token_contract_address: Decimal,
-    ) -> DbResult<()> {
+    ) -> QueryResult<()> {
         diesel::delete(security_mint_funds::table)
             .filter(security_mint_funds::contract_address.eq(contract_address))
             .filter(security_mint_funds::investment_token_id.eq(investment_token_id))
@@ -286,7 +244,7 @@ pub struct Investor {
 
 impl Investor {
     #[instrument(skip_all)]
-    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
+    pub fn upsert(&self, conn: &mut DbConn) -> QueryResult<Self> {
         let investor = diesel::insert_into(security_mint_fund_investors::table)
             .values(self)
             .on_conflict((
@@ -303,21 +261,13 @@ impl Investor {
     }
 
     #[instrument(skip_all)]
-    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
-        diesel::insert_into(security_mint_fund_investors::table)
-            .values(self)
-            .execute(conn)?;
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
     pub fn find(
         conn: &mut DbConn,
         contract_address: Decimal,
         security_token_id: Decimal,
         security_token_contract_address: Decimal,
         investor: &str,
-    ) -> DbResult<Option<Self>> {
+    ) -> QueryResult<Option<Self>> {
         let investor_record = security_mint_fund_investors::table
             .filter(security_mint_fund_investors::contract_address.eq(contract_address))
             .filter(security_mint_fund_investors::investment_token_id.eq(security_token_id))
@@ -332,7 +282,7 @@ impl Investor {
     }
 
     #[instrument(skip_all)]
-    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
+    pub fn update(&self, conn: &mut DbConn) -> QueryResult<Self> {
         let investor = diesel::update(security_mint_fund_investors::table)
             .filter(security_mint_fund_investors::contract_address.eq(self.contract_address))
             .filter(security_mint_fund_investors::investment_token_id.eq(self.investment_token_id))
@@ -345,20 +295,6 @@ impl Investor {
             .returning(Self::as_returning())
             .get_result(conn)?;
         Ok(investor)
-    }
-
-    #[instrument(skip_all)]
-    pub fn delete(&self, conn: &mut DbConn) -> DbResult<()> {
-        diesel::delete(security_mint_fund_investors::table)
-            .filter(security_mint_fund_investors::contract_address.eq(self.contract_address))
-            .filter(security_mint_fund_investors::investment_token_id.eq(self.investment_token_id))
-            .filter(
-                security_mint_fund_investors::investment_token_contract_address
-                    .eq(self.investment_token_contract_address),
-            )
-            .filter(security_mint_fund_investors::investor.eq(&self.investor))
-            .execute(conn)?;
-        Ok(())
     }
 }
 
@@ -396,27 +332,71 @@ pub struct InvestmentRecord {
 
 impl InvestmentRecord {
     #[instrument(skip_all, fields(investor = %self.investor))]
-    pub fn insert(&self, conn: &mut DbConn) -> DbResult<()> {
+    pub fn insert(&self, conn: &mut DbConn) -> QueryResult<()> {
         diesel::insert_into(security_mint_fund_investment_records::table)
             .values(self)
             .execute(conn)?;
         Ok(())
     }
 
-    pub fn last_before(
+    #[instrument(skip_all)]
+    pub fn list(
         conn: &mut DbConn,
-        contract: Decimal,
-        investor: &str,
-        create_time: NaiveDateTime,
-    ) -> DbResult<Option<Self>> {
-        let record = security_mint_fund_investment_records::table
-            .filter(security_mint_fund_investment_records::contract_address.eq(contract))
-            .filter(security_mint_fund_investment_records::investor.eq(investor))
-            .filter(security_mint_fund_investment_records::create_time.lt(create_time))
+        contract_address: Decimal,
+        investment_token_contract: Option<Decimal>,
+        investment_token_id: Option<Decimal>,
+        investor: Option<&str>,
+        page: i64,
+        page_size: i64,
+    ) -> QueryResult<(Vec<Self>, i64)> {
+        let query = security_mint_fund_investment_records::table
+            .filter(security_mint_fund_investment_records::contract_address.eq(contract_address))
+            .into_boxed();
+        let count_query = security_mint_fund_investment_records::table
+            .filter(security_mint_fund_investment_records::contract_address.eq(contract_address))
+            .into_boxed();
+        let (query, count_query) = match investment_token_id {
+            Some(investment_token_id) => (
+                query.filter(
+                    security_mint_fund_investment_records::investment_token_id
+                        .eq(investment_token_id),
+                ),
+                count_query.filter(
+                    security_mint_fund_investment_records::investment_token_id
+                        .eq(investment_token_id),
+                ),
+            ),
+            None => (query, count_query),
+        };
+        let (query, count_query) = match investment_token_contract {
+            Some(investment_token_contract_address) => (
+                query.filter(
+                    security_mint_fund_investment_records::investment_token_contract_address
+                        .eq(investment_token_contract_address),
+                ),
+                count_query.filter(
+                    security_mint_fund_investment_records::investment_token_contract_address
+                        .eq(investment_token_contract_address),
+                ),
+            ),
+            None => (query, count_query),
+        };
+        let (query, count_query) = match investor {
+            Some(investor) => (
+                query.filter(security_mint_fund_investment_records::investor.eq(investor)),
+                count_query.filter(security_mint_fund_investment_records::investor.eq(investor)),
+            ),
+            None => (query, count_query),
+        };
+
+        let total_count = count_query.count().get_result::<i64>(conn)?;
+        let investment_records = query
             .order_by(security_mint_fund_investment_records::create_time.desc())
-            .first(conn)
-            .optional()?;
-        Ok(record)
+            .limit(page_size)
+            .offset(page * page_size)
+            .load(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
+        Ok((investment_records, page_count))
     }
 }
 

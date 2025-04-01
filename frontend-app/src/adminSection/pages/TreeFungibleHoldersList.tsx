@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import {
 	Box,
-	Button,
 	Card,
 	CardContent,
 	CircularProgress,
@@ -85,7 +83,7 @@ export default function TreeFungibleHoldersList({ user }: { user: User }) {
 			});
 	}, [refreshCounter]);
 
-	const handleChangePage = (event: unknown, newPage: number) => {
+	const handleChangePage = (_event: unknown, newPage: number) => {
 		setPage(newPage - 1);
 	};
 

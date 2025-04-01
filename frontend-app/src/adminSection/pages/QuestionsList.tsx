@@ -20,8 +20,8 @@ import { UserCommunicationService } from "../../apiClient";
 
 export default function QuestionsList() {
 	const [questions, setQuestions] = useState<PagedResponse_SupportQuestion>();
-	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(10);
+	const [page] = useState(0);
+	const [rowsPerPage] = useState(10);
 	const [selectedQuestion, setSelectedQuestion] = useState<SupportQuestion>();
 	const [open, setOpen] = useState(false);
 	const [refreshCounter, setRefreshCounter] = useState(0);

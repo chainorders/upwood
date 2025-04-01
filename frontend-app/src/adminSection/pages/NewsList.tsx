@@ -12,17 +12,14 @@ import {
 	Typography,
 	Pagination,
 } from "@mui/material";
-import { NewsArticle } from "../../apiClient/models/NewsArticle";
-import { useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { PagedResponse_NewsArticle, UserCommunicationService } from "../../apiClient";
 import AddNewsArticlePopup from "./components/AddNewsArticlePopup";
 
 export default function NewsList() {
-	const navigate = useNavigate();
 	const [articles, setArticles] = useState<PagedResponse_NewsArticle>();
 	const [articlesPage, setArticlesPage] = useState<number>(0);
-	const [articlesPerPage, setArticlesPerPage] = useState<number>(10);
+	const [articlesPerPage] = useState<number>(10);
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [open, setOpen] = useState(false);
 
@@ -106,7 +103,7 @@ export default function NewsList() {
 			<Pagination
 				count={articles?.page_count || 0}
 				page={(articles?.page || 0) + 1}
-				onChange={(e, page) => setArticlesPage(page - 1)}
+				onChange={(_, page) => setArticlesPage(page - 1)}
 				style={{ marginTop: 20, display: "flex", justifyContent: "center" }}
 			/>
 			<AddNewsArticlePopup open={open} onClose={handleClose} onRefresh={handleRefresh} />

@@ -15,10 +15,7 @@ import {
 	TableHead,
 	TableRow,
 	TablePagination,
-	List,
 	Alert,
-	ListItem,
-	ListItemText,
 	IconButton,
 	Icon,
 } from "@mui/material";
@@ -46,6 +43,8 @@ import securityMintFund from "../../../contractClients/generated/securityMintFun
 import { toTokenId } from "../../../lib/conversions";
 import { useForm } from "react-hook-form";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
+import useCommonStyles from "../../../theme/useCommonStyles";
+import DetailRow from "./DetailRow";
 
 interface FundDetailsProps {
 	fund: SecurityMintFund;
@@ -59,6 +58,7 @@ interface FundDetailsProps {
 }
 
 export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps) {
+	const classes = useCommonStyles();
 	const [fundTokenMetadata, setFundTokenMetadata] = useState<ForestProjectTokenContract>();
 	const [fundCurrencyMetadata, setFundCurrencyMetadata] = useState<TokenMetadata>();
 	const [deleteTxnStatus, setDeleteTxnStatus] = useState<TxnStatus>("none");
@@ -335,12 +335,12 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 
 	return (
 		<>
-			<Paper variant="outlined" sx={{ padding: 2, marginBottom: 2 }}>
-				<Grid container spacing={2}>
-					<Grid item xs={12} md={4}>
-						<Typography variant="h6">Fund Details</Typography>
-					</Grid>
-					<Grid item xs={12} md={8} justifyContent="flex-end" display="flex">
+			<Paper sx={classes.detailsContainer}>
+				<Box sx={classes.detailsHeader}>
+					<Typography variant="h5" sx={classes.detailsTitle}>
+						Fund Details
+					</Typography>
+					<Box sx={classes.detailsActions}>
 						<TransactionButton
 							variant="outlined"
 							color="warning"
@@ -350,6 +350,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 							loadingText="Marking Failed..."
 							onClick={markFailed}
 							disabled={!(fund.fund_state === SecurityMintFundState.OPEN)}
+							sx={{ mx: 1 }}
 						/>
 						<Button
 							variant="outlined"
@@ -357,6 +358,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 							startIcon={<CheckCircleIcon />}
 							onClick={() => setOpenSuccessPopup(true)}
 							disabled={!(fund.fund_state === SecurityMintFundState.OPEN)}
+							sx={{ mx: 1 }}
 						>
 							Mark Success
 						</Button>
@@ -368,178 +370,175 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 							defaultText="Delete"
 							loadingText="Deleting..."
 							onClick={deleteFund}
+							sx={{ mx: 1 }}
 						/>
 						<IconButton onClick={onRefresh} color="primary">
 							<Icon>
 								<RefreshIcon />
 							</Icon>
 						</IconButton>
-					</Grid>
-					<Grid item xs={12} md={6}>
-						<Typography>
-							<strong>Contract Address:</strong> {fund.contract_address}
-						</Typography>
-						<Typography>
-							<strong>Investment Token ID:</strong> {fund.investment_token_id}
-						</Typography>
-						<Typography>
-							<strong>Investment Token Contract Address:</strong> {fund.investment_token_contract_address}
-						</Typography>
-						<Typography>
-							<strong>Token ID:</strong> {fund.token_id}
-						</Typography>
-						<Typography>
-							<strong>Token Contract Address:</strong> {fund.token_contract_address}
-						</Typography>
-						{fundTokenMetadata && (
-							<>
-								<Typography>
-									<strong>Token Symbol:</strong> {fundTokenMetadata.symbol}
-								</Typography>
-								<Typography>
-									<strong>Token Decimals:</strong> {fundTokenMetadata.decimals}
-								</Typography>
-							</>
-						)}
-						<Typography>
-							<strong>Token Amount:</strong> {fund.token_amount}
-						</Typography>
-						<Typography>
-							<strong>Currency Token ID:</strong> {fund.currency_token_id}
-						</Typography>
-						<Typography>
-							<strong>Currency Token Contract Address:</strong> {fund.currency_token_contract_address}
-						</Typography>
-						<Typography>
-							<strong>Currency Amount:</strong> {fund.currency_amount}
-						</Typography>
-						{fundCurrencyMetadata && (
-							<>
-								<Typography>
-									<strong>Currency Symbol:</strong> {fundCurrencyMetadata.symbol}
-								</Typography>
-								<Typography>
-									<strong>Currency Decimals:</strong> {fundCurrencyMetadata.decimals}
-								</Typography>
-							</>
-						)}
-						<Typography>
-							<strong>Token Amount:</strong> {fund.token_amount}
-						</Typography>
-						<Typography>
-							<strong>Receiver Address:</strong> {fund.receiver_address || "N/A"}
-						</Typography>
-						<Typography>
-							<strong>Rate:</strong> {fund.rate_numerator} / {fund.rate_denominator}
-						</Typography>
-						<Typography>
-							<strong>Fund State:</strong> {fund.fund_state}
-						</Typography>
-						<Typography>
-							<strong>Create Time:</strong> {fund.create_time}
-						</Typography>
-						<Typography>
-							<strong>Update Time:</strong> {fund.update_time}
-						</Typography>
-					</Grid>
-					<Grid item xs={12} md={6} id="fund-checks-section">
-						<Grid container spacing={2} direction={"row-reverse"}>
-							<Grid item xs={12} md={12} lg={6}>
-								{agentPresaleContract && (
-									<Alert severity="success">
-										<Typography>
-											Fund contract is an agent of the presale token contract. With the roles{" "}
-											{agentPresaleContract.roles.join(", ")}
-										</Typography>
-										<TransactionButton
-											txnStatus={removeAgentPreSaleTxnStatus}
-											defaultText="Remove Agent"
-											loadingText="Removing Agent..."
-											variant="outlined"
-											color="primary"
-											onClick={removeAgentPresaleContract}
-											sx={{ mt: 2 }}
-										/>
-									</Alert>
-								)}
-								{!agentPresaleContract && (
-									<Alert severity="warning" sx={{ mb: 2 }}>
-										<Typography>Fund contract is not an agent of the presale token contract.</Typography>
-										<TransactionButton
-											txnStatus={addAgentPreSaleTxnStatus}
-											defaultText="Add Agent"
-											loadingText="Adding Agent..."
-											variant="outlined"
-											color="primary"
-											onClick={addAgentPresaleContract}
-											sx={{ mt: 2 }}
-										/>
-									</Alert>
-								)}
-							</Grid>
-							<Grid item xs={12} md={12} lg={6}>
-								{agentInvestmentContract && (
-									<Alert severity="success">
-										<Typography>
-											Fund contract is an agent of the investment token contract. With the roles{" "}
-											{agentInvestmentContract.roles.join(", ")}
-										</Typography>
-										<TransactionButton
-											txnStatus={removeAgentInvestmentTxnStatus}
-											defaultText="Remove Agent"
-											loadingText="Removing Agent..."
-											variant="outlined"
-											color="primary"
-											onClick={removeAgentInvestmentContract}
-											sx={{ mt: 2 }}
-										/>
-									</Alert>
-								)}
+					</Box>
+				</Box>
 
-								{!agentInvestmentContract && (
-									<Alert severity="warning">
-										<Typography>Fund contract is not an agent of the investment token contract.</Typography>
-										<TransactionButton
-											txnStatus={addAgentInvestmentTxnStatus}
-											defaultText="Add Agent"
-											loadingText="Adding Agent..."
-											variant="outlined"
-											color="primary"
-											onClick={addAgentInvestmentContract}
-											sx={{ mt: 2 }}
-										/>
-									</Alert>
-								)}
-							</Grid>
-							<Grid item xs={12} md={12} lg={6}>
-								{
+				<Grid container spacing={3} sx={classes.detailsGrid}>
+					<Grid item xs={12} md={6}>
+						<Box sx={classes.detailsSection}>
+							<Typography variant="h6" sx={classes.detailsSectionTitle}>
+								Basic Information
+							</Typography>
+
+							<DetailRow label="Contract Address" value={fund.contract_address} />
+							<DetailRow label="Investment Token ID" value={fund.investment_token_id} />
+							<DetailRow label="Investment Token Contract Address" value={fund.investment_token_contract_address} />
+							<DetailRow label="Token ID" value={fund.token_id} />
+							<DetailRow label="Token Contract Address" value={fund.token_contract_address} />
+
+							{fundTokenMetadata && (
+								<>
+									<DetailRow label="Token Symbol" value={fundTokenMetadata.symbol} />
+									<DetailRow label="Token Decimals" value={fundTokenMetadata.decimals} />
+								</>
+							)}
+
+							<DetailRow label="Token Amount" value={fund.token_amount} />
+						</Box>
+
+						<Box sx={classes.detailsSection}>
+							<Typography variant="h6" sx={classes.detailsSectionTitle}>
+								Currency Information
+							</Typography>
+
+							<DetailRow label="Currency Token ID" value={fund.currency_token_id} />
+							<DetailRow label="Currency Token Contract Address" value={fund.currency_token_contract_address} />
+							<DetailRow label="Currency Amount" value={fund.currency_amount} />
+
+							{fundCurrencyMetadata && (
+								<>
+									<DetailRow label="Currency Symbol" value={fundCurrencyMetadata.symbol} />
+									<DetailRow label="Currency Decimals" value={fundCurrencyMetadata.decimals} />
+								</>
+							)}
+						</Box>
+					</Grid>
+
+					<Grid item xs={12} md={6}>
+						<Box sx={classes.detailsSection}>
+							<Typography variant="h6" sx={classes.detailsSectionTitle}>
+								Additional Details
+							</Typography>
+
+							<DetailRow label="Receiver Address" value={fund.receiver_address || "N/A"} />
+							<DetailRow label="Rate" value={`${fund.rate_numerator} / ${fund.rate_denominator}`} />
+							<DetailRow label="Fund State" value={fund.fund_state} />
+							<DetailRow label="Create Time" value={fund.create_time} />
+							<DetailRow label="Update Time" value={fund.update_time} />
+						</Box>
+
+						<Box sx={classes.detailsSection} id="fund-checks-section">
+							<Typography variant="h6" sx={classes.detailsSectionTitle}>
+								Contract Status
+							</Typography>
+
+							<Grid container spacing={2}>
+								<Grid item xs={12} md={12} lg={6}>
+									{agentPresaleContract ? (
+										<Alert severity="success" sx={classes.detailsAlert}>
+											<Typography>
+												Fund contract is an agent of the presale token contract. With the roles{" "}
+												{agentPresaleContract.roles.join(", ")}
+											</Typography>
+											<TransactionButton
+												txnStatus={removeAgentPreSaleTxnStatus}
+												defaultText="Remove Agent"
+												loadingText="Removing Agent..."
+												variant="outlined"
+												color="primary"
+												onClick={removeAgentPresaleContract}
+												sx={{ mt: 2 }}
+											/>
+										</Alert>
+									) : (
+										<Alert severity="warning" sx={classes.detailsAlert}>
+											<Typography>Fund contract is not an agent of the presale token contract.</Typography>
+											<TransactionButton
+												txnStatus={addAgentPreSaleTxnStatus}
+												defaultText="Add Agent"
+												loadingText="Adding Agent..."
+												variant="outlined"
+												color="primary"
+												onClick={addAgentPresaleContract}
+												sx={{ mt: 2 }}
+											/>
+										</Alert>
+									)}
+								</Grid>
+								<Grid item xs={12} md={12} lg={6}>
+									{agentInvestmentContract ? (
+										<Alert severity="success" sx={classes.detailsAlert}>
+											<Typography>
+												Fund contract is an agent of the investment token contract. With the roles{" "}
+												{agentInvestmentContract.roles.join(", ")}
+											</Typography>
+											<TransactionButton
+												txnStatus={removeAgentInvestmentTxnStatus}
+												defaultText="Remove Agent"
+												loadingText="Removing Agent..."
+												variant="outlined"
+												color="primary"
+												onClick={removeAgentInvestmentContract}
+												sx={{ mt: 2 }}
+											/>
+										</Alert>
+									) : (
+										<Alert severity="warning" sx={classes.detailsAlert}>
+											<Typography>Fund contract is not an agent of the investment token contract.</Typography>
+											<TransactionButton
+												txnStatus={addAgentInvestmentTxnStatus}
+												defaultText="Add Agent"
+												loadingText="Adding Agent..."
+												variant="outlined"
+												color="primary"
+												onClick={addAgentInvestmentContract}
+												sx={{ mt: 2 }}
+											/>
+										</Alert>
+									)}
+								</Grid>
+								<Grid item xs={12} md={12} lg={6}>
 									{
-										[SecurityMintFundState.OPEN]: (
-											<Alert severity="info">
-												<Typography>This fund is open for investment.</Typography>
-											</Alert>
-										),
-										[SecurityMintFundState.SUCCESS]: (
-											<Alert severity="success">
-												<Typography>This fund has been marked as successful.</Typography>
-											</Alert>
-										),
-										[SecurityMintFundState.FAIL]: (
-											<Alert severity="error">
-												<Typography>This fund has been marked as failed.</Typography>
-											</Alert>
-										),
-									}[fund.fund_state]
-								}
+										{
+											[SecurityMintFundState.OPEN]: (
+												<Alert severity="info" sx={classes.detailsAlert}>
+													<Typography>This fund is open for investment.</Typography>
+												</Alert>
+											),
+											[SecurityMintFundState.SUCCESS]: (
+												<Alert severity="success" sx={classes.detailsAlert}>
+													<Typography>This fund has been marked as successful.</Typography>
+												</Alert>
+											),
+											[SecurityMintFundState.FAIL]: (
+												<Alert severity="error" sx={classes.detailsAlert}>
+													<Typography>This fund has been marked as failed.</Typography>
+												</Alert>
+											),
+										}[fund.fund_state]
+									}
+								</Grid>
 							</Grid>
-						</Grid>
+						</Box>
 					</Grid>
 				</Grid>
 			</Paper>
-			{/* Table of investors */}
-			<Paper variant="outlined" sx={{ padding: 2, marginBottom: 2 }}>
-				<Typography variant="h6">Investors</Typography>
-				<TableContainer component={Paper}>
+
+			<Paper sx={classes.detailsContainer}>
+				<Box sx={classes.detailsHeader}>
+					<Typography variant="h5" sx={classes.detailsTitle}>
+						Investors
+					</Typography>
+				</Box>
+
+				<TableContainer sx={classes.detailsTable}>
 					<Table>
 						<TableHead>
 							<TableRow>
@@ -580,6 +579,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 					onRowsPerPageChange={handleChangeRowsPerPage}
 				/>
 			</Paper>
+
 			<Dialog open={openSuccessPopup} onClose={handleCloseSuccessPopup} fullWidth>
 				<DialogTitle>Mark Fund as Success</DialogTitle>
 				<DialogContent>

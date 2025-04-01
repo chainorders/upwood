@@ -1,5 +1,3 @@
-import { Area } from "react-easy-crop";
-
 /**
  * Creates a cropped version of an image using canvas
  */

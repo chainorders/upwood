@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
 import PageHeader from "../components/PageHeader";
 import NewsCard from "../components/NewsCard";
 import { User } from "../lib/user";
@@ -7,7 +6,6 @@ import {
 	MaintenanceMessage,
 	PagedResponse_NewsArticle,
 	PagedResponse_PlatformUpdate,
-	PlatformUpdate,
 	UserCommunicationService,
 } from "../apiClient";
 
@@ -98,7 +96,7 @@ export default function News({ user }: NewsProps) {
 				<div className="space-30"></div>
 				<div className="container">
 					<div className="container-in">
-						{newsArticles?.data.map((item, index) => (
+						{newsArticles?.data.map((item) => (
 							<div className="col-6 col-m-full fl" key={item.id}>
 								<NewsCard article={item} />
 							</div>

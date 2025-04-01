@@ -4,12 +4,11 @@ import { FaExclamationTriangle } from "react-icons/fa";
 import { FaCheckCircle } from "react-icons/fa";
 import { FaArrowCircleLeft } from "react-icons/fa";
 
-import { Link, Navigate, useLocation, useParams } from "react-router";
+import { Link, Navigate, useParams } from "react-router";
 import { UserService } from "../apiClient";
 
 export default function CompanyInvitation({ accepted }: { accepted: boolean }) {
 	const [state, setState] = useState<"none" | "accepting" | "rejecting" | "accepted" | "rejected" | "error">("rejected");
-	const location = useLocation();
 	const { invitationId } = useParams<{ invitationId: string }>();
 	useEffect(() => {
 		if (!invitationId) {

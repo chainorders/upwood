@@ -1,7 +1,8 @@
 import { Route, Routes, useLocation, useNavigate } from "react-router";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { OpenAPI, SystemContractsConfigApiModel, UserService } from "./apiClient/index.ts";
+import { lazy, Suspense, useCallback, useState } from "react";
+import { OpenAPI } from "./apiClient/index.ts";
 import { User } from "./lib/user.ts";
+import ThemeProvider from "./theme/ThemeProvider.tsx";
 
 const UserApp = lazy(() => import("./UserApp.tsx"));
 const UnAuthLayout = lazy(() => import("./UnAuthLayout.tsx"));
@@ -69,7 +70,14 @@ export default function App() {
 					<Route path="/register" element={<Register />} />
 					<Route path="/register/download-wallet" element={<RegisterDownloadWallet />} />
 				</Route>
-				<Route path="admin/*" element={<AdminApp user={user} logout={logout} />} />
+				<Route
+					path="admin/*"
+					element={
+						<ThemeProvider>
+							<AdminApp user={user} logout={logout} />
+						</ThemeProvider>
+					}
+				/>
 				<Route path="*" element={<UserApp user={user} logout={logout} refreshUser={refreshUser} />} />
 			</Routes>
 		</Suspense>

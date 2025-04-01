@@ -12,7 +12,6 @@ import {
 	Box,
 	IconButton,
 	Tooltip,
-	Dialog,
 	CircularProgress,
 	Snackbar,
 	Alert,
@@ -30,7 +29,7 @@ interface TreeMetadataListProps {
 	fileBaseUrl: string;
 }
 
-const TreeMetadataList: React.FC<TreeMetadataListProps> = ({ user, fileBaseUrl }) => {
+const TreeMetadataList: React.FC<TreeMetadataListProps> = ({ fileBaseUrl }) => {
 	const [metadatas, setMetadatas] = useState<TreeNftMetadata[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string>();

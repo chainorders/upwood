@@ -48,7 +48,7 @@ export default function TokenHolderBalanceUpdateList() {
 			});
 	}, [contract, token_id, holder, page, pageSize]);
 
-	const handlePageChange = (event: unknown, newPage: number) => {
+	const handlePageChange = (_event: unknown, newPage: number) => {
 		setPage(newPage);
 	};
 

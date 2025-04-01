@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router";
 import PageHeader from "../components/PageHeader";
 import { User } from "../lib/user";
 
@@ -8,8 +6,6 @@ interface NewsDetailsProps {
 }
 
 export default function NewsDetails({ user }: NewsDetailsProps) {
-	const { id } = useParams<{ id: string }>();
-
 	const data = {
 		id: "1516",
 		image: "/Photo2.jpg",

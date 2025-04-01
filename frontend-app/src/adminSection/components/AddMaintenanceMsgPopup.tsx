@@ -4,7 +4,7 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } 
 import { UserCommunicationService } from "../../apiClient";
 import { v4 as uuid } from "uuid";
 import { MaintenanceMessage } from "../../apiClient/models/MaintenanceMessage";
-import { daysSince, formatDate } from "../../lib/conversions";
+import { formatDate } from "../../lib/conversions";
 
 interface AddMaintenanceMsgPopupProps {
 	open: boolean;

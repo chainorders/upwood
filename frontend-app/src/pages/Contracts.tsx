@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import ContractsCard from "../components/ContractsCard";
 import { User } from "../lib/user";
-import { ForestProjectService, PagedResponse_LegalContractUserModel, UserService } from "../apiClient";
+import { ForestProjectService, PagedResponse_LegalContractUserModel } from "../apiClient";
 import { MAX_PAGE_SIZE } from "../lib/constants";
 
 interface ContractsProps {

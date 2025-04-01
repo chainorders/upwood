@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -33,7 +33,7 @@ import TokenMetadataForm from "../components/TokenMetadataForm";
 import { TokenMetadata } from "../libs/types";
 import { adminUploadJson, hashMetadata } from "../libs/utils";
 
-const ProjectContractUpdate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) => {
+const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: string }) => {
 	const { contract_address } = useParams<{ contract_address?: string }>();
 	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);

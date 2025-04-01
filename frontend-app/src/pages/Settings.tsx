@@ -116,8 +116,7 @@ export default function Settings({ user, refreshUser }: { user: User; refreshUse
 	const [guides, setGuides] = useState<PagedResponse_Guide>();
 	const [company, setCompany] = useState<Company>();
 
-	const [refreshCounter, setRefreshCounter] = useState(0);
-	const [, setClaimPopup] = useState(false);
+	const [refreshCounter, _setRefreshCounter] = useState(0);
 	const [editProfilePopup, setEditProfilePopup] = useState(false);
 	const [createCompanyPopup, setCreateCompanyPopup] = useState(false);
 	const [editCompanyPopup, setEditCompanyPopup] = useState(false);

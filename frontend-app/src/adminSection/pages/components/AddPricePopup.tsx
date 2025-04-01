@@ -1,7 +1,10 @@
 import { useForm, Controller } from "react-hook-form";
-import { Dialog, DialogTitle, DialogContent, TextField, Button } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, TextField, Button, Typography, Box, Paper, Grid } from "@mui/material";
 import { ForestProjectPrice, ForestProjectService, TokenMetadata } from "../../../apiClient";
 import { formatDate, toDisplayAmount } from "../../../lib/conversions";
+import useCommonStyles from "../../../theme/useCommonStyles";
+import IntegerInput from "./IntegerInput";
+
 interface AddPricePopupProps {
 	open: boolean;
 	onClose: () => void;
@@ -10,7 +13,9 @@ interface AddPricePopupProps {
 }
 
 export default function AddPricePopup({ open, onClose, projectId, euroEMetadata }: AddPricePopupProps) {
-	const { control, handleSubmit, reset } = useForm<ForestProjectPrice>({
+	const styles = useCommonStyles();
+	const { control, handleSubmit, reset, watch } = useForm<ForestProjectPrice>({
+		mode: "onChange", // Enable validation on change
 		defaultValues: {
 			currency_token_id: euroEMetadata.token_id,
 			currency_token_contract_address: euroEMetadata.contract_address,
@@ -18,6 +23,8 @@ export default function AddPricePopup({ open, onClose, projectId, euroEMetadata 
 			price_at: formatDate(new Date()),
 		},
 	});
+
+	const priceWatch = watch("price");
 
 	const onSubmit = async (data: ForestProjectPrice) => {
 		try {
@@ -34,50 +41,162 @@ export default function AddPricePopup({ open, onClose, projectId, euroEMetadata 
 	};
 
 	return (
-		<Dialog open={open} onClose={onClose} fullWidth>
-			<DialogTitle>Add Price</DialogTitle>
+		<Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+			<DialogTitle>
+				<Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+					Add Price
+				</Typography>
+			</DialogTitle>
 			<DialogContent>
-				<form onSubmit={handleSubmit(onSubmit)}>
-					<Controller
-						name="price"
-						control={control}
-						render={({ field }) => (
-							<TextField
-								{...field}
-								label="Price"
-								type="number"
-								fullWidth
-								margin="normal"
-								helperText={`${toDisplayAmount(field.value || "0", euroEMetadata.decimals || 6, euroEMetadata.decimals || 6)}${euroEMetadata.symbol || ""}`}
-							/>
-						)}
-					/>
-					<Controller
-						name="price_at"
-						control={control}
-						render={({ field }) => <TextField {...field} label="Price At" type="datetime-local" fullWidth margin="normal" />}
-					/>
-					<Controller
-						name="currency_token_id"
-						control={control}
-						disabled
-						render={({ field }) => <TextField {...field} label="Currency Token ID" fullWidth margin="normal" />}
-					/>
-					<Controller
-						name="currency_token_contract_address"
-						control={control}
-						disabled
-						render={({ field }) => <TextField {...field} label="Currency Token Contract Address" fullWidth margin="normal" />}
-					/>
-					<Controller
-						name="project_id"
-						control={control}
-						render={({ field }) => <TextField {...field} label="Project ID" fullWidth margin="normal" disabled />}
-					/>
-					<Button type="submit" variant="contained" color="primary" fullWidth>
-						Add Price
-					</Button>
-				</form>
+				<Box sx={styles.dialogFormContainer}>
+					<form onSubmit={handleSubmit(onSubmit)}>
+						<Box sx={styles.dialogFormSection}>
+							<Paper
+								elevation={0}
+								sx={{
+									...styles.dialogFormField,
+									p: 2,
+									mb: 2,
+									backgroundColor: "rgba(0,0,0,0.02)",
+								}}
+							>
+								<Typography variant="h6" mb={1} color="primary">
+									{euroEMetadata.symbol || "Euro"} Price
+								</Typography>
+								<Grid container spacing={2}>
+									<Grid item xs={12}>
+										<IntegerInput
+											name="price"
+											control={control}
+											label="Price"
+											min={0}
+											textFieldProps={{
+												fullWidth: true,
+												autoComplete: "off",
+												required: true,
+											}}
+										/>
+										<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
+											Price: {euroEMetadata.symbol || ""}{" "}
+											{toDisplayAmount(priceWatch?.toString() || "0", euroEMetadata.decimals || 6, euroEMetadata.decimals || 6)}
+										</Typography>
+									</Grid>
+								</Grid>
+							</Paper>
+
+							<Paper
+								elevation={0}
+								sx={{
+									...styles.dialogFormField,
+									p: 2,
+									mb: 2,
+									backgroundColor: "rgba(0,0,0,0.02)",
+								}}
+							>
+								<Typography variant="h6" mb={1} color="primary">
+									Price At
+								</Typography>
+								<Grid container spacing={2}>
+									<Grid item xs={12}>
+										<Controller
+											name="price_at"
+											control={control}
+											render={({ field }) => (
+												<TextField
+													{...field}
+													label="Price At"
+													type="datetime-local"
+													fullWidth
+													margin="normal"
+													variant="outlined"
+													size="small"
+												/>
+											)}
+										/>
+									</Grid>
+								</Grid>
+							</Paper>
+
+							<Paper
+								elevation={0}
+								sx={{
+									...styles.dialogFormField,
+									p: 2,
+									mb: 2,
+									backgroundColor: "rgba(0,0,0,0.02)",
+								}}
+							>
+								<Typography variant="h6" mb={1} color="primary">
+									Reference Information
+								</Typography>
+								<Grid container spacing={2}>
+									<Grid item xs={12}>
+										<Controller
+											name="currency_token_id"
+											control={control}
+											disabled
+											render={({ field }) => (
+												<TextField
+													{...field}
+													label="Currency Token ID"
+													fullWidth
+													margin="normal"
+													variant="outlined"
+													size="small"
+													disabled
+													sx={{ opacity: 0.7 }}
+												/>
+											)}
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<Controller
+											name="currency_token_contract_address"
+											control={control}
+											disabled
+											render={({ field }) => (
+												<TextField
+													{...field}
+													label="Currency Token Contract Address"
+													fullWidth
+													margin="normal"
+													variant="outlined"
+													size="small"
+													disabled
+													sx={{ opacity: 0.7 }}
+												/>
+											)}
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<Controller
+											name="project_id"
+											control={control}
+											render={({ field }) => (
+												<TextField
+													{...field}
+													label="Project ID"
+													fullWidth
+													margin="normal"
+													variant="outlined"
+													size="small"
+													disabled
+													sx={{ opacity: 0.7 }}
+												/>
+											)}
+										/>
+									</Grid>
+								</Grid>
+							</Paper>
+						</Box>
+
+						<Box sx={styles.dialogFormActions}>
+							<Button type="submit" variant="contained" color="primary" fullWidth sx={styles.formSubmitButton}>
+								Add Price
+							</Button>
+						</Box>
+					</form>
+				</Box>
 			</DialogContent>
 		</Dialog>
 	);
