@@ -593,7 +593,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::SecuritySftMultiYielderYieldType;
 
-    security_sft_multi_yielder_yields (contract_address, token_contract_address, token_id, yield_contract_address, yield_token_id) {
+    security_sft_multi_yielder_yields (contract_address, token_contract_address, token_id, yield_contract_address, yield_token_id, yield_type) {
         contract_address -> Numeric,
         token_contract_address -> Numeric,
         token_id -> Numeric,

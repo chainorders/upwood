@@ -20,6 +20,8 @@ use crate::schema::{
     serde::Deserialize,
     Clone,
     Copy,
+    std::cmp::Eq,
+    std::hash::Hash,
 )]
 #[ExistingTypePath = "crate::schema::sql_types::SecuritySftMultiYielderYieldType"]
 pub enum YieldType {
@@ -46,7 +48,8 @@ pub enum YieldType {
     token_contract_address,
     token_id,
     yield_contract_address,
-    yield_token_id
+    yield_token_id,
+    yield_type
 ))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Yield {

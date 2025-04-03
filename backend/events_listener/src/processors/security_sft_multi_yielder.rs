@@ -4,6 +4,7 @@ use concordium_protocols::rate::Rate;
 use concordium_rust_sdk::base::hashes::ModuleReference;
 use concordium_rust_sdk::base::smart_contracts::{ContractEvent, OwnedContractName, WasmModule};
 use concordium_rust_sdk::types::ContractAddress;
+use diesel::{Connection, QueryResult};
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use security_sft_multi_yielder::{
@@ -88,10 +89,23 @@ pub fn process_events(
                         }
                     })
                     .collect::<Vec<_>>();
-                Yield::insert_batch(conn, &yields)?;
-                yields
-                    .iter()
-                    .for_each(|yield_| info!("Yield added: {:?}", yield_));
+                conn.transaction(|conn| {
+                    Yield::delete_batch(
+                        conn,
+                        contract.to_decimal(),
+                        token_contract.to_decimal(),
+                        token_id.to_decimal(),
+                    )?;
+                    info!(
+                        "Old yields removed: {:?}",
+                        (contract, token_contract, token_id)
+                    );
+                    Yield::insert_batch(conn, &yields)?;
+                    yields
+                        .iter()
+                        .for_each(|yield_| info!("Yield added: {:?}", yield_));
+                    QueryResult::Ok(())
+                })?;
             }
             Event::YieldRemoved(YieldRemovedEvent {
                 token_contract,
