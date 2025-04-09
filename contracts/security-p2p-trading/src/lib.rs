@@ -390,7 +390,7 @@ pub fn buy(
         )
     };
 
-    // Tranfer tokens from currency from buyer to liquidity provider
+    // Transfer tokens from currency from buyer to liquidity provider
     host.invoke_transfer_single(&currency_token.contract, Transfer {
         amount:   currency_amount,
         token_id: currency_token.id,
