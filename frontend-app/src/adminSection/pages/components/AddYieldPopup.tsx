@@ -17,6 +17,7 @@ import TransactionButton from "../../../components/TransactionButton";
 import { User } from "../../../lib/user";
 import useCommonStyles from "../../../theme/useCommonStyles";
 import IntegerInput from "./IntegerInput";
+import CurrencyInput from "./CurrencyInput";
 
 interface ProjectTokenAddYieldPopupProps {
 	contract_address: string;
@@ -60,9 +61,9 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 		mode: "onChange", // This makes validation run on every change
 		defaultValues: {
 			carbonCredit: { numerator: 1, denominator: 1, added: false },
-			euro: { numerator: 1, denominator: 1, added: false },
+			euro: { numerator: 1000000, denominator: 1, added: false },
 			eTrees: { numerator: 1, denominator: 1, added: false },
-			euroIntrest: { numerator: 1, denominator: 1, added: false },
+			euroIntrest: { numerator: 1000000, denominator: 1, added: false },
 		},
 	});
 
@@ -199,11 +200,8 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 									)}
 								/>
 							</Grid>
-							<Grid item xs={5}>
+							<Grid item xs={10}>
 								<IntegerInput name="carbonCredit.numerator" control={control} label="Numerator" />
-							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="carbonCredit.denominator" control={control} label="Denominator" />
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
@@ -239,15 +237,12 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 									)}
 								/>
 							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="euro.numerator" control={control} label="Numerator" />
-							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="euro.denominator" control={control} label="Denominator" />
+							<Grid item xs={10}>
+								<CurrencyInput name="euro.numerator" control={control} label="EuroE" />
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(euroRateNumeratorWatch.toString(), euroeMetdata?.decimals || 0)}{" "}
+									{toDisplayAmount(euroRateNumeratorWatch.toString(), euroeMetdata?.decimals || 6, 6)}{" "}
 									{euroeMetdata?.symbol || "Euro"} per{" "}
 									{toDisplayAmount(euroRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens
@@ -279,11 +274,8 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 									)}
 								/>
 							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="eTrees.numerator" control={control} label="Numerator" />
-							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="eTrees.denominator" control={control} label="Denominator" />
+							<Grid item xs={10}>
+								<IntegerInput name="eTrees.numerator" control={control} label="Etrees" />
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
@@ -319,11 +311,8 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 									)}
 								/>
 							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="euroIntrest.numerator" control={control} label="Numerator" />
-							</Grid>
-							<Grid item xs={5}>
-								<IntegerInput name="euroIntrest.denominator" control={control} label="Denominator" />
+							<Grid item xs={10}>
+								<CurrencyInput name="euroIntrest.numerator" control={control} label="EuroE Interest" />
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>

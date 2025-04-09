@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 use shared::api::PagedResponse;
 use shared::db::cis2_security::{Agent, Token, TokenHolder, TokenHolderBalanceUpdate};
 use shared::db::security_mint_fund::{InvestmentRecord, SecurityMintFund};
-use shared::db::security_p2p_trading::Market;
+use shared::db::security_p2p_trading::{ExchangeRecord, Market};
 use shared::db::security_sft_multi_yielder::{Treasury, Yield};
 use shared::db::txn_listener::{ListenerBlock, ListenerContract};
 use shared::db_shared::DbPool;
@@ -209,6 +209,44 @@ impl Api {
             investment_token_contract,
             investment_token_id,
             investor.as_deref(),
+            page,
+            page_size,
+        )?;
+        Ok(Json(PagedResponse {
+            data: records,
+            page_count,
+            page,
+        }))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[oai(
+        path = "/admin/indexer/cis2/fund/market-records/list",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2_market_trading_records(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Query(token_contract_address): Query<Option<Decimal>>,
+        Query(token_id): Query<Option<Decimal>>,
+        Query(buyer): Query<Option<String>>,
+        Query(seller): Query<Option<String>>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<ExchangeRecord>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let (records, page_count) = ExchangeRecord::list(
+            &mut conn,
+            contracts.trading_contract_index,
+            token_contract_address,
+            token_id,
+            buyer.as_deref(),
+            seller.as_deref(),
             page,
             page_size,
         )?;

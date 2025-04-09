@@ -4697,6 +4697,7 @@ __metadata:
     react-hook-form: "npm:^7.54.2"
     react-icons: "npm:^5.4.0"
     react-lazy-load-image-component: "npm:^1.6.3"
+    react-number-format: "npm:^5.4.3"
     react-router: "npm:^7.1.3"
     react-use-downloader: "npm:^1.2.8"
     tailwindcss: "npm:^3.4.17"
@@ -7168,6 +7169,16 @@ __metadata:
   peerDependencies:
     react: ^15.x.x || ^16.x.x || ^17.x.x || ^18.x.x || ^19.x.x
   checksum: 10c0/5237557d90b26aadcaf078ce8fa9b5d2270705d771c3f4cdb39375e7988257f6ba0705b558150b54c695d9a001fbeb3d690638df1bc85759d248a0f01d9659d1
+  languageName: node
+  linkType: hard
+
+"react-number-format@npm:^5.4.3":
+  version: 5.4.3
+  resolution: "react-number-format@npm:5.4.3"
+  peerDependencies:
+    react: ^0.14 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^0.14 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/0d0c597c880e4abe8b1c3d4820ae8a5b8bd7c5fdd75011aedfb07d0d0311c0c45b5c3984b58c9c64a96a4570dee43adb4f0065e4e7b034b68118e338ad1c0eba
   languageName: node
   linkType: hard
 

@@ -373,4 +373,55 @@ impl ExchangeRecord {
             .load(conn)?;
         Ok(records)
     }
+
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(skip_all)]
+    pub fn list(
+        conn: &mut DbConn,
+        contract_address: Decimal,
+        token_contract_address: Option<Decimal>,
+        token_id: Option<Decimal>,
+        buyer: Option<&str>,
+        seller: Option<&str>,
+        page: i64,
+        page_size: i64,
+    ) -> QueryResult<(Vec<ExchangeRecord>, i64)> {
+        let mut query = security_p2p_exchange_records::table
+            .filter(security_p2p_exchange_records::contract_address.eq(contract_address))
+            .into_boxed();
+        let mut count_query = security_p2p_exchange_records::table
+            .filter(security_p2p_exchange_records::contract_address.eq(contract_address))
+            .into_boxed();
+        if let Some(token_contract_address) = token_contract_address {
+            query = query.filter(
+                security_p2p_exchange_records::token_contract_address.eq(token_contract_address),
+            );
+            count_query = count_query.filter(
+                security_p2p_exchange_records::token_contract_address.eq(token_contract_address),
+            );
+        }
+        if let Some(token_id) = token_id {
+            query = query.filter(security_p2p_exchange_records::token_id.eq(token_id));
+            count_query = count_query.filter(security_p2p_exchange_records::token_id.eq(token_id));
+        }
+        if let Some(buyer) = buyer {
+            query = query.filter(security_p2p_exchange_records::buyer.eq(buyer));
+            count_query = count_query.filter(security_p2p_exchange_records::buyer.eq(buyer));
+        }
+        if let Some(seller) = seller {
+            query = query.filter(security_p2p_exchange_records::seller.eq(seller));
+            count_query = count_query.filter(security_p2p_exchange_records::seller.eq(seller));
+        }
+        query = query.order_by(security_p2p_exchange_records::create_time.desc());
+        count_query = count_query.order_by(security_p2p_exchange_records::create_time.desc());
+
+        let records = query
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<ExchangeRecord>(conn)?;
+        let total_count: i64 = count_query.count().get_result(conn)?;
+        let page_count = std::cmp::max((total_count as f64 / page_size as f64).ceil() as i64, 1);
+
+        Ok((records, page_count))
+    }
 }

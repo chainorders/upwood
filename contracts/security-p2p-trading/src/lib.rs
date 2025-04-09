@@ -322,7 +322,7 @@ pub fn sell(
         )
     };
 
-    // Transfer the tokens to the buyer and the currency to the seller.
+    // Transfer currency from liquidity provider to seller
     host.invoke_transfer_single(&currency_token.contract, Transfer {
         amount:   currency_amount,
         token_id: currency_token.id,
@@ -331,6 +331,7 @@ pub fn sell(
         data:     AdditionalData::empty(),
     })
     .map_err(|_| Error::CurrencyTransfer)?;
+    // Transfer tokens from seller to liquidity provider
     host.invoke_transfer_single(&params.token.contract, Transfer {
         amount:   params.amount,
         token_id: params.token.id,
@@ -389,7 +390,7 @@ pub fn buy(
         )
     };
 
-    // Transfer the tokens to the buyer and the currency to the seller.
+    // Tranfer tokens from currency from buyer to liquidity provider
     host.invoke_transfer_single(&currency_token.contract, Transfer {
         amount:   currency_amount,
         token_id: currency_token.id,
@@ -398,6 +399,7 @@ pub fn buy(
         data:     AdditionalData::empty(),
     })
     .map_err(|_| Error::CurrencyTransfer)?;
+    // Transfer Tokens from liquidity provider to buyer
     host.invoke_transfer_single(&params.token.contract, Transfer {
         amount:   params.amount,
         token_id: params.token.id,

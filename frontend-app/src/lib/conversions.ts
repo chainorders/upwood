@@ -137,14 +137,31 @@ export const parseFinalizedUpdate: (
 	}
 };
 
-export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2) {
-	const amountNum = BigInt(amount);
-	const amountStr = amountNum.toString().padStart(decimals + 1, "0");
-	const amountStrLen = amountStr.length;
-	const integerPart = amountStr.slice(0, amountStrLen - decimals);
-	const decimalPart = amountStr.slice(amountStrLen - decimals);
-	const displayAmount = `${integerPart}.${decimalPart}`;
-	return parseFloat(displayAmount).toFixed(roundToDecimal);
+/**
+ * Converts a string amount to a display amount with the specified number of decimals.
+ * @param amount - The string amount to convert.
+ * @param decimals - The number of decimals to use for the conversion.
+ * @param roundToDecimal - The number of decimal places to round the display amount to (default is 2).
+ * @returns The display amount as a string.
+ * @throws An error if the amount cannot be converted to a BigInt.
+*/
+export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2): string {
+	if (decimals === 0) {
+		roundToDecimal = 0;
+	}
+
+	try {
+		const amountNum = BigInt(amount);
+		const amountStr = amountNum.toString().padStart(decimals + 1, "0");
+		const amountStrLen = amountStr.length;
+		const integerPart = amountStr.slice(0, amountStrLen - decimals);
+		const decimalPart = amountStr.slice(amountStrLen - decimals);
+		const displayAmount = `${integerPart}.${decimalPart}`;
+		return parseFloat(displayAmount).toFixed(roundToDecimal);
+	}
+	catch (error) {
+		return "0";
+	}
 }
 
 export function daysSince(date: Date | string) {
