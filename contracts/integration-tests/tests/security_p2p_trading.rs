@@ -18,7 +18,10 @@ use contract_base::{ContractPayloads, ContractTestClient};
 use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
-use security_p2p_trading::{AddMarketParams, ExchangeParams, Market};
+use security_p2p_trading::{
+    AddMarketParams, AddMintMarketParams, ExchangeParams, Market, MintMarket, MintParams,
+    TokenIdCalculation,
+};
 use security_p2p_trading_client::P2PTradeTestClient;
 use security_sft_multi_client::SftMultiTestClient;
 
@@ -230,6 +233,162 @@ pub fn normal_flow_sft_multi() {
             })
             .expect("balance of"),
         BalanceOfQueryResponse(vec![0.into(), 10_000.into()])
+    );
+}
+
+#[test]
+pub fn test_flow_mint_sft_multi() {
+    let admin = Account::new(ADMIN, DEFAULT_ACC_BALANCE);
+    let mut chain = Chain::new();
+    chain
+        .tick_block_time(Duration::from_millis(1))
+        .expect("tick block time");
+    let buyer = Account::new(HOLDER, DEFAULT_ACC_BALANCE);
+    chain.create_account(buyer.clone());
+    let liquidity_provider = Account::new(HOLDER_2, DEFAULT_ACC_BALANCE);
+    chain.create_account(liquidity_provider.clone());
+    let (euroe_contract, ir_contract, compliance_contract) =
+        setup_chain(&mut chain, &admin, &COMPLIANT_NATIONALITIES);
+
+    let euroe_token_id = TokenIdUnit();
+    let trading_contract =
+        P2PTradeTestClient::init(&mut chain, &admin, &security_p2p_trading::InitParam {
+            currency: TokenUId {
+                id:       euroe_token_id,
+                contract: euroe_contract.contract_address(),
+            },
+            agents:   vec![],
+        })
+        .expect("init trading contract");
+    euroe_contract
+        .mint(&mut chain, &admin, &euroe::MintParams {
+            owner:  buyer.address.into(),
+            amount: TokenAmountU64(20_000),
+        })
+        .expect("euroe mint");
+    euroe_contract
+        .update_operator_single(&mut chain, &buyer, &UpdateOperator {
+            update:   OperatorUpdate::Add,
+            operator: trading_contract.contract_address().into(),
+        })
+        .expect("update operator");
+    ir_contract
+        .register_identity(&mut chain, &admin, &RegisterIdentityParams {
+            address:  buyer.address.into(),
+            identity: Identity {
+                credentials: vec![],
+                attributes:  vec![IdentityAttribute {
+                    tag:   NATIONALITY.0,
+                    value: COMPLIANT_NATIONALITIES[1].to_string(),
+                }],
+            },
+        })
+        .expect("register identity");
+    let token_contract = create_token_contract_multi(
+        &mut chain,
+        &admin,
+        compliance_contract,
+        ir_contract.contract_address(),
+        vec![AgentWithRoles {
+            address: trading_contract.contract_address().into(),
+            roles:   vec![
+                security_sft_multi::types::AgentRole::AddToken,
+                security_sft_multi::types::AgentRole::Mint,
+            ],
+        }],
+    );
+    let rate = Rate::new(1000, 1).unwrap();
+    let now = chain.block_time();
+    trading_contract
+        .add_mint_market(&mut chain, &admin, &AddMintMarketParams {
+            token_contract: token_contract.contract_address(),
+            market:         MintMarket {
+                liquidity_provider: liquidity_provider.address,
+                rate,
+                token_id: TokenIdCalculation {
+                    diff_millis: 24 * 60 * 60 * 1000, // 1 day
+                    start:       now,
+                },
+                token_metadata_url: security_sft_multi::types::ContractMetadataUrl {
+                    hash: None,
+                    url:  METADATA_URL_SFT_REWARDS.to_string(),
+                },
+            },
+        })
+        .expect("add mint market");
+    trading_contract
+        .mint(&mut chain, &buyer, &MintParams {
+            amount: TokenAmountU64(10),
+            rate,
+            token_contract: token_contract.contract_address(),
+        })
+        .expect("mint");
+    assert_eq!(
+        token_contract
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
+                queries: vec![BalanceOfQuery {
+                    token_id: TokenIdU64(0),
+                    address:  buyer.address.into(),
+                }],
+            })
+            .expect("balance of"),
+        BalanceOfQueryResponse(vec![10.into()])
+    );
+    assert_eq!(
+        euroe_contract
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
+                queries: vec![
+                    BalanceOfQuery {
+                        token_id: euroe_token_id,
+                        address:  buyer.address.into(),
+                    },
+                    BalanceOfQuery {
+                        token_id: euroe_token_id,
+                        address:  liquidity_provider.address.into(),
+                    }
+                ],
+            })
+            .expect("balance of"),
+        BalanceOfQueryResponse(vec![10_000.into(), 10_000.into()])
+    );
+
+    chain
+        .tick_block_time(Duration::from_millis(24 * 60 * 60 * 1000))
+        .expect("tick block time");
+    trading_contract
+        .mint(&mut chain, &buyer, &MintParams {
+            amount: TokenAmountU64(10),
+            rate,
+            token_contract: token_contract.contract_address(),
+        })
+        .expect("mint");
+    assert_eq!(
+        token_contract
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
+                queries: vec![BalanceOfQuery {
+                    token_id: TokenIdU64(1),
+                    address:  buyer.address.into(),
+                }],
+            })
+            .expect("balance of"),
+        BalanceOfQueryResponse(vec![10.into()])
+    );
+    assert_eq!(
+        euroe_contract
+            .balance_of(&chain, &admin, &BalanceOfQueryParams {
+                queries: vec![
+                    BalanceOfQuery {
+                        token_id: euroe_token_id,
+                        address:  buyer.address.into(),
+                    },
+                    BalanceOfQuery {
+                        token_id: euroe_token_id,
+                        address:  liquidity_provider.address.into(),
+                    }
+                ],
+            })
+            .expect("balance of"),
+        BalanceOfQueryResponse(vec![0.into(), 20_000.into()])
     );
 }
 

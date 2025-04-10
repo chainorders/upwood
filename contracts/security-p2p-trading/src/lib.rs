@@ -1,6 +1,10 @@
 use concordium_cis2::{AdditionalData, TokenAmountU64, TokenIdU64, TokenIdUnit, Transfer};
 use concordium_protocols::concordium_cis2_ext::cis2_client::Cis2Client;
-use concordium_protocols::concordium_cis2_security::{AgentWithRoles, TokenUId};
+use concordium_protocols::concordium_cis2_ext::ContractMetadataUrl;
+use concordium_protocols::concordium_cis2_security::cis2_security_client::Cis2SecurityClient;
+use concordium_protocols::concordium_cis2_security::{
+    AddTokenParams, AgentWithRoles, MintParam, TokenAmountSecurity, TokenUId,
+};
 use concordium_protocols::rate::Rate;
 use concordium_std::*;
 
@@ -38,6 +42,8 @@ pub enum Event {
     MarketAdded(AddMarketParams),
     Exchanged(ExchangeEvent),
     MarketRemoved(SecurityTokenAddress),
+    MintMarketRemoved(ContractAddress),
+    MintMarketAdded(AddMintMarketParams),
 }
 
 #[derive(Serial, Reject, SchemaType)]
@@ -51,6 +57,9 @@ pub enum Error {
     TokenTransfer,
     CurrencyTransfer,
     InvalidRate,
+    MintMarketNotStarted,
+    AddToken,
+    TokenMint,
 }
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Self { Error::ParseError }
@@ -80,6 +89,7 @@ pub struct State<S=StateApi> {
     pub currency_token: CurrencyTokenAddress,
     pub agents:         StateMap<Address, StateSet<AgentRole, S>, S>,
     pub markets:        StateMap<SecurityTokenAddress, Market, S>,
+    pub mint_markets:   StateMap<ContractAddress, MintMarket, S>,
 }
 
 impl State {
@@ -138,6 +148,7 @@ pub fn init(
         currency_token: params.currency,
         agents,
         markets: state_builder.new_map(),
+        mint_markets: state_builder.new_map(),
     };
 
     logger.log(&Event::Initialized(params.currency))?;
@@ -413,6 +424,191 @@ pub fn buy(
     logger.log(&Event::Exchanged(ExchangeEvent {
         token_contract: params.token.contract,
         token_id: params.token.id,
+        seller: liquidity_provider,
+        buyer,
+        token_amount: params.amount,
+        rate: params.rate,
+        currency_amount,
+    }))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "addMintMarket",
+    mutable,
+    parameter = "AddMintMarketParams",
+    enable_logger
+)]
+fn add_mint_market(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: AddMintMarketParams = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    ensure!(
+        state.has_agent(&ctx.sender(), AgentRole::AddMarket),
+        Error::Unauthorized
+    );
+
+    let existing = state
+        .mint_markets
+        .insert(params.token_contract, params.market.clone());
+    if existing.is_some() {
+        logger.log(&Event::MintMarketRemoved(params.token_contract))?;
+    }
+    logger.log(&Event::MintMarketAdded(params))?;
+    Ok(())
+}
+#[derive(Serialize, SchemaType, Debug, Clone)]
+pub struct AddMintMarketParams {
+    pub token_contract: ContractAddress,
+    pub market:         MintMarket,
+}
+#[derive(Serialize, SchemaType, Debug, Clone)]
+pub struct MintMarket {
+    pub token_id:           TokenIdCalculation,
+    pub rate:               Rate,
+    pub token_metadata_url: ContractMetadataUrl,
+    pub liquidity_provider: AccountAddress,
+}
+
+impl MintMarket {
+    pub fn calculate_token_id(&self, now: Timestamp) -> Option<TokenIdU64> {
+        let token_id = now
+            .duration_since(self.token_id.start)
+            .map(|d| d.millis() / self.token_id.diff_millis)?;
+        Some(TokenIdU64(token_id))
+    }
+}
+
+#[derive(Serialize, SchemaType, Debug, Clone, Copy)]
+pub struct TokenIdCalculation {
+    pub start:       Timestamp,
+    pub diff_millis: u64,
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "removeMintMarket",
+    mutable,
+    parameter = "RemoveMintMarketParams",
+    enable_logger
+)]
+fn remove_mint_market(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: RemoveMintMarketParams = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    ensure!(
+        state.has_agent(&ctx.sender(), AgentRole::RemoveMarket),
+        Error::Unauthorized
+    );
+    state
+        .mint_markets
+        .remove_and_get(&params.token_contract)
+        .ok_or(Error::InvalidMarket)?;
+    logger.log(&Event::MintMarketRemoved(params.token_contract))?;
+    Ok(())
+}
+
+#[derive(Serialize, SchemaType, Debug)]
+pub struct RemoveMintMarketParams {
+    pub token_contract: ContractAddress,
+}
+
+#[derive(Serialize, SchemaType, Debug)]
+pub struct MintParams {
+    pub token_contract: ContractAddress,
+    pub amount:         SecurityTokenAmount,
+    pub rate:           Rate,
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "getMintMarket",
+    parameter = "ContractAddress"
+)]
+fn get_mint_market(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<MintMarket> {
+    let token: ContractAddress = ctx.parameter_cursor().get()?;
+    let state = host.state();
+    let mint_market = state.mint_markets.get(&token).ok_or(Error::InvalidMarket)?;
+    Ok(mint_market.clone())
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "mint",
+    mutable,
+    parameter = "MintParams",
+    error = "Error",
+    enable_logger
+)]
+pub fn mint(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: MintParams = ctx.parameter_cursor().get()?;
+    let buyer = match ctx.sender() {
+        Address::Account(a) => a,
+        Address::Contract(_) => bail!(Error::Unauthorized),
+    };
+    let mint_market = host
+        .state
+        .mint_markets
+        .get_mut(&params.token_contract)
+        .ok_or(Error::InvalidMarket)?
+        .clone();
+    let now = ctx.metadata().block_time();
+    let token_id = mint_market
+        .calculate_token_id(now)
+        .ok_or(Error::MintMarketNotStarted)?;
+    if host
+        .invoke_token_metadata_single(&params.token_contract, token_id)
+        .is_err()
+    {
+        host.invoke_add_token(&params.token_contract, &AddTokenParams {
+            token_id,
+            token_metadata: mint_market.token_metadata_url,
+        })
+        .map_err(|_| Error::AddToken)?;
+    }
+    let (currency_token, currency_amount, liquidity_provider) = {
+        let state = host.state_mut();
+        ensure!(mint_market.rate.eq(&params.rate), Error::InvalidRate);
+        let (currency_amount, _) = mint_market
+            .rate
+            .convert_token_amount_with_rem(&params.amount)
+            .map_err(|_| Error::InvalidConversion)?;
+        (
+            state.currency_token,
+            currency_amount,
+            mint_market.liquidity_provider,
+        )
+    };
+    host.invoke_transfer_single(&currency_token.contract, Transfer {
+        amount:   currency_amount,
+        token_id: currency_token.id,
+        from:     buyer.into(),
+        to:       mint_market.liquidity_provider.into(),
+        data:     AdditionalData::empty(),
+    })
+    .map_err(|_| Error::CurrencyTransfer)?;
+    host.invoke_mint_single(&params.token_contract, token_id, MintParam {
+        address: buyer.into(),
+        amount:  TokenAmountSecurity {
+            un_frozen: params.amount,
+            ..Default::default()
+        },
+    })
+    .map_err(|_| Error::TokenMint)?;
+    logger.log(&Event::Exchanged(ExchangeEvent {
+        token_contract: params.token_contract,
+        token_id,
         seller: liquidity_provider,
         buyer,
         token_amount: params.amount,

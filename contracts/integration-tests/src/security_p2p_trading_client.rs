@@ -5,7 +5,8 @@ use concordium_protocols::concordium_cis2_security::AgentWithRoles;
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use security_p2p_trading::{
-    AddMarketParams, AgentRole, ExchangeParams, InitParam, SecurityTokenAddress,
+    AddMarketParams, AddMintMarketParams, AgentRole, ExchangeParams, InitParam, MintParams,
+    RemoveMintMarketParams, SecurityTokenAddress,
 };
 
 use super::MAX_ENERGY;
@@ -118,14 +119,53 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
     }
-}
 
-pub trait P2PTradingClientResponses {
-    fn parse_get_market(&self) -> SecurityTokenAddress;
-}
-impl P2PTradingClientResponses for ContractInvokeSuccess {
-    fn parse_get_market(&self) -> SecurityTokenAddress {
-        self.parse_return_value().expect("parsing market")
+    fn add_mint_market_payload(&self, params: &AddMintMarketParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("addMintMarket"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    fn remove_mint_market_payload(&self, params: &RemoveMintMarketParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("removeMintMarket"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    fn get_mint_market_payload(&self, params: &ContractAddress) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("getMintMarket"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
+    }
+
+    fn mint_payload(&self, params: &MintParams) -> UpdateContractPayload {
+        UpdateContractPayload {
+            address:      self.contract_address(),
+            amount:       Amount::zero(),
+            receive_name: OwnedReceiveName::construct_unchecked(
+                Self::contract_name().as_contract_name(),
+                EntrypointName::new_unchecked("mint"),
+            ),
+            message:      OwnedParameter::from_serial(params).unwrap(),
+        }
     }
 }
 
@@ -231,6 +271,65 @@ impl P2PTradeTestClient {
             sender.address.into(),
             MAX_ENERGY,
             self.buy_payload(params),
+        )
+    }
+
+    pub fn add_mint_market(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &AddMintMarketParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.add_mint_market_payload(params),
+        )
+    }
+
+    pub fn remove_mint_market(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &RemoveMintMarketParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.remove_mint_market_payload(params),
+        )
+    }
+
+    pub fn get_mint_market(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &ContractAddress,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_invoke(
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.get_mint_market_payload(params),
+        )
+    }
+
+    pub fn mint(
+        &self,
+        chain: &mut Chain,
+        sender: &Account,
+        params: &MintParams,
+    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
+        chain.contract_update(
+            Signer::with_one_key(),
+            sender.address,
+            sender.address.into(),
+            MAX_ENERGY,
+            self.mint_payload(params),
         )
     }
 }
