@@ -10,7 +10,6 @@ export type ForestProjectTokenContract = {
 	forest_project_id: string;
 	contract_type: SecurityTokenContractType;
 	fund_token_id?: string;
-	market_token_id?: string;
 	symbol: string;
 	decimals: number;
 	metadata_url: string;
