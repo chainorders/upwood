@@ -163,6 +163,10 @@ export const initErrorJsonSchema: RJSFSchema = {
 				"TokenTransfer",
 				"CurrencyTransfer",
 				"InvalidRate",
+				"MintMarketNotStarted",
+				"AddToken",
+				"TokenMint",
+				"InvalidMarketType",
 			],
 		},
 	},
@@ -252,6 +256,38 @@ export const initErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MintMarketNotStarted"] },
+						MintMarketNotStarted: {
+							type: "object",
+							title: "MintMarketNotStarted",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["AddToken"] },
+						AddToken: { type: "object", title: "AddToken", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TokenMint"] },
+						TokenMint: { type: "object", title: "TokenMint", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidMarketType"] },
+						InvalidMarketType: {
+							type: "object",
+							title: "InvalidMarketType",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -265,7 +301,11 @@ export type initErrorUi =
 	| { tag: "InvalidMarket"; InvalidMarket: never }
 	| { tag: "TokenTransfer"; TokenTransfer: never }
 	| { tag: "CurrencyTransfer"; CurrencyTransfer: never }
-	| { tag: "InvalidRate"; InvalidRate: never };
+	| { tag: "InvalidRate"; InvalidRate: never }
+	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
+	| { tag: "AddToken"; AddToken: never }
+	| { tag: "TokenMint"; TokenMint: never }
+	| { tag: "InvalidMarketType"; InvalidMarketType: never };
 export const addAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Agent Request",
@@ -373,71 +413,219 @@ export const addMarketRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Market Request",
 	properties: {
-		token: {
+		token_contract: {
 			type: "object",
-			title: "Token",
+			title: "Token Contract",
 			properties: {
-				contract: {
-					type: "object",
-					title: "Contract",
-					properties: {
-						index: { type: "integer", minimum: 0 },
-						subindex: { type: "integer", minimum: 0 },
-					},
-				},
-				id: { type: "string", title: "Id", default: "", format: "byte" },
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
 			},
 		},
 		market: {
 			type: "object",
 			title: "Market",
-			properties: {
-				liquidity_provider: { type: "string", title: "Liquidity Provider" },
-				buy_rate: {
-					type: "object",
-					title: "Buy Rate",
-					properties: {
-						numerator: { type: "integer", minimum: 0, title: "Numerator" },
-						denominator: { type: "integer", minimum: 0, title: "Denominator" },
-					},
-				},
-				sell_rate: {
-					type: "object",
-					title: "Sell Rate",
-					properties: {
-						numerator: { type: "integer", minimum: 0, title: "Numerator" },
-						denominator: { type: "integer", minimum: 0, title: "Denominator" },
-					},
+			properties: { tag: { type: "string", enum: ["Mint", "Transfer"] } },
+			required: ["tag"],
+			dependencies: {
+				tag: {
+					oneOf: [
+						{
+							properties: {
+								tag: { enum: ["Mint"] },
+								Mint: {
+									type: "array",
+									items: {
+										type: "object",
+										title: "",
+										properties: {
+											token_id: {
+												type: "object",
+												title: "Token Id",
+												properties: {
+													start: {
+														type: "string",
+														format: "date-time",
+														title: "Start",
+													},
+													diff_millis: {
+														type: "integer",
+														minimum: 0,
+														title: "Diff Millis",
+													},
+												},
+											},
+											rate: {
+												type: "object",
+												title: "Rate",
+												properties: {
+													numerator: {
+														type: "integer",
+														minimum: 0,
+														title: "Numerator",
+													},
+													denominator: {
+														type: "integer",
+														minimum: 0,
+														title: "Denominator",
+													},
+												},
+											},
+											token_metadata_url: {
+												type: "object",
+												title: "Token Metadata Url",
+												properties: {
+													url: { type: "string", title: "Url", default: "" },
+													hash: {
+														type: "object",
+														title: "Hash",
+														properties: {
+															tag: { type: "string", enum: ["None", "Some"] },
+														},
+														required: ["tag"],
+														dependencies: {
+															tag: {
+																oneOf: [
+																	{
+																		properties: {
+																			tag: { enum: ["None"] },
+																			None: {
+																				type: "object",
+																				title: "None",
+																				properties: {},
+																			},
+																		},
+																	},
+																	{
+																		properties: {
+																			tag: { enum: ["Some"] },
+																			Some: {
+																				type: "array",
+																				items: {
+																					type: "string",
+																					title: "",
+																					default: "",
+																				},
+																			},
+																		},
+																	},
+																],
+															},
+														},
+													},
+												},
+											},
+											liquidity_provider: {
+												type: "string",
+												title: "Liquidity Provider",
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							properties: {
+								tag: { enum: ["Transfer"] },
+								Transfer: {
+									type: "array",
+									items: {
+										type: "object",
+										title: "",
+										properties: {
+											token_id: {
+												type: "string",
+												title: "Token Id",
+												default: "",
+												format: "byte",
+											},
+											liquidity_provider: {
+												type: "string",
+												title: "Liquidity Provider",
+											},
+											buy_rate: {
+												type: "object",
+												title: "Buy Rate",
+												properties: {
+													numerator: {
+														type: "integer",
+														minimum: 0,
+														title: "Numerator",
+													},
+													denominator: {
+														type: "integer",
+														minimum: 0,
+														title: "Denominator",
+													},
+												},
+											},
+											sell_rate: {
+												type: "object",
+												title: "Sell Rate",
+												properties: {
+													numerator: {
+														type: "integer",
+														minimum: 0,
+														title: "Numerator",
+													},
+													denominator: {
+														type: "integer",
+														minimum: 0,
+														title: "Denominator",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					],
 				},
 			},
 		},
 	},
 };
 export type AddMarketRequestUi = {
-	token: { contract: { index: number; subindex: number }; id: string };
-	market: {
-		liquidity_provider: string;
-		buy_rate: { numerator: number; denominator: number };
-		sell_rate: { numerator: number; denominator: number };
-	};
+	token_contract: { index: number; subindex: number };
+	market:
+		| {
+				tag: "Mint";
+				Mint: [
+					{
+						token_id: { start: string; diff_millis: number };
+						rate: { numerator: number; denominator: number };
+						token_metadata_url: {
+							url: string;
+							hash:
+								| { tag: "None"; None: never }
+								| { tag: "Some"; Some: [string] };
+						};
+						liquidity_provider: string;
+					},
+				];
+		  }
+		| {
+				tag: "Transfer";
+				Transfer: [
+					{
+						token_id: string;
+						liquidity_provider: string;
+						buy_rate: { numerator: number; denominator: number };
+						sell_rate: { numerator: number; denominator: number };
+					},
+				];
+		  };
 };
 export const buyRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Buy Request",
 	properties: {
-		token: {
+		contract: {
 			type: "object",
-			title: "Token",
+			title: "Contract",
 			properties: {
-				contract: {
-					type: "object",
-					title: "Contract",
-					properties: {
-						index: { type: "integer", minimum: 0 },
-						subindex: { type: "integer", minimum: 0 },
-					},
-				},
-				id: { type: "string", title: "Id", default: "", format: "byte" },
+				index: { type: "integer", minimum: 0 },
+				subindex: { type: "integer", minimum: 0 },
 			},
 		},
 		amount: { type: "string", title: "Amount" },
@@ -452,7 +640,7 @@ export const buyRequestJsonSchema: RJSFSchema = {
 	},
 };
 export type BuyRequestUi = {
-	token: { contract: { index: number; subindex: number }; id: string };
+	contract: { index: number; subindex: number };
 	amount: string;
 	rate: { numerator: number; denominator: number };
 };
@@ -472,6 +660,10 @@ export const buyErrorJsonSchema: RJSFSchema = {
 				"TokenTransfer",
 				"CurrencyTransfer",
 				"InvalidRate",
+				"MintMarketNotStarted",
+				"AddToken",
+				"TokenMint",
+				"InvalidMarketType",
 			],
 		},
 	},
@@ -561,6 +753,38 @@ export const buyErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MintMarketNotStarted"] },
+						MintMarketNotStarted: {
+							type: "object",
+							title: "MintMarketNotStarted",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["AddToken"] },
+						AddToken: { type: "object", title: "AddToken", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TokenMint"] },
+						TokenMint: { type: "object", title: "TokenMint", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidMarketType"] },
+						InvalidMarketType: {
+							type: "object",
+							title: "InvalidMarketType",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -574,26 +798,207 @@ export type BuyErrorUi =
 	| { tag: "InvalidMarket"; InvalidMarket: never }
 	| { tag: "TokenTransfer"; TokenTransfer: never }
 	| { tag: "CurrencyTransfer"; CurrencyTransfer: never }
-	| { tag: "InvalidRate"; InvalidRate: never };
+	| { tag: "InvalidRate"; InvalidRate: never }
+	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
+	| { tag: "AddToken"; AddToken: never }
+	| { tag: "TokenMint"; TokenMint: never }
+	| { tag: "InvalidMarketType"; InvalidMarketType: never };
 export const getMarketRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Get Market Request",
 	properties: {
-		contract: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
+};
+export type GetMarketRequestUi = { index: number; subindex: number };
+export const mintRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Mint Request",
+	properties: {
+		token_contract: {
 			type: "object",
-			title: "Contract",
+			title: "Token Contract",
 			properties: {
 				index: { type: "integer", minimum: 0 },
 				subindex: { type: "integer", minimum: 0 },
 			},
 		},
-		id: { type: "string", title: "Id", default: "", format: "byte" },
+		amount: { type: "string", title: "Amount" },
+		rate: {
+			type: "object",
+			title: "Rate",
+			properties: {
+				numerator: { type: "integer", minimum: 0, title: "Numerator" },
+				denominator: { type: "integer", minimum: 0, title: "Denominator" },
+			},
+		},
 	},
 };
-export type GetMarketRequestUi = {
-	contract: { index: number; subindex: number };
-	id: string;
+export type MintRequestUi = {
+	token_contract: { index: number; subindex: number };
+	amount: string;
+	rate: { numerator: number; denominator: number };
 };
+export const mintErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Mint Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"Unauthorized",
+				"InvalidConversion",
+				"LogError",
+				"AgentExists",
+				"InvalidMarket",
+				"TokenTransfer",
+				"CurrencyTransfer",
+				"InvalidRate",
+				"MintMarketNotStarted",
+				"AddToken",
+				"TokenMint",
+				"InvalidMarketType",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["Unauthorized"] },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidConversion"] },
+						InvalidConversion: {
+							type: "object",
+							title: "InvalidConversion",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["AgentExists"] },
+						AgentExists: {
+							type: "object",
+							title: "AgentExists",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidMarket"] },
+						InvalidMarket: {
+							type: "object",
+							title: "InvalidMarket",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TokenTransfer"] },
+						TokenTransfer: {
+							type: "object",
+							title: "TokenTransfer",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CurrencyTransfer"] },
+						CurrencyTransfer: {
+							type: "object",
+							title: "CurrencyTransfer",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidRate"] },
+						InvalidRate: {
+							type: "object",
+							title: "InvalidRate",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["MintMarketNotStarted"] },
+						MintMarketNotStarted: {
+							type: "object",
+							title: "MintMarketNotStarted",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["AddToken"] },
+						AddToken: { type: "object", title: "AddToken", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TokenMint"] },
+						TokenMint: { type: "object", title: "TokenMint", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidMarketType"] },
+						InvalidMarketType: {
+							type: "object",
+							title: "InvalidMarketType",
+							properties: {},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type MintErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "Unauthorized"; Unauthorized: never }
+	| { tag: "InvalidConversion"; InvalidConversion: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "AgentExists"; AgentExists: never }
+	| { tag: "InvalidMarket"; InvalidMarket: never }
+	| { tag: "TokenTransfer"; TokenTransfer: never }
+	| { tag: "CurrencyTransfer"; CurrencyTransfer: never }
+	| { tag: "InvalidRate"; InvalidRate: never }
+	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
+	| { tag: "AddToken"; AddToken: never }
+	| { tag: "TokenMint"; TokenMint: never }
+	| { tag: "InvalidMarketType"; InvalidMarketType: never };
 export const removeAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Remove Agent Request",
@@ -635,38 +1040,21 @@ export const removeMarketRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Remove Market Request",
 	properties: {
+		index: { type: "integer", minimum: 0 },
+		subindex: { type: "integer", minimum: 0 },
+	},
+};
+export type RemoveMarketRequestUi = { index: number; subindex: number };
+export const sellRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Sell Request",
+	properties: {
 		contract: {
 			type: "object",
 			title: "Contract",
 			properties: {
 				index: { type: "integer", minimum: 0 },
 				subindex: { type: "integer", minimum: 0 },
-			},
-		},
-		id: { type: "string", title: "Id", default: "", format: "byte" },
-	},
-};
-export type RemoveMarketRequestUi = {
-	contract: { index: number; subindex: number };
-	id: string;
-};
-export const sellRequestJsonSchema: RJSFSchema = {
-	type: "object",
-	title: "Sell Request",
-	properties: {
-		token: {
-			type: "object",
-			title: "Token",
-			properties: {
-				contract: {
-					type: "object",
-					title: "Contract",
-					properties: {
-						index: { type: "integer", minimum: 0 },
-						subindex: { type: "integer", minimum: 0 },
-					},
-				},
-				id: { type: "string", title: "Id", default: "", format: "byte" },
 			},
 		},
 		amount: { type: "string", title: "Amount" },
@@ -681,7 +1069,7 @@ export const sellRequestJsonSchema: RJSFSchema = {
 	},
 };
 export type SellRequestUi = {
-	token: { contract: { index: number; subindex: number }; id: string };
+	contract: { index: number; subindex: number };
 	amount: string;
 	rate: { numerator: number; denominator: number };
 };
@@ -701,6 +1089,10 @@ export const sellErrorJsonSchema: RJSFSchema = {
 				"TokenTransfer",
 				"CurrencyTransfer",
 				"InvalidRate",
+				"MintMarketNotStarted",
+				"AddToken",
+				"TokenMint",
+				"InvalidMarketType",
 			],
 		},
 	},
@@ -790,6 +1182,38 @@ export const sellErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MintMarketNotStarted"] },
+						MintMarketNotStarted: {
+							type: "object",
+							title: "MintMarketNotStarted",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["AddToken"] },
+						AddToken: { type: "object", title: "AddToken", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TokenMint"] },
+						TokenMint: { type: "object", title: "TokenMint", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidMarketType"] },
+						InvalidMarketType: {
+							type: "object",
+							title: "InvalidMarketType",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -803,7 +1227,11 @@ export type SellErrorUi =
 	| { tag: "InvalidMarket"; InvalidMarket: never }
 	| { tag: "TokenTransfer"; TokenTransfer: never }
 	| { tag: "CurrencyTransfer"; CurrencyTransfer: never }
-	| { tag: "InvalidRate"; InvalidRate: never };
+	| { tag: "InvalidRate"; InvalidRate: never }
+	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
+	| { tag: "AddToken"; AddToken: never }
+	| { tag: "TokenMint"; TokenMint: never }
+	| { tag: "InvalidMarketType"; InvalidMarketType: never };
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
 	uiSchema?: UiSchema;
@@ -869,6 +1297,24 @@ export const ENTRYPOINTS_UI: {
 			method: client.getMarket,
 			requestJsonSchema: getMarketRequestJsonSchema,
 			requestSchemaBase64: types.getMarketRequestSchemaBase64,
+		}),
+	mint: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.MintRequest,
+			MintRequestUi,
+			types.MintError,
+			MintErrorUi
+		>({
+			...props,
+			method: client.mint,
+			requestJsonSchema: mintRequestJsonSchema,
+			requestSchemaBase64: types.mintRequestSchemaBase64,
+			errorJsonSchema: mintErrorJsonSchema,
+			errorSchemaBase64: types.mintErrorSchemaBase64,
 		}),
 	removeAgent: (props: {
 		contract: ContractAddress.Type;
