@@ -83,12 +83,9 @@ pub enum ProcessorError {
         security_token_contract_address: Decimal,
     },
 
-    #[error(
-        "Market not found: {contract}, token_id: {token_id}, token_contract: {token_contract}"
-    )]
+    #[error("Market not found: {contract}, token_contract: {token_contract}")]
     MarketNotFound {
         contract:       Decimal,
-        token_id:       Decimal,
         token_contract: Decimal,
     },
     #[error("Security Mint Fund Contract not found: {contract}")]

@@ -90,17 +90,16 @@ impl Api {
     }
 
     #[oai(
-        path = "/admin/indexer/cis2/:contract_address/token/:token_id/market",
+        path = "/admin/indexer/cis2/:contract_address/market",
         method = "get",
         tag = "ApiTags::Indexer"
     )]
-    pub async fn admin_indexer_cis2_token_market(
+    pub async fn admin_indexer_cis2_market(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
     ) -> JsonResult<Option<Market>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
@@ -108,7 +107,6 @@ impl Api {
             &mut conn,
             contracts.trading_contract_index,
             contract_address,
-            token_id,
         )?))
     }
 

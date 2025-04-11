@@ -22,6 +22,10 @@ pub mod sql_types {
     pub struct SecurityMintFundState;
 
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "security_p2p_trading_market_type"))]
+    pub struct SecurityP2pTradingMarketType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "security_sft_multi_yielder_yield_type"))]
     pub struct SecuritySftMultiYielderYieldType;
 }
@@ -529,21 +533,27 @@ diesel::table! {
 }
 
 diesel::table! {
-    security_p2p_trading_markets (contract_address, token_id, token_contract_address) {
+    use diesel::sql_types::*;
+    use super::sql_types::SecurityP2pTradingMarketType;
+
+    security_p2p_trading_markets (contract_address, token_contract_address) {
         contract_address -> Numeric,
-        token_id -> Numeric,
+        token_id -> Nullable<Numeric>,
         token_contract_address -> Numeric,
         currency_token_id -> Numeric,
         currency_token_contract_address -> Numeric,
         liquidity_provider -> Varchar,
-        buy_rate_numerator -> Numeric,
-        buy_rate_denominator -> Numeric,
-        sell_rate_numerator -> Numeric,
-        sell_rate_denominator -> Numeric,
+        buy_rate_numerator -> Nullable<Numeric>,
+        buy_rate_denominator -> Nullable<Numeric>,
+        sell_rate_numerator -> Nullable<Numeric>,
+        sell_rate_denominator -> Nullable<Numeric>,
         total_sell_token_amount -> Numeric,
         total_sell_currency_amount -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,
+        token_id_calculation_start -> Nullable<Numeric>,
+        token_id_calculation_diff_millis -> Nullable<Numeric>,
+        market_type -> SecurityP2pTradingMarketType,
     }
 }
 

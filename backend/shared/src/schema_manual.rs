@@ -168,31 +168,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_current_token_fund_markets (forest_project_id) {
-        forest_project_id -> Uuid,
-        forest_project_state -> crate::schema::sql_types::ForestProjectState,
-        token_contract_address -> Numeric,
-        token_id -> Nullable<Numeric>,
-        token_contract_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        market_token_id -> Nullable<Numeric>,
-        token_symbol -> Varchar,
-        token_decimals -> Integer,
-        fund_contract_address -> Nullable<Numeric>,
-        fund_rate_numerator -> Nullable<Numeric>,
-        fund_rate_denominator -> Nullable<Numeric>,
-        fund_state -> Nullable<crate::schema::sql_types::SecurityMintFundState>,
-        fund_token_contract_address -> Nullable<Numeric>,
-        fund_token_id -> Nullable<Numeric>,
-        market_contract_address -> Nullable<Numeric>,
-        market_sell_rate_numerator -> Nullable<Numeric>,
-        market_sell_rate_denominator -> Nullable<Numeric>,
-        market_buy_rate_numerator -> Nullable<Numeric>,
-        market_buy_rate_denominator -> Nullable<Numeric>,
-        market_liquidity_provider -> Nullable<Varchar>,
-    }
-}
-
-diesel::table! {
     forest_project_user_balance_agg (cognito_user_id, forest_project_id) {
         cognito_user_id -> Varchar,
         forest_project_id -> Uuid,

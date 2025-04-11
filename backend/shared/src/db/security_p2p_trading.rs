@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use poem_openapi::Object;
+use poem_openapi::{Enum, Object};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -82,6 +82,24 @@ impl P2PTradeContract {
 }
 
 #[derive(
+    diesel_derive_enum::DbEnum,
+    Debug,
+    PartialEq,
+    Enum,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+    std::cmp::Eq,
+    std::hash::Hash,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::SecurityP2pTradingMarketType"]
+pub enum MarketType {
+    Mint,
+    Transfer,
+}
+
+#[derive(
     Selectable,
     Queryable,
     Identifiable,
@@ -95,23 +113,27 @@ impl P2PTradeContract {
     Clone,
 )]
 #[diesel(table_name = security_p2p_trading_markets)]
-#[diesel(primary_key(contract_address, token_id, token_contract_address))]
+#[diesel(primary_key(contract_address, token_id, token_contract_address, market_type))]
+// Ensure all queries and migrations are updated to reflect this change.
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Market {
     pub contract_address: Decimal,
-    pub token_id: Decimal,
+    pub token_id: Option<Decimal>,
     pub token_contract_address: Decimal,
     pub currency_token_id: Decimal,
     pub currency_token_contract_address: Decimal,
     pub liquidity_provider: String,
-    pub buy_rate_numerator: Decimal,
-    pub buy_rate_denominator: Decimal,
-    pub sell_rate_numerator: Decimal,
-    pub sell_rate_denominator: Decimal,
+    pub buy_rate_numerator: Option<Decimal>,
+    pub buy_rate_denominator: Option<Decimal>,
+    pub sell_rate_numerator: Option<Decimal>,
+    pub sell_rate_denominator: Option<Decimal>,
     pub total_sell_token_amount: Decimal,
     pub total_sell_currency_amount: Decimal,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
+    pub token_id_calculation_start: Option<Decimal>,
+    pub token_id_calculation_diff_millis: Option<Decimal>,
+    pub market_type: MarketType,
 }
 
 impl Market {
@@ -155,22 +177,6 @@ impl Market {
     }
 
     #[instrument(skip_all)]
-    pub fn upsert(&self, conn: &mut DbConn) -> DbResult<Self> {
-        let market = diesel::insert_into(security_p2p_trading_markets::table)
-            .values(self)
-            .on_conflict((
-                security_p2p_trading_markets::contract_address,
-                security_p2p_trading_markets::token_id,
-                security_p2p_trading_markets::token_contract_address,
-            ))
-            .do_update()
-            .set(self)
-            .returning(Self::as_returning())
-            .get_result(conn)?;
-        Ok(market)
-    }
-
-    #[instrument(skip_all)]
     pub fn insert(&self, conn: &mut DbConn) -> DbResult<Self> {
         let market = diesel::insert_into(security_p2p_trading_markets::table)
             .values(self)
@@ -184,11 +190,9 @@ impl Market {
         conn: &mut DbConn,
         contract_address: Decimal,
         token_contract_address: Decimal,
-        token_id: Decimal,
     ) -> DbResult<Option<Self>> {
         let market = security_p2p_trading_markets::table
             .filter(security_p2p_trading_markets::contract_address.eq(contract_address))
-            .filter(security_p2p_trading_markets::token_id.eq(token_id))
             .filter(security_p2p_trading_markets::token_contract_address.eq(token_contract_address))
             .first(conn)
             .optional()?;
@@ -199,7 +203,6 @@ impl Market {
     pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
         let updated_market = diesel::update(security_p2p_trading_markets::table)
             .filter(security_p2p_trading_markets::contract_address.eq(self.contract_address))
-            .filter(security_p2p_trading_markets::token_id.eq(self.token_id))
             .filter(
                 security_p2p_trading_markets::token_contract_address
                     .eq(self.token_contract_address),
@@ -211,16 +214,13 @@ impl Market {
     }
 
     #[instrument(skip_all)]
-    pub fn delete(
-        conn: &mut DbConn,
-        contract_address: Decimal,
-        token_id: Decimal,
-        token_contract_address: Decimal,
-    ) -> DbResult<()> {
+    pub fn delete(&self, conn: &mut DbConn) -> DbResult<()> {
         diesel::delete(security_p2p_trading_markets::table)
-            .filter(security_p2p_trading_markets::contract_address.eq(contract_address))
-            .filter(security_p2p_trading_markets::token_id.eq(token_id))
-            .filter(security_p2p_trading_markets::token_contract_address.eq(token_contract_address))
+            .filter(security_p2p_trading_markets::contract_address.eq(self.contract_address))
+            .filter(
+                security_p2p_trading_markets::token_contract_address
+                    .eq(self.token_contract_address),
+            )
             .execute(conn)?;
         Ok(())
     }

@@ -686,7 +686,7 @@ impl ForestProjectAggApiModel {
         })?;
         let markets = markets
             .into_iter()
-            .map(|market| ((market.token_contract_address, market.token_id), market))
+            .map(|market| (market.token_contract_address, market))
             .collect::<HashMap<_, _>>();
         let project_token_contracts = project_token_contracts
             .into_iter()
@@ -720,12 +720,9 @@ impl ForestProjectAggApiModel {
                 None => None,
             };
             let property_market = match property_contract {
-                Some(property_contract) => match property_contract.market_token_id {
-                    Some(market_token_id) => markets
-                        .get(&(property_contract.contract_address, market_token_id))
-                        .cloned(),
-                    None => None,
-                },
+                Some(property_contract) => {
+                    markets.get(&property_contract.contract_address).cloned()
+                }
                 None => None,
             };
             let bond_contract =

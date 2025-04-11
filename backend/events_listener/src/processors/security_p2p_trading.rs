@@ -6,9 +6,11 @@ use diesel::Connection;
 use rust_decimal::Decimal;
 use security_p2p_trading::{AddMarketParams, AgentRole, Event, ExchangeEvent};
 use shared::db::cis2_security::Agent;
-use shared::db::security_p2p_trading::{ExchangeRecord, Market, P2PTradeContract, Trader};
-use shared::db_shared::DbConn;
-use tracing::{info, instrument, trace};
+use shared::db::security_p2p_trading::{
+    ExchangeRecord, Market, MarketType, P2PTradeContract, Trader,
+};
+use shared::db_shared::{DbConn, DbResult};
+use tracing::{info, instrument, trace, warn};
 use uuid::Uuid;
 
 use crate::processors::cis2_utils::{
@@ -72,42 +74,95 @@ pub fn process_events(
             Event::AgentRemoved(agent) => {
                 Agent::delete(conn, contract.to_decimal(), &agent)?;
             }
-            Event::MarketAdded(AddMarketParams { token, market }) => {
-                conn.transaction::<_, ProcessorError, _>(|conn| {
+            Event::MarketAdded(AddMarketParams {
+                token_contract,
+                market,
+            }) => {
+                let market = conn.transaction::<_, ProcessorError, _>(|conn| {
                     let contract = P2PTradeContract::find(conn, contract.to_decimal())?.ok_or(
                         ProcessorError::TradeContractNotFound {
                             contract: contract.to_decimal(),
                         },
                     )?;
-                    Market {
-                        contract_address: contract.contract_address,
-                        token_contract_address: token.contract.to_decimal(),
-                        token_id: token.id.to_decimal(),
-                        currency_token_id: contract.currency_token_id,
-                        currency_token_contract_address: contract.currency_token_contract_address,
-                        liquidity_provider: market.liquidity_provider.to_string(),
-                        buy_rate_numerator: market.buy_rate.numerator.into(),
-                        buy_rate_denominator: market.buy_rate.denominator.into(),
-                        sell_rate_numerator: market.sell_rate.numerator.into(),
-                        sell_rate_denominator: market.sell_rate.denominator.into(),
-                        total_sell_currency_amount: 0.into(),
-                        total_sell_token_amount: 0.into(),
-                        create_time: block_time,
-                        update_time: block_time,
+
+                    {
+                        // Check if the market already exists
+                        let market = Market::find(
+                            conn,
+                            contract.contract_address,
+                            token_contract.to_decimal(),
+                        )?;
+                        if let Some(market) = market {
+                            // If it exists, remove it
+                            market.delete(conn)?;
+                            info!("Market removed: {:?}", market);
+                        };
                     }
-                    .insert(conn)?;
-                    Ok(())
+
+                    // Insert the new market
+                    let market = match market {
+                        security_p2p_trading::Market::Mint(market) => Market {
+                            market_type: MarketType::Mint,
+                            contract_address: contract.contract_address,
+                            currency_token_id: contract.currency_token_id,
+                            currency_token_contract_address: contract
+                                .currency_token_contract_address,
+                            liquidity_provider: market.liquidity_provider.to_string(),
+                            token_contract_address: token_contract.to_decimal(),
+                            token_id: None,
+                            token_id_calculation_start: Some(market.token_id.start.millis.into()),
+                            token_id_calculation_diff_millis: Some(
+                                market.token_id.diff_millis.into(),
+                            ),
+                            buy_rate_numerator: Some(market.rate.numerator.into()),
+                            buy_rate_denominator: Some(market.rate.denominator.into()),
+                            sell_rate_numerator: None,
+                            sell_rate_denominator: None,
+                            total_sell_currency_amount: 0.into(),
+                            total_sell_token_amount: 0.into(),
+                            create_time: block_time,
+                            update_time: block_time,
+                        },
+                        security_p2p_trading::Market::Transfer(market) => Market {
+                            market_type: MarketType::Transfer,
+                            contract_address: contract.contract_address,
+                            currency_token_id: contract.currency_token_id,
+                            currency_token_contract_address: contract
+                                .currency_token_contract_address,
+                            liquidity_provider: market.liquidity_provider.to_string(),
+                            token_contract_address: token_contract.to_decimal(),
+                            token_id: Some(market.token_id.to_decimal()),
+                            token_id_calculation_start: None,
+                            token_id_calculation_diff_millis: None,
+                            buy_rate_numerator: Some(market.buy_rate.numerator.into()),
+                            buy_rate_denominator: Some(market.buy_rate.denominator.into()),
+                            sell_rate_numerator: Some(market.sell_rate.numerator.into()),
+                            sell_rate_denominator: Some(market.sell_rate.denominator.into()),
+                            total_sell_currency_amount: 0.into(),
+                            total_sell_token_amount: 0.into(),
+                            create_time: block_time,
+                            update_time: block_time,
+                        },
+                    };
+                    let market = market.insert(conn)?;
+                    Ok(market)
                 })?;
                 info!("Market added: {:?}", market);
             }
             Event::MarketRemoved(market) => {
-                Market::delete(
-                    conn,
-                    contract.to_decimal(),
-                    market.id.to_decimal(),
-                    market.contract.to_decimal(),
-                )?;
-                info!("Market removed: {:?}", market);
+                conn.transaction(|conn| {
+                    let market = Market::find(conn, contract.to_decimal(), market.to_decimal())?;
+                    match market {
+                        Some(market) => {
+                            market.delete(conn)?;
+                            info!("Market removed: {:?}", market);
+                        }
+                        None => {
+                            warn!("Market not found: {:?}", market);
+                        }
+                    }
+                    DbResult::Ok(())
+                })?;
             }
             Event::Exchanged(ExchangeEvent {
                 token_amount,
@@ -119,24 +174,19 @@ pub fn process_events(
                 currency_amount,
             }) => {
                 conn.transaction::<_, ProcessorError, _>(|conn| {
-                    let market = Market::find(
-                        conn,
-                        contract.to_decimal(),
-                        token_contract.to_decimal(),
-                        token_id.to_decimal(),
-                    )?
-                    .map(|mut market| {
-                        market.total_sell_currency_amount += currency_amount.to_decimal();
-                        market.total_sell_token_amount += token_amount.to_decimal();
-                        market.update_time = block_time;
-                        market
-                    })
-                    .ok_or(ProcessorError::MarketNotFound {
-                        contract:       contract.to_decimal(),
-                        token_id:       token_id.to_decimal(),
-                        token_contract: token_contract.to_decimal(),
-                    })?
-                    .update(conn)?;
+                    let market =
+                        Market::find(conn, contract.to_decimal(), token_contract.to_decimal())?
+                            .map(|mut market| {
+                                market.total_sell_currency_amount += currency_amount.to_decimal();
+                                market.total_sell_token_amount += token_amount.to_decimal();
+                                market.update_time = block_time;
+                                market
+                            })
+                            .ok_or(ProcessorError::MarketNotFound {
+                                contract:       contract.to_decimal(),
+                                token_contract: token_contract.to_decimal(),
+                            })?
+                            .update(conn)?;
 
                     Trader::find(
                         conn,

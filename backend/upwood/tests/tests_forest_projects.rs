@@ -37,7 +37,7 @@ use rust_decimal::Decimal;
 use security_mint_fund::types::{
     AddFundParams, TransferInvestParams, UpdateFundState, UpdateFundStateParams,
 };
-use security_p2p_trading::{AddMarketParams, ExchangeParams, Market};
+use security_p2p_trading::{AddMarketParams, ExchangeParams, Market, TransferMarket};
 use security_sft_multi_yielder::{
     UpsertYieldParams, YieldCalculation, YieldParam, YieldParams, YieldState,
 };
@@ -1166,15 +1166,13 @@ pub async fn test_forest_projects() {
                     chain.update(
                         sender,
                         trading_contract.add_market_payload(&AddMarketParams {
-                            token:  TokenUId {
-                                contract: fp_1_contract.0,
-                                id:       fp_1_token_2,
-                            },
-                            market: Market {
+                            token_contract: fp_1_contract.0,
+                            market:         Market::Transfer(TransferMarket {
+                                token_id:           fp_1_token_2,
                                 liquidity_provider: sender,
                                 buy_rate:           Rate::new(1, 2).unwrap(),
                                 sell_rate:          Rate::new(1, 2).unwrap(),
-                            },
+                            }),
                         }),
                     )
                 })
@@ -1192,12 +1190,9 @@ pub async fn test_forest_projects() {
                     chain.update(
                         sender,
                         trading_contract.sell_payload(&ExchangeParams {
-                            token:  TokenUId {
-                                contract: fp_1_contract.0,
-                                id:       fp_1_token_2,
-                            },
-                            amount: TokenAmountU64(50),
-                            rate:   Rate::new(1, 2).unwrap(),
+                            contract: fp_1_contract.0,
+                            amount:   TokenAmountU64(50),
+                            rate:     Rate::new(1, 2).unwrap(),
                         }),
                     )
                 })
@@ -1255,12 +1250,9 @@ pub async fn test_forest_projects() {
                 chain.update(
                     sender,
                     trading_contract.sell_payload(&ExchangeParams {
-                        token:  TokenUId {
-                            contract: fp_1_contract.0,
-                            id:       fp_1_token_2,
-                        },
-                        amount: TokenAmountU64(50),
-                        rate:   Rate::new(1, 2).unwrap(),
+                        contract: fp_1_contract.0,
+                        amount:   TokenAmountU64(50),
+                        rate:     Rate::new(1, 2).unwrap(),
                     }),
                 )
             })
@@ -1290,12 +1282,9 @@ pub async fn test_forest_projects() {
                 chain.update(
                     sender,
                     trading_contract.buy_payload(&ExchangeParams {
-                        token:  TokenUId {
-                            contract: fp_1_contract.0,
-                            id:       fp_1_token_2,
-                        },
-                        amount: TokenAmountU64(50),
-                        rate:   Rate::new(1, 2).unwrap(),
+                        contract: fp_1_contract.0,
+                        amount:   TokenAmountU64(50),
+                        rate:     Rate::new(1, 2).unwrap(),
                     }),
                 )
             })
