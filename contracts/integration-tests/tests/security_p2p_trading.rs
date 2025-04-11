@@ -19,8 +19,8 @@ use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_p2p_trading::{
-    AddMarketParams, AddMintMarketParams, ExchangeParams, Market, MintMarket, MintParams,
-    TokenIdCalculation,
+    AddMarketParams, ExchangeParams, Market, MintMarket, MintParams, TokenIdCalculation,
+    TransferMarket,
 };
 use security_p2p_trading_client::P2PTradeTestClient;
 use security_sft_multi_client::SftMultiTestClient;
@@ -117,15 +117,13 @@ pub fn normal_flow_sft_multi() {
     let rate = Rate::new(1000, 1).unwrap();
     trading_contract
         .add_market(&mut chain, &admin, &AddMarketParams {
-            token:  TokenUId {
-                contract: token_contract.contract_address(),
-                id:       TOKEN_ID,
-            },
-            market: Market {
+            token_contract: token_contract.contract_address(),
+            market:         Market::Transfer(TransferMarket {
+                token_id:           TOKEN_ID,
                 liquidity_provider: liquidity_provider.address,
                 buy_rate:           rate,
                 sell_rate:          rate,
-            },
+            }),
         })
         .expect("add market");
 
@@ -142,10 +140,7 @@ pub fn normal_flow_sft_multi() {
         .sell(&mut chain, &seller, &ExchangeParams {
             amount: TokenAmountU64(10),
             rate,
-            token: TokenUId {
-                contract: token_contract.contract_address(),
-                id:       TOKEN_ID,
-            },
+            contract: token_contract.contract_address(),
         })
         .expect("sell");
     assert_eq!(
@@ -194,10 +189,7 @@ pub fn normal_flow_sft_multi() {
         .buy(&mut chain, &buyer, &ExchangeParams {
             amount: TokenAmountU64(10),
             rate,
-            token: TokenUId {
-                contract: token_contract.contract_address(),
-                id:       TOKEN_ID,
-            },
+            contract: token_contract.contract_address(),
         })
         .expect("buy");
     assert_eq!(
@@ -300,9 +292,9 @@ pub fn test_flow_mint_sft_multi() {
     let rate = Rate::new(1000, 1).unwrap();
     let now = chain.block_time();
     trading_contract
-        .add_mint_market(&mut chain, &admin, &AddMintMarketParams {
+        .add_market(&mut chain, &admin, &AddMarketParams {
             token_contract: token_contract.contract_address(),
-            market:         MintMarket {
+            market:         Market::Mint(MintMarket {
                 liquidity_provider: liquidity_provider.address,
                 rate,
                 token_id: TokenIdCalculation {
@@ -313,7 +305,7 @@ pub fn test_flow_mint_sft_multi() {
                     hash: None,
                     url:  METADATA_URL_SFT_REWARDS.to_string(),
                 },
-            },
+            }),
         })
         .expect("add mint market");
     trading_contract

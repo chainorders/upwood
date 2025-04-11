@@ -5,8 +5,7 @@ use concordium_protocols::concordium_cis2_security::AgentWithRoles;
 use concordium_smart_contract_testing::*;
 use concordium_std::ContractName;
 use security_p2p_trading::{
-    AddMarketParams, AddMintMarketParams, AgentRole, ExchangeParams, InitParam, MintParams,
-    RemoveMintMarketParams, SecurityTokenAddress,
+    AddMarketParams, AgentRole, ExchangeParams, InitParam, MintParams, SecurityTokenAddress,
 };
 
 use super::MAX_ENERGY;
@@ -115,42 +114,6 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
             receive_name: OwnedReceiveName::construct_unchecked(
                 Self::contract_name().as_contract_name(),
                 EntrypointName::new_unchecked("buy"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        }
-    }
-
-    fn add_mint_market_payload(&self, params: &AddMintMarketParams) -> UpdateContractPayload {
-        UpdateContractPayload {
-            address:      self.contract_address(),
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("addMintMarket"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        }
-    }
-
-    fn remove_mint_market_payload(&self, params: &RemoveMintMarketParams) -> UpdateContractPayload {
-        UpdateContractPayload {
-            address:      self.contract_address(),
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("removeMintMarket"),
-            ),
-            message:      OwnedParameter::from_serial(params).unwrap(),
-        }
-    }
-
-    fn get_mint_market_payload(&self, params: &ContractAddress) -> UpdateContractPayload {
-        UpdateContractPayload {
-            address:      self.contract_address(),
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::construct_unchecked(
-                Self::contract_name().as_contract_name(),
-                EntrypointName::new_unchecked("getMintMarket"),
             ),
             message:      OwnedParameter::from_serial(params).unwrap(),
         }
@@ -271,50 +234,6 @@ impl P2PTradeTestClient {
             sender.address.into(),
             MAX_ENERGY,
             self.buy_payload(params),
-        )
-    }
-
-    pub fn add_mint_market(
-        &self,
-        chain: &mut Chain,
-        sender: &Account,
-        params: &AddMintMarketParams,
-    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            self.add_mint_market_payload(params),
-        )
-    }
-
-    pub fn remove_mint_market(
-        &self,
-        chain: &mut Chain,
-        sender: &Account,
-        params: &RemoveMintMarketParams,
-    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_update(
-            Signer::with_one_key(),
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            self.remove_mint_market_payload(params),
-        )
-    }
-
-    pub fn get_mint_market(
-        &self,
-        chain: &mut Chain,
-        sender: &Account,
-        params: &ContractAddress,
-    ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
-        chain.contract_invoke(
-            sender.address,
-            sender.address.into(),
-            MAX_ENERGY,
-            self.get_mint_market_payload(params),
         )
     }
 
