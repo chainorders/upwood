@@ -144,7 +144,7 @@ export const parseFinalizedUpdate: (
  * @param roundToDecimal - The number of decimal places to round the display amount to (default is 2).
  * @returns The display amount as a string.
  * @throws An error if the amount cannot be converted to a BigInt.
-*/
+ */
 export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2): string {
 	if (decimals === 0) {
 		roundToDecimal = 0;
@@ -158,8 +158,7 @@ export function toDisplayAmount(amount: string, decimals: number, roundToDecimal
 		const decimalPart = amountStr.slice(amountStrLen - decimals);
 		const displayAmount = `${integerPart}.${decimalPart}`;
 		return parseFloat(displayAmount).toFixed(roundToDecimal);
-	}
-	catch (error) {
+	} catch (error) {
 		return "0";
 	}
 }

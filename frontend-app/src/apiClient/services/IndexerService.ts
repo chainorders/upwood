@@ -5,6 +5,7 @@
 import type { Agent } from "../models/Agent";
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
+import type { PagedResponse_ExchangeRecord } from "../models/PagedResponse_ExchangeRecord";
 import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { PagedResponse_TokenHolderBalanceUpdate } from "../models/PagedResponse_TokenHolderBalanceUpdate";
@@ -89,17 +90,15 @@ export class IndexerService {
 
 	/**
 	 * @param contractAddress
-	 * @param tokenId
 	 * @returns Market
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenMarket(contractAddress: string, tokenId: string): CancelablePromise<Market> {
+	public static getAdminIndexerCis2Market(contractAddress: string): CancelablePromise<Market> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/market",
+			url: "/admin/indexer/cis2/{contract_address}/market",
 			path: {
 				contract_address: contractAddress,
-				token_id: tokenId,
 			},
 		});
 	}
@@ -179,6 +178,38 @@ export class IndexerService {
 				investment_token_contract: investmentTokenContract,
 				investment_token_id: investmentTokenId,
 				investor: investor,
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param tokenContractAddress
+	 * @param tokenId
+	 * @param buyer
+	 * @param seller
+	 * @param pageSize
+	 * @returns PagedResponse_ExchangeRecord
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2FundMarketRecordsList(
+		page: number,
+		tokenContractAddress?: string,
+		tokenId?: string,
+		buyer?: string,
+		seller?: string,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_ExchangeRecord> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/fund/market-records/list",
+			query: {
+				token_contract_address: tokenContractAddress,
+				token_id: tokenId,
+				buyer: buyer,
+				seller: seller,
 				page: page,
 				page_size: pageSize,
 			},
