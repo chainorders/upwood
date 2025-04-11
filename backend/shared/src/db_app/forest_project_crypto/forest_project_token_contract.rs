@@ -31,7 +31,6 @@ pub struct ForestProjectTokenContract {
     pub forest_project_id: Uuid,
     pub contract_type:     SecurityTokenContractType,
     pub fund_token_id:     Option<Decimal>,
-    pub market_token_id:   Option<Decimal>,
     pub symbol:            String,
     pub decimals:          i32,
     pub metadata_url:      String,

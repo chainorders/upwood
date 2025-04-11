@@ -1,4 +1,5 @@
 DROP VIEW IF EXISTS forest_project_current_token_fund_markets CASCADE;
+ALTER TABLE forest_project_token_contracts DROP COLUMN market_token_id;
 
 CREATE TYPE security_p2p_trading_market_type AS ENUM('transfer', 'mint');
 

@@ -210,7 +210,6 @@ diesel::table! {
         forest_project_id -> Uuid,
         contract_type -> ForestProjectSecurityTokenContractType,
         fund_token_id -> Nullable<Numeric>,
-        market_token_id -> Nullable<Numeric>,
         #[max_length = 10]
         symbol -> Varchar,
         decimals -> Int4,

@@ -25,6 +25,9 @@ ADD CONSTRAINT security_p2p_trading_markets_pkey PRIMARY KEY (
     token_contract_address
 );
 
+ALTER TABLE forest_project_token_contracts
+ADD COLUMN market_token_id NUMERIC(20);
+
 CREATE VIEW forest_project_current_token_fund_markets AS
 SELECT
     forest_projects.id AS forest_project_id,
