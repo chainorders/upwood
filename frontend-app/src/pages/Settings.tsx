@@ -264,10 +264,7 @@ export default function Settings({ user, refreshUser }: { user: User; refreshUse
 													</td>
 													<td>{item.transaction_type}</td>
 													<td>{item.account_address}</td>
-													<td>
-														{toDisplayAmount(item.currency_amount, contracts?.euro_e_metadata.decimals || 6, 2)}
-														{contracts?.euro_e_metadata.symbol}
-													</td>
+													<td>{toDisplayAmount(item.currency_amount, 6, 2)}€</td>
 												</tr>
 											))}
 										</tbody>
@@ -325,10 +322,10 @@ export default function Settings({ user, refreshUser }: { user: User; refreshUse
 												<tr key={index}>
 													<td>{item.investment_record_id}</td>
 													<td>{item.investor_account_address}</td>
-													<td>{toDisplayAmount(item.currency_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
+													<td>{toDisplayAmount(item.currency_amount, 6)}</td>
 													<td>{parseFloat(item.affiliate_commission) * 100}%</td>
-													<td>{toDisplayAmount(item.reward_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
-													<td>{toDisplayAmount(item.remaining_reward_amount, contracts?.euro_e_metadata.decimals || 6)}</td>
+													<td>{toDisplayAmount(item.reward_amount, 6)}</td>
+													<td>{toDisplayAmount(item.remaining_reward_amount, 6)}</td>
 												</tr>
 											))}
 										</tbody>

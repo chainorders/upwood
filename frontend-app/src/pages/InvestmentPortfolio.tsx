@@ -55,13 +55,13 @@ export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) 
 				portfolioValues
 					.map((r) => ({
 						...r,
-						portfolio_value: toDisplayAmount(r.portfolio_value, contracts.euro_e_metadata.decimals || 6, 0),
+						portfolio_value: toDisplayAmount(r.portfolio_value, 6, 0),
 					}))
 					.reverse(),
 			);
-			setValSixMonthsAgo(toDisplayAmount(valSixMonthsAgo, contracts.euro_e_metadata.decimals || 6, 0));
-			setValLastMonth(toDisplayAmount(valLastMonth, contracts.euro_e_metadata.decimals || 6, 0));
-			setValCurrentMonth(toDisplayAmount(valCurrentMonth, contracts.euro_e_metadata.decimals || 6, 0));
+			setValSixMonthsAgo(toDisplayAmount(valSixMonthsAgo, 6, 0));
+			setValLastMonth(toDisplayAmount(valLastMonth, 6, 0));
+			setValCurrentMonth(toDisplayAmount(valCurrentMonth, 6, 0));
 			setPortfolioAgg(portfolioAgg);
 		};
 
@@ -78,28 +78,15 @@ export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) 
 						<div className="container-in">
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Locked token value</div>
-								<div className="value">
-									{toDisplayAmount(
-										portfolioAgg?.locked_mint_fund_euro_e_amount || "0",
-										contracts?.euro_e_metadata.decimals || 6,
-										0,
-									)}{" "}
-									{contracts?.euro_e_metadata.symbol}
-								</div>
+								<div className="value">{toDisplayAmount(portfolioAgg?.locked_mint_fund_euro_e_amount || "0", 6, 0)} €</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Portfolio value</div>
-								<div className="value">
-									{toDisplayAmount(portfolioAgg?.current_portfolio_value || "0", contracts?.euro_e_metadata.decimals || 6, 0)}{" "}
-									{contracts?.euro_e_metadata.symbol}
-								</div>
+								<div className="value">{toDisplayAmount(portfolioAgg?.current_portfolio_value || "0", 6, 0)} €</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Yearly portfolio growth</div>
-								<div className="value">
-									{toDisplayAmount(portfolioAgg?.yearly_return || "0", contracts?.euro_e_metadata.decimals || 6, 0)}{" "}
-									{contracts?.euro_e_metadata.symbol}
-								</div>
+								<div className="value">{toDisplayAmount(portfolioAgg?.yearly_return || "0", 6, 0)} €</div>
 							</div>
 							<div className="col-20-percent fl investmentms col-m-full col-mr-bottom-30">
 								<div className="tag">Return on investment</div>
@@ -136,7 +123,7 @@ export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) 
 											sixMonthsAgo={valSixMonthsAgo}
 											currentMonth={valCurrentMonth}
 											lastMonth={valLastMonth}
-											currencySymbol={contracts?.euro_e_metadata.symbol || ""}
+											currencySymbol="€"
 										/>
 									</div>
 								</div>

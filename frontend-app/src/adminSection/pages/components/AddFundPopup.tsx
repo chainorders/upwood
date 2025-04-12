@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Box, Grid, Typography, Paper } from "@mui/material";
-import {
-	ForestProjectTokenContract,
-	SecurityMintFundContract,
-	SystemContractsConfigApiModel,
-} from "../../../apiClient";
+import { ForestProjectTokenContract, SecurityMintFundContract } from "../../../apiClient";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import TransactionButton from "../../../components/TransactionButton";
@@ -16,7 +12,6 @@ import IntegerInput from "./IntegerInput";
 
 interface ProjectTokenAddFundPopupProps {
 	user: User;
-	contracts: SystemContractsConfigApiModel;
 	fundContract: SecurityMintFundContract;
 	tokenContract: ForestProjectTokenContract;
 	preSaleTokenContract: ForestProjectTokenContract;
@@ -31,7 +26,6 @@ interface FundFormData {
 
 export default function AddFundPopup({
 	user,
-	contracts,
 	fundContract,
 	tokenContract,
 	preSaleTokenContract,
@@ -43,7 +37,7 @@ export default function AddFundPopup({
 	const { control, handleSubmit, watch } = useForm<FundFormData>({
 		mode: "onChange", // Enable validation on change
 		defaultValues: {
-			price: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
+			price: 1 * 10 ** 6,
 		},
 	});
 
@@ -99,7 +93,7 @@ export default function AddFundPopup({
 						}}
 					>
 						<Typography variant="h6" mb={1} color="primary">
-							{contracts.euro_e_metadata.symbol || "Euro"} Price
+							Euro Price
 						</Typography>
 						<Grid container spacing={2}>
 							<Grid item xs={12}>
@@ -115,12 +109,7 @@ export default function AddFundPopup({
 									}}
 								/>
 								<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-									Price per token unit: {contracts.euro_e_metadata.symbol}{" "}
-									{toDisplayAmount(
-										priceWatch?.toString() || "0",
-										contracts.euro_e_metadata.decimals || 6,
-										contracts.euro_e_metadata.decimals || 6,
-									)}
+									Price per token unit: {toDisplayAmount(priceWatch?.toString() || "0", 6, 6)}
 								</Typography>
 							</Grid>
 						</Grid>

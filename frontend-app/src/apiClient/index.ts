@@ -86,7 +86,6 @@ export type { Token } from "./models/Token";
 export type { TokenHolder } from "./models/TokenHolder";
 export type { TokenHolderBalanceUpdate } from "./models/TokenHolderBalanceUpdate";
 export { TokenHolderBalanceUpdateType } from "./models/TokenHolderBalanceUpdateType";
-export type { TokenMetadata } from "./models/TokenMetadata";
 export type { Trader } from "./models/Trader";
 export type { Treasury } from "./models/Treasury";
 export type { TreeNftMetadata } from "./models/TreeNftMetadata";

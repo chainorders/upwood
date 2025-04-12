@@ -415,12 +415,7 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 							</AccordionSummary>
 							<AccordionDetails>
 								<Box sx={{ display: "flex", justifyContent: "flex-end", width: "100%", marginBottom: 2 }}>
-									<Button
-										variant="outlined"
-										color="primary"
-										onClick={handleOpenAddPricePopup}
-										disabled={!contracts?.euro_e_metadata}
-									>
+									<Button variant="outlined" color="primary" onClick={handleOpenAddPricePopup} disabled={!contracts}>
 										Add Price
 									</Button>
 								</Box>
@@ -438,7 +433,7 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 										<TableBody>
 											{prices?.data.map((price) => (
 												<TableRow key={price.price_at}>
-													<TableCell>{toDisplayAmount(price.price, contracts?.euro_e_metadata.decimals || 6, 6)}</TableCell>
+													<TableCell>{toDisplayAmount(price.price, 6, 6)}</TableCell>
 													<TableCell>{new Date(price.price_at).toLocaleDateString()}</TableCell>
 													<TableCell>{price.currency_token_id}</TableCell>
 													<TableCell>{price.currency_token_contract_address}</TableCell>
@@ -622,12 +617,13 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 					</Grid>
 					{/* Remove the entire sidebar Grid item */}
 				</Grid>
-				{contracts?.euro_e_metadata && (
+				{contracts && (
 					<AddPricePopup
 						open={openAddPricePopup}
 						onClose={handleCloseAddPricePopup}
 						projectId={id!}
-						euroEMetadata={contracts.euro_e_metadata}
+						currency_token_id={contracts.euro_e_token_id}
+						currency_token_contract_address={contracts.euro_e_contract_index}
 					/>
 				)}
 				<AddLegalContractPopup

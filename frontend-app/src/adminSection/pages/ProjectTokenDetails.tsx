@@ -313,7 +313,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 						<DialogContent>
 							<AddFundPopup
 								user={user}
-								contracts={contracts}
 								tokenId={token_id!}
 								forestProjectId={id!}
 								onDone={handleCloseFundPopup}

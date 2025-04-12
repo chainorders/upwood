@@ -10,7 +10,6 @@ pub mod forest_project_token_user_yield;
 pub mod forest_project_token_user_yield_claim;
 pub mod forest_project_user_balance_aggregate;
 pub mod security_token_contract_type;
-pub mod token_metadata;
 pub mod user_yields_aggregate;
 pub mod prelude {
     pub use super::forest_project_fund_investor::*;
@@ -25,6 +24,5 @@ pub mod prelude {
     pub use super::forest_project_token_user_yield_claim::*;
     pub use super::forest_project_user_balance_aggregate::*;
     pub use super::security_token_contract_type::*;
-    pub use super::token_metadata::*;
     pub use super::user_yields_aggregate::*;
 }

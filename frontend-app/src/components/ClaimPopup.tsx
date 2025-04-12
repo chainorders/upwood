@@ -128,25 +128,19 @@ export default function ClaimPopup({
 											<div className="col-4 fl col-m-full">
 												<div className="cl-in">
 													<div className="tag">Carbon Credits</div>
-													<div className="display">
-														{toDisplayAmount(yieldsDisplay.carbonCredits, contracts.carbon_credit_metadata.decimals || 0, 0)}{" "}
-													</div>
+													<div className="display">{toDisplayAmount(yieldsDisplay.carbonCredits, 0, 0)} </div>
 												</div>
 											</div>
 											<div className="col-4 fl col-m-full">
 												<div className="cl-in">
 													<div className="tag">EuroE</div>
-													<div className="display">
-														{toDisplayAmount(yieldsDisplay.euroE, contracts.euro_e_metadata.decimals || 6, 0)}
-													</div>
+													<div className="display">{toDisplayAmount(yieldsDisplay.euroE, 6, 0)}</div>
 												</div>
 											</div>
 											<div className="col-4 fl col-m-full">
 												<div className="cl-in">
 													<div className="tag">E Trees</div>
-													<div className="display">
-														{toDisplayAmount(yieldsDisplay.eTrees, contracts.tree_ft_metadata.decimals || 0, 0)}
-													</div>
+													<div className="display">{toDisplayAmount(yieldsDisplay.eTrees, 0, 0)}</div>
 												</div>
 											</div>
 											<div className="clr"></div>
@@ -171,9 +165,7 @@ export default function ClaimPopup({
 											<div className="col-4 auto col-m-full">
 												<div className="cl-in">
 													<div className="tag">Carbon Credits</div>
-													<div className="display">
-														{toDisplayAmount(yieldsDisplay.carbonCredits, contracts.carbon_credit_metadata.decimals || 0, 0)}{" "}
-													</div>
+													<div className="display">{toDisplayAmount(yieldsDisplay.carbonCredits, 0, 0)}</div>
 												</div>
 											</div>
 											<div className="clr"></div>

@@ -662,53 +662,14 @@ impl UserApi {
                 total_sell_currency_amount:      Decimal::ZERO,
             });
 
-        let euro_e_metdata = TokenMetadata::find(
-            conn,
-            contracts.euro_e_contract_index,
-            contracts.euro_e_token_id,
-        )?
-        .unwrap_or(TokenMetadata {
-            contract_address: contracts.euro_e_contract_index,
-            token_id:         contracts.euro_e_token_id,
-            decimals:         Some(6),
-            symbol:           Some("€".to_string()),
-        });
-
-        let carbon_credit_metadata = TokenMetadata::find(
-            conn,
-            contracts.carbon_credit_contract_index,
-            contracts.carbon_credit_token_id,
-        )?
-        .unwrap_or(TokenMetadata {
-            contract_address: contracts.carbon_credit_contract_index,
-            token_id:         contracts.carbon_credit_token_id,
-            decimals:         Some(0),
-            symbol:           Some("CC".to_string()),
-        });
-
-        let tree_ft_metadata = TokenMetadata::find(
-            conn,
-            contracts.tree_ft_contract_index,
-            contracts.tree_nft_contract_index,
-        )?
-        .unwrap_or(TokenMetadata {
-            contract_address: contracts.tree_ft_contract_index,
-            token_id:         contracts.tree_nft_contract_index,
-            decimals:         Some(0),
-            symbol:           Some("ETrees".to_string()),
-        });
-
         Ok(Json(SystemContractsConfigApiModel {
             identity_registry_contract_index: contracts.identity_registry_contract_index,
             compliance_contract_index: contracts.compliance_contract_index,
             carbon_credit_contract_index: contracts.carbon_credit_contract_index,
             carbon_credit_token_id: contracts.carbon_credit_token_id,
-            carbon_credit_metadata,
             euro_e_contract_index: contracts.euro_e_contract_index,
             euro_e_token_id: contracts.euro_e_token_id,
-            euro_e_metadata: euro_e_metdata,
             tree_ft_contract_index: contracts.tree_ft_contract_index,
-            tree_ft_metadata,
             tree_nft_contract_index: contracts.tree_nft_contract_index,
             offchain_rewards_contract_index: contracts.offchain_rewards_contract_index,
             mint_funds_contract_index: contracts.mint_funds_contract_index,
@@ -1061,12 +1022,9 @@ pub struct SystemContractsConfigApiModel {
     pub compliance_contract_index:        Decimal,
     pub carbon_credit_contract_index:     Decimal,
     pub carbon_credit_token_id:           Decimal,
-    pub carbon_credit_metadata:           TokenMetadata,
     pub euro_e_contract_index:            Decimal,
     pub euro_e_token_id:                  Decimal,
-    pub euro_e_metadata:                  TokenMetadata,
     pub tree_ft_contract_index:           Decimal,
-    pub tree_ft_metadata:                 TokenMetadata,
     pub tree_nft_contract_index:          Decimal,
     pub offchain_rewards_contract_index:  Decimal,
     pub mint_funds_contract_index:        Decimal,

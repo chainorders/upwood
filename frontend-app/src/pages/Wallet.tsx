@@ -154,20 +154,16 @@ export default function Wallet({ user }: WalletProps) {
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Carbon credits</div>
 								<div className="value">
-									{toDisplayAmount(yields?.carbonCredits || "0", contracts?.carbon_credit_metadata.decimals || 0, 0)} = {0}€
+									{toDisplayAmount(yields?.carbonCredits || "0", 0, 0)} = {0}
 								</div>
 							</div>
 							<div className="col-10-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">Dividends</div>
-								<div className="value">
-									{toDisplayAmount(yields?.euroE || "0", contracts?.euro_e_metadata.decimals || 0, 2)}
-								</div>
+								<div className="value">{toDisplayAmount(yields?.euroE || "0", 6, 2)}</div>
 							</div>
 							<div className="col-20-percent fl walletclms col-m-full col-mr-bottom-30">
 								<div className="tag">E-trees</div>
-								<div className="value">
-									{toDisplayAmount(yields?.eTrees || "0", contracts?.tree_ft_metadata.decimals || 0, 0)}
-								</div>
+								<div className="value">{toDisplayAmount(yields?.eTrees || "0", 0, 0)}</div>
 							</div>
 							<div className="col-10-percent fl walletclms col-m-full">
 								<div className="tag">Yields</div>
@@ -234,9 +230,9 @@ export default function Wallet({ user }: WalletProps) {
 														{item.token_contract_address}({item.token_contract_type})
 													</td>
 													<td>{item.user_balance}</td>
-													<td>{toDisplayAmount(item.user_balance_price, contracts?.euro_e_metadata.decimals || 6, 2)}</td>
+													<td>{toDisplayAmount(item.user_balance_price, 6, 2)}</td>
 													<td>{item.carbon_credit_yield_balance}</td>
-													<td>{toDisplayAmount(item.euro_e_yields_balance, contracts?.euro_e_metadata.decimals || 6, 2)}</td>
+													<td>{toDisplayAmount(item.euro_e_yields_balance, 6, 2)}</td>
 												</tr>
 											))}
 										</tbody>

@@ -52,12 +52,12 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 		mode: "onChange", // Enable validation on change
 		defaultValues: {
 			liquidity_provider: user.concordiumAccountAddress,
-			buy_rate_numerator: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
-			sell_rate_numerator: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
+			buy_rate_numerator: 1 * 10 ** 6,
+			sell_rate_numerator: 1 * 10 ** 6,
 			token_id_start: format(toDate(tokenContract.created_at), "yyyy-MM-dd"), // Convert to UTC date string
 			token_id_diff_millis: 24 * 60 * 60 * 1000,
 			marketType: token_id ? "transfer" : "mint",
-			mint_rate_numerator: 1 * 10 ** (contracts.euro_e_metadata.decimals || 6),
+			mint_rate_numerator: 1 * 10 ** 6,
 			token_id,
 		},
 	});
@@ -252,7 +252,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 										}}
 									>
 										<Typography variant="h6" mb={1} color="primary">
-											Buy Price ({contracts.euro_e_metadata.symbol})
+											Buy Price €
 										</Typography>
 										<Grid container spacing={2}>
 											<Grid item xs={12}>
@@ -270,12 +270,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													Price per token unit: {contracts.euro_e_metadata.symbol}{" "}
-													{toDisplayAmount(
-														buyPrice?.toString() || "0",
-														contracts.euro_e_metadata.decimals || 6,
-														contracts.euro_e_metadata.decimals || 6,
-													)}
+													Price per token unit: € {toDisplayAmount(buyPrice?.toString() || "0", 6, 6)}
 												</Typography>
 											</Grid>
 										</Grid>
@@ -291,7 +286,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 										}}
 									>
 										<Typography variant="h6" mb={1} color="primary">
-											Sell Price ({contracts.euro_e_metadata.symbol})
+											Sell Price €
 										</Typography>
 										<Grid container spacing={2}>
 											<Grid item xs={12}>
@@ -309,12 +304,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													Price per token unit: {contracts.euro_e_metadata.symbol}{" "}
-													{toDisplayAmount(
-														sellPrice?.toString() || "0",
-														contracts.euro_e_metadata.decimals || 6,
-														contracts.euro_e_metadata.decimals || 6,
-													)}
+													Price per token unit: € {toDisplayAmount(sellPrice?.toString() || "0", 6, 6)}
 												</Typography>
 											</Grid>
 										</Grid>
@@ -332,7 +322,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 										}}
 									>
 										<Typography variant="h6" mb={1} color="primary">
-											Mint Rate ({contracts.euro_e_metadata.symbol})
+											Mint Rate €
 										</Typography>
 										<Grid container spacing={2}>
 											<Grid item xs={12}>
@@ -350,12 +340,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													Price per token unit: {contracts.euro_e_metadata.symbol}{" "}
-													{toDisplayAmount(
-														mintPrice?.toString() || "0",
-														contracts.euro_e_metadata.decimals || 6,
-														contracts.euro_e_metadata.decimals || 6,
-													)}
+													Price per token unit: € {toDisplayAmount(mintPrice?.toString() || "0", 6, 6)}
 												</Typography>
 											</Grid>
 										</Grid>

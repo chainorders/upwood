@@ -1,24 +1,31 @@
 import { useForm, Controller } from "react-hook-form";
 import { Dialog, DialogTitle, DialogContent, TextField, Button, Typography, Box, Paper, Grid } from "@mui/material";
-import { ForestProjectPrice, ForestProjectService, TokenMetadata } from "../../../apiClient";
+import { ForestProjectPrice, ForestProjectService } from "../../../apiClient";
 import { formatDate, toDisplayAmount } from "../../../lib/conversions";
 import useCommonStyles from "../../../theme/useCommonStyles";
-import IntegerInput from "./IntegerInput";
+import CurrencyInput from "./CurrencyInput";
 
 interface AddPricePopupProps {
 	open: boolean;
 	onClose: () => void;
-	euroEMetadata: TokenMetadata;
+	currency_token_id: string;
+	currency_token_contract_address: string;
 	projectId: string;
 }
 
-export default function AddPricePopup({ open, onClose, projectId, euroEMetadata }: AddPricePopupProps) {
+export default function AddPricePopup({
+	open,
+	onClose,
+	projectId,
+	currency_token_id,
+	currency_token_contract_address,
+}: AddPricePopupProps) {
 	const styles = useCommonStyles();
 	const { control, handleSubmit, reset, watch } = useForm<ForestProjectPrice>({
 		mode: "onChange", // Enable validation on change
 		defaultValues: {
-			currency_token_id: euroEMetadata.token_id,
-			currency_token_contract_address: euroEMetadata.contract_address,
+			currency_token_id: currency_token_id,
+			currency_token_contract_address: currency_token_contract_address,
 			project_id: projectId,
 			price_at: formatDate(new Date()),
 		},
@@ -29,8 +36,8 @@ export default function AddPricePopup({ open, onClose, projectId, euroEMetadata 
 	const onSubmit = async (data: ForestProjectPrice) => {
 		try {
 			data.price_at = formatDate(new Date(data.price_at));
-			data.currency_token_id = euroEMetadata.token_id;
-			data.currency_token_contract_address = euroEMetadata.contract_address;
+			data.currency_token_id = currency_token_id;
+			data.currency_token_contract_address = currency_token_contract_address;
 			data.project_id = projectId;
 			await ForestProjectService.postAdminForestProjectsPrice(projectId, data);
 			onClose();
@@ -61,15 +68,14 @@ export default function AddPricePopup({ open, onClose, projectId, euroEMetadata 
 								}}
 							>
 								<Typography variant="h6" mb={1} color="primary">
-									{euroEMetadata.symbol || "Euro"} Price
+									€ Price
 								</Typography>
 								<Grid container spacing={2}>
 									<Grid item xs={12}>
-										<IntegerInput
+										<CurrencyInput
 											name="price"
 											control={control}
 											label="Price"
-											min={0}
 											textFieldProps={{
 												fullWidth: true,
 												autoComplete: "off",
@@ -77,8 +83,7 @@ export default function AddPricePopup({ open, onClose, projectId, euroEMetadata 
 											}}
 										/>
 										<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-											Price: {euroEMetadata.symbol || ""}{" "}
-											{toDisplayAmount(priceWatch?.toString() || "0", euroEMetadata.decimals || 6, euroEMetadata.decimals || 6)}
+											Price: € {toDisplayAmount(priceWatch?.toString() || "0", 6, 6)}
 										</Typography>
 									</Grid>
 								</Grid>
