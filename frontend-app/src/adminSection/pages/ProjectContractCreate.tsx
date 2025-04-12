@@ -376,16 +376,6 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 									/>
 								</Box>
 							</Grid>
-							<Grid item xs={12} md={6}>
-								<Box sx={styles.formField}>
-									<TextField
-										fullWidth
-										variant="outlined"
-										label="Market Token ID (optional)"
-										{...register("market_token_id", { setValueAs: (val: string) => val || undefined })}
-									/>
-								</Box>
-							</Grid>
 						</Grid>
 					</Box>
 

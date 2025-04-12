@@ -11,7 +11,6 @@ import {
 	ForestProjectTokenContract,
 	SecurityMintFund,
 	SystemContractsConfigApiModel,
-	TokenMetadata,
 } from "../apiClient";
 import { User } from "../lib/user";
 import { toDisplayAmount, toTokenId } from "../lib/conversions";
@@ -27,7 +26,6 @@ interface BuyShareProps {
 	project: ForestProject;
 	fund: SecurityMintFund;
 	tokenContract?: ForestProjectTokenContract;
-	currencyMetadata?: TokenMetadata;
 	legalContractSigned: boolean;
 	close?: () => void;
 }
@@ -43,7 +41,6 @@ export default function FundInvest({
 	contracts,
 	fund,
 	tokenContract,
-	currencyMetadata,
 	project,
 	legalContractSigned,
 }: BuyShareProps) {
@@ -250,8 +247,7 @@ export default function FundInvest({
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
 								<span className="colb" title={price.toString()}>
-									{toDisplayAmount(price.toString(), currencyMetadata?.decimals || 6, 2)}
-									{currencyMetadata?.symbol}
+									{toDisplayAmount(price.toString(), 6, 2)}
 								</span>
 							</div>
 							<div className="vis col-6 fl">
@@ -271,8 +267,7 @@ export default function FundInvest({
 								<span>
 									Investment amount{" "}
 									<span className="fr" title={`Account Address: ${user.concordiumAccountAddress}`}>
-										Balance - {toDisplayAmount(euroeBalance.toString(), currencyMetadata?.decimals || 6)}{" "}
-										{currencyMetadata?.symbol}
+										Balance - {toDisplayAmount(euroeBalance.toString(), 6)}
 									</span>
 								</span>
 							</label>
@@ -306,7 +301,7 @@ export default function FundInvest({
 								</span>
 							</div>
 							<div className="right col-m-full fr">
-								Total payment : <span>{toDisplayAmount(totalPayment.toString(), currencyMetadata?.decimals || 6)} EUROe</span>
+								Total payment : <span>{toDisplayAmount(totalPayment.toString(), 6)} EUROe</span>
 							</div>
 							<div className="clr"></div>
 						</div>

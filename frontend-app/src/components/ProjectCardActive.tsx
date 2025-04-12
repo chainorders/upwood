@@ -93,7 +93,6 @@ export default function ProjectCardActive({ project, user, contracts }: Props) {
 					contracts={contracts}
 					fund={project.property_fund}
 					tokenContract={project.property_contract}
-					currencyMetadata={project.property_fund_currency_metadata}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}

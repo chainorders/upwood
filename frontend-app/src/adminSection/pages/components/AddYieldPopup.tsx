@@ -3,7 +3,6 @@ import {
 	ForestProjectService,
 	ForestProjectTokenContract,
 	SystemContractsConfigApiModel,
-	TokenMetadata,
 	UserService,
 } from "../../../apiClient";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
@@ -53,9 +52,6 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 	const styles = useCommonStyles();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [projectTokenContract, setProjectTokenContract] = useState<ForestProjectTokenContract>();
-	const [euroeMetdata, setEuroMetadata] = useState<TokenMetadata>();
-	const [carbonCreditsMetadata, setCarbonCreditsMetadata] = useState<TokenMetadata>();
-	const [eTreesMetadata, setETreesMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const { control, handleSubmit, watch } = useForm<YieldFormData>({
 		mode: "onChange", // This makes validation run on every change
@@ -79,24 +75,6 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 			setProjectTokenContract(data);
 		});
 	}, [contract_address]);
-	useEffect(() => {
-		if (contracts) {
-			ForestProjectService.getAdminTokenMetadata(contracts.euro_e_contract_index, contracts.euro_e_token_id).then(
-				(data) => {
-					setEuroMetadata(data);
-				},
-			);
-			ForestProjectService.getAdminTokenMetadata(
-				contracts.carbon_credit_contract_index,
-				contracts.carbon_credit_token_id,
-			).then((data) => {
-				setCarbonCreditsMetadata(data);
-			});
-			ForestProjectService.getAdminTokenMetadata(contracts.tree_ft_contract_index, "0").then((data) => {
-				setETreesMetadata(data);
-			});
-		}
-	}, [contracts]);
 
 	const onSubmit = async (data: YieldFormData) => {
 		if (!contracts) {
@@ -187,7 +165,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 						}}
 					>
 						<Typography variant="h6" mb={1} color="primary">
-							{carbonCreditsMetadata?.symbol ? `(${carbonCreditsMetadata?.symbol})` : ""} Carbon Credits
+							Carbon Credits
 						</Typography>
 						<Grid container spacing={2} alignItems="center">
 							<Grid item xs={2}>
@@ -205,8 +183,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(carbonCreditRateNumeratorWatch.toString(), carbonCreditsMetadata?.decimals || 0)}{" "}
-									{carbonCreditsMetadata?.symbol || "Carbon Credits"} per{" "}
+									{toDisplayAmount(carbonCreditRateNumeratorWatch.toString(), 0)} Carbon Credits per{" "}
 									{toDisplayAmount(carbonCreditRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens
 								</Typography>
@@ -224,7 +201,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 						}}
 					>
 						<Typography variant="h6" mb={1} color="primary">
-							{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro
+							Euro
 						</Typography>
 						<Grid container spacing={2} alignItems="center">
 							<Grid item xs={2}>
@@ -242,8 +219,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(euroRateNumeratorWatch.toString(), euroeMetdata?.decimals || 6, 6)}{" "}
-									{euroeMetdata?.symbol || "Euro"} per{" "}
+									{toDisplayAmount(euroRateNumeratorWatch.toString(), 6, 6)} Euro per{" "}
 									{toDisplayAmount(euroRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens
 								</Typography>
@@ -261,7 +237,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 						}}
 					>
 						<Typography variant="h6" mb={1} color="primary">
-							{eTreesMetadata?.symbol ? `(${eTreesMetadata?.symbol})` : ""} E-Trees
+							E-Trees
 						</Typography>
 						<Grid container spacing={2} alignItems="center">
 							<Grid item xs={2}>
@@ -279,8 +255,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(eTreesRateNumeratorWatch.toString(), eTreesMetadata?.decimals || 0)}{" "}
-									{eTreesMetadata?.symbol || "E-Trees"} per{" "}
+									{toDisplayAmount(eTreesRateNumeratorWatch.toString(), 0)} E-Trees per{" "}
 									{toDisplayAmount(eTreesRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens
 								</Typography>
@@ -298,7 +273,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 						}}
 					>
 						<Typography variant="h6" mb={1} color="primary">
-							{euroeMetdata?.symbol ? `(${euroeMetdata?.symbol})` : ""} Euro Interest
+							Euro Interest
 						</Typography>
 						<Grid container spacing={2} alignItems="center">
 							<Grid item xs={2}>
@@ -316,8 +291,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(euroIntrestRateNumeratorWatch.toString(), euroeMetdata?.decimals || 6, 6)}{" "}
-									{euroeMetdata?.symbol || "Euro"} per{" "}
+									{toDisplayAmount(euroIntrestRateNumeratorWatch.toString(), 6, 6)} Euro per{" "}
 									{toDisplayAmount(euroIntrestRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens per token version
 								</Typography>

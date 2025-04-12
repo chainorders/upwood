@@ -90,15 +90,19 @@ export class IndexerService {
 
 	/**
 	 * @param contractAddress
+	 * @param tokenId
 	 * @returns Market
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2Market(contractAddress: string): CancelablePromise<Market> {
+	public static getAdminIndexerCis2Market(contractAddress: string, tokenId?: string): CancelablePromise<Market> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/indexer/cis2/{contract_address}/market",
 			path: {
 				contract_address: contractAddress,
+			},
+			query: {
+				token_id: tokenId,
 			},
 		});
 	}

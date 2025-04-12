@@ -6,14 +6,16 @@ interface DetailRowProps {
 	value: React.ReactNode;
 	labelSx?: SxProps<Theme>;
 	valueSx?: SxProps<Theme>;
+	title?: string;
 }
 
 /**
  * A reusable component for displaying a label-value pair in detail views
  */
-const DetailRow: React.FC<DetailRowProps> = ({ label, value, labelSx = {}, valueSx = {} }) => {
+const DetailRow: React.FC<DetailRowProps> = ({ label, value, labelSx = {}, valueSx = {}, title }) => {
 	return (
 		<Box
+			title={title}
 			sx={{
 				display: "grid",
 				gridTemplateColumns: { xs: "1fr", sm: "220px 1fr" },

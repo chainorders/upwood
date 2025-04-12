@@ -21,9 +21,6 @@ pub struct UserYieldsAggregate {
     pub yield_token_id:           Decimal,
     pub yield_contract_address:   Decimal,
     pub yield_amount:             Decimal,
-    // TODO: Remove these fields
-    pub yield_token_symbol:       String,
-    pub yield_token_decimals:     i32,
 }
 
 impl UserYieldsAggregate {

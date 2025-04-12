@@ -266,10 +266,6 @@ const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: strin
 						label="Fund Token ID (optional)"
 						{...register("fund_token_id", { setValueAs: (val: string) => val || undefined })}
 					/>
-					<TextField
-						label="Market Token ID (optional)"
-						{...register("market_token_id", { setValueAs: (val: string) => val || undefined })}
-					/>
 					<TextField label="Symbol (optional)" {...register("symbol", { setValueAs: (val: string) => val || undefined })} />
 					<TextField label="Decimals (optional)" type="number" {...register("decimals", { valueAsNumber: true })} />
 

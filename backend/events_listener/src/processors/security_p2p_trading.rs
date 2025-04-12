@@ -47,7 +47,14 @@ pub fn process_events(
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
     for event in events {
-        let event = event.parse::<Event>().expect("Failed to parse event");
+        let event = event.parse::<Event>();
+        let event = match event {
+            Ok(event) => event,
+            Err(e) => {
+                warn!("Failed to parse event: {:?}", e);
+                continue;
+            }
+        };
         trace!("Event details: {:#?}", event);
 
         match event {
@@ -174,23 +181,23 @@ pub fn process_events(
                 currency_amount,
             }) => {
                 conn.transaction::<_, ProcessorError, _>(|conn| {
-                    let market =
-                        Market::find(conn, contract.to_decimal(), token_contract.to_decimal())?
+                    let contract = P2PTradeContract::find(conn, contract.to_decimal())?.ok_or(
+                        ProcessorError::TradeContractNotFound {
+                            contract: contract.to_decimal(),
+                        },
+                    )?;
+                    let _ =
+                        Market::find(conn, contract.contract_address, token_contract.to_decimal())?
                             .map(|mut market| {
                                 market.total_sell_currency_amount += currency_amount.to_decimal();
                                 market.total_sell_token_amount += token_amount.to_decimal();
                                 market.update_time = block_time;
-                                market
-                            })
-                            .ok_or(ProcessorError::MarketNotFound {
-                                contract:       contract.to_decimal(),
-                                token_contract: token_contract.to_decimal(),
-                            })?
-                            .update(conn)?;
+                                market.update(conn)
+                            });
 
                     Trader::find(
                         conn,
-                        contract.to_decimal(),
+                        contract.contract_address,
                         token_id.to_decimal(),
                         token_contract.to_decimal(),
                         seller.to_string(),
@@ -202,7 +209,7 @@ pub fn process_events(
                         seller
                     })
                     .unwrap_or_else(|| Trader {
-                        contract_address: contract.to_decimal(),
+                        contract_address: contract.contract_address,
                         token_contract_address: token_contract.to_decimal(),
                         token_id: token_id.to_decimal(),
                         trader: seller.to_string(),
@@ -210,8 +217,8 @@ pub fn process_events(
                         token_out_amount: token_amount.to_decimal(),
                         currency_in_amount: currency_amount.to_decimal(),
                         currency_out_amount: 0.into(),
-                        currency_token_id: market.currency_token_id,
-                        currency_token_contract_address: market.currency_token_contract_address,
+                        currency_token_id: contract.currency_token_id,
+                        currency_token_contract_address: contract.currency_token_contract_address,
                         create_time: block_time,
                         update_time: block_time,
                     })
@@ -219,7 +226,7 @@ pub fn process_events(
 
                     Trader::find(
                         conn,
-                        contract.to_decimal(),
+                        contract.contract_address,
                         token_id.to_decimal(),
                         token_contract.to_decimal(),
                         buyer.to_string(),
@@ -231,7 +238,7 @@ pub fn process_events(
                         buyer
                     })
                     .unwrap_or_else(|| Trader {
-                        contract_address: contract.to_decimal(),
+                        contract_address: contract.contract_address,
                         token_contract_address: token_contract.to_decimal(),
                         token_id: token_id.to_decimal(),
                         trader: buyer.to_string(),
@@ -239,8 +246,8 @@ pub fn process_events(
                         token_out_amount: 0.into(),
                         currency_in_amount: 0.into(),
                         currency_out_amount: currency_amount.to_decimal(),
-                        currency_token_id: market.currency_token_id,
-                        currency_token_contract_address: market.currency_token_contract_address,
+                        currency_token_id: contract.currency_token_id,
+                        currency_token_contract_address: contract.currency_token_contract_address,
                         create_time: block_time,
                         update_time: block_time,
                     })
@@ -250,11 +257,11 @@ pub fn process_events(
                         id: Uuid::new_v4(),
                         block_height,
                         txn_index,
-                        contract_address: contract.to_decimal(),
+                        contract_address: contract.contract_address,
                         token_id: token_id.to_decimal(),
                         token_contract_address: token_contract.to_decimal(),
-                        currency_token_id: market.currency_token_id,
-                        currency_token_contract_address: market.currency_token_contract_address,
+                        currency_token_id: contract.currency_token_id,
+                        currency_token_contract_address: contract.currency_token_contract_address,
                         seller: seller.to_string(),
                         buyer: buyer.to_string(),
                         currency_amount: currency_amount.to_decimal(),
@@ -269,7 +276,12 @@ pub fn process_events(
 
                 info!(
                     "Exchanged: {:?}",
-                    (seller, buyer, token_amount, currency_amount)
+                    (
+                        seller.to_string(),
+                        buyer.to_string(),
+                        token_amount,
+                        currency_amount
+                    )
                 );
             }
         }

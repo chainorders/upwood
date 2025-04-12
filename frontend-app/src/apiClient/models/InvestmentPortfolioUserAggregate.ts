@@ -3,10 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { TokenMetadata } from "./TokenMetadata";
-
 export type InvestmentPortfolioUserAggregate = {
-	euro_e_token_metadata?: TokenMetadata;
 	/**
 	 * The amount of locked euros in the all the mint fund contracts
 	 */

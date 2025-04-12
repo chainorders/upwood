@@ -14,14 +14,14 @@ import {
 	DialogTitle,
 	DialogContent,
 } from "@mui/material";
-import { ForestProjectService, Token, ForestProjectTokenContract, IndexerService } from "../../apiClient";
+import { ForestProjectService, Token, ForestProjectTokenContract, IndexerService, Market } from "../../apiClient";
 import { Link, useParams } from "react-router";
 import { AddProjectTokenPopup } from "./components/AddProjectTokenPopup";
 import Dialog from "@mui/material/Dialog";
 import { daysSince } from "../../lib/conversions";
 import { User } from "../../lib/user";
 
-export default function ProjectTokenList({ user }: { user: User }) {
+export default function ProjectTokenList({ user, market }: { user: User; market?: Market }) {
 	const { id, contract_address } = useParams<{ id: string; contract_address: string }>();
 	const [tokens, setTokens] = useState<Token[]>([]);
 	const [tokenContract, setTokenContract] = useState<ForestProjectTokenContract | null>(null);
@@ -97,7 +97,7 @@ export default function ProjectTokenList({ user }: { user: User }) {
 									</a>
 								</TableCell>
 								<TableCell>{token.is_paused ? "Yes" : "No"}</TableCell>
-								<TableCell>{tokenContract?.market_token_id == token.token_id ? "Yes" : "No"}</TableCell>
+								<TableCell>{market?.token_id == token.token_id ? "Yes" : "No"}</TableCell>
 								<TableCell>{tokenContract?.fund_token_id == token.token_id ? "Yes" : "No"}</TableCell>
 								<TableCell>{token.supply}</TableCell>
 								<TableCell>

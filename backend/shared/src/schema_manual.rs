@@ -57,8 +57,6 @@ diesel::table! {
         yield_token_id -> Numeric,
         yield_contract_address -> Numeric,
         yield_amount -> Numeric,
-        yield_token_symbol -> Varchar,
-        yield_token_decimals -> Integer,
     }
 }
 
@@ -80,8 +78,6 @@ diesel::table! {
         currency_token_id -> Numeric,
         currency_token_contract_address -> Numeric,
         currency_amount -> Numeric,
-        currency_token_symbol -> Varchar,
-        currency_token_decimals -> Integer,
         cognito_user_id -> Varchar,
         transaction_type -> Varchar,
         account_address -> Varchar,

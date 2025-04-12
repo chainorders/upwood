@@ -100,14 +100,20 @@ impl Api {
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Path(contract_address): Path<Decimal>,
+        Query(token_id): Query<Option<Decimal>>,
     ) -> JsonResult<Option<Market>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        Ok(Json(Market::find(
+        let market = Market::find(
             &mut conn,
             contracts.trading_contract_index,
             contract_address,
-        )?))
+        )?;
+        let market = match token_id {
+            None => market,
+            Some(token_id) => market.filter(|m| m.token_id.eq(&Some(token_id))),
+        };
+        Ok(Json(market))
     }
 
     #[oai(

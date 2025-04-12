@@ -32,7 +32,6 @@ import {
 	SecurityTokenContractType,
 	SystemContractsConfigApiModel,
 	Token,
-	TokenMetadata,
 	UserService,
 	Yield,
 } from "../../apiClient";
@@ -53,9 +52,7 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 	const [preSaleToken, setPreSaleToken] = useState<Token>();
 	const [preSaleTokenContract, setPreSaleTokenContract] = useState<ForestProjectTokenContract>();
 	const [market, setMarket] = useState<Market>();
-	const [marketCurrencyMetdata, setMarketCurrencyMetdata] = useState<TokenMetadata>();
 	const [fund, setFund] = useState<SecurityMintFund>();
-	const [fundCurrencyMetdata, setFundCurrencyMetdata] = useState<TokenMetadata>();
 	const [yields, setYields] = useState<Yield[]>([]);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [refreshCounter, setRefreshCounter] = useState(0);
@@ -105,7 +102,7 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 
 	useEffect(() => {
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2TokenMarket(contract_address!, token_id!).then(setMarket);
+		IndexerService.getAdminIndexerCis2Market(contract_address!, token_id!).then(setMarket);
 		IndexerService.getAdminIndexerCis2TokenYieldsList(contract_address!, token_id!).then(setYields);
 		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!).then(setFund);
 		IndexerService.getAdminIndexerCis2Token(contract_address!, token_id!)
@@ -115,22 +112,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 		ForestProjectService.getAdminForestProjectsContract(contract_address!).then(setTokenContract);
 		UserService.getSystemConfig().then(setContracts);
 	}, [contract_address, token_id, refreshCounter]);
-
-	useEffect(() => {
-		if (market) {
-			ForestProjectService.getAdminTokenMetadata(market.currency_token_contract_address, market.currency_token_id).then(
-				setMarketCurrencyMetdata,
-			);
-		}
-	}, [market, refreshCounter]);
-
-	useEffect(() => {
-		if (fund) {
-			ForestProjectService.getAdminTokenMetadata(fund.currency_token_contract_address, fund.currency_token_id).then(
-				setFundCurrencyMetdata,
-			);
-		}
-	}, [fund, refreshCounter]);
 
 	// Pre Sale Token
 	useEffect(() => {
@@ -206,7 +187,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 										user={user}
 										market={market}
 										tokenMetadata={tokenContract}
-										currencyMetadata={marketCurrencyMetdata}
 										onRefresh={() => setRefreshCounter((c) => c + 1)}
 									/>
 								) : (
@@ -242,7 +222,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 										fund={fund}
 										tokenContract={preSaleTokenContract}
 										investmentTokenContract={tokenContract}
-										currencyMetadata={fundCurrencyMetdata}
 										onRefresh={() => setRefreshCounter((c) => c + 1)}
 									/>
 								) : (
@@ -345,18 +324,15 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 						</DialogContent>
 					</Dialog>
 				)}
-				<Dialog open={openMarketPopup} onClose={handleCloseMarketPopup}>
-					<DialogTitle>Add Market</DialogTitle>
-					<DialogContent>
-						<AddMarketPopup
-							user={user}
-							contracts={contracts!}
-							contract_address={contract_address!}
-							token_id={token_id!}
-							onDone={handleCloseMarketPopup}
-						/>
-					</DialogContent>
-				</Dialog>
+				<AddMarketPopup
+					user={user}
+					contracts={contracts!}
+					tokenContract={tokenContract}
+					token_id={token_id!}
+					onDone={handleCloseMarketPopup}
+					open={openMarketPopup}
+					onClose={handleCloseMarketPopup}
+				/>
 				{preSaleTokenContract && (
 					<Dialog open={openPreSaleTokenPopup} onClose={handleClosePreSaleTokenPopup} fullWidth>
 						<DialogTitle>Add Pre Sale Token</DialogTitle>

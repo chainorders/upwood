@@ -258,7 +258,6 @@ export default function ForestProjectDetails({ user, source }: Props) {
 					contracts={contracts}
 					fund={project.bond_fund}
 					tokenContract={project.bond_contract}
-					currencyMetadata={project.bond_fund_currency_metadata}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}
@@ -271,7 +270,6 @@ export default function ForestProjectDetails({ user, source }: Props) {
 					contracts={contracts}
 					fund={project.property_fund}
 					tokenContract={project.property_contract}
-					currencyMetadata={project.property_fund_currency_metadata}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}
@@ -284,7 +282,6 @@ export default function ForestProjectDetails({ user, source }: Props) {
 					contracts={contracts}
 					market={project.property_market}
 					tokenContract={project.property_contract}
-					currencyMetadata={project.property_market_currency_metadata}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}

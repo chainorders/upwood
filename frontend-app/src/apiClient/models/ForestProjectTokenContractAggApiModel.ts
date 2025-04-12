@@ -13,11 +13,5 @@ export type ForestProjectTokenContractAggApiModel = {
 	user_balance: string;
 	user_balance_price: string;
 	carbon_credit_yield_balance: string;
-	carbon_credit_token_decimal: number;
 	euro_e_yields_balance: string;
-	euro_e_token_decimal: number;
-	currency_token_id: string;
-	currency_token_contract_address: string;
-	currency_token_decimal: number;
-	currency_token_symbol: string;
 };

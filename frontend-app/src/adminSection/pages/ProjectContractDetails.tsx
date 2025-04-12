@@ -14,6 +14,7 @@ import {
 	AccordionSummary,
 	AccordionDetails,
 	Breadcrumbs,
+	Button,
 } from "@mui/material";
 import {
 	ForestProject,
@@ -23,16 +24,19 @@ import {
 	Market,
 	SecurityMintFund,
 	SecurityTokenContractType,
+	SystemContractsConfigApiModel,
 	Token,
-	TokenMetadata,
+	UserService,
 } from "../../apiClient";
 import { Link } from "react-router";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AddIcon from "@mui/icons-material/Add";
 import MarketDetails from "./components/MarketDetails";
 import FundDetails from "./components/FundDetails";
 import TokenList from "./components/TokenList";
+import AddMarketPopup from "./components/AddMarketPopup";
 import { User } from "../../lib/user.ts";
 
 const ProjectContractDetails = ({ user }: { user: User }) => {
@@ -40,13 +44,22 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 	const [contract, setContract] = useState<ForestProjectTokenContract | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [market, setMarket] = useState<Market>();
-	const [marketCurrencyMetdata, setMarketCurrencyMetdata] = useState<TokenMetadata>();
 	const [fund, setFund] = useState<SecurityMintFund>();
-	const [fundCurrencyMetdata, setFundCurrencyMetdata] = useState<TokenMetadata>();
 	const [preSaleTokenContract, setPreSaleTokenContract] = useState<ForestProjectTokenContract>();
 	const [tokens, setTokens] = useState<Token[]>([]);
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [project, setProject] = useState<ForestProject | null>(null);
+	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
+	const [openMarketPopup, setOpenMarketPopup] = useState(false);
+
+	const handleOpenMarketPopup = () => {
+		setOpenMarketPopup(true);
+	};
+
+	const handleCloseMarketPopup = () => {
+		setOpenMarketPopup(false);
+		setRefreshCounter((c) => c + 1);
+	};
 
 	useEffect(() => {
 		ForestProjectService.getAdminForestProjectsContract(contract_address!)
@@ -61,22 +74,11 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 	}, [contract_address, refreshCounter]);
 
 	useEffect(() => {
-		if (market) {
-			ForestProjectService.getAdminTokenMetadata(market.currency_token_contract_address, market.currency_token_id).then(
-				setMarketCurrencyMetdata,
-			);
-		}
-	}, [market, refreshCounter]);
+		UserService.getSystemConfig().then(setContracts);
+	}, [refreshCounter]);
 	useEffect(() => {
-		if (fund) {
-			ForestProjectService.getAdminTokenMetadata(fund.currency_token_contract_address, fund.currency_token_id).then(
-				setFundCurrencyMetdata,
-			);
-		}
-	}, [fund]);
-	useEffect(() => {
-		if (contract && contract.market_token_id) {
-			IndexerService.getAdminIndexerCis2TokenMarket(contract.contract_address, contract.market_token_id).then(setMarket);
+		if (contract) {
+			IndexerService.getAdminIndexerCis2Market(contract.contract_address).then(setMarket);
 		}
 		if (contract && contract.fund_token_id) {
 			IndexerService.getAdminIndexerCis2TokenFund(contract.contract_address, contract.fund_token_id).then(setFund);
@@ -159,14 +161,6 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 								)}
 							</Typography>
 							<Typography>
-								<strong>Market Token ID:</strong>
-								{contract.market_token_id ? (
-									<Link to={`../token/${contract.market_token_id}/details`}>{contract.market_token_id}</Link>
-								) : (
-									"N/A"
-								)}
-							</Typography>
-							<Typography>
 								<strong>Symbol:</strong> {contract.symbol || "N/A"}
 							</Typography>
 							<Typography>
@@ -201,12 +195,18 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 									<MarketDetails
 										user={user}
 										market={market}
-										currencyMetadata={marketCurrencyMetdata}
 										tokenMetadata={contract}
 										onRefresh={() => setRefreshCounter((c) => c + 1)}
 									/>
 								) : (
-									<Typography>No market details available</Typography>
+									<Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+										<Typography>No market details available</Typography>
+										{contracts && (
+											<Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleOpenMarketPopup}>
+												Add Market
+											</Button>
+										)}
+									</Box>
 								)}
 							</AccordionDetails>
 						</Accordion>
@@ -219,7 +219,6 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 									<FundDetails
 										user={user}
 										fund={fund}
-										currencyMetadata={fundCurrencyMetdata}
 										investmentTokenContract={contract}
 										tokenContract={preSaleTokenContract}
 										onRefresh={() => setRefreshCounter((c) => c + 1)}
@@ -253,6 +252,16 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 					</Grid>
 				</Grid>
 			</Box>
+			{contracts && contract && (
+				<AddMarketPopup
+					user={user}
+					contracts={contracts}
+					tokenContract={contract}
+					onDone={handleCloseMarketPopup}
+					open={openMarketPopup}
+					onClose={handleCloseMarketPopup}
+				/>
+			)}
 		</>
 	);
 };

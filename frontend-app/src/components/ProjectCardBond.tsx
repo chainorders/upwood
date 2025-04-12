@@ -94,7 +94,6 @@ export default function ProjectCardBond({ project, user, contracts }: Props) {
 					contracts={contracts}
 					fund={project.bond_fund}
 					tokenContract={project.bond_contract}
-					currencyMetadata={project.property_fund_currency_metadata}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}

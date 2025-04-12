@@ -13,7 +13,7 @@ import {
 	DialogTitle,
 	DialogContent,
 } from "@mui/material";
-import { ForestProjectTokenContract, Token } from "../../../apiClient";
+import { ForestProjectTokenContract, Market, Token } from "../../../apiClient";
 import { useNavigate } from "react-router";
 import { AddProjectTokenPopup } from "./AddProjectTokenPopup";
 import { daysSince } from "../../../lib/conversions";
@@ -22,12 +22,13 @@ import { User } from "../../../lib/user";
 
 interface TokenListProps {
 	tokens: Token[];
-	tokenContract: ForestProjectTokenContract | null;
+	tokenContract?: ForestProjectTokenContract;
+	tokenContractMarket?: Market;
 	onTokenAdded: () => void;
 	user: User;
 }
 
-export default function TokenList({ tokens, tokenContract, onTokenAdded, user }: TokenListProps) {
+export default function TokenList({ tokens, tokenContract, onTokenAdded, user, tokenContractMarket }: TokenListProps) {
 	const navigate = useNavigate();
 	const [openPopup, setOpenPopup] = useState(false);
 
@@ -78,7 +79,7 @@ export default function TokenList({ tokens, tokenContract, onTokenAdded, user }:
 									</a>
 								</TableCell>
 								<TableCell>{token.is_paused ? "Yes" : "No"}</TableCell>
-								<TableCell>{tokenContract?.market_token_id == token.token_id ? "Yes" : "No"}</TableCell>
+								<TableCell>{tokenContractMarket?.token_id === token.token_id ? "Yes" : "No"}</TableCell>
 								<TableCell>{tokenContract?.fund_token_id == token.token_id ? "Yes" : "No"}</TableCell>
 								<TableCell>{token.supply}</TableCell>
 								<TableCell>

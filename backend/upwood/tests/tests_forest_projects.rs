@@ -211,52 +211,6 @@ pub async fn test_forest_projects() {
         password:        admin_password,
     };
 
-    {
-        let metadata = TokenMetadata {
-            contract_address: carbon_credits.0.to_decimal(),
-            token_id:         TokenIdUnit().to_decimal(),
-            symbol:           Some("CC".to_string()),
-            decimals:         Some(0),
-        };
-        admin
-            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
-            .await;
-    }
-
-    {
-        let metadata = TokenMetadata {
-            contract_address: tree_sft.0.to_decimal(),
-            token_id:         TokenIdUnit().to_decimal(),
-            symbol:           Some("TREES".to_string()),
-            decimals:         Some(0),
-        };
-        admin
-            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
-            .await;
-    }
-    {
-        let metadata = TokenMetadata {
-            contract_address: tree_nft.0.to_decimal(),
-            token_id:         TokenIdUnit().to_decimal(),
-            symbol:           Some("TREE".to_string()),
-            decimals:         Some(0),
-        };
-        admin
-            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
-            .await;
-    }
-    {
-        let metadata = TokenMetadata {
-            contract_address: euroe.0.to_decimal(),
-            token_id:         TokenIdUnit().to_decimal(),
-            symbol:           Some("EUROe".to_string()),
-            decimals:         Some(6),
-        };
-        admin
-            .call_api(|token| api.admin_create_token_metadata(token, &metadata))
-            .await;
-    }
-
     let user_1 = create_user(
         &test_id,
         &mut chain,
@@ -581,12 +535,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 100.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        Decimal::ZERO,
@@ -602,12 +550,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 200.into(),
                 invested_value:                 200.into(),
                 current_portfolio_value:        Decimal::ZERO,
@@ -695,12 +637,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        200.into(), // 100 shares at 2 price
@@ -716,12 +652,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 200.into(),
                 current_portfolio_value:        400.into(),
@@ -768,12 +698,6 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggregate(token, Some(mint_fund_completion_time)))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-            euro_e_token_metadata:          Some(TokenMetadata {
-                contract_address: euroe.0.to_decimal(),
-                token_id:         TokenIdUnit().to_decimal(),
-                symbol:           Some("EUROe".to_string()),
-                decimals:         Some(6),
-            }),
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        200.into(), // 100 shares at 2 price
@@ -789,12 +713,6 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggregate(token, Some(chain.block_time_naive_utc())))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-            euro_e_token_metadata:          Some(TokenMetadata {
-                contract_address: euroe.0.to_decimal(),
-                token_id:         TokenIdUnit().to_decimal(),
-                symbol:           Some("EUROe".to_string()),
-                decimals:         Some(6),
-            }),
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             // (initial price of 2 + 12 months increase of 1 each month) * 100 shares
@@ -902,8 +820,6 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   euroe.0.to_decimal(),
                 yield_amount:             1000.into(),
-                yield_token_decimals:     6,
-                yield_token_symbol:       "EUROe".to_string(),
             },
             UserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
@@ -911,8 +827,6 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   carbon_credits.0.to_decimal(),
                 yield_amount:             50000.into(),
-                yield_token_decimals:     0,
-                yield_token_symbol:       "CC".to_string(),
             },
             UserYieldsAggregate {
                 cognito_user_id:          user_1.id.clone(),
@@ -920,8 +834,6 @@ pub async fn test_forest_projects() {
                 yield_token_id:           0.into(),
                 yield_contract_address:   tree_sft.0.to_decimal(),
                 yield_amount:             100.into(),
-                yield_token_decimals:     0,
-                yield_token_symbol:       "TREES".to_string(),
             },
         ]);
 
@@ -952,20 +864,14 @@ pub async fn test_forest_projects() {
         assert_eq!(
             user_owned_token_contracts.data[0],
             ForestProjectTokenContractAggApiModel {
-                forest_project_id:               fp_1.id,
-                token_contract_address:          fp_1_contract.0.to_decimal(),
-                carbon_credit_yield_balance:     50000.into(),
-                carbon_credit_token_decimal:     0,
-                currency_token_decimal:          6,
-                euro_e_token_decimal:            6,
-                currency_token_contract_address: euroe.0.to_decimal(),
-                currency_token_id:               0.into(),
-                euro_e_yields_balance:           1000.into(),
-                user_balance:                    100.into(),
-                user_balance_price:              (100 * 14).into(),
-                currency_token_symbol:           "EUROe".to_string(),
-                forest_project_name:             "Forest Project 1".to_string(),
-                token_contract_type:             SecurityTokenContractType::Property,
+                forest_project_id:           fp_1.id,
+                token_contract_address:      fp_1_contract.0.to_decimal(),
+                carbon_credit_yield_balance: 50000.into(),
+                euro_e_yields_balance:       1000.into(),
+                user_balance:                100.into(),
+                user_balance_price:          (100 * 14).into(),
+                forest_project_name:         "Forest Project 1".to_string(),
+                token_contract_type:         SecurityTokenContractType::Property,
             }
         );
     }
@@ -1054,12 +960,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        1400.into(),
@@ -1099,12 +999,6 @@ pub async fn test_forest_projects() {
             // here only the `current_portfolio_value` has changed
             // because transfers are assumed to be done at market rate / forest project price
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        700.into(),
@@ -1143,12 +1037,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        700.into(),
@@ -1212,12 +1100,6 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-                euro_e_token_metadata:          Some(TokenMetadata {
-                    contract_address: euroe.0.to_decimal(),
-                    token_id:         TokenIdUnit().to_decimal(),
-                    symbol:           Some("EUROe".to_string()),
-                    decimals:         Some(6),
-                }),
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 75.into(), // 100 initially invested - 25 taken out
                 current_portfolio_value:        0.into(),
@@ -1298,12 +1180,6 @@ pub async fn test_forest_projects() {
             .call_api(|token| api.portfolio_aggregate(token, Some(chain.block_time_naive_utc())))
             .await;
         assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
-            euro_e_token_metadata:          Some(TokenMetadata {
-                contract_address: euroe.0.to_decimal(),
-                token_id:         TokenIdUnit().to_decimal(),
-                symbol:           Some("EUROe".to_string()),
-                decimals:         Some(6),
-            }),
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        700.into(), // 50 shares at 14 price
@@ -1330,8 +1206,6 @@ pub async fn test_forest_projects() {
                 account_address:                 user_1.account_address.clone(),
                 currency_token_contract_address: euroe.0.to_decimal(),
                 currency_token_id:               0.into(),
-                currency_token_symbol:           "EUROe".to_string(),
-                currency_token_decimals:         6,
                 block_height:                    Decimal::from(17),
             },
             UserTransaction {
@@ -1344,8 +1218,6 @@ pub async fn test_forest_projects() {
                 account_address:                 user_1.account_address.clone(),
                 currency_token_contract_address: euroe.0.to_decimal(),
                 currency_token_id:               0.into(),
-                currency_token_symbol:           "EUROe".to_string(),
-                currency_token_decimals:         6,
                 block_height:                    Decimal::from(15),
             },
             UserTransaction {
@@ -1358,8 +1230,6 @@ pub async fn test_forest_projects() {
                 account_address:                 user_1.account_address.clone(),
                 currency_token_contract_address: euroe.0.to_decimal(),
                 currency_token_id:               0.into(),
-                currency_token_symbol:           "EUROe".to_string(),
-                currency_token_decimals:         6,
                 block_height:                    Decimal::from(9),
             },
             UserTransaction {
@@ -1372,8 +1242,6 @@ pub async fn test_forest_projects() {
                 account_address:                 user_1.account_address.clone(),
                 currency_token_contract_address: euroe.0.to_decimal(),
                 currency_token_id:               0.into(),
-                currency_token_symbol:           "EUROe".to_string(),
-                currency_token_decimals:         6,
                 block_height:                    Decimal::from(6),
             },
         ]);
@@ -1505,20 +1373,14 @@ pub async fn test_forest_projects() {
         assert_eq!(
             user_owned_token_contracts.data[0],
             ForestProjectTokenContractAggApiModel {
-                forest_project_id:               fp_1.id,
-                token_contract_address:          fp_1_contract.0.to_decimal(),
-                carbon_credit_yield_balance:     0.into(),
-                carbon_credit_token_decimal:     0,
-                currency_token_decimal:          6,
-                euro_e_token_decimal:            0,
-                currency_token_contract_address: euroe.0.to_decimal(),
-                currency_token_id:               0.into(),
-                euro_e_yields_balance:           0.into(),
-                user_balance:                    50.into(),
-                user_balance_price:              (50 * 14).into(),
-                currency_token_symbol:           "EUROe".to_string(),
-                forest_project_name:             "Forest Project 1".to_string(),
-                token_contract_type:             SecurityTokenContractType::Property,
+                forest_project_id:           fp_1.id,
+                token_contract_address:      fp_1_contract.0.to_decimal(),
+                carbon_credit_yield_balance: 0.into(),
+                euro_e_yields_balance:       0.into(),
+                user_balance:                50.into(),
+                user_balance_price:          (50 * 14).into(),
+                forest_project_name:         "Forest Project 1".to_string(),
+                token_contract_type:         SecurityTokenContractType::Property,
             }
         );
     }

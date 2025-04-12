@@ -27,7 +27,6 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { useEffect, useState } from "react";
 import {
 	SecurityMintFund,
-	TokenMetadata,
 	ForestProjectService,
 	ForestProjectTokenContract,
 	SecurityMintFundState,
@@ -52,7 +51,6 @@ interface FundDetailsProps {
 	investmentTokenContract?: ForestProjectTokenContract;
 	// Presale Token Contract
 	tokenContract?: ForestProjectTokenContract;
-	currencyMetadata?: TokenMetadata;
 	user: User;
 	onRefresh: () => void;
 }
@@ -60,7 +58,6 @@ interface FundDetailsProps {
 export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps) {
 	const classes = useCommonStyles();
 	const [fundTokenMetadata, setFundTokenMetadata] = useState<ForestProjectTokenContract>();
-	const [fundCurrencyMetadata, setFundCurrencyMetadata] = useState<TokenMetadata>();
 	const [deleteTxnStatus, setDeleteTxnStatus] = useState<TxnStatus>("none");
 	const [markFailedTxnStatus, setMarkFailedTxnStatus] = useState<TxnStatus>("none");
 	const [markSuccessTxnStatus, setMarkSuccessTxnStatus] = useState<TxnStatus>("none");
@@ -93,11 +90,6 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 			.then(setFundTokenMetadata)
 			.catch(() => {
 				setFundTokenMetadata(undefined);
-			});
-		ForestProjectService.getAdminTokenMetadata(fund.currency_token_contract_address, fund.currency_token_id)
-			.then(setFundCurrencyMetadata)
-			.catch(() => {
-				setFundCurrencyMetadata(undefined);
 			});
 		IndexerService.getAdminIndexerCis2Agent(fund.token_contract_address, fund.contract_address, true).then(
 			setAgentPresaleContract,
@@ -411,13 +403,6 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 							<DetailRow label="Currency Token ID" value={fund.currency_token_id} />
 							<DetailRow label="Currency Token Contract Address" value={fund.currency_token_contract_address} />
 							<DetailRow label="Currency Amount" value={fund.currency_amount} />
-
-							{fundCurrencyMetadata && (
-								<>
-									<DetailRow label="Currency Symbol" value={fundCurrencyMetadata.symbol} />
-									<DetailRow label="Currency Decimals" value={fundCurrencyMetadata.decimals} />
-								</>
-							)}
 						</Box>
 					</Grid>
 

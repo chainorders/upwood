@@ -378,7 +378,6 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 												<TableCell>Contract Address</TableCell>
 												<TableCell>Contract Type</TableCell>
 												<TableCell>Fund Token ID</TableCell>
-												<TableCell>Market Token ID</TableCell>
 												<TableCell>Symbol</TableCell>
 												<TableCell>Decimals</TableCell>
 												<TableCell>Created At</TableCell>
@@ -392,7 +391,6 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 													<TableCell>{contract.contract_address}</TableCell>
 													<TableCell>{contract.contract_type}</TableCell>
 													<TableCell>{contract.fund_token_id}</TableCell>
-													<TableCell>{contract.market_token_id}</TableCell>
 													<TableCell>{contract.symbol}</TableCell>
 													<TableCell>{contract.decimals}</TableCell>
 													<TableCell>{new Date(contract.created_at).toLocaleDateString()}</TableCell>

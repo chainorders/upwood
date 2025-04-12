@@ -6,7 +6,7 @@ use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Attachment, AttachmentType};
 use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
-use shared::db::security_mint_fund::{SecurityMintFund, SecurityMintFundContract};
+use shared::db::security_mint_fund::SecurityMintFund;
 use shared::db::security_p2p_trading::Market;
 use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
@@ -194,11 +194,6 @@ impl ForestProjectApi {
         Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<ForestProjectTokenContractAggApiModel>> {
         let conn = &mut db_pool.get()?;
-        let euro_e_metadata = TokenMetadata::find(
-            conn,
-            contracts.euro_e_contract_index,
-            contracts.euro_e_token_id,
-        )?;
         let (owned_contracts, page_count) =
             ForestProjectTokenContractUserBalanceAgg::list_by_user_id(
                 conn,
@@ -257,32 +252,16 @@ impl ForestProjectApi {
                     && yield_.yield_token_id == contracts.carbon_credit_token_id
             });
             ret.push(ForestProjectTokenContractAggApiModel {
-                forest_project_id:               contract.forest_project_id,
-                forest_project_name:             contract.forest_project_name.clone(),
-                token_contract_type:             contract.contract_type,
-                token_contract_address:          contract.contract_address,
-                user_balance:                    contract.total_balance,
-                user_balance_price:              contract.total_balance * price,
-                currency_token_id:               contracts.euro_e_token_id,
-                currency_token_contract_address: contracts.euro_e_contract_index,
-                currency_token_decimal:          euro_e_metadata
-                    .as_ref()
-                    .and_then(|m| m.decimals)
-                    .unwrap_or(0),
-                currency_token_symbol:           euro_e_metadata
-                    .as_ref()
-                    .and_then(|m| m.symbol.clone())
-                    .unwrap_or_default(),
-                carbon_credit_token_decimal:     carbon_credit_yield
-                    .map(|m| m.yield_token_decimals)
-                    .unwrap_or(0),
-                carbon_credit_yield_balance:     carbon_credit_yield
+                forest_project_id:           contract.forest_project_id,
+                forest_project_name:         contract.forest_project_name.clone(),
+                token_contract_type:         contract.contract_type,
+                token_contract_address:      contract.contract_address,
+                user_balance:                contract.total_balance,
+                user_balance_price:          contract.total_balance * price,
+                carbon_credit_yield_balance: carbon_credit_yield
                     .map(|m| m.yield_amount)
                     .unwrap_or(Decimal::ZERO),
-                euro_e_token_decimal:            euro_e_yeild
-                    .map(|m| m.yield_token_decimals)
-                    .unwrap_or(0),
-                euro_e_yields_balance:           euro_e_yeild
+                euro_e_yields_balance:       euro_e_yeild
                     .map(|m| m.yield_amount)
                     .unwrap_or(Decimal::ZERO),
             });
@@ -513,19 +492,16 @@ impl ForestProjectApi {
 
 #[derive(Object, serde::Serialize, serde::Deserialize)]
 pub struct ForestProjectAggApiModel {
-    pub forest_project: ForestProject,
-    pub supply: Decimal,
-    pub user_balance: Decimal,
+    pub forest_project:    ForestProject,
+    pub supply:            Decimal,
+    pub user_balance:      Decimal,
     pub property_contract: Option<ForestProjectTokenContract>,
-    pub property_market: Option<Market>,
-    pub property_market_currency_metadata: Option<TokenMetadata>,
-    pub property_fund: Option<SecurityMintFund>,
-    pub property_fund_currency_metadata: Option<TokenMetadata>,
-    pub bond_contract: Option<ForestProjectTokenContract>,
-    pub bond_fund: Option<SecurityMintFund>,
-    pub bond_fund_currency_metadata: Option<TokenMetadata>,
-    pub contract_signed: bool,
-    pub user_notified: bool,
+    pub property_market:   Option<Market>,
+    pub property_fund:     Option<SecurityMintFund>,
+    pub bond_contract:     Option<ForestProjectTokenContract>,
+    pub bond_fund:         Option<SecurityMintFund>,
+    pub contract_signed:   bool,
+    pub user_notified:     bool,
 }
 
 impl ForestProjectAggApiModel {
@@ -593,48 +569,6 @@ impl ForestProjectAggApiModel {
                 )
             })
             .collect::<std::collections::HashMap<_, _>>();
-        let fund_contract =
-            SecurityMintFundContract::find(conn, contracts.mint_funds_contract_index).map_err(
-                |e| {
-                    error!("Failed to find fund contract: {}", e);
-                    Error::InternalServer(PlainText(format!("Failed to find fund contract: {}", e)))
-                },
-            )?;
-        let fund_currency_metadata = match fund_contract {
-            Some(fund_contract) => TokenMetadata::find(
-                conn,
-                fund_contract.currency_token_contract_address,
-                fund_contract.currency_token_id,
-            )
-            .map_err(|e| {
-                error!("Failed to find fund currency metadata: {}", e);
-                Error::InternalServer(PlainText(format!(
-                    "Failed to find fund currency metadata: {}",
-                    e
-                )))
-            })?,
-            None => None,
-        };
-        let market_contract = P2PTradeContract::find(conn, contracts.trading_contract_index)
-            .map_err(|e| {
-                error!("Failed to find market contract: {}", e);
-                Error::InternalServer(PlainText(format!("Failed to find market contract: {}", e)))
-            })?;
-        let market_currency_metadata = match market_contract {
-            Some(market_contract) => TokenMetadata::find(
-                conn,
-                market_contract.currency_token_contract_address,
-                market_contract.currency_token_id,
-            )
-            .map_err(|e| {
-                error!("Failed to find market currency metadata: {}", e);
-                Error::InternalServer(PlainText(format!(
-                    "Failed to find market currency metadata: {}",
-                    e
-                )))
-            })?,
-            None => None,
-        };
         let (project_token_contracts, _) =
             ForestProjectTokenContract::list(conn, Some(project_ids), 0, i64::MAX).map_err(
                 |e| {
@@ -747,9 +681,6 @@ impl ForestProjectAggApiModel {
                 user_balance,
                 bond_contract: bond_contract.cloned(),
                 property_contract: property_contract.cloned(),
-                bond_fund_currency_metadata: fund_currency_metadata.clone(),
-                property_fund_currency_metadata: fund_currency_metadata.clone(),
-                property_market_currency_metadata: market_currency_metadata.clone(),
                 contract_signed,
                 user_notified,
             });
@@ -761,20 +692,14 @@ impl ForestProjectAggApiModel {
 
 #[derive(Object, serde::Serialize, serde::Deserialize, Clone, PartialEq, Debug)]
 pub struct ForestProjectTokenContractAggApiModel {
-    pub forest_project_id:               uuid::Uuid,
-    pub forest_project_name:             String,
-    pub token_contract_type:             SecurityTokenContractType,
-    pub token_contract_address:          Decimal,
-    pub user_balance:                    Decimal,
-    pub user_balance_price:              Decimal,
-    pub carbon_credit_yield_balance:     Decimal,
-    pub carbon_credit_token_decimal:     i32,
-    pub euro_e_yields_balance:           Decimal,
-    pub euro_e_token_decimal:            i32,
-    pub currency_token_id:               Decimal,
-    pub currency_token_contract_address: Decimal,
-    pub currency_token_decimal:          i32,
-    pub currency_token_symbol:           String,
+    pub forest_project_id:           uuid::Uuid,
+    pub forest_project_name:         String,
+    pub token_contract_type:         SecurityTokenContractType,
+    pub token_contract_address:      Decimal,
+    pub user_balance:                Decimal,
+    pub user_balance_price:          Decimal,
+    pub carbon_credit_yield_balance: Decimal,
+    pub euro_e_yields_balance:       Decimal,
 }
 
 pub struct ForestProjectAdminApi;
@@ -1277,106 +1202,6 @@ impl ForestProjectAdminApi {
             token_id,
         )?;
         Ok(Json(yields))
-    }
-
-    #[oai(
-        path = "/admin/token_metadata",
-        method = "post",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_create_token_metadata(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Json(metadata): Json<TokenMetadata>,
-    ) -> JsonResult<TokenMetadata> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let metadata = metadata.create(conn).map_err(|e| {
-            error!("Failed to create token metadata: {}", e);
-            Error::InternalServer(PlainText(format!("Failed to create token metadata: {}", e)))
-        })?;
-        Ok(Json(metadata))
-    }
-
-    #[oai(
-        path = "/admin/token_metadata/:contract_address/:token_id",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_find_token_metadata(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Option<TokenMetadata>> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let metadata = TokenMetadata::find(conn, contract_address, token_id)?;
-        Ok(Json(metadata))
-    }
-
-    #[oai(
-        path = "/admin/token_metadata",
-        method = "put",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_update_token_metadata(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Json(metadata): Json<TokenMetadata>,
-    ) -> JsonResult<TokenMetadata> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let metadata = metadata.update(conn).map_err(|e| {
-            error!("Failed to update token metadata: {}", e);
-            Error::InternalServer(PlainText(format!("Failed to update token metadata: {}", e)))
-        })?;
-        Ok(Json(metadata))
-    }
-
-    #[oai(
-        path = "/admin/token_metadata/list/:page",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_list_token_metadata(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(page): Path<i64>,
-    ) -> JsonResult<PagedResponse<TokenMetadata>> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let (metadata, page_count) = TokenMetadata::list(conn, page, PAGE_SIZE)?;
-        Ok(Json(PagedResponse {
-            data: metadata,
-            page_count,
-            page,
-        }))
-    }
-
-    #[oai(
-        path = "/admin/token_metadata/:contract_address/:token_id",
-        method = "delete",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_delete_token_metadata(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
-    ) -> NoResResult {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        TokenMetadata::delete(conn, contract_address, token_id).map_err(|e| {
-            error!("Failed to delete token metadata: {}", e);
-            Error::InternalServer(PlainText(format!("Failed to delete token metadata: {}", e)))
-        })?;
-        Ok(())
     }
 
     #[oai(

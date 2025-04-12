@@ -1,39 +1,30 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Grid, IconButton, Paper, Typography } from "@mui/material";
-import {
-	Market,
-	TokenMetadata,
-	ForestProjectService,
-	ForestProjectTokenContract,
-	Agent,
-	IndexerService,
-	TokenHolder,
-} from "../../../apiClient";
+import { Market, ForestProjectTokenContract, Agent, IndexerService, TokenHolder } from "../../../apiClient";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import securityP2PTrading from "../../../contractClients/generated/securityP2PTrading";
 import { User } from "../../../lib/user";
-import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
+import { toDisplayAmount } from "../../../lib/conversions";
 import euroeStablecoin from "../../../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../../../contractClients/ConcordiumNodeClient";
 import { ContractAddress } from "@concordium/web-sdk";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
 import useCommonStyles from "../../../theme/useCommonStyles";
 import DetailRow from "./DetailRow";
+import { formatISO, millisecondsToHours, toDate } from "date-fns";
 
 interface MarketDetailsProps {
 	user: User;
 	market: Market;
 	tokenMetadata?: ForestProjectTokenContract;
-	currencyMetadata?: TokenMetadata;
 	onRefresh: () => void;
 }
 
 export default function MarketDetails({ market, user, onRefresh }: MarketDetailsProps) {
 	const classes = useCommonStyles();
-	const [marketCurrencyMetadata, setmarketCurrencyMetadata] = useState<TokenMetadata>();
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [isCurrencyOperator, setIsCurrencyOperator] = useState(false);
 	const [refreshCounter, setRefreshCounter] = useState(0);
@@ -43,13 +34,6 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 	const [holder, setHolder] = useState<TokenHolder>();
 
 	useEffect(() => {
-		ForestProjectService.getAdminTokenMetadata(market.currency_token_contract_address, market.currency_token_id)
-			.then((metadata) => {
-				setmarketCurrencyMetadata(metadata);
-			})
-			.catch(() => {
-				setmarketCurrencyMetadata(undefined);
-			});
 		euroeStablecoin.operatorOf
 			.invoke(concordiumNodeClient, ContractAddress.create(Number(market.currency_token_contract_address)), [
 				{
@@ -69,11 +53,14 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 			.then((res) => euroeStablecoin.operatorOf.parseReturnValue(res.returnValue!)!)
 			.then((res) => setIsCurrencyOperator(res[0]));
 		IndexerService.getAdminIndexerCis2Agent(market.token_contract_address, market.contract_address, true).then(setAgent);
-		IndexerService.getAdminIndexerCis2TokenHolder(
-			market.token_contract_address,
-			market.token_id,
-			market.liquidity_provider,
-		).then(setHolder);
+
+		if (market.token_id) {
+			IndexerService.getAdminIndexerCis2TokenHolder(
+				market.token_contract_address,
+				market.token_id,
+				market.liquidity_provider,
+			).then(setHolder);
+		}
 	}, [market, refreshCounter]);
 
 	const deleteMarket = async () => {
@@ -82,10 +69,7 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 				user.concordiumAccountAddress,
 				market.contract_address,
 				securityP2PTrading.removeMarket,
-				{
-					id: toTokenId(BigInt(market.token_id), 8),
-					contract: { index: Number(market.token_contract_address), subindex: 0 },
-				},
+				{ index: Number(market.token_contract_address), subindex: 0 },
 				setTxnStatus,
 			);
 			setTxnStatus("success");
@@ -170,11 +154,40 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 						</Typography>
 
 						<DetailRow label="Contract Address" value={market.contract_address} />
+						<DetailRow label="Market Type" value={market.market_type} />
 						<DetailRow label="Currency Token ID" value={market.currency_token_id} />
 						<DetailRow label="Currency Token Contract Address" value={market.currency_token_contract_address} />
 						<DetailRow label="Liquidity Provider" value={market.liquidity_provider} />
-						<DetailRow label="Buy Rate" value={`${market.buy_rate_numerator} / ${market.buy_rate_denominator}`} />
-						<DetailRow label="Sell Rate" value={`${market.sell_rate_numerator} / ${market.sell_rate_denominator}`} />
+						<DetailRow
+							title={market.token_contract_address}
+							label="Token Contract Address"
+							value={market.token_contract_address ? market.token_contract_address : "N/A"}
+						/>
+						<DetailRow title={market.token_id} label="Token ID" value={market.token_id ? market.token_id : "N/A"} />
+						<DetailRow
+							title={market.token_id_calculation_start}
+							label="Token ID Calculation Start"
+							value={market.token_id_calculation_start ? formatISO(toDate(Number(market.token_id_calculation_start))) : "N/A"}
+						/>
+						<DetailRow
+							title={market.token_id_calculation_diff_millis}
+							label="Token ID Calculation Diff Millis"
+							value={
+								market.token_id_calculation_diff_millis
+									? millisecondsToHours(Number(market.token_id_calculation_diff_millis))
+									: "N/A"
+							}
+						/>
+						<DetailRow
+							title={`${market.buy_rate_numerator} / ${market.buy_rate_denominator}`}
+							label="Buy Rate"
+							value={market.buy_rate_numerator ? toDisplayAmount(market.buy_rate_numerator, 6, 6) : "N/A"}
+						/>
+						<DetailRow
+							title={`${market.sell_rate_numerator} / ${market.sell_rate_denominator}`}
+							label="Sell Rate"
+							value={market.sell_rate_numerator ? toDisplayAmount(market.sell_rate_numerator, 6, 6) : "N/A"}
+						/>
 					</Box>
 
 					<Box sx={classes.detailsSection}>
@@ -185,20 +198,8 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 						<DetailRow label="Total Sell Token Amount" value={market.total_sell_token_amount} />
 						<DetailRow
 							label="Total Sell Currency Amount"
-							value={`${market.total_sell_currency_amount} (${toDisplayAmount(
-								market.total_sell_currency_amount,
-								marketCurrencyMetadata?.decimals || 6,
-								2,
-							)} ${marketCurrencyMetadata?.symbol || ""})`}
+							value={`${market.total_sell_currency_amount} (${toDisplayAmount(market.total_sell_currency_amount, 6, 2)})`}
 						/>
-
-						{marketCurrencyMetadata && (
-							<>
-								<DetailRow label="Currency Symbol" value={marketCurrencyMetadata.symbol} />
-								<DetailRow label="Currency Decimals" value={marketCurrencyMetadata.decimals} />
-							</>
-						)}
-
 						<DetailRow label="Create Time" value={market.create_time} />
 						<DetailRow label="Update Time" value={market.update_time} />
 					</Box>
@@ -241,19 +242,17 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 								)}
 							</Grid>
 							<Grid item xs={12} md={12} lg={6}>
-								{!holder ? (
-									<Alert severity="warning" sx={classes.detailsAlert}>
-										<Typography>Liquidity Provider is Not holding any tokens.</Typography>
-										<Typography>Anyone will not be able to buy.</Typography>
-									</Alert>
-								) : (
-									<Alert severity="info" sx={classes.detailsAlert}>
-										<Typography>
-											Balance of Liquidity Provider is{" "}
-											<Typography component="span" fontWeight="bold">
-												{holder.un_frozen_balance}
-											</Typography>
-										</Typography>
+								{(market.token_id && !holder) ||
+									(holder?.un_frozen_balance === "0" && (
+										<Alert severity="warning" sx={classes.detailsAlert}>
+											<Typography>Liquidity Provider is Not holding any tokens.</Typography>
+											<Typography>Anyone will not be able to buy.</Typography>
+										</Alert>
+									))}
+								{holder?.un_frozen_balance !== "0" && (
+									<Alert severity="success" sx={classes.detailsAlert}>
+										<Typography>Balance of Liquidity Provider: {holder?.un_frozen_balance}</Typography>
+										<Typography>Anyone will be able to buy.</Typography>
 									</Alert>
 								)}
 							</Grid>

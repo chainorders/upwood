@@ -49,8 +49,6 @@ pub struct UserTransaction {
     pub currency_token_id:               Decimal,
     pub currency_token_contract_address: Decimal,
     pub currency_amount:                 Decimal,
-    pub currency_token_symbol:           String,
-    pub currency_token_decimals:         i32,
     pub cognito_user_id:                 String,
     pub transaction_type:                String,
     pub account_address:                 String,

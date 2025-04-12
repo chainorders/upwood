@@ -6,10 +6,9 @@ use poem::web::Data;
 use poem_openapi::param::{Path, Query};
 use poem_openapi::payload::{Json, PlainText};
 use poem_openapi::{Object, OpenApi};
-use rust_decimal::{Decimal, MathematicalOps};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use shared::db::cis2_security::Token;
-use shared::db_app::forest_project_crypto::token_metadata::TokenMetadata;
 use shared::db_app::portfolio::ForestProjectUserInvestmentAmount;
 use shared::db_shared::{DbConn, DbPool};
 use shared::schema_manual::{
@@ -137,7 +136,6 @@ impl Api {
 
 #[derive(Serialize, Deserialize, Object, Eq, PartialEq, Debug)]
 pub struct InvestmentPortfolioUserAggregate {
-    pub euro_e_token_metadata:          Option<TokenMetadata>,
     /// The amount of locked euros in the all the mint fund contracts
     pub locked_mint_fund_euro_e_amount: Decimal,
     /// Sum of the amount invested in the mint funds and the amount bought in the P2P trading
@@ -173,25 +171,6 @@ impl InvestmentPortfolioUserAggregate {
         );
         let start_of_year = now.checked_sub_months(Months::new(12)).unwrap();
         let start_of_month = now.checked_sub_months(Months::new(1)).unwrap();
-        let euro_e_token_metadata =
-            TokenMetadata::find(conn, euroe_token_id, euroe_token_contract_address).map_err(
-                |e| {
-                    error!(
-                        "Error while fetching euro e token metadata for user {}: {:?}",
-                        cognito_user_id, e
-                    );
-                    e
-                },
-            )?;
-        let carbon_credits_token_metadata =
-            TokenMetadata::find(conn, carbon_credit_token_id, carbon_credit_contract_index)
-                .map_err(|e| {
-                    error!(
-                        "Error while fetching carbon credit token metadata for user {}: {:?}",
-                        cognito_user_id, e
-                    );
-                    e
-                })?;
         let invested_amounts = ForestProjectUserInvestmentAmount::find_by_cognito_user_id(
             conn,
             cognito_user_id,
@@ -317,14 +296,7 @@ impl InvestmentPortfolioUserAggregate {
             now,
         )?;
 
-        let carbon_credits_token_decimals = carbon_credits_token_metadata
-            .and_then(|m| m.decimals)
-            .unwrap_or(0);
-        let carbon_tons_offset =
-            carbon_tons_offset / (Decimal::from(10).powi(carbon_credits_token_decimals.into()));
-
         Ok(InvestmentPortfolioUserAggregate {
-            euro_e_token_metadata,
             locked_mint_fund_euro_e_amount: locked_invested_value,
             current_portfolio_value,
             yearly_return: Self::calculate_currency_returns(

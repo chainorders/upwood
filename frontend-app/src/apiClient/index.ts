@@ -67,7 +67,6 @@ export type { PagedResponse_PlatformUpdate } from "./models/PagedResponse_Platfo
 export type { PagedResponse_SupportQuestion } from "./models/PagedResponse_SupportQuestion";
 export type { PagedResponse_TokenHolder } from "./models/PagedResponse_TokenHolder";
 export type { PagedResponse_TokenHolderBalanceUpdate } from "./models/PagedResponse_TokenHolderBalanceUpdate";
-export type { PagedResponse_TokenMetadata } from "./models/PagedResponse_TokenMetadata";
 export type { PagedResponse_UserKYCModel } from "./models/PagedResponse_UserKYCModel";
 export type { PagedResponse_UserRegistrationRequest } from "./models/PagedResponse_UserRegistrationRequest";
 export type { PagedResponse_UserTokenHolder } from "./models/PagedResponse_UserTokenHolder";

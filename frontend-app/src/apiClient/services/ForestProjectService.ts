@@ -22,9 +22,7 @@ import type { PagedResponse_ForestProjectTokenContractAggApiModel } from "../mod
 import type { PagedResponse_ForestProjectTokenHolder } from "../models/PagedResponse_ForestProjectTokenHolder";
 import type { PagedResponse_LegalContract } from "../models/PagedResponse_LegalContract";
 import type { PagedResponse_LegalContractUserModel } from "../models/PagedResponse_LegalContractUserModel";
-import type { PagedResponse_TokenMetadata } from "../models/PagedResponse_TokenMetadata";
 import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
-import type { TokenMetadata } from "../models/TokenMetadata";
 import type { UserYieldsAggregate } from "../models/UserYieldsAggregate";
 import type { Yield } from "../models/Yield";
 
@@ -651,83 +649,6 @@ export class ForestProjectService {
 			path: {
 				contract_address: contractAddress,
 				token_id: tokenId,
-			},
-		});
-	}
-
-	/**
-	 * @param requestBody
-	 * @returns TokenMetadata
-	 * @throws ApiError
-	 */
-	public static postAdminTokenMetadata(requestBody: TokenMetadata): CancelablePromise<TokenMetadata> {
-		return __request(OpenAPI, {
-			method: "POST",
-			url: "/admin/token_metadata",
-			body: requestBody,
-			mediaType: "application/json; charset=utf-8",
-		});
-	}
-
-	/**
-	 * @param requestBody
-	 * @returns TokenMetadata
-	 * @throws ApiError
-	 */
-	public static putAdminTokenMetadata(requestBody: TokenMetadata): CancelablePromise<TokenMetadata> {
-		return __request(OpenAPI, {
-			method: "PUT",
-			url: "/admin/token_metadata",
-			body: requestBody,
-			mediaType: "application/json; charset=utf-8",
-		});
-	}
-
-	/**
-	 * @param contractAddress
-	 * @param tokenId
-	 * @returns TokenMetadata
-	 * @throws ApiError
-	 */
-	public static getAdminTokenMetadata(contractAddress: string, tokenId: string): CancelablePromise<TokenMetadata> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/admin/token_metadata/{contract_address}/{token_id}",
-			path: {
-				contract_address: contractAddress,
-				token_id: tokenId,
-			},
-		});
-	}
-
-	/**
-	 * @param contractAddress
-	 * @param tokenId
-	 * @returns any
-	 * @throws ApiError
-	 */
-	public static deleteAdminTokenMetadata(contractAddress: string, tokenId: string): CancelablePromise<any> {
-		return __request(OpenAPI, {
-			method: "DELETE",
-			url: "/admin/token_metadata/{contract_address}/{token_id}",
-			path: {
-				contract_address: contractAddress,
-				token_id: tokenId,
-			},
-		});
-	}
-
-	/**
-	 * @param page
-	 * @returns PagedResponse_TokenMetadata
-	 * @throws ApiError
-	 */
-	public static getAdminTokenMetadataList(page: number): CancelablePromise<PagedResponse_TokenMetadata> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/admin/token_metadata/list/{page}",
-			path: {
-				page: page,
 			},
 		});
 	}
