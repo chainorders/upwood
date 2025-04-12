@@ -8,7 +8,7 @@ import TransactionButton from "../../../components/TransactionButton";
 import { User } from "../../../lib/user";
 import securityMintFund from "../../../contractClients/generated/securityMintFund";
 import useCommonStyles from "../../../theme/useCommonStyles";
-import IntegerInput from "./IntegerInput";
+import CurrencyInput from "./CurrencyInput";
 
 interface ProjectTokenAddFundPopupProps {
 	user: User;
@@ -97,11 +97,10 @@ export default function AddFundPopup({
 						</Typography>
 						<Grid container spacing={2}>
 							<Grid item xs={12}>
-								<IntegerInput
+								<CurrencyInput
 									name="price"
 									control={control}
 									label="Price"
-									min={0}
 									textFieldProps={{
 										fullWidth: true,
 										autoComplete: "off",
