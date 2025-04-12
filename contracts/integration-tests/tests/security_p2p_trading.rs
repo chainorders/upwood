@@ -19,8 +19,8 @@ use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_p2p_trading::{
-    AddMarketParams, ExchangeParams, Market, MintMarket, MintParams, TokenIdCalculation,
-    TransferMarket,
+    AddMarketParam, AddMarketParams, AddMintMarketParam, AddTransferMarketParam, ExchangeParams,
+    MintParams, TokenIdCalculation,
 };
 use security_p2p_trading_client::P2PTradeTestClient;
 use security_sft_multi_client::SftMultiTestClient;
@@ -59,7 +59,7 @@ pub fn normal_flow_sft_multi() {
     euroe_contract
         .mint(&mut chain, &admin, &euroe::MintParams {
             owner:  liquidity_provider.address.into(),
-            amount: TokenAmountU64(10_000),
+            amount: TokenAmountU64(30_000),
         })
         .expect("euroe mint");
     euroe_contract
@@ -118,11 +118,13 @@ pub fn normal_flow_sft_multi() {
     trading_contract
         .add_market(&mut chain, &admin, &AddMarketParams {
             token_contract: token_contract.contract_address(),
-            market:         Market::Transfer(TransferMarket {
-                token_id:           TOKEN_ID,
-                liquidity_provider: liquidity_provider.address,
-                buy_rate:           rate,
-                sell_rate:          rate,
+            market:         AddMarketParam::Transfer(AddTransferMarketParam {
+                token_id:            TOKEN_ID,
+                liquidity_provider:  liquidity_provider.address,
+                buy_rate:            rate,
+                sell_rate:           rate,
+                max_currency_amount: TokenAmountU64(10_000),
+                max_token_amount:    TokenAmountU64(10),
             }),
         })
         .expect("add market");
@@ -143,6 +145,13 @@ pub fn normal_flow_sft_multi() {
             contract: token_contract.contract_address(),
         })
         .expect("sell");
+    trading_contract
+        .sell(&mut chain, &seller, &ExchangeParams {
+            amount: TokenAmountU64(10),
+            rate,
+            contract: token_contract.contract_address(),
+        })
+        .expect_err("should fail");
     assert_eq!(
         token_contract
             .balance_of(&chain, &admin, &BalanceOfQueryParams {
@@ -175,7 +184,7 @@ pub fn normal_flow_sft_multi() {
                 ],
             })
             .expect("balance of"),
-        BalanceOfQueryResponse(vec![10_000.into(), 0.into()])
+        BalanceOfQueryResponse(vec![10_000.into(), 20_000.into()])
     );
 
     let buyer = seller;
@@ -192,6 +201,13 @@ pub fn normal_flow_sft_multi() {
             contract: token_contract.contract_address(),
         })
         .expect("buy");
+    trading_contract
+        .buy(&mut chain, &buyer, &ExchangeParams {
+            amount: TokenAmountU64(10),
+            rate,
+            contract: token_contract.contract_address(),
+        })
+        .expect_err("should fail");
     assert_eq!(
         token_contract
             .balance_of(&chain, &admin, &BalanceOfQueryParams {
@@ -224,7 +240,7 @@ pub fn normal_flow_sft_multi() {
                 ],
             })
             .expect("balance of"),
-        BalanceOfQueryResponse(vec![0.into(), 10_000.into()])
+        BalanceOfQueryResponse(vec![0.into(), 30_000.into()])
     );
 }
 
@@ -294,7 +310,7 @@ pub fn test_flow_mint_sft_multi() {
     trading_contract
         .add_market(&mut chain, &admin, &AddMarketParams {
             token_contract: token_contract.contract_address(),
-            market:         Market::Mint(MintMarket {
+            market:         AddMarketParam::Mint(AddMintMarketParam {
                 liquidity_provider: liquidity_provider.address,
                 rate,
                 token_id: TokenIdCalculation {
@@ -305,6 +321,7 @@ pub fn test_flow_mint_sft_multi() {
                     hash: None,
                     url:  METADATA_URL_SFT_REWARDS.to_string(),
                 },
+                max_token_amount: TokenAmountU64(20),
             }),
         })
         .expect("add mint market");
@@ -382,6 +399,24 @@ pub fn test_flow_mint_sft_multi() {
             .expect("balance of"),
         BalanceOfQueryResponse(vec![0.into(), 20_000.into()])
     );
+
+    trading_contract
+        .mint(&mut chain, &buyer, &MintParams {
+            amount: TokenAmountU64(10),
+            rate,
+            token_contract: token_contract.contract_address(),
+        })
+        .expect_err("mint should fail");
+    chain
+        .tick_block_time(Duration::from_millis(24 * 60 * 60 * 1000))
+        .expect("tick block time");
+    trading_contract
+        .mint(&mut chain, &buyer, &MintParams {
+            amount: TokenAmountU64(10),
+            rate,
+            token_contract: token_contract.contract_address(),
+        })
+        .expect_err("mint should fail");
 }
 
 fn create_token_contract_multi(

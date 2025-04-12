@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use concordium_cis2::{AdditionalData, TokenAmountU64, TokenIdU64, TokenIdUnit, Transfer};
 use concordium_protocols::concordium_cis2_ext::cis2_client::Cis2Client;
 use concordium_protocols::concordium_cis2_ext::ContractMetadataUrl;
@@ -8,6 +6,7 @@ use concordium_protocols::concordium_cis2_security::{
     AddTokenParams, AgentWithRoles, MintParam, TokenAmountSecurity, TokenUId,
 };
 use concordium_protocols::rate::Rate;
+use concordium_std::ops::DerefMut;
 use concordium_std::*;
 
 /// The type of the Token Amount used in the EuroE. This should match the type used in the `euroe` contract.
@@ -61,6 +60,7 @@ pub enum Error {
     AddToken,
     TokenMint,
     InvalidMarketType,
+    MarketTokenLimitExceeded,
 }
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Self { Error::ParseError }
@@ -77,15 +77,17 @@ pub enum AgentRole {
 }
 
 #[derive(Serialize, Debug, SchemaType, Clone, Copy)]
-pub struct TransferMarket {
-    pub token_id:           SecurityTokenId,
-    pub liquidity_provider: AccountAddress,
+pub struct AddTransferMarketParam {
+    pub token_id:            SecurityTokenId,
+    pub liquidity_provider:  AccountAddress,
     /// The rate at which the liquidity provider buys the tokens.
     /// This is the rate at which sellers can sell their tokens to the liquidity provider.
-    pub buy_rate:           Rate,
+    pub buy_rate:            Rate,
     /// The rate at which the liquidity provider sells the tokens.
     /// This is the rate at which buyers can buy tokens from the liquidity provider.
-    pub sell_rate:          Rate,
+    pub sell_rate:           Rate,
+    pub max_token_amount:    SecurityTokenAmount,
+    pub max_currency_amount: CurrencyTokenAmount,
 }
 
 #[derive(Serial, DeserialWithState)]
@@ -102,6 +104,72 @@ impl State {
             .get(agent)
             .map_or(false, |roles| roles.contains(&role))
     }
+}
+
+#[derive(Serialize, Clone, SchemaType)]
+pub enum Market {
+    Mint(MintMarket),
+    Transfer(TransferMarket),
+}
+
+impl Market {
+    pub fn new(market: &AddMarketParam) -> Self {
+        match market {
+            AddMarketParam::Mint(m) => Market::Mint(MintMarket {
+                token_id:           m.token_id,
+                rate:               m.rate,
+                token_metadata_url: m.token_metadata_url.clone(),
+                liquidity_provider: m.liquidity_provider,
+                max_token_amount:   m.max_token_amount,
+                token_amount:       0u64.into(),
+            }),
+            AddMarketParam::Transfer(m) => Market::Transfer(TransferMarket {
+                token_id:            m.token_id,
+                liquidity_provider:  m.liquidity_provider,
+                buy_rate:            m.buy_rate,
+                sell_rate:           m.sell_rate,
+                max_token_amount:    m.max_token_amount,
+                max_currency_amount: m.max_currency_amount,
+                token_amount:        0u64.into(),
+                currency_amount:     0u64.into(),
+            }),
+        }
+    }
+}
+
+#[derive(Serialize, SchemaType, Clone)]
+pub struct MintMarket {
+    pub token_id:           TokenIdCalculation,
+    pub rate:               Rate,
+    pub token_metadata_url: ContractMetadataUrl,
+    pub liquidity_provider: AccountAddress,
+    pub max_token_amount:   SecurityTokenAmount,
+    pub token_amount:       SecurityTokenAmount,
+}
+
+impl MintMarket {
+    pub fn calculate_token_id(&self, now: Timestamp) -> Option<TokenIdU64> {
+        let token_id = now
+            .duration_since(self.token_id.start)
+            .map(|d| d.millis() / self.token_id.diff_millis)?;
+        Some(TokenIdU64(token_id))
+    }
+}
+
+#[derive(Serialize, SchemaType, Clone)]
+pub struct TransferMarket {
+    pub token_id:            SecurityTokenId,
+    pub liquidity_provider:  AccountAddress,
+    /// The rate at which the liquidity provider buys the tokens.
+    /// This is the rate at which sellers can sell their tokens to the liquidity provider.
+    pub buy_rate:            Rate,
+    /// The rate at which the liquidity provider sells the tokens.
+    /// This is the rate at which buyers can buy tokens from the liquidity provider.
+    pub sell_rate:           Rate,
+    pub max_token_amount:    SecurityTokenAmount,
+    pub max_currency_amount: CurrencyTokenAmount,
+    pub token_amount:        SecurityTokenAmount,
+    pub currency_amount:     CurrencyTokenAmount,
 }
 
 /// Initialization parameters for the contract.
@@ -225,13 +293,13 @@ fn remove_agent(
 #[derive(Serialize, SchemaType, Debug)]
 pub struct AddMarketParams {
     pub token_contract: ContractAddress,
-    pub market:         Market,
+    pub market:         AddMarketParam,
 }
 
 #[derive(Serialize, SchemaType, Debug, Clone)]
-pub enum Market {
-    Mint(MintMarket),
-    Transfer(TransferMarket),
+pub enum AddMarketParam {
+    Mint(AddMintMarketParam),
+    Transfer(AddTransferMarketParam),
 }
 
 #[receive(
@@ -255,7 +323,7 @@ fn add_market(
 
     let existing = state
         .markets
-        .insert(params.token_contract, params.market.clone());
+        .insert(params.token_contract, Market::new(&params.market));
     if existing.is_some() {
         logger.log(&Event::MarketRemoved(params.token_contract))?;
     }
@@ -328,11 +396,11 @@ pub fn sell(
     };
     let (currency_token, currency_amount, liquidity_provider, token_id) = {
         let state = host.state_mut();
-        let market = state
+        let mut market = state
             .markets
             .get_mut(&params.contract)
             .ok_or(Error::InvalidMarket)?;
-        let market = match market.deref() {
+        let market = match market.deref_mut() {
             Market::Mint(_) => bail!(Error::InvalidMarketType),
             Market::Transfer(m) => m,
         };
@@ -341,6 +409,11 @@ pub fn sell(
             .buy_rate
             .convert_token_amount_with_rem(&params.amount)
             .map_err(|_| Error::InvalidConversion)?;
+        market.currency_amount += currency_amount;
+        ensure!(
+            market.currency_amount <= market.max_currency_amount,
+            Error::MarketTokenLimitExceeded
+        );
         (
             state.currency_token,
             currency_amount,
@@ -400,15 +473,20 @@ pub fn buy(
         Address::Contract(_) => bail!(Error::Unauthorized),
     };
     let (currency_token, currency_amount, liquidity_provider, token_id) = {
-        let state = host.state();
-        let market = state
+        let state = host.state_mut();
+        let mut market = state
             .markets
-            .get(&params.contract)
+            .get_mut(&params.contract)
             .ok_or(Error::InvalidMarket)?;
-        let market = match market.deref() {
+        let market = match market.deref_mut() {
             Market::Mint(_) => bail!(Error::InvalidMarketType),
             Market::Transfer(m) => m,
         };
+        market.token_amount += params.amount;
+        ensure!(
+            market.token_amount <= market.max_token_amount,
+            Error::MarketTokenLimitExceeded
+        );
         ensure!(market.sell_rate.eq(&params.rate), Error::InvalidRate);
         let (currency_amount, _) = market
             .sell_rate
@@ -455,20 +533,12 @@ pub fn buy(
 }
 
 #[derive(Serialize, SchemaType, Debug, Clone)]
-pub struct MintMarket {
+pub struct AddMintMarketParam {
     pub token_id:           TokenIdCalculation,
     pub rate:               Rate,
     pub token_metadata_url: ContractMetadataUrl,
     pub liquidity_provider: AccountAddress,
-}
-
-impl MintMarket {
-    pub fn calculate_token_id(&self, now: Timestamp) -> Option<TokenIdU64> {
-        let token_id = now
-            .duration_since(self.token_id.start)
-            .map(|d| d.millis() / self.token_id.diff_millis)?;
-        Some(TokenIdU64(token_id))
-    }
+    pub max_token_amount:   SecurityTokenAmount,
 }
 
 #[derive(Serialize, SchemaType, Debug, Clone, Copy)]
@@ -502,49 +572,56 @@ pub fn mint(
         Address::Account(a) => a,
         Address::Contract(_) => bail!(Error::Unauthorized),
     };
-    let market = host
-        .state
-        .markets
-        .get_mut(&params.token_contract)
-        .ok_or(Error::InvalidMarket)?
-        .clone();
-    let market = match market {
-        Market::Mint(m) => m,
-        Market::Transfer(_) => bail!(Error::InvalidMarketType),
+    let now = ctx.metadata().block_time();
+
+    let (currency_token, currency_amount, token_id, liquidity_provider, token_metadata_url) = {
+        let state = host.state_mut();
+        let mut market = state
+            .markets
+            .get_mut(&params.token_contract)
+            .ok_or(Error::InvalidMarket)?;
+        let market = match market.deref_mut() {
+            Market::Mint(m) => m,
+            Market::Transfer(_) => bail!(Error::InvalidMarketType),
+        };
+        ensure!(market.rate.eq(&params.rate), Error::InvalidRate);
+        let (currency_amount, _) = market
+            .rate
+            .convert_token_amount_with_rem(&params.amount)
+            .map_err(|_| Error::InvalidConversion)?;
+        market.token_amount += params.amount;
+        ensure!(
+            market.token_amount <= market.max_token_amount,
+            Error::MarketTokenLimitExceeded
+        );
+
+        (
+            state.currency_token,
+            currency_amount,
+            market
+                .calculate_token_id(now)
+                .ok_or(Error::MintMarketNotStarted)?,
+            market.liquidity_provider,
+            market.token_metadata_url.clone(),
+        )
     };
 
-    let now = ctx.metadata().block_time();
-    let token_id = market
-        .calculate_token_id(now)
-        .ok_or(Error::MintMarketNotStarted)?;
     if host
         .invoke_token_metadata_single(&params.token_contract, token_id)
         .is_err()
     {
         host.invoke_add_token(&params.token_contract, &AddTokenParams {
             token_id,
-            token_metadata: market.token_metadata_url,
+            token_metadata: token_metadata_url,
         })
         .map_err(|_| Error::AddToken)?;
     }
-    let (currency_token, currency_amount, liquidity_provider) = {
-        let state = host.state_mut();
-        ensure!(market.rate.eq(&params.rate), Error::InvalidRate);
-        let (currency_amount, _) = market
-            .rate
-            .convert_token_amount_with_rem(&params.amount)
-            .map_err(|_| Error::InvalidConversion)?;
-        (
-            state.currency_token,
-            currency_amount,
-            market.liquidity_provider,
-        )
-    };
+
     host.invoke_transfer_single(&currency_token.contract, Transfer {
         amount:   currency_amount,
         token_id: currency_token.id,
         from:     buyer.into(),
-        to:       market.liquidity_provider.into(),
+        to:       liquidity_provider.into(),
         data:     AdditionalData::empty(),
     })
     .map_err(|_| Error::CurrencyTransfer)?;
