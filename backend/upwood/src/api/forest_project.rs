@@ -499,6 +499,7 @@ pub struct ForestProjectAggApiModel {
     pub property_market:   Option<Market>,
     pub property_fund:     Option<SecurityMintFund>,
     pub bond_contract:     Option<ForestProjectTokenContract>,
+    pub bond_market:       Option<Market>,
     pub bond_fund:         Option<SecurityMintFund>,
     pub contract_signed:   bool,
     pub user_notified:     bool,
@@ -670,17 +671,22 @@ impl ForestProjectAggApiModel {
                 },
                 None => None,
             };
+            let bond_market = match bond_contract {
+                Some(bond_contract) => markets.get(&bond_contract.contract_address).cloned(),
+                None => None,
+            };
             let contract_signed = user_signed_contracts.contains(&project.id);
             let user_notified = user_notified_projects.contains(&project.id);
             data.push(ForestProjectAggApiModel {
                 forest_project: project,
                 supply,
+                property_contract: property_contract.cloned(),
                 property_market,
                 property_fund,
-                bond_fund,
                 user_balance,
                 bond_contract: bond_contract.cloned(),
-                property_contract: property_contract.cloned(),
+                bond_fund,
+                bond_market,
                 contract_signed,
                 user_notified,
             });

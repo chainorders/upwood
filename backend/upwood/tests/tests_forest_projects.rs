@@ -1056,10 +1056,12 @@ pub async fn test_forest_projects() {
                         trading_contract.add_market_payload(&AddMarketParams {
                             token_contract: fp_1_contract.0,
                             market:         Market::Transfer(TransferMarket {
-                                token_id:           fp_1_token_2,
-                                liquidity_provider: sender,
-                                buy_rate:           Rate::new(1, 2).unwrap(),
-                                sell_rate:          Rate::new(1, 2).unwrap(),
+                                token_id:            fp_1_token_2,
+                                liquidity_provider:  sender,
+                                buy_rate:            Rate::new(1, 2).unwrap(),
+                                sell_rate:           Rate::new(1, 2).unwrap(),
+                                max_token_amount:    100.into(),
+                                max_currency_amount: 100.into(),
                             }),
                         }),
                     )

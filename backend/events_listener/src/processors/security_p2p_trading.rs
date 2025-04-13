@@ -67,7 +67,10 @@ pub fn process_events(
                     total_sell_currency_amount:      0.into(),
                 }
                 .insert(conn)?;
-                info!("initialized");
+                info!(
+                    "Trading Contract initialized: {:?} with currency: {:?}",
+                    contract, currency_token
+                );
             }
             Event::AgentAdded(agent) => {
                 Agent::new(
@@ -121,12 +124,16 @@ pub fn process_events(
                             token_id_calculation_diff_millis: Some(
                                 market.token_id.diff_millis.into(),
                             ),
-                            buy_rate_numerator: Some(market.rate.numerator.into()),
-                            buy_rate_denominator: Some(market.rate.denominator.into()),
-                            sell_rate_numerator: None,
-                            sell_rate_denominator: None,
-                            total_sell_currency_amount: 0.into(),
-                            total_sell_token_amount: 0.into(),
+                            sell_rate_numerator: Some(market.rate.numerator.into()),
+                            sell_rate_denominator: Some(market.rate.denominator.into()),
+                            buy_rate_numerator: None,
+                            buy_rate_denominator: None,
+                            max_token_amount: market.max_token_amount.to_decimal(),
+                            max_currency_amount: None,
+                            currency_in_amount: 0.into(),
+                            currency_out_amount: 0.into(),
+                            token_in_amount: 0.into(),
+                            token_out_amount: 0.into(),
                             create_time: block_time,
                             update_time: block_time,
                         },
@@ -145,10 +152,14 @@ pub fn process_events(
                             buy_rate_denominator: Some(market.buy_rate.denominator.into()),
                             sell_rate_numerator: Some(market.sell_rate.numerator.into()),
                             sell_rate_denominator: Some(market.sell_rate.denominator.into()),
-                            total_sell_currency_amount: 0.into(),
-                            total_sell_token_amount: 0.into(),
+                            max_token_amount: market.max_token_amount.to_decimal(),
+                            max_currency_amount: Some(market.max_currency_amount.to_decimal()),
                             create_time: block_time,
                             update_time: block_time,
+                            token_in_amount: 0.into(),
+                            currency_in_amount: 0.into(),
+                            token_out_amount: 0.into(),
+                            currency_out_amount: 0.into(),
                         },
                     };
                     let market = market.insert(conn)?;
@@ -179,6 +190,7 @@ pub fn process_events(
                 token_contract,
                 token_id,
                 currency_amount,
+                exchange_type,
             }) => {
                 conn.transaction::<_, ProcessorError, _>(|conn| {
                     let contract = P2PTradeContract::find(conn, contract.to_decimal())?.ok_or(
@@ -186,14 +198,34 @@ pub fn process_events(
                             contract: contract.to_decimal(),
                         },
                     )?;
-                    let _ =
+
+                    let mut market =
                         Market::find(conn, contract.contract_address, token_contract.to_decimal())?
-                            .map(|mut market| {
-                                market.total_sell_currency_amount += currency_amount.to_decimal();
-                                market.total_sell_token_amount += token_amount.to_decimal();
-                                market.update_time = block_time;
-                                market.update(conn)
-                            });
+                            .ok_or(ProcessorError::MarketNotFound {
+                                contract:       contract.contract_address,
+                                token_contract: token_contract.to_decimal(),
+                            })?;
+                    match exchange_type {
+                        security_p2p_trading::ExchangeType::Buy
+                        | security_p2p_trading::ExchangeType::Mint => {
+                            market.currency_in_amount += currency_amount.to_decimal();
+                            market.token_out_amount += token_amount.to_decimal();
+                            market.max_token_amount -= token_amount.to_decimal();
+                            market.max_currency_amount = market
+                                .max_currency_amount
+                                .map(|v| v + currency_amount.to_decimal());
+                        }
+                        security_p2p_trading::ExchangeType::Sell => {
+                            market.currency_out_amount += currency_amount.to_decimal();
+                            market.token_in_amount += token_amount.to_decimal();
+                            market.max_token_amount += token_amount.to_decimal();
+                            market.max_currency_amount = market
+                                .max_currency_amount
+                                .map(|v| v - currency_amount.to_decimal());
+                        }
+                    }
+                    market.update_time = block_time;
+                    market.update(conn)?;
 
                     Trader::find(
                         conn,
@@ -268,6 +300,17 @@ pub fn process_events(
                         token_amount: token_amount.to_decimal(),
                         create_time: block_time,
                         rate: rate.to_decimal(),
+                        exchange_record_type: match exchange_type {
+                            security_p2p_trading::ExchangeType::Buy => {
+                                shared::db::security_p2p_trading::ExchangeRecordType::Buy
+                            }
+                            security_p2p_trading::ExchangeType::Sell => {
+                                shared::db::security_p2p_trading::ExchangeRecordType::Sell
+                            }
+                            security_p2p_trading::ExchangeType::Mint => {
+                                shared::db::security_p2p_trading::ExchangeRecordType::Mint
+                            }
+                        },
                     }
                     .insert(conn)?;
 

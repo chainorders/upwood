@@ -22,6 +22,10 @@ pub mod sql_types {
     pub struct SecurityMintFundState;
 
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "security_p2p_trading_exchange_record_type"))]
+    pub struct SecurityP2pTradingExchangeRecordType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "security_p2p_trading_market_type"))]
     pub struct SecurityP2pTradingMarketType;
 
@@ -503,6 +507,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::SecurityP2pTradingExchangeRecordType;
+
     security_p2p_exchange_records (id) {
         id -> Uuid,
         block_height -> Numeric,
@@ -518,6 +525,7 @@ diesel::table! {
         token_amount -> Numeric,
         rate -> Numeric,
         create_time -> Timestamp,
+        exchange_record_type -> SecurityP2pTradingExchangeRecordType,
     }
 }
 
@@ -546,13 +554,17 @@ diesel::table! {
         buy_rate_denominator -> Nullable<Numeric>,
         sell_rate_numerator -> Nullable<Numeric>,
         sell_rate_denominator -> Nullable<Numeric>,
-        total_sell_token_amount -> Numeric,
-        total_sell_currency_amount -> Numeric,
         create_time -> Timestamp,
         update_time -> Timestamp,
         token_id_calculation_start -> Nullable<Numeric>,
         token_id_calculation_diff_millis -> Nullable<Numeric>,
         market_type -> SecurityP2pTradingMarketType,
+        max_token_amount -> Numeric,
+        max_currency_amount -> Nullable<Numeric>,
+        token_in_amount -> Numeric,
+        currency_out_amount -> Numeric,
+        token_out_amount -> Numeric,
+        currency_in_amount -> Numeric,
     }
 }
 

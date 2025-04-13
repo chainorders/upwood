@@ -1,5 +1,15 @@
+DELETE FROM security_p2p_trading_contracts;
+
+DELETE FROM security_p2p_trading_markets;
+
+DELETE FROM security_p2p_exchange_records;
+
+DELETE FROM security_p2p_trading_traders;
+
 DROP VIEW IF EXISTS forest_project_current_token_fund_markets CASCADE;
-ALTER TABLE forest_project_token_contracts DROP COLUMN market_token_id;
+
+ALTER TABLE forest_project_token_contracts
+DROP COLUMN market_token_id;
 
 CREATE TYPE security_p2p_trading_market_type AS ENUM('transfer', 'mint');
 
@@ -24,10 +34,24 @@ DROP NOT NULL;
 ALTER TABLE security_p2p_trading_markets
 ADD COLUMN token_id_calculation_start NUMERIC(78),
 ADD COLUMN token_id_calculation_diff_millis NUMERIC(78),
-ADD COLUMN market_type security_p2p_trading_market_type NOT NULL;
+ADD COLUMN market_type security_p2p_trading_market_type NOT NULL,
+ADD COLUMN max_token_amount NUMERIC(78) NOT NULL,
+ADD COLUMN max_currency_amount NUMERIC(78),
+ADD COLUMN token_in_amount NUMERIC(78) NOT NULL DEFAULT 0,
+ADD COLUMN currency_out_amount NUMERIC(78) NOT NULL DEFAULT 0,
+ADD COLUMN token_out_amount NUMERIC(78) NOT NULL DEFAULT 0,
+ADD COLUMN currency_in_amount NUMERIC(78) NOT NULL DEFAULT 0;
+
+-- Drop old columns
+ALTER TABLE security_p2p_trading_markets
+DROP COLUMN IF EXISTS total_sell_token_amount,
+DROP COLUMN IF EXISTS total_sell_currency_amount;
 
 -- Re-add the primary key constraint
-DELETE FROM security_p2p_trading_markets;
-
 ALTER TABLE security_p2p_trading_markets
 ADD CONSTRAINT security_p2p_trading_markets_pkey PRIMARY KEY (contract_address, token_contract_address);
+
+CREATE TYPE security_p2p_trading_exchange_record_type AS ENUM('buy', 'sell', 'mint');
+
+ALTER TABLE security_p2p_exchange_records
+ADD COLUMN exchange_record_type security_p2p_trading_exchange_record_type NOT NULL;

@@ -113,7 +113,7 @@ pub enum MarketType {
     Clone,
 )]
 #[diesel(table_name = security_p2p_trading_markets)]
-#[diesel(primary_key(contract_address, token_id, token_contract_address, market_type))]
+#[diesel(primary_key(contract_address, token_contract_address))]
 // Ensure all queries and migrations are updated to reflect this change.
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Market {
@@ -123,17 +123,31 @@ pub struct Market {
     pub currency_token_id: Decimal,
     pub currency_token_contract_address: Decimal,
     pub liquidity_provider: String,
+    /// Rate at which the liquidity provider is buying tokens. This is the sell rate for users of the contract.
     pub buy_rate_numerator: Option<Decimal>,
     pub buy_rate_denominator: Option<Decimal>,
+    /// Rate at which the liquidity provider is selling tokens. This is the buy rate for the users of the contract.
     pub sell_rate_numerator: Option<Decimal>,
     pub sell_rate_denominator: Option<Decimal>,
-    pub total_sell_token_amount: Decimal,
-    pub total_sell_currency_amount: Decimal,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
     pub token_id_calculation_start: Option<Decimal>,
     pub token_id_calculation_diff_millis: Option<Decimal>,
     pub market_type: MarketType,
+    /// Maximum amount of tokens which the market can give out / sell.
+    /// This value will decrease when someone buys and increase when someone sells
+    pub max_token_amount: Decimal,
+    /// Maximum amount of currency units which this market will give out.
+    /// This value will decrease when someone sell and increases when someone buys
+    pub max_currency_amount: Option<Decimal>,
+    /// Total amount  of tokens which the market as bought / users have sold.
+    pub token_in_amount: Decimal,
+    /// Total amount of currency units which the market has given out / users have sold tokens.
+    pub currency_out_amount: Decimal,
+    /// Total amount of tokens which the market has given out / users have bought tokens.
+    pub token_out_amount: Decimal,
+    /// Total amount of currency units which the market has received / users have bought tokens.
+    pub currency_in_amount: Decimal,
 }
 
 impl Market {
@@ -354,6 +368,7 @@ pub struct ExchangeRecord {
     pub token_amount: Decimal,
     pub rate: Decimal,
     pub create_time: NaiveDateTime,
+    pub exchange_record_type: ExchangeRecordType,
 }
 
 impl ExchangeRecord {
@@ -424,4 +439,26 @@ impl ExchangeRecord {
 
         Ok((records, page_count))
     }
+}
+
+#[derive(
+    diesel_derive_enum::DbEnum,
+    Debug,
+    PartialEq,
+    Enum,
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+    std::cmp::Eq,
+    std::hash::Hash,
+)]
+#[ExistingTypePath = "crate::schema::sql_types::SecurityP2pTradingExchangeRecordType"]
+pub enum ExchangeRecordType {
+    /// Represents a buy transaction.
+    Buy,
+    /// Represents a sell transaction.
+    Sell,
+    /// Represents a mint transaction.
+    Mint,
 }

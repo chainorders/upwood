@@ -179,8 +179,14 @@ impl Processors {
         processor: ProcessorFnType,
     ) {
         self.processors_types
-            .insert((module_ref, contract_name), processor_type);
+            .insert((module_ref, contract_name.clone()), processor_type);
         self.processors.insert(processor_type, processor);
+        info!(
+            "Processor added: module_ref: {}, contract_name: {}, processor_type: {}",
+            module_ref.to_string(),
+            contract_name.to_string(),
+            processor_type
+        );
     }
 
     pub fn find_type(
