@@ -43,6 +43,8 @@ interface AddMarketFormData {
 	mint_rate_numerator?: number;
 	token_id_diff_millis?: number;
 	token_id?: string;
+	max_token_amount?: number;
+	max_currency_amount?: number;
 }
 
 export default function AddMarketPopup({ token_id, onDone, contracts, user, tokenContract, open, onClose }: Props) {
@@ -92,6 +94,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 												start: format(toDate(data.token_id_start!), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
 												diff_millis: BigInt(data.token_id_diff_millis!),
 											},
+											max_token_amount: data.max_token_amount!.toString(),
 										},
 									],
 								}
@@ -108,6 +111,8 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 											},
 											liquidity_provider: data.liquidity_provider,
 											token_id: toTokenId(BigInt(data.token_id!), 8),
+											max_token_amount: data.max_token_amount!.toString(),
+											max_currency_amount: data.max_currency_amount!.toString(),
 										},
 									],
 								},
@@ -127,6 +132,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 	const sellPrice = watch("sell_rate_numerator");
 	const mintPrice = watch("mint_rate_numerator");
 	const marketType = watch("marketType");
+	const maxCurrencyAmount = watch("max_currency_amount");
 
 	return (
 		<Dialog open={open} onClose={onClose}>
@@ -309,6 +315,68 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 											</Grid>
 										</Grid>
 									</Paper>
+
+									<Paper
+										elevation={0}
+										sx={{
+											...styles.dialogFormField,
+											p: 2,
+											mb: 2,
+											backgroundColor: "rgba(0,0,0,0.02)",
+										}}
+									>
+										<Typography variant="h6" mb={1} color="primary">
+											Maximum Limits
+										</Typography>
+										<Grid container spacing={2}>
+											<Grid item xs={12} mb={2}>
+												<Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+													Maximum token amount allowed for this market.
+												</Typography>
+												<Controller
+													name="max_token_amount"
+													control={control}
+													rules={{
+														required: "Maximum token amount is required",
+														min: { value: 1, message: "Value must be at least 1" },
+													}}
+													render={({ field, fieldState }) => (
+														<TextField
+															{...field}
+															label="Maximum Token Amount"
+															fullWidth
+															type="number"
+															variant="outlined"
+															size="small"
+															error={!!fieldState.error}
+															helperText={fieldState.error?.message}
+														/>
+													)}
+												/>
+											</Grid>
+											<Grid item xs={12}>
+												<Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+													Maximum currency amount allowed for this market
+												</Typography>
+												<CurrencyInput
+													name="max_currency_amount"
+													control={control}
+													label="Maximum Currency Amount"
+													textFieldProps={{
+														fullWidth: true,
+														autoComplete: "off",
+														required: marketType === "transfer",
+														type: "number",
+														variant: "outlined",
+														size: "small",
+													}}
+												/>
+												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
+													€ {toDisplayAmount(maxCurrencyAmount?.toString() || "0", 6, 6)}
+												</Typography>
+											</Grid>
+										</Grid>
+									</Paper>
 								</>
 							) : (
 								<>
@@ -400,6 +468,47 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 															size="small"
 															error={!!fieldState.error}
 															helperText={fieldState.error?.message || "Time difference in milliseconds (e.g., 86400000 for 1 day)"}
+														/>
+													)}
+												/>
+											</Grid>
+										</Grid>
+									</Paper>
+
+									<Paper
+										elevation={0}
+										sx={{
+											...styles.dialogFormField,
+											p: 2,
+											mb: 2,
+											backgroundColor: "rgba(0,0,0,0.02)",
+										}}
+									>
+										<Typography variant="h6" mb={1} color="primary">
+											Maximum Token Amount
+										</Typography>
+										<Grid container spacing={2}>
+											<Grid item xs={12}>
+												<Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+													Maximum token amount allowed for this market.
+												</Typography>
+												<Controller
+													name="max_token_amount"
+													control={control}
+													rules={{
+														required: "Maximum token amount is required",
+														min: { value: 1, message: "Value must be at least 1" },
+													}}
+													render={({ field, fieldState }) => (
+														<TextField
+															{...field}
+															label="Maximum Token Amount"
+															fullWidth
+															type="number"
+															variant="outlined"
+															size="small"
+															error={!!fieldState.error}
+															helperText={fieldState.error?.message}
 														/>
 													)}
 												/>

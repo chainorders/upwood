@@ -3,6 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ExchangeRecordType } from "./ExchangeRecordType";
+
 export type ExchangeRecord = {
 	id: string;
 	block_height: string;
@@ -18,4 +20,5 @@ export type ExchangeRecord = {
 	token_amount: string;
 	rate: string;
 	create_time: string;
+	exchange_record_type: ExchangeRecordType;
 };

@@ -167,6 +167,7 @@ export const initErrorJsonSchema: RJSFSchema = {
 				"AddToken",
 				"TokenMint",
 				"InvalidMarketType",
+				"MarketTokenLimitExceeded",
 			],
 		},
 	},
@@ -288,6 +289,16 @@ export const initErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MarketTokenLimitExceeded"] },
+						MarketTokenLimitExceeded: {
+							type: "object",
+							title: "MarketTokenLimitExceeded",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -305,7 +316,8 @@ export type initErrorUi =
 	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
 	| { tag: "AddToken"; AddToken: never }
 	| { tag: "TokenMint"; TokenMint: never }
-	| { tag: "InvalidMarketType"; InvalidMarketType: never };
+	| { tag: "InvalidMarketType"; InvalidMarketType: never }
+	| { tag: "MarketTokenLimitExceeded"; MarketTokenLimitExceeded: never };
 export const addAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Add Agent Request",
@@ -518,6 +530,10 @@ export const addMarketRequestJsonSchema: RJSFSchema = {
 												type: "string",
 												title: "Liquidity Provider",
 											},
+											max_token_amount: {
+												type: "string",
+												title: "Max Token Amount",
+											},
 										},
 									},
 								},
@@ -574,6 +590,14 @@ export const addMarketRequestJsonSchema: RJSFSchema = {
 													},
 												},
 											},
+											max_token_amount: {
+												type: "string",
+												title: "Max Token Amount",
+											},
+											max_currency_amount: {
+												type: "string",
+												title: "Max Currency Amount",
+											},
 										},
 									},
 								},
@@ -601,6 +625,7 @@ export type AddMarketRequestUi = {
 								| { tag: "Some"; Some: [string] };
 						};
 						liquidity_provider: string;
+						max_token_amount: string;
 					},
 				];
 		  }
@@ -612,6 +637,8 @@ export type AddMarketRequestUi = {
 						liquidity_provider: string;
 						buy_rate: { numerator: number; denominator: number };
 						sell_rate: { numerator: number; denominator: number };
+						max_token_amount: string;
+						max_currency_amount: string;
 					},
 				];
 		  };
@@ -664,6 +691,7 @@ export const buyErrorJsonSchema: RJSFSchema = {
 				"AddToken",
 				"TokenMint",
 				"InvalidMarketType",
+				"MarketTokenLimitExceeded",
 			],
 		},
 	},
@@ -785,6 +813,16 @@ export const buyErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MarketTokenLimitExceeded"] },
+						MarketTokenLimitExceeded: {
+							type: "object",
+							title: "MarketTokenLimitExceeded",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -802,7 +840,8 @@ export type BuyErrorUi =
 	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
 	| { tag: "AddToken"; AddToken: never }
 	| { tag: "TokenMint"; TokenMint: never }
-	| { tag: "InvalidMarketType"; InvalidMarketType: never };
+	| { tag: "InvalidMarketType"; InvalidMarketType: never }
+	| { tag: "MarketTokenLimitExceeded"; MarketTokenLimitExceeded: never };
 export const getMarketRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Get Market Request",
@@ -860,6 +899,7 @@ export const mintErrorJsonSchema: RJSFSchema = {
 				"AddToken",
 				"TokenMint",
 				"InvalidMarketType",
+				"MarketTokenLimitExceeded",
 			],
 		},
 	},
@@ -981,6 +1021,16 @@ export const mintErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MarketTokenLimitExceeded"] },
+						MarketTokenLimitExceeded: {
+							type: "object",
+							title: "MarketTokenLimitExceeded",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -998,7 +1048,8 @@ export type MintErrorUi =
 	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
 	| { tag: "AddToken"; AddToken: never }
 	| { tag: "TokenMint"; TokenMint: never }
-	| { tag: "InvalidMarketType"; InvalidMarketType: never };
+	| { tag: "InvalidMarketType"; InvalidMarketType: never }
+	| { tag: "MarketTokenLimitExceeded"; MarketTokenLimitExceeded: never };
 export const removeAgentRequestJsonSchema: RJSFSchema = {
 	type: "object",
 	title: "Remove Agent Request",
@@ -1093,6 +1144,7 @@ export const sellErrorJsonSchema: RJSFSchema = {
 				"AddToken",
 				"TokenMint",
 				"InvalidMarketType",
+				"MarketTokenLimitExceeded",
 			],
 		},
 	},
@@ -1214,6 +1266,16 @@ export const sellErrorJsonSchema: RJSFSchema = {
 						},
 					},
 				},
+				{
+					properties: {
+						tag: { enum: ["MarketTokenLimitExceeded"] },
+						MarketTokenLimitExceeded: {
+							type: "object",
+							title: "MarketTokenLimitExceeded",
+							properties: {},
+						},
+					},
+				},
 			],
 		},
 	},
@@ -1231,7 +1293,8 @@ export type SellErrorUi =
 	| { tag: "MintMarketNotStarted"; MintMarketNotStarted: never }
 	| { tag: "AddToken"; AddToken: never }
 	| { tag: "TokenMint"; TokenMint: never }
-	| { tag: "InvalidMarketType"; InvalidMarketType: never };
+	| { tag: "InvalidMarketType"; InvalidMarketType: never }
+	| { tag: "MarketTokenLimitExceeded"; MarketTokenLimitExceeded: never };
 export const init = (props: {
 	onInitialize: (contract: ContractAddress.Type) => void;
 	uiSchema?: UiSchema;

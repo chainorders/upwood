@@ -3,15 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import closeIcon from "../assets/close.svg";
 import Button from "./Button";
 import { signMessage, TxnStatus, updateContract } from "../lib/concordium";
-import {
-	ForestProject,
-	ForestProjectService,
-	ForestProjectTokenContract,
-	Market,
-	SystemContractsConfigApiModel,
-	TokenMetadata,
-	UserService,
-} from "../apiClient";
+import { ForestProject, ForestProjectService, ForestProjectTokenContract, UserService } from "../apiClient";
 import { User } from "../lib/user";
 import euroeStablecoin from "../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../contractClients/ConcordiumNodeClient";
@@ -21,31 +13,39 @@ import { toDisplayAmount, toTokenId } from "../lib/conversions";
 import securityP2PTrading from "../contractClients/generated/securityP2PTrading";
 import greenTickIcon from "../assets/green-tick.svg";
 
+export interface TransferMarket {
+	liquidity_provider: string;
+	token_contract_address: string;
+	token_id: string;
+	contract_address: string;
+	buy_rate_numerator: string;
+	buy_rate_denominator: string;
+	currency_token_contract_address: string;
+	max_currency_amount: string;
+	max_token_amount: string;
+}
+
 export interface MarketSellProps {
 	user: User;
-	contracts: SystemContractsConfigApiModel;
 	project: ForestProject;
-	market: Market;
-	tokenContract?: ForestProjectTokenContract;
-	currencyMetadata?: TokenMetadata;
+	market: TransferMarket;
+	tokenContract: ForestProjectTokenContract;
 	supply: string;
 	legalContractSigned: boolean;
 	userNotified: boolean;
-	close?: () => void;
+	close: () => void;
 }
 
 interface NotifyFormData {
-	investmentAmount: number;
+	tokenAmount: number;
 	terms: boolean;
 }
 
 export default function MarketSell({
 	close,
 	user,
-	contracts,
 	market,
 	tokenContract,
-	currencyMetadata,
 	project,
 	legalContractSigned,
 	userNotified,
@@ -73,13 +73,13 @@ export default function MarketSell({
 
 	const [popupState, setPopupState] = useState<"sell" | "notify" | "sold">("sell");
 	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [, setTotalPayment] = useState(BigInt(0));
-	const [euroeBalanceBuyer, setEuroeBalanceBuyer] = useState(BigInt(0));
+	const [euroeBalanceLp, setEuroeBalanceBuyer] = useState(BigInt(0));
 	const [tokenBalanceSeller, setTokenBalanceSeller] = useState(BigInt(0));
 	const [, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isUserNotified, setIsUserNotified] = useState(userNotified);
 	const [isSelling, setIsSelling] = useState(false);
+	const [marketMaxCurrencyAmount] = useState(BigInt(market.max_currency_amount));
 
 	const {
 		control,
@@ -92,30 +92,42 @@ export default function MarketSell({
 	} = useForm<NotifyFormData>({
 		defaultValues: {
 			terms: contractSigned,
+			tokenAmount: 1,
 		},
+		mode: "onChange",
 	});
 
-	const buyer = market.liquidity_provider;
+	const lp = market.liquidity_provider;
 	const seller = user.concordiumAccountAddress;
+	const tokenAmount = watch("tokenAmount") || 0;
+	const totalPayment = BigInt(tokenAmount) * price;
+
+	useEffect(() => {
+		if (totalPayment > euroeBalanceLp) {
+			setPopupState("notify");
+		} else {
+			setPopupState("sell");
+		}
+	}, [totalPayment, euroeBalanceLp]);
 
 	useEffect(() => {
 		euroeStablecoin.balanceOf
 			.invoke(
 				concordiumNodeClient,
-				ContractAddress.create(BigInt(contracts.euro_e_contract_index), BigInt(0)),
+				ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
 				[
 					{
 						token_id: "",
-						address: { Account: [buyer] },
+						address: { Account: [lp] },
 					},
 				],
-				AccountAddress.fromBase58(buyer),
+				AccountAddress.fromBase58(lp),
 			)
 			.then((response) => euroeStablecoin.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
 				setEuroeBalanceBuyer(BigInt(balance[0]));
 			});
-	}, [contracts, buyer]);
+	}, [market.currency_token_contract_address, lp]);
 
 	useEffect(() => {
 		setPrice(BigInt(market.buy_rate_numerator) / BigInt(market.buy_rate_denominator));
@@ -134,6 +146,9 @@ export default function MarketSell({
 			.then((response) => securitySftMulti.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
 				setTokenBalanceSeller(BigInt(balance[0]));
+			})
+			.catch((error) => {
+				console.error("Error fetching token balance:", error);
 			});
 	}, [market, seller]);
 
@@ -154,48 +169,24 @@ export default function MarketSell({
 				securityP2PTrading.sell,
 				{
 					rate: { numerator: BigInt(market.buy_rate_numerator), denominator: BigInt(market.buy_rate_denominator) },
-					token: {
-						contract: { index: Number(market.token_contract_address), subindex: 0 },
-						id: toTokenId(Number(market.token_id), 8),
+					contract: {
+						index: Number(market.currency_token_contract_address),
+						subindex: 0,
 					},
-					amount: data.investmentAmount.toString(),
+					amount: data.tokenAmount.toString(),
 				},
 				setTxnStatus,
 			);
 			setPopupState("sold");
 			setIsSelling(false);
-		} catch {
+		} catch (error) {
+			console.error("Error during contract update:", error);
 			setIsSelling(false);
 		}
 	};
 
 	const addProjectUserNotification = async () => {
 		UserService.postUserNotifications(project.id).then(() => setIsUserNotified(true));
-	};
-
-	const handleInvestmentAmountChange = (value: number) => {
-		clearErrors();
-		const payment = BigInt(value) * price;
-		setTotalPayment(payment);
-
-		if (value > tokenBalanceSeller) {
-			setError("investmentAmount", {
-				message: "Insufficient liquidity",
-			});
-			setPopupState("notify");
-		} else if (payment > euroeBalanceBuyer) {
-			setError("investmentAmount", {
-				message: "Insufficient Balance",
-			});
-			setPopupState("sell");
-		} else if (tokenBalanceSeller === BigInt(0)) {
-			setError("investmentAmount", {
-				message: "Insufficient liquidity",
-			});
-			setPopupState("notify");
-		} else {
-			setPopupState("sell");
-		}
 	};
 
 	const handleTermsChange = (checked: boolean) => {
@@ -218,8 +209,6 @@ export default function MarketSell({
 		}
 	};
 
-	const investmentAmountWatch = watch("investmentAmount");
-
 	return (
 		<div className="popup-overlay" onClick={handleOverlayClick}>
 			{popupState === "sold" ? (
@@ -228,9 +217,9 @@ export default function MarketSell({
 					<div className="heading">Congratulations!</div>
 					<div className="message">
 						<img src={greenTickIcon} width={100} height={100} />
-						You have successfully sold{" "}
-						<span>{toDisplayAmount(investmentAmountWatch.toString(), tokenContract?.decimals || 0)}</span> shares of the
-						&quot;{project.name}&quot; forest plantation.
+						You have successfully sold <span>{toDisplayAmount(tokenAmount.toString(), tokenContract.decimals)}</span> shares
+						of the &quot;
+						{project.name}&quot; forest plantation.
 					</div>
 					<div className="space-30"></div>
 					<div className="container">
@@ -250,16 +239,13 @@ export default function MarketSell({
 						<div className="container-in">
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
-								<span className="colb">
-									{toDisplayAmount(price.toString(), currencyMetadata?.decimals || 6, 2)}
-									{currencyMetadata?.symbol}
-								</span>
+								<span className="colb">{toDisplayAmount(price.toString(), 6, 2)} €</span>
 							</div>
 							<div className="vis col-6 fl">
 								<span className="colc">Share available</span>
 								<span className="colb">
-									{toDisplayAmount(tokenBalanceSeller.toString(), tokenContract?.decimals || 0, 0)}
-									{tokenContract?.symbol}
+									{toDisplayAmount(tokenBalanceSeller.toString(), tokenContract.decimals, 0)}
+									{tokenContract.symbol}
 								</span>
 							</div>
 							<div className="clr"></div>
@@ -272,24 +258,48 @@ export default function MarketSell({
 								<span>Type amount of shares you want to sell</span>
 							</label>
 							<Controller
-								name="investmentAmount"
+								name="tokenAmount"
 								control={control}
-								rules={{ required: "Amount is required", min: 1 }}
+								rules={{
+									required: "Amount is required",
+									min: {
+										value: 1,
+										message: "Minimum amount is 1",
+									},
+									validate: (value: number) => {
+										if (isNaN(value)) {
+											return "Invalid amount";
+										}
+										if (value > Number(tokenBalanceSeller)) {
+											return `You can only sell up to ${toDisplayAmount(tokenBalanceSeller.toString(), tokenContract.decimals, 0)} ${tokenContract.symbol}`;
+										}
+										if (totalPayment > marketMaxCurrencyAmount) {
+											return `You can only sell up to ${toDisplayAmount(
+												marketMaxCurrencyAmount.toString(),
+												6,
+												2,
+											)} € worth of shares`;
+										}
+										if (totalPayment > euroeBalanceLp) {
+											return `Insufficient EuroE liquidity provider balance. You need at least ${toDisplayAmount(
+												totalPayment.toString(),
+												6,
+												2,
+											)} €`;
+										}
+										return true;
+									},
+								}}
 								render={({ field }) => (
 									<input
 										{...field}
 										type="number"
-										className={`textField center ${errors.investmentAmount ? "error" : ""}`}
+										className={`textField center ${errors.tokenAmount ? "error" : ""}`}
 										placeholder="Type the amount shares"
-										max={tokenBalanceSeller.toString()}
-										onChange={(e) => {
-											field.onChange(e);
-											handleInvestmentAmountChange(Number(e.target.value));
-										}}
 									/>
 								)}
 							/>
-							<p className="text-align-center error">{errors.investmentAmount?.message}</p>
+							<p className="text-align-center error">{errors.tokenAmount?.message}</p>
 						</div>
 						<div className="resu">
 							<div className="center">
@@ -338,7 +348,13 @@ export default function MarketSell({
 									{popupState === "notify" ? (
 										<Button text="NOTIFY ME" call={addProjectUserNotification} disabled={userNotified || isUserNotified} />
 									) : (
-										<Button text="SELL" active call={handleSubmit(onSubmit)} loading={isSelling} />
+										<Button
+											text="SELL"
+											active
+											call={handleSubmit(onSubmit)}
+											loading={isSelling}
+											disabled={market.buy_rate_numerator === undefined || market.buy_rate_denominator === undefined}
+										/>
 									)}
 								</div>
 								<div className="clr"></div>

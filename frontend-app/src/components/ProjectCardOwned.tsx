@@ -1,21 +1,20 @@
 import { useState } from "react";
-import { ForestProjectAggApiModel, SecurityMintFundState, SystemContractsConfigApiModel } from "../apiClient";
+import { ForestProjectAggApiModel, MarketType } from "../apiClient";
 import { User } from "../lib/user";
 import Button from "./Button";
-import FundInvest from "./FundInvest";
 import MarketSell from "./MarketSell";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/opacity.css";
+import MarketBuyCombined from "./MarketBuyCombined";
 
 interface Props {
 	project: ForestProjectAggApiModel;
 	user: User;
-	contracts: SystemContractsConfigApiModel;
 }
 
-export default function ProjectCardOwned({ project, user, contracts }: Props) {
-	const [fundInvestPopupOpen, setFundInvestPopupOpen] = useState(false);
-	const [marketSellPopup, setMarketSellPopup] = useState(false);
+export default function ProjectCardOwned({ project, user }: Props) {
+	const [bondMarketBuyPopup, setBondMarketBuyPopup] = useState(false);
+	const [propertyMarketSellPopup, setPropertyMarketSellPopup] = useState(false);
 
 	return (
 		<>
@@ -61,49 +60,62 @@ export default function ProjectCardOwned({ project, user, contracts }: Props) {
 					</div>
 					<div className="container-in">
 						<div className="col-5 col-m-full col-mr-bottom-20 fl">
-							<Button text="SELL SHARES" call={() => setMarketSellPopup(true)} disabled={!project.property_market} />
+							<Button
+								text="SELL SHARES"
+								call={() => setPropertyMarketSellPopup(true)}
+								disabled={
+									!project.property_contract ||
+									!project.property_market ||
+									project.property_market.market_type !== MarketType.TRANSFER
+								}
+							/>
 						</div>
 						<div className="col-5 col-m-full fr">
 							<Button
 								text="INVEST MORE"
 								active
-								call={() => setFundInvestPopupOpen(true)}
-								disabled={!project.bond_fund || project.bond_fund.fund_state != SecurityMintFundState.OPEN}
+								call={() => setBondMarketBuyPopup(true)}
+								disabled={!project.bond_contract || !project.bond_market}
 							/>
 						</div>
 						<div className="clr"></div>
 					</div>
 				</div>
 			</div>
-			{fundInvestPopupOpen && project.bond_fund ? (
-				<FundInvest
-					close={() => setFundInvestPopupOpen(false)}
+			{bondMarketBuyPopup && project.bond_contract && project.bond_market && (
+				<MarketBuyCombined
+					project={project}
 					user={user}
-					contracts={contracts}
-					fund={project.bond_fund}
-					tokenContract={project.bond_contract}
-					project={project.forest_project}
-					supply={project.supply}
-					legalContractSigned={project.contract_signed}
+					token_contract={project.bond_contract}
+					market={project.bond_market}
+					close={() => setBondMarketBuyPopup(false)}
 				/>
-			) : (
-				<></>
 			)}
-			{marketSellPopup && project.property_market ? (
+			{propertyMarketSellPopup &&
+			project.property_contract &&
+			project.property_market &&
+			project.property_market.market_type === MarketType.TRANSFER ? (
 				<MarketSell
-					close={() => setMarketSellPopup(false)}
+					close={() => setPropertyMarketSellPopup(false)}
 					user={user}
-					contracts={contracts}
-					market={project.property_market}
+					market={{
+						buy_rate_numerator: project.property_market.buy_rate_numerator!,
+						buy_rate_denominator: project.property_market.buy_rate_denominator!,
+						currency_token_contract_address: project.property_market.currency_token_contract_address!,
+						liquidity_provider: project.property_market.liquidity_provider!,
+						token_contract_address: project.property_market.token_contract_address!,
+						token_id: project.property_market.token_id!,
+						contract_address: project.property_contract.contract_address,
+						max_currency_amount: project.property_market.max_currency_amount!,
+						max_token_amount: project.property_market.max_token_amount,
+					}}
 					tokenContract={project.property_contract}
 					project={project.forest_project}
 					supply={project.supply}
 					legalContractSigned={project.contract_signed}
 					userNotified={project.user_notified}
 				/>
-			) : (
-				<></>
-			)}
+			) : null}
 		</>
 	);
 }

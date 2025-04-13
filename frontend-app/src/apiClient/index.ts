@@ -14,6 +14,7 @@ export type { ClaimRequest } from "./models/ClaimRequest";
 export type { Company } from "./models/Company";
 export type { CompanyInvitation } from "./models/CompanyInvitation";
 export type { ExchangeRecord } from "./models/ExchangeRecord";
+export { ExchangeRecordType } from "./models/ExchangeRecordType";
 export type { ForestProject } from "./models/ForestProject";
 export type { ForestProjectAggApiModel } from "./models/ForestProjectAggApiModel";
 export type { ForestProjectFundInvestor } from "./models/ForestProjectFundInvestor";

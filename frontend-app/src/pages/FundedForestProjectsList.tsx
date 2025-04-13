@@ -34,7 +34,7 @@ export default function FundedForestProjectsList({ user }: FundedForestProjectsL
 						{contracts &&
 							projects?.data.map((project) => (
 								<div className="col-6 col-m-full fl" key={project.forest_project.id}>
-									<ProjectCardFunded project={project} contracts={contracts} user={user} />
+									<ProjectCardFunded project={project} user={user} />
 								</div>
 							))}
 						<div className="clr"></div>

@@ -213,6 +213,9 @@ const ProjectContractCreate = ({ user, fileBaseUrl }: { user: User; fileBaseUrl:
 							{
 								Operator: {},
 							},
+							{
+								AddToken: {},
+							},
 						],
 					},
 				],

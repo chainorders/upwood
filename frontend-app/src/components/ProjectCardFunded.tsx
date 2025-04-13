@@ -1,27 +1,19 @@
 import { useState } from "react";
 
-import { ForestProjectAggApiModel, ForestProjectState, SystemContractsConfigApiModel } from "../apiClient";
-// import NotifyNon from "../assets/notify-non.svg";
+import { ForestProjectAggApiModel, ForestProjectState } from "../apiClient";
 import { User } from "../lib/user";
 import Button from "./Button";
-import MarketBuy from "./MarketBuy";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/opacity.css";
+import MarketBuyCombined from "./MarketBuyCombined";
 
 interface Props {
 	project: ForestProjectAggApiModel;
 	user: User;
-	contracts: SystemContractsConfigApiModel;
 }
 
-export default function ProjectCardFunded({ project, user, contracts }: Props) {
-	const [notifyShare, setNotifyShare] = useState(false);
-	const openNotifyShare = () => {
-		setNotifyShare(true);
-	};
-	const closeNotifyShare = () => {
-		setNotifyShare(false);
-	};
+export default function ProjectCardFunded({ project, user }: Props) {
+	const [propertyMarketBuyPopup, setPropertyMarketBuyPopup] = useState(false);
 
 	const comingSoon = project.forest_project.state === ForestProjectState.DRAFT;
 	return (
@@ -78,25 +70,26 @@ export default function ProjectCardFunded({ project, user, contracts }: Props) {
 							/>
 						</div>
 						<div className="col-4 col-m-full fl">
-							<Button text="BUY" active call={openNotifyShare} disabled={!project.property_market} />
+							<Button
+								text="BUY"
+								active
+								call={() => setPropertyMarketBuyPopup(true)}
+								disabled={!project.property_contract || !project.property_market}
+							/>
 						</div>
 						<div className="clr"></div>
 					</div>
 				</div>
 			</div>
-			{notifyShare && project.property_market ? (
-				<MarketBuy
-					close={closeNotifyShare}
+			{propertyMarketBuyPopup && project.property_contract && project.property_market && (
+				<MarketBuyCombined
+					project={project}
 					user={user}
-					contracts={contracts}
+					token_contract={project.property_contract}
 					market={project.property_market}
-					tokenContract={project.property_contract}
-					project={project.forest_project}
-					supply={project.supply}
-					legalContractSigned={project.contract_signed}
-					userNotified={project.user_notified}
+					close={() => setPropertyMarketBuyPopup(false)}
 				/>
-			) : null}
+			)}
 		</>
 	);
 }

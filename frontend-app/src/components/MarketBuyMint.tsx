@@ -5,45 +5,47 @@ import Button from "./Button";
 import euroeStablecoin from "../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../contractClients/ConcordiumNodeClient";
 import { AccountAddress, CcdAmount, ContractAddress } from "@concordium/web-sdk";
-import {
-	ForestProject,
-	ForestProjectService,
-	ForestProjectTokenContract,
-	SecurityMintFund,
-	SystemContractsConfigApiModel,
-} from "../apiClient";
+import { ForestProject, ForestProjectService, ForestProjectTokenContract } from "../apiClient";
 import { User } from "../lib/user";
-import { toDisplayAmount, toTokenId } from "../lib/conversions";
-import securityMintFund from "../contractClients/generated/securityMintFund";
+import { toDisplayAmount } from "../lib/conversions";
 import { signMessage, TxnStatus, updateContract } from "../lib/concordium";
 import greenTickIcon from "../assets/green-tick.svg";
 import { Link } from "react-router";
+import securityP2PTrading from "../contractClients/generated/securityP2PTrading";
 
-interface BuyShareProps {
-	supply: string;
+export interface MintMarket {
+	liquidity_provider: string;
+	token_contract_address: string;
+	contract_address: string;
+	sell_rate_numerator: string;
+	sell_rate_denominator: string;
+	currency_token_contract_address: string;
+	max_token_amount: string;
+}
+
+interface MarketBuyMintProps {
 	user: User;
-	contracts: SystemContractsConfigApiModel;
 	project: ForestProject;
-	fund: SecurityMintFund;
+	market: MintMarket;
 	tokenContract: ForestProjectTokenContract;
+	supply: string;
 	legalContractSigned: boolean;
 	close?: () => void;
 }
 
 interface InvestmentFormData {
-	investmentAmount: number;
+	tokenAmount: number;
 	terms: boolean;
 }
 
-export default function FundInvest({
+export default function MarketBuyMint({
 	close,
 	user,
-	contracts,
-	fund,
 	tokenContract,
 	project,
 	legalContractSigned,
-}: BuyShareProps) {
+	market,
+}: MarketBuyMintProps) {
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
 			if (e.key === "Escape" && close) {
@@ -67,7 +69,6 @@ export default function FundInvest({
 
 	const [thankyou, setThankYou] = useState(false);
 	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [totalPayment, setTotalPayment] = useState(BigInt(0));
 	const [euroeBalance, setEuroeBalance] = useState(BigInt(0));
 	const [_txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
@@ -84,14 +85,16 @@ export default function FundInvest({
 	} = useForm<InvestmentFormData>({
 		defaultValues: {
 			terms: contractSigned,
+			tokenAmount: 1,
 		},
+		mode: "onChange",
 	});
 
 	useEffect(() => {
 		euroeStablecoin.balanceOf
 			.invoke(
 				concordiumNodeClient,
-				ContractAddress.create(BigInt(contracts.euro_e_contract_index)),
+				ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
 				[
 					{
 						token_id: "",
@@ -104,30 +107,30 @@ export default function FundInvest({
 			.then((response) => euroeStablecoin.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
 				setEuroeBalance(BigInt(balance[0]));
-			})
-			.catch((err) => {
-				console.error("Error fetching balanceOf", err);
 			});
-	}, [contracts, user]);
+	}, [market.currency_token_contract_address, user]);
 
 	useEffect(() => {
-		setPrice(BigInt(fund.rate_numerator) / BigInt(fund.rate_denominator));
-	}, [fund]);
+		setPrice(BigInt(market.sell_rate_numerator) / BigInt(market.sell_rate_denominator));
+	}, [market.sell_rate_numerator, market.sell_rate_denominator]);
 
-	const onSubmit = async () => {
+	const tokenAmount = watch("tokenAmount") || 0;
+	const totalPayment = BigInt(tokenAmount) * price;
+
+	const onSubmit = async (data: InvestmentFormData) => {
 		setIsInvesting(true);
 		try {
 			const isOperator = await euroeStablecoin.operatorOf
 				.invoke(
 					concordiumNodeClient,
-					ContractAddress.create(BigInt(fund.currency_token_contract_address), BigInt(0)),
+					ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
 					[
 						{
 							owner: { Account: [user.concordiumAccountAddress] },
 							address: {
 								Contract: [
 									{
-										index: Number(fund.contract_address),
+										index: Number(market.contract_address),
 										subindex: 0,
 									},
 								],
@@ -142,7 +145,7 @@ export default function FundInvest({
 			if (!isOperator) {
 				await updateContract(
 					user.concordiumAccountAddress,
-					fund.currency_token_contract_address,
+					market.currency_token_contract_address,
 					euroeStablecoin.updateOperator,
 					[
 						{
@@ -152,7 +155,7 @@ export default function FundInvest({
 							operator: {
 								Contract: [
 									{
-										index: Number(fund.contract_address),
+										index: Number(market.contract_address),
 										subindex: 0,
 									},
 								],
@@ -164,17 +167,18 @@ export default function FundInvest({
 			}
 			await updateContract(
 				user.concordiumAccountAddress,
-				fund.contract_address,
-				securityMintFund.transferInvest,
+				market.contract_address,
+				securityP2PTrading.mint,
 				{
-					amount: totalPayment.toString(),
-					security_token: {
-						contract: {
-							index: Number(fund.investment_token_contract_address),
-							subindex: 0,
-						},
-						id: toTokenId(Number(fund.investment_token_id), 8),
+					rate: {
+						numerator: BigInt(market.sell_rate_numerator),
+						denominator: BigInt(market.sell_rate_denominator),
 					},
+					token_contract: {
+						index: Number(market.token_contract_address),
+						subindex: 0,
+					},
+					amount: data.tokenAmount.toString(),
 				},
 				setTxnStatus,
 			);
@@ -184,17 +188,6 @@ export default function FundInvest({
 			console.error(e);
 			setIsInvesting(false);
 		}
-	};
-
-	const handleInvestmentAmountChange = (value: number) => {
-		clearErrors("investmentAmount");
-		const payment = BigInt(value) * price;
-		if (payment > euroeBalance) {
-			setError("investmentAmount", {
-				message: "Insufficient Balance",
-			});
-		}
-		setTotalPayment(payment);
 	};
 
 	const handleTermsChange = (checked: boolean) => {
@@ -217,8 +210,6 @@ export default function FundInvest({
 		}
 	};
 
-	const investmentAmountWatch = watch("investmentAmount") || 0;
-
 	return (
 		<div className="popup-overlay" onClick={handleOverlayClick}>
 			{thankyou ? (
@@ -228,7 +219,7 @@ export default function FundInvest({
 					<div className="message">
 						<img src={greenTickIcon} width={100} height={100} />
 						You have successfully invested in{" "}
-						<span>{toDisplayAmount(investmentAmountWatch.toString(), tokenContract.decimals)} shares</span> of the &quot;
+						<span>{toDisplayAmount(tokenAmount.toString(), tokenContract.decimals)} shares</span> of the &quot;
 						{project.name}&quot; forest plantation.
 					</div>
 					<div className="space-30"></div>
@@ -256,7 +247,7 @@ export default function FundInvest({
 							<div className="vis col-6 fl">
 								<span className="colc">Share available</span>
 								<span className="colb">
-									{toDisplayAmount(project.shares_available.toString(), tokenContract.decimals, 0)}
+									{toDisplayAmount(market.max_token_amount.toString(), tokenContract.decimals, 0)}
 									&nbsp;{tokenContract.symbol}
 								</span>
 							</div>
@@ -275,32 +266,51 @@ export default function FundInvest({
 								</span>
 							</label>
 							<Controller
-								name="investmentAmount"
+								name="tokenAmount"
 								control={control}
-								rules={{ required: "Investment amount is required", min: { value: 1, message: "Invalid investment amount" } }}
-								render={({ field }) => (
+								rules={{
+									required: "Investment amount is required",
+									validate: (value) => {
+										if (value > Number(market.max_token_amount)) {
+											return `Investment amount cannot exceed ${toDisplayAmount(
+												market.max_token_amount.toString(),
+												tokenContract.decimals,
+											)}`;
+										}
+										if (totalPayment > euroeBalance) {
+											console.error("Insufficient balance");
+											return "Insufficient Balance";
+										}
+										if (value < 1) {
+											return "Invalid investment amount";
+										}
+
+										if (value % 1 !== 0) {
+											return "Investment amount must be a whole number";
+										}
+										if (value < 0) {
+											return "Investment amount must be a positive number";
+										}
+										return true;
+									},
+								}}
+								render={({ field, fieldState }) => (
 									<input
 										{...field}
 										type="number"
 										id="investment-amount"
 										required
-										className={`textField ${errors.investmentAmount ? "error" : ""} center`}
-										onChange={(e) => {
-											field.onChange(e);
-											handleInvestmentAmountChange(Number(e.target.value));
-										}}
+										className={`textField ${fieldState.error ? "error" : ""} center`}
 										autoComplete="off"
 									/>
 								)}
 							/>
-							<p className="text-align-center error">{errors.investmentAmount?.message}</p>
+							<p className="text-align-center error">{errors.tokenAmount?.message}</p>
 						</div>
 						<div className="resu">
 							<div className="left col-m-full col-mr-bottom-20 fl">
 								Get shares :{" "}
-								<span>
-									{toDisplayAmount(investmentAmountWatch.toString(), tokenContract.decimals, tokenContract.decimals)} Share
-								</span>
+								<span>{toDisplayAmount(tokenAmount.toString(), tokenContract.decimals, tokenContract.decimals)} Share</span>
 							</div>
 							<div className="right col-m-full fr">
 								Total payment : <span>{toDisplayAmount(totalPayment.toString(), 6)} EUROe</span>

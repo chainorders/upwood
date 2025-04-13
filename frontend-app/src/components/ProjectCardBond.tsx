@@ -1,16 +1,11 @@
 import { useState } from "react";
 
-import {
-	ForestProjectAggApiModel,
-	ForestProjectState,
-	SecurityMintFundState,
-	SystemContractsConfigApiModel,
-} from "../apiClient";
+import { ForestProjectAggApiModel, ForestProjectState, SystemContractsConfigApiModel } from "../apiClient";
 import { User } from "../lib/user";
 import Button from "./Button";
-import FundInvest from "./FundInvest";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/opacity.css";
+import MarketBuyCombined from "./MarketBuyCombined";
 
 interface Props {
 	project: ForestProjectAggApiModel;
@@ -18,8 +13,8 @@ interface Props {
 	contracts: SystemContractsConfigApiModel;
 }
 
-export default function ProjectCardBond({ project, user, contracts }: Props) {
-	const [fundInvestPopupOpen, setFundInvestPopupOpen] = useState(false);
+export default function ProjectCardBond({ project, user }: Props) {
+	const [bondMarketBuyPopup, setBondMarketBuyPopup] = useState(false);
 	const comingSoon = project.forest_project.state === ForestProjectState.DRAFT;
 
 	return (
@@ -79,27 +74,22 @@ export default function ProjectCardBond({ project, user, contracts }: Props) {
 							<Button
 								text="INVEST"
 								active
-								call={() => setFundInvestPopupOpen(true)}
-								disabled={!project.bond_fund || project.bond_fund.fund_state != SecurityMintFundState.OPEN}
+								call={() => setBondMarketBuyPopup(true)}
+								disabled={!project.bond_contract || !project.bond_market}
 							/>
 						</div>
 						<div className="clr"></div>
 					</div>
 				</div>
 			</div>
-			{fundInvestPopupOpen && project.bond_fund ? (
-				<FundInvest
-					close={() => setFundInvestPopupOpen(false)}
+			{bondMarketBuyPopup && project.bond_contract && project.bond_market && (
+				<MarketBuyCombined
+					project={project}
 					user={user}
-					contracts={contracts}
-					fund={project.bond_fund}
-					tokenContract={project.bond_contract}
-					project={project.forest_project}
-					supply={project.supply}
-					legalContractSigned={project.contract_signed}
+					token_contract={project.bond_contract}
+					market={project.bond_market}
+					close={() => setBondMarketBuyPopup(false)}
 				/>
-			) : (
-				<></>
 			)}
 		</>
 	);

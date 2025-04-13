@@ -140,7 +140,7 @@ export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) 
 						{contracts &&
 							projects?.data.map((project) => (
 								<div className="col-6 col-m-full fl" key={project.forest_project.id}>
-									<ProjectCardOwned project={project} user={user} contracts={contracts} />
+									<ProjectCardOwned project={project} user={user} />
 								</div>
 							))}
 						<div className="clr"></div>

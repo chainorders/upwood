@@ -19,7 +19,7 @@ export type initRequest = {
 export const initRequestSchemaBase64 =
 	"FAACAAAACAAAAGN1cnJlbmN5FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABgAAAGFnZW50cxACFAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVAwAAAAkAAABBZGRNYXJrZXQCDAAAAFJlbW92ZU1hcmtldAIIAAAAT3BlcmF0b3IC";
 export const initErrorSchemaBase64 =
-	"FQ0AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAg==";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
 export type AddAgentRequest = {
 	address: { Account: [string] } | { Contract: [{ index: number; subindex: number }] };
 	roles: Array<
@@ -38,6 +38,7 @@ export type AddMarketRequest = {
 						rate: { numerator: bigint; denominator: bigint };
 						token_metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 						liquidity_provider: string;
+						max_token_amount: string;
 					},
 				];
 		  }
@@ -48,12 +49,14 @@ export type AddMarketRequest = {
 						liquidity_provider: string;
 						buy_rate: { numerator: bigint; denominator: bigint };
 						sell_rate: { numerator: bigint; denominator: bigint };
+						max_token_amount: string;
+						max_currency_amount: string;
 					},
 				];
 		  };
 };
 export const addMarketRequestSchemaBase64 =
-	"FAACAAAADgAAAHRva2VuX2NvbnRyYWN0DAYAAABtYXJrZXQVAgAAAAQAAABNaW50AQEAAAAUAAQAAAAIAAAAdG9rZW5faWQUAAIAAAAFAAAAc3RhcnQNCwAAAGRpZmZfbWlsbGlzBQQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFEgAAAHRva2VuX21ldGFkYXRhX3VybBQAAgAAAAMAAAB1cmwWAgQAAABoYXNoFQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFgISAAAAbGlxdWlkaXR5X3Byb3ZpZGVyCwgAAABUcmFuc2ZlcgEBAAAAFAAEAAAACAAAAHRva2VuX2lkHQASAAAAbGlxdWlkaXR5X3Byb3ZpZGVyCwgAAABidXlfcmF0ZRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQkAAABzZWxsX3JhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgU=";
+	"FAACAAAADgAAAHRva2VuX2NvbnRyYWN0DAYAAABtYXJrZXQVAgAAAAQAAABNaW50AQEAAAAUAAUAAAAIAAAAdG9rZW5faWQUAAIAAAAFAAAAc3RhcnQNCwAAAGRpZmZfbWlsbGlzBQQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFEgAAAHRva2VuX21ldGFkYXRhX3VybBQAAgAAAAMAAAB1cmwWAgQAAABoYXNoFQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFgISAAAAbGlxdWlkaXR5X3Byb3ZpZGVyCxAAAABtYXhfdG9rZW5fYW1vdW50GyUAAAAIAAAAVHJhbnNmZXIBAQAAABQABgAAAAgAAAB0b2tlbl9pZB0AEgAAAGxpcXVpZGl0eV9wcm92aWRlcgsIAAAAYnV5X3JhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUJAAAAc2VsbF9yYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFEAAAAG1heF90b2tlbl9hbW91bnQbJQAAABMAAABtYXhfY3VycmVuY3lfYW1vdW50GyUAAAA=";
 export type BuyError =
 	| { ParseError: Record<string, never> }
 	| { Unauthorized: Record<string, never> }
@@ -67,9 +70,10 @@ export type BuyError =
 	| { MintMarketNotStarted: Record<string, never> }
 	| { AddToken: Record<string, never> }
 	| { TokenMint: Record<string, never> }
-	| { InvalidMarketType: Record<string, never> };
+	| { InvalidMarketType: Record<string, never> }
+	| { MarketTokenLimitExceeded: Record<string, never> };
 export const buyErrorSchemaBase64 =
-	"FQ0AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAg==";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
 export type BuyRequest = {
 	contract: { index: number; subindex: number };
 	amount: string;
@@ -92,9 +96,10 @@ export type MintError =
 	| { MintMarketNotStarted: Record<string, never> }
 	| { AddToken: Record<string, never> }
 	| { TokenMint: Record<string, never> }
-	| { InvalidMarketType: Record<string, never> };
+	| { InvalidMarketType: Record<string, never> }
+	| { MarketTokenLimitExceeded: Record<string, never> };
 export const mintErrorSchemaBase64 =
-	"FQ0AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAg==";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
 export type MintRequest = {
 	token_contract: { index: number; subindex: number };
 	amount: string;
@@ -119,9 +124,10 @@ export type SellError =
 	| { MintMarketNotStarted: Record<string, never> }
 	| { AddToken: Record<string, never> }
 	| { TokenMint: Record<string, never> }
-	| { InvalidMarketType: Record<string, never> };
+	| { InvalidMarketType: Record<string, never> }
+	| { MarketTokenLimitExceeded: Record<string, never> };
 export const sellErrorSchemaBase64 =
-	"FQ0AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAg==";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
 export type SellRequest = {
 	contract: { index: number; subindex: number };
 	amount: string;
@@ -156,6 +162,7 @@ export type event =
 										rate: { numerator: bigint; denominator: bigint };
 										token_metadata_url: { url: string; hash: { None: Record<string, never> } | { Some: [string] } };
 										liquidity_provider: string;
+										max_token_amount: string;
 									},
 								];
 						  }
@@ -166,6 +173,8 @@ export type event =
 										liquidity_provider: string;
 										buy_rate: { numerator: bigint; denominator: bigint };
 										sell_rate: { numerator: bigint; denominator: bigint };
+										max_token_amount: string;
+										max_currency_amount: string;
 									},
 								];
 						  };
@@ -182,12 +191,13 @@ export type event =
 					token_amount: string;
 					rate: { numerator: bigint; denominator: bigint };
 					currency_amount: string;
+					exchange_type: { Buy: Record<string, never> } | { Sell: Record<string, never> } | { Mint: Record<string, never> };
 				},
 			];
 	  }
 	| { MarketRemoved: [{ index: number; subindex: number }] };
 export const eventSchemaBase64 =
-	"FQYAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAoAAABBZ2VudEFkZGVkAQEAAAAUAAIAAAAHAAAAYWRkcmVzcxUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwFAAAAcm9sZXMQAhUDAAAACQAAAEFkZE1hcmtldAIMAAAAUmVtb3ZlTWFya2V0AggAAABPcGVyYXRvcgIMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMCwAAAE1hcmtldEFkZGVkAQEAAAAUAAIAAAAOAAAAdG9rZW5fY29udHJhY3QMBgAAAG1hcmtldBUCAAAABAAAAE1pbnQBAQAAABQABAAAAAgAAAB0b2tlbl9pZBQAAgAAAAUAAABzdGFydA0LAAAAZGlmZl9taWxsaXMFBAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUSAAAAdG9rZW5fbWV0YWRhdGFfdXJsFAACAAAAAwAAAHVybBYCBAAAAGhhc2gVAgAAAAQAAABOb25lAgQAAABTb21lAQEAAAAWAhIAAABsaXF1aWRpdHlfcHJvdmlkZXILCAAAAFRyYW5zZmVyAQEAAAAUAAQAAAAIAAAAdG9rZW5faWQdABIAAABsaXF1aWRpdHlfcHJvdmlkZXILCAAAAGJ1eV9yYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFCQAAAHNlbGxfcmF0ZRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQkAAABFeGNoYW5nZWQBAQAAABQABwAAAA4AAAB0b2tlbl9jb250cmFjdAwIAAAAdG9rZW5faWQdAAYAAABzZWxsZXILBQAAAGJ1eWVyCwwAAAB0b2tlbl9hbW91bnQbJQAAAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFDwAAAGN1cnJlbmN5X2Ftb3VudBslAAAADQAAAE1hcmtldFJlbW92ZWQBAQAAAAw=";
+	"FQYAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAoAAABBZ2VudEFkZGVkAQEAAAAUAAIAAAAHAAAAYWRkcmVzcxUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwFAAAAcm9sZXMQAhUDAAAACQAAAEFkZE1hcmtldAIMAAAAUmVtb3ZlTWFya2V0AggAAABPcGVyYXRvcgIMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMCwAAAE1hcmtldEFkZGVkAQEAAAAUAAIAAAAOAAAAdG9rZW5fY29udHJhY3QMBgAAAG1hcmtldBUCAAAABAAAAE1pbnQBAQAAABQABQAAAAgAAAB0b2tlbl9pZBQAAgAAAAUAAABzdGFydA0LAAAAZGlmZl9taWxsaXMFBAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUSAAAAdG9rZW5fbWV0YWRhdGFfdXJsFAACAAAAAwAAAHVybBYCBAAAAGhhc2gVAgAAAAQAAABOb25lAgQAAABTb21lAQEAAAAWAhIAAABsaXF1aWRpdHlfcHJvdmlkZXILEAAAAG1heF90b2tlbl9hbW91bnQbJQAAAAgAAABUcmFuc2ZlcgEBAAAAFAAGAAAACAAAAHRva2VuX2lkHQASAAAAbGlxdWlkaXR5X3Byb3ZpZGVyCwgAAABidXlfcmF0ZRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQkAAABzZWxsX3JhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUQAAAAbWF4X3Rva2VuX2Ftb3VudBslAAAAEwAAAG1heF9jdXJyZW5jeV9hbW91bnQbJQAAAAkAAABFeGNoYW5nZWQBAQAAABQACAAAAA4AAAB0b2tlbl9jb250cmFjdAwIAAAAdG9rZW5faWQdAAYAAABzZWxsZXILBQAAAGJ1eWVyCwwAAAB0b2tlbl9hbW91bnQbJQAAAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFDwAAAGN1cnJlbmN5X2Ftb3VudBslAAAADQAAAGV4Y2hhbmdlX3R5cGUVAwAAAAMAAABCdXkCBAAAAFNlbGwCBAAAAE1pbnQCDQAAAE1hcmtldFJlbW92ZWQBAQAAAAw=";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
 	addAgent: EntrypointName.fromString("addAgent"),
 	addMarket: EntrypointName.fromString("addMarket"),
@@ -210,7 +220,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 };
 export const securityP2PTrading = {
 	init: new InitMethod<initRequest>(
-		ModuleReference.fromHexString("33a41aba97bcd75f6418c36e24d214b51855cbe2c763f880a644be869060298e"),
+		ModuleReference.fromHexString("789c18c7850f075f69e9b6821620647337286b9badce7d5577af4ec3bd72300f"),
 		ContractName.fromString("security_p2p_trading"),
 		initRequestSchemaBase64,
 	),

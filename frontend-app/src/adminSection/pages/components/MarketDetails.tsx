@@ -10,7 +10,7 @@ import { User } from "../../../lib/user";
 import { toDisplayAmount } from "../../../lib/conversions";
 import euroeStablecoin from "../../../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../../../contractClients/ConcordiumNodeClient";
-import { ContractAddress } from "@concordium/web-sdk";
+import { AccountAddress, CcdAmount, ContractAddress } from "@concordium/web-sdk";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
 import useCommonStyles from "../../../theme/useCommonStyles";
 import DetailRow from "./DetailRow";
@@ -31,7 +31,8 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 	const [agent, setAgent] = useState<Agent>();
 	const [removeAgentTxnStatus, setRemoveAgentTxnStatus] = useState<TxnStatus>("none");
 	const [addAgentTxnStatus, setAddAgentTxnStatus] = useState<TxnStatus>("none");
-	const [holder, setHolder] = useState<TokenHolder>();
+	const [lpTokenHolder, setLpTokenHolder] = useState<TokenHolder>();
+	const [lpEuroEBalance, setLpEuroEBalance] = useState<bigint>(BigInt(0));
 
 	useEffect(() => {
 		euroeStablecoin.operatorOf
@@ -53,13 +54,33 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 			.then((res) => euroeStablecoin.operatorOf.parseReturnValue(res.returnValue!)!)
 			.then((res) => setIsCurrencyOperator(res[0]));
 		IndexerService.getAdminIndexerCis2Agent(market.token_contract_address, market.contract_address, true).then(setAgent);
+		euroeStablecoin.balanceOf
+			.invoke(
+				concordiumNodeClient,
+				ContractAddress.create(Number(market.currency_token_contract_address)),
+				[
+					{
+						token_id: "",
+						address: { Account: [market.liquidity_provider] },
+					},
+				],
+				AccountAddress.fromBase58(market.liquidity_provider),
+				CcdAmount.fromCcd(0),
+			)
+			.then((res) => euroeStablecoin.balanceOf.parseReturnValue(res.returnValue!)!)
+			.then((res) => {
+				setLpEuroEBalance(BigInt(res[0]));
+			})
+			.catch((err) => {
+				console.error("Error fetching balanceOf", err);
+			});
 
 		if (market.token_id) {
 			IndexerService.getAdminIndexerCis2TokenHolder(
 				market.token_contract_address,
 				market.token_id,
 				market.liquidity_provider,
-			).then(setHolder);
+			).then(setLpTokenHolder);
 		}
 	}, [market, refreshCounter]);
 
@@ -109,7 +130,7 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 				securitySftMulti.addAgent,
 				{
 					address: { Contract: [{ index: Number(market.contract_address), subindex: 0 }] },
-					roles: [{ Operator: {} }],
+					roles: [{ Operator: {} }, { Mint: {} }, { AddToken: {} }],
 				},
 				setAddAgentTxnStatus,
 			);
@@ -171,10 +192,10 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 						/>
 						<DetailRow
 							title={market.token_id_calculation_diff_millis}
-							label="Token ID Calculation Diff Millis"
+							label="Token ID Calculation Diff"
 							value={
 								market.token_id_calculation_diff_millis
-									? millisecondsToHours(Number(market.token_id_calculation_diff_millis))
+									? `${market.token_id_calculation_diff_millis} Millis / ${millisecondsToHours(Number(market.token_id_calculation_diff_millis))} hours`
 									: "N/A"
 							}
 						/>
@@ -195,11 +216,41 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 							Trading Information
 						</Typography>
 
-						<DetailRow label="Total Sell Token Amount" value={market.total_sell_token_amount} />
+						<DetailRow label="Max Token Amount" value={market.max_token_amount} />
 						<DetailRow
-							label="Total Sell Currency Amount"
-							value={`${market.total_sell_currency_amount} (${toDisplayAmount(market.total_sell_currency_amount, 6, 2)})`}
+							label="Max Currency Amount"
+							value={
+								market.max_currency_amount
+									? `${market.max_currency_amount} (${toDisplayAmount(market.max_currency_amount, 6, 2)})`
+									: "N/A"
+							}
 						/>
+
+						<Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+							Trading Statistics
+						</Typography>
+
+						<DetailRow
+							label="Tokens Bought by Market"
+							value={market.token_in_amount}
+							title="Total amount of tokens which users have sold to the market"
+						/>
+						<DetailRow
+							label="Currency Paid Out"
+							value={`${market.currency_out_amount} (${toDisplayAmount(market.currency_out_amount, 6, 2)})`}
+							title="Total amount of currency units which the market has given out when users sold tokens"
+						/>
+						<DetailRow
+							label="Tokens Sold by Market"
+							value={market.token_out_amount}
+							title="Total amount of tokens which users have bought from the market"
+						/>
+						<DetailRow
+							label="Currency Received"
+							value={`${market.currency_in_amount} (${toDisplayAmount(market.currency_in_amount, 6, 2)})`}
+							title="Total amount of currency units which the market has received when users bought tokens"
+						/>
+
 						<DetailRow label="Create Time" value={market.create_time} />
 						<DetailRow label="Update Time" value={market.update_time} />
 					</Box>
@@ -242,21 +293,32 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 								)}
 							</Grid>
 							<Grid item xs={12} md={12} lg={6}>
-								{(market.token_id && !holder) ||
-									(holder?.un_frozen_balance === "0" && (
-										<Alert severity="warning" sx={classes.detailsAlert}>
-											<Typography>Liquidity Provider is Not holding any tokens.</Typography>
-											<Typography>Anyone will not be able to buy.</Typography>
-										</Alert>
-									))}
-								{holder?.un_frozen_balance !== "0" && (
+								{!lpTokenHolder || !lpTokenHolder?.un_frozen_balance || lpTokenHolder?.un_frozen_balance === "0" ? (
+									<Alert severity="warning" sx={classes.detailsAlert}>
+										<Typography>Liquidity Provider is Not holding any tokens.</Typography>
+										<Typography>Anyone will not be able to buy.</Typography>
+									</Alert>
+								) : (
 									<Alert severity="success" sx={classes.detailsAlert}>
-										<Typography>Balance of Liquidity Provider: {holder?.un_frozen_balance}</Typography>
+										<Typography>Token Balance of Liquidity Provider: {lpTokenHolder?.un_frozen_balance}</Typography>
 										<Typography>Anyone will be able to buy.</Typography>
 									</Alert>
 								)}
 							</Grid>
-
+							<Grid item xs={12} md={12} lg={6}>
+								{lpEuroEBalance > BigInt(0) ? (
+									<Alert severity="success" sx={classes.detailsAlert}>
+										<Typography>
+											Liquidity Provider has {toDisplayAmount(lpEuroEBalance.toString(), 6, 2)} EuroE balance
+										</Typography>
+									</Alert>
+								) : (
+									<Alert severity="warning" sx={classes.detailsAlert}>
+										<Typography>Liquidity Provider has no EuroE balance</Typography>
+										<Typography>No one will be able to sell tokens to the market</Typography>
+									</Alert>
+								)}
+							</Grid>
 							<Grid item xs={12} md={12} lg={6}>
 								{isCurrencyOperator ? (
 									<Alert severity="success" sx={classes.detailsAlert}>
@@ -264,8 +326,8 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 									</Alert>
 								) : (
 									<Alert severity="warning" sx={classes.detailsAlert}>
-										<Typography>Market contract is NOT an operator for the currency token</Typography>
-										<Typography>Trading may not work properly</Typography>
+										<Typography>Market contract is NOT an operator of Liquidity Provider for the currency token</Typography>
+										<Typography>Users will not be able to sell tokens</Typography>
 									</Alert>
 								)}
 							</Grid>

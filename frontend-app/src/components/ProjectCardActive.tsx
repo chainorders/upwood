@@ -86,7 +86,7 @@ export default function ProjectCardActive({ project, user, contracts }: Props) {
 					</div>
 				</div>
 			</div>
-			{fundInvestPopupOpen && project.property_fund ? (
+			{fundInvestPopupOpen && project.property_contract && project.property_fund ? (
 				<FundInvest
 					close={() => setFundInvestPopupOpen(false)}
 					user={user}
