@@ -3,9 +3,9 @@
 use concordium_base::smart_contracts::WasmModule;
 use concordium_protocols::concordium_cis2_security::AgentWithRoles;
 use concordium_smart_contract_testing::*;
-use concordium_std::ContractName;
+use concordium_std::{ContractName, ParseError};
 use security_p2p_trading::{
-    AddMarketParams, AgentRole, ExchangeParams, InitParam, MintParams, SecurityTokenAddress,
+    AddMarketParams, AgentRole, ExchangeParams, InitParam, Market, MintParams, SecurityTokenAddress,
 };
 
 use super::MAX_ENERGY;
@@ -83,7 +83,7 @@ pub trait P2PTradingClientPayloads: ContractPayloads<InitParam> {
         }
     }
 
-    fn get_market_payload(&self, params: &SecurityTokenAddress) -> UpdateContractPayload {
+    fn get_market_payload(&self, params: &ContractAddress) -> UpdateContractPayload {
         UpdateContractPayload {
             address:      self.contract_address(),
             amount:       Amount::zero(),
@@ -197,7 +197,7 @@ impl P2PTradeTestClient {
         &self,
         chain: &mut Chain,
         sender: &Account,
-        params: &SecurityTokenAddress,
+        params: &ContractAddress,
     ) -> Result<ContractInvokeSuccess, ContractInvokeError> {
         chain.contract_invoke(
             sender.address,

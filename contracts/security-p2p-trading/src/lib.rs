@@ -22,8 +22,6 @@ pub type SecurityTokenAddress = TokenUId<SecurityTokenId>;
 pub type SecurityTokenAmount = TokenAmountU64;
 pub type ContractResult<T> = Result<T, Error>;
 
-/// Represents Sell event.
-/// This is the event that is emitted when a user deposits tokens to be sold.
 #[derive(Serialize, SchemaType, Debug)]
 pub struct ExchangeEvent {
     pub token_contract:  ContractAddress,
@@ -33,6 +31,23 @@ pub struct ExchangeEvent {
     pub token_amount:    TokenAmount,
     pub rate:            Rate,
     pub currency_amount: CurrencyTokenAmount,
+    pub exchange_type:   ExchangeType,
+}
+
+#[derive(Serialize, SchemaType, Debug)]
+pub enum ExchangeType {
+    /// Bought by the liquidity provider
+    /// This is the case when the liquidity provider buys tokens from the seller.
+    /// The seller is the one who sells the tokens to the liquidity provider.
+    Buy,
+    /// Sold by the liquidity provider
+    /// This is the case when the liquidity provider sells tokens to the buyer.
+    /// The buyer is the one who buys the tokens from the liquidity provider.
+    Sell,
+    /// Minted by the liquidity provider
+    /// This is the case when the liquidity provider mints tokens for the buyer.
+    /// The buyer is the one who buys the tokens from the liquidity provider.
+    Mint,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -76,20 +91,6 @@ pub enum AgentRole {
     Operator,
 }
 
-#[derive(Serialize, Debug, SchemaType, Clone, Copy)]
-pub struct AddTransferMarketParam {
-    pub token_id:            SecurityTokenId,
-    pub liquidity_provider:  AccountAddress,
-    /// The rate at which the liquidity provider buys the tokens.
-    /// This is the rate at which sellers can sell their tokens to the liquidity provider.
-    pub buy_rate:            Rate,
-    /// The rate at which the liquidity provider sells the tokens.
-    /// This is the rate at which buyers can buy tokens from the liquidity provider.
-    pub sell_rate:           Rate,
-    pub max_token_amount:    SecurityTokenAmount,
-    pub max_currency_amount: CurrencyTokenAmount,
-}
-
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 pub struct State<S=StateApi> {
@@ -106,45 +107,19 @@ impl State {
     }
 }
 
-#[derive(Serialize, Clone, SchemaType)]
+#[derive(Serialize, Clone, SchemaType, Debug, PartialEq, Eq)]
 pub enum Market {
     Mint(MintMarket),
     Transfer(TransferMarket),
 }
 
-impl Market {
-    pub fn new(market: &AddMarketParam) -> Self {
-        match market {
-            AddMarketParam::Mint(m) => Market::Mint(MintMarket {
-                token_id:           m.token_id,
-                rate:               m.rate,
-                token_metadata_url: m.token_metadata_url.clone(),
-                liquidity_provider: m.liquidity_provider,
-                max_token_amount:   m.max_token_amount,
-                token_amount:       0u64.into(),
-            }),
-            AddMarketParam::Transfer(m) => Market::Transfer(TransferMarket {
-                token_id:            m.token_id,
-                liquidity_provider:  m.liquidity_provider,
-                buy_rate:            m.buy_rate,
-                sell_rate:           m.sell_rate,
-                max_token_amount:    m.max_token_amount,
-                max_currency_amount: m.max_currency_amount,
-                token_amount:        0u64.into(),
-                currency_amount:     0u64.into(),
-            }),
-        }
-    }
-}
-
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Debug, PartialEq, Eq)]
 pub struct MintMarket {
     pub token_id:           TokenIdCalculation,
     pub rate:               Rate,
     pub token_metadata_url: ContractMetadataUrl,
     pub liquidity_provider: AccountAddress,
     pub max_token_amount:   SecurityTokenAmount,
-    pub token_amount:       SecurityTokenAmount,
 }
 
 impl MintMarket {
@@ -156,7 +131,7 @@ impl MintMarket {
     }
 }
 
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Debug, PartialEq, Eq)]
 pub struct TransferMarket {
     pub token_id:            SecurityTokenId,
     pub liquidity_provider:  AccountAddress,
@@ -168,8 +143,6 @@ pub struct TransferMarket {
     pub sell_rate:           Rate,
     pub max_token_amount:    SecurityTokenAmount,
     pub max_currency_amount: CurrencyTokenAmount,
-    pub token_amount:        SecurityTokenAmount,
-    pub currency_amount:     CurrencyTokenAmount,
 }
 
 /// Initialization parameters for the contract.
@@ -293,13 +266,7 @@ fn remove_agent(
 #[derive(Serialize, SchemaType, Debug)]
 pub struct AddMarketParams {
     pub token_contract: ContractAddress,
-    pub market:         AddMarketParam,
-}
-
-#[derive(Serialize, SchemaType, Debug, Clone)]
-pub enum AddMarketParam {
-    Mint(AddMintMarketParam),
-    Transfer(AddTransferMarketParam),
+    pub market:         Market,
 }
 
 #[receive(
@@ -323,7 +290,7 @@ fn add_market(
 
     let existing = state
         .markets
-        .insert(params.token_contract, Market::new(&params.market));
+        .insert(params.token_contract, params.market.clone());
     if existing.is_some() {
         logger.log(&Event::MarketRemoved(params.token_contract))?;
     }
@@ -409,11 +376,13 @@ pub fn sell(
             .buy_rate
             .convert_token_amount_with_rem(&params.amount)
             .map_err(|_| Error::InvalidConversion)?;
-        market.currency_amount += currency_amount;
-        ensure!(
-            market.currency_amount <= market.max_currency_amount,
-            Error::MarketTokenLimitExceeded
-        );
+        market.max_token_amount += params.amount;
+        market.max_currency_amount = market
+            .max_currency_amount
+            .0
+            .checked_sub(currency_amount.0)
+            .map(CurrencyTokenAmount::from)
+            .ok_or(Error::MarketTokenLimitExceeded)?;
         (
             state.currency_token,
             currency_amount,
@@ -450,6 +419,7 @@ pub fn sell(
         token_amount: params.amount,
         rate: params.rate,
         currency_amount,
+        exchange_type: ExchangeType::Buy,
     }))?;
     Ok(())
 }
@@ -482,16 +452,20 @@ pub fn buy(
             Market::Mint(_) => bail!(Error::InvalidMarketType),
             Market::Transfer(m) => m,
         };
-        market.token_amount += params.amount;
-        ensure!(
-            market.token_amount <= market.max_token_amount,
-            Error::MarketTokenLimitExceeded
-        );
+
         ensure!(market.sell_rate.eq(&params.rate), Error::InvalidRate);
         let (currency_amount, _) = market
             .sell_rate
             .convert_token_amount_with_rem(&params.amount)
             .map_err(|_| Error::InvalidConversion)?;
+        market.max_token_amount = market
+            .max_token_amount
+            .0
+            .checked_sub(params.amount.0)
+            .map(SecurityTokenAmount::from)
+            .ok_or(Error::MarketTokenLimitExceeded)?;
+        market.max_currency_amount += currency_amount;
+
         (
             state.currency_token,
             currency_amount,
@@ -528,20 +502,12 @@ pub fn buy(
         token_amount: params.amount,
         rate: params.rate,
         currency_amount,
+        exchange_type: ExchangeType::Sell,
     }))?;
     Ok(())
 }
 
-#[derive(Serialize, SchemaType, Debug, Clone)]
-pub struct AddMintMarketParam {
-    pub token_id:           TokenIdCalculation,
-    pub rate:               Rate,
-    pub token_metadata_url: ContractMetadataUrl,
-    pub liquidity_provider: AccountAddress,
-    pub max_token_amount:   SecurityTokenAmount,
-}
-
-#[derive(Serialize, SchemaType, Debug, Clone, Copy)]
+#[derive(Serialize, SchemaType, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TokenIdCalculation {
     pub start:       Timestamp,
     pub diff_millis: u64,
@@ -589,11 +555,12 @@ pub fn mint(
             .rate
             .convert_token_amount_with_rem(&params.amount)
             .map_err(|_| Error::InvalidConversion)?;
-        market.token_amount += params.amount;
-        ensure!(
-            market.token_amount <= market.max_token_amount,
-            Error::MarketTokenLimitExceeded
-        );
+        market.max_token_amount = market
+            .max_token_amount
+            .0
+            .checked_sub(params.amount.0)
+            .map(SecurityTokenAmount::from)
+            .ok_or(Error::MarketTokenLimitExceeded)?;
 
         (
             state.currency_token,
@@ -641,6 +608,7 @@ pub fn mint(
         token_amount: params.amount,
         rate: params.rate,
         currency_amount,
+        exchange_type: ExchangeType::Mint,
     }))?;
     Ok(())
 }

@@ -39,7 +39,7 @@ impl IsTokenId for TokenIdUnit {}
 impl IsTokenId for TokenIdU64 {}
 
 /// Represents the metadata URL and hash of a token.
-#[derive(Debug, SchemaType, Serial, Clone, Deserial)]
+#[derive(Debug, SchemaType, Serial, Clone, Deserial, PartialEq, Eq)]
 pub struct ContractMetadataUrl {
     pub url:  String,
     pub hash: Option<String>,

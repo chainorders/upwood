@@ -19,8 +19,8 @@ use euroe::EuroETestClient;
 use identity_registry::IdentityRegistryTestClient;
 use integration_tests::*;
 use security_p2p_trading::{
-    AddMarketParam, AddMarketParams, AddMintMarketParam, AddTransferMarketParam, ExchangeParams,
-    MintParams, TokenIdCalculation,
+    AddMarketParams, ExchangeParams, Market, MintMarket, MintParams, TokenIdCalculation,
+    TransferMarket,
 };
 use security_p2p_trading_client::P2PTradeTestClient;
 use security_sft_multi_client::SftMultiTestClient;
@@ -114,11 +114,21 @@ pub fn normal_flow_sft_multi() {
             },
         })
         .expect("add token");
+    token_contract
+        .mint(&mut chain, &admin, &security_sft_multi::types::MintParams {
+            owners:   vec![security_sft_multi::types::MintParam {
+                amount:  TokenAmountSecurity::new_un_frozen(50.into()),
+                address: seller.address.into(),
+            }],
+            token_id: TOKEN_ID,
+        })
+        .expect("mint");
+
     let rate = Rate::new(1000, 1).unwrap();
     trading_contract
         .add_market(&mut chain, &admin, &AddMarketParams {
             token_contract: token_contract.contract_address(),
-            market:         AddMarketParam::Transfer(AddTransferMarketParam {
+            market:         Market::Transfer(TransferMarket {
                 token_id:            TOKEN_ID,
                 liquidity_provider:  liquidity_provider.address,
                 buy_rate:            rate,
@@ -129,15 +139,6 @@ pub fn normal_flow_sft_multi() {
         })
         .expect("add market");
 
-    token_contract
-        .mint(&mut chain, &admin, &security_sft_multi::types::MintParams {
-            owners:   vec![security_sft_multi::types::MintParam {
-                amount:  TokenAmountSecurity::new_un_frozen(50.into()),
-                address: seller.address.into(),
-            }],
-            token_id: TOKEN_ID,
-        })
-        .expect("mint");
     trading_contract
         .sell(&mut chain, &seller, &ExchangeParams {
             amount: TokenAmountU64(10),
@@ -185,6 +186,23 @@ pub fn normal_flow_sft_multi() {
             })
             .expect("balance of"),
         BalanceOfQueryResponse(vec![10_000.into(), 20_000.into()])
+    );
+    assert_eq!(
+        trading_contract
+            .get_market(&mut chain, &admin, &token_contract.contract_address())
+            .expect("get market")
+            .parse_return_value::<Market>()
+            .expect("parse market"),
+        Market::Transfer(TransferMarket {
+            token_id:            TOKEN_ID,
+            liquidity_provider:  liquidity_provider.address,
+            buy_rate:            rate,
+            sell_rate:           rate,
+            // 10 Initial + 10 Sold
+            max_token_amount:    TokenAmountU64(20),
+            // 10_000 Initial + 10_000 Sold
+            max_currency_amount: TokenAmountU64(0),
+        })
     );
 
     let buyer = seller;
@@ -241,6 +259,23 @@ pub fn normal_flow_sft_multi() {
             })
             .expect("balance of"),
         BalanceOfQueryResponse(vec![0.into(), 30_000.into()])
+    );
+    assert_eq!(
+        trading_contract
+            .get_market(&mut chain, &admin, &token_contract.contract_address())
+            .expect("get market")
+            .parse_return_value::<Market>()
+            .expect("parse market"),
+        Market::Transfer(TransferMarket {
+            token_id:            TOKEN_ID,
+            liquidity_provider:  liquidity_provider.address,
+            buy_rate:            rate,
+            sell_rate:           rate,
+            // 20 Initial + 10 Sold
+            max_token_amount:    TokenAmountU64(10),
+            // 0 Initial + 10_000 Sold
+            max_currency_amount: TokenAmountU64(10_000),
+        })
     );
 }
 
@@ -310,7 +345,7 @@ pub fn test_flow_mint_sft_multi() {
     trading_contract
         .add_market(&mut chain, &admin, &AddMarketParams {
             token_contract: token_contract.contract_address(),
-            market:         AddMarketParam::Mint(AddMintMarketParam {
+            market:         Market::Mint(MintMarket {
                 liquidity_provider: liquidity_provider.address,
                 rate,
                 token_id: TokenIdCalculation {
