@@ -24,8 +24,18 @@ export type Market = {
 	sell_rate_denominator?: string;
 	create_time: string;
 	update_time: string;
+	/**
+	 * In case of mint market this is the start of the market. Also the start of the calculation of the token id.
+	 */
 	token_id_calculation_start?: string;
+	/**
+	 * In case of mint market this is the Milliseconds value after which the Market will move to the next token id.
+	 */
 	token_id_calculation_diff_millis?: string;
+	/**
+	 * In case of mint market this is the base token id. The token id will be calculated as base_token_id + (current_time - token_id_calculation_start) / token_id_calculation_diff_millis
+	 */
+	token_id_calculation_base_token_id?: string;
 	market_type: MarketType;
 	/**
 	 * Maximum amount of tokens which the market can give out / sell.

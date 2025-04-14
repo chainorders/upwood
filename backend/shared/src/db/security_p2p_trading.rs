@@ -131,8 +131,12 @@ pub struct Market {
     pub sell_rate_denominator: Option<Decimal>,
     pub create_time: NaiveDateTime,
     pub update_time: NaiveDateTime,
+    /// In case of mint market this is the start of the market. Also the start of the calculation of the token id.
     pub token_id_calculation_start: Option<Decimal>,
+    /// In case of mint market this is the Milliseconds value after which the Market will move to the next token id.
     pub token_id_calculation_diff_millis: Option<Decimal>,
+    /// In case of mint market this is the base token id. The token id will be calculated as base_token_id + (current_time - token_id_calculation_start) / token_id_calculation_diff_millis
+    pub token_id_calculation_base_token_id: Option<Decimal>,
     pub market_type: MarketType,
     /// Maximum amount of tokens which the market can give out / sell.
     /// This value will decrease when someone buys and increase when someone sells

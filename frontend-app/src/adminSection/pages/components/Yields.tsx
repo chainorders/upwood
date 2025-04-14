@@ -1,5 +1,20 @@
 import { useEffect, useState } from "react";
-import { Paper, Typography, Grid, Alert, Tooltip, IconButton } from "@mui/material";
+import {
+	Paper,
+	Typography,
+	Grid,
+	Alert,
+	Tooltip,
+	IconButton,
+	CircularProgress,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableRow,
+	TablePagination,
+} from "@mui/material";
 import {
 	Agent,
 	ForestProjectTokenContract,
@@ -7,17 +22,18 @@ import {
 	SystemContractsConfigApiModel,
 	Treasury,
 	Yield,
+	YieldType,
+	PagedResponse_Yield,
 } from "../../../apiClient";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { toTokenId } from "../../../lib/conversions";
+import { toDisplayAmount, toTokenId } from "../../../lib/conversions";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
 import securitySftMultiYielder from "../../../contractClients/generated/securitySftMultiYielder";
 import TransactionButton from "../../../components/TransactionButton";
 import { User } from "../../../lib/user";
 import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
-import YieldCard from "./YieldCard";
 import euroeStablecoin from "../../../contractClients/generated/euroeStablecoin";
 import concordiumNodeClient from "../../../contractClients/ConcordiumNodeClient";
 import { AccountAddress, CcdAmount, ContractAddress } from "@concordium/web-sdk";
@@ -26,21 +42,29 @@ import securitySftSingle from "../../../contractClients/generated/securitySftSin
 interface YieldsProps {
 	user: User;
 	tokenContract: ForestProjectTokenContract;
-	tokenId: string;
+	tokenId?: string;
 	yielderContract: string;
-	yields: Yield[];
 	contracts: SystemContractsConfigApiModel;
 	onRefresh: () => void;
+	page?: number;
+	pageSize?: number;
+	yieldTokenContractAddress?: string;
+	yieldTokenId?: string;
+	yieldType?: YieldType;
 }
 
 export default function Yields({
 	user,
-	yields,
 	yielderContract,
 	tokenContract,
 	tokenId,
 	onRefresh,
 	contracts,
+	page = 0,
+	pageSize = 10, // Changed default to 10 for better table pagination
+	yieldTokenContractAddress,
+	yieldTokenId,
+	yieldType,
 }: YieldsProps) {
 	const [txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [agentTokenContract, setAgentTokenContract] = useState<Agent>();
@@ -59,6 +83,55 @@ export default function Yields({
 	const [treasury, setTreasury] = useState<Treasury>();
 	const [addCurrencyOperatorTxnStatus, setAddCurrencyOperatorTxnStatus] = useState<TxnStatus>("none");
 	const [removeCurrencyOperatorTxnStatus, setRemoveCurrencyOperatorTxnStatus] = useState<TxnStatus>("none");
+	const [yields, setYields] = useState<Yield[]>([]);
+	const [yieldsResponse, setYieldsResponse] = useState<PagedResponse_Yield>();
+	const [loading, setLoading] = useState(true);
+	const [currentPage, setCurrentPage] = useState(page);
+	const [rowsPerPage, setRowsPerPage] = useState(pageSize);
+
+	// Fetch yields data
+	useEffect(() => {
+		setLoading(true);
+		IndexerService.getAdminIndexerYieldList(
+			currentPage,
+			rowsPerPage,
+			tokenContract.contract_address,
+			tokenId,
+			yieldTokenContractAddress,
+			yieldTokenId,
+			yieldType,
+		)
+			.then((response) => {
+				setYieldsResponse(response);
+				setYields(response.data);
+			})
+			.catch((error) => {
+				console.error("Failed to fetch yields:", error);
+			})
+			.finally(() => {
+				setLoading(false);
+			});
+	}, [
+		tokenContract.contract_address,
+		tokenId,
+		currentPage,
+		rowsPerPage,
+		yieldTokenContractAddress,
+		yieldTokenId,
+		yieldType,
+		refreshCounter,
+	]);
+
+	// Handle page change
+	const handleChangePage = (_event: unknown, newPage: number) => {
+		setCurrentPage(newPage);
+	};
+
+	// Handle rows per page change
+	const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+		setRowsPerPage(parseInt(event.target.value, 10));
+		setCurrentPage(0);
+	};
 
 	const addCurrencyOperator = async () => {
 		try {
@@ -126,7 +199,7 @@ export default function Yields({
 		}
 	};
 
-	const removeYield = async () => {
+	const removeYield = async (tokenId: string) => {
 		try {
 			await updateContract(
 				user.concordiumAccountAddress,
@@ -316,218 +389,83 @@ export default function Yields({
 					<Typography variant="h6">Yields</Typography>
 				</Grid>
 				<Grid item xs={12} md={8} justifyContent="flex-end" display="flex">
-					<TransactionButton
-						variant="outlined"
-						color="secondary"
-						type="button"
-						startIcon={<DeleteIcon />}
-						onClick={async () => {
-							console.log("delete");
-							removeYield();
-						}}
-						txnStatus={txnStatus}
-						defaultText="Delete"
-						loadingText="Deleting..."
-						disabled={!yields || yields.length === 0}
-					/>
+					{tokenContract && tokenId && (
+						<TransactionButton
+							variant="outlined"
+							color="secondary"
+							type="button"
+							startIcon={<DeleteIcon />}
+							onClick={() => tokenId && removeYield(tokenId)}
+							txnStatus={txnStatus}
+							defaultText="Delete"
+							loadingText="Deleting..."
+							disabled={!yields || yields.length === 0 || !tokenId || !tokenContract}
+						/>
+					)}
 					<IconButton aria-label="refresh" onClick={() => setRefreshCounter((prev) => prev + 1)}>
 						<RefreshIcon />
 					</IconButton>
 				</Grid>
-				{yields.length > 0 ? (
+
+				{loading ? (
+					<Grid item xs={12} display="flex" justifyContent="center" mt={2}>
+						<CircularProgress />
+					</Grid>
+				) : yields.length > 0 ? (
 					<Grid container spacing={2} mt={1}>
-						<Grid item xs={12} md={6}>
-							{yields.map((yield_) => (
-								<YieldCard yield_={yield_} contracts={contracts} />
-							))}
-						</Grid>
-						<Grid item xs={12} md={6}>
-							<Grid container spacing={2} direction={"row-reverse"}>
-								<Grid item xs={12} md={12} lg={6}>
-									{agentTokenContract && (
-										<Alert severity="success">
-											<Typography>
-												Yielder contract is an agent of the token contract with roles {agentTokenContract.roles.join(", ")}
-											</Typography>
-											<TransactionButton
-												defaultText="Remove Agent"
-												loadingText="Removing..."
-												txnStatus={removeAgentTokenContractTxnStatus}
-												onClick={removeAgentTokenContract}
-												variant="outlined"
-												color="primary"
-												startIcon={<DeleteIcon />}
-												sx={{ mt: 2 }}
-											/>
-										</Alert>
-									)}
-									{!agentTokenContract && (
-										<Alert severity="error">
-											<Typography>
-												Yielder contract is not an agent of the token contract and therefore will not be able to burn older token
-												version or mint new token version.
-											</Typography>
-											<TransactionButton
-												defaultText="Add Agent"
-												loadingText="Adding..."
-												txnStatus={addAgentTokenContractTxnStatus}
-												onClick={addAgentTokenContract}
-												variant="outlined"
-												color="primary"
-												startIcon={<AddIcon />}
-												sx={{ mt: 2 }}
-											/>
-										</Alert>
-									)}
-								</Grid>
-								<Grid item xs={12} md={12} lg={6}>
-									{agentCarbonCreditsContract && (
-										<Alert severity="success">
-											<Typography>
-												Yielder contract is an agent of the carbon credits contract with roles{" "}
-												{agentCarbonCreditsContract.roles.join(", ")}
-											</Typography>
-											<TransactionButton
-												defaultText="Remove Agent"
-												loadingText="Removing..."
-												txnStatus={removeAgentCarbonCreditsContractTxnStatus}
-												onClick={removeAgentCarbonCreditsContract}
-												variant="outlined"
-												color="primary"
-												startIcon={<DeleteIcon />}
-												sx={{ mt: 2 }}
-											/>
-										</Alert>
-									)}
-									{!agentCarbonCreditsContract && (
-										<Alert severity="error">
-											<Typography>
-												Yielder contract is not an agent of the carbon credits contract and therefore will not be able to transfer
-												tokens from Treasury to the user.
-											</Typography>
-											<TransactionButton
-												defaultText="Add Agent"
-												loadingText="Adding..."
-												txnStatus={addAgentCarbonCreditsContractTxnStatus}
-												onClick={addAgentCarbonCreditsContract}
-												variant="outlined"
-												color="primary"
-												startIcon={<AddIcon />}
-												sx={{ mt: 2 }}
-											/>
-										</Alert>
-									)}
-								</Grid>
-								<Grid item xs={12} md={12} lg={6}>
-									{agentTreesContract && (
-										<Alert severity="success">
-											<Typography>
-												Yielder contract is an agent of the trees contract with roles {agentTreesContract.roles.join(", ")}
-											</Typography>
-											<TransactionButton
-												defaultText="Remove Agent"
-												loadingText="Removing..."
-												txnStatus={removeAgentTreesContractTxnStatus}
-												onClick={removeAgentTreesContract}
-												variant="outlined"
-												color="primary"
-												startIcon={<DeleteIcon />}
-												sx={{ mt: 2 }}
-											/>
-										</Alert>
-									)}
-									{!agentTreesContract && (
-										<Alert severity="error">
-											<Typography>
-												Yielder contract is not an agent of the trees contract and therefore will not be able to transfer tokens
-												from Treasury to the user.
-											</Typography>
-											<TransactionButton
-												defaultText="Add Agent"
-												loadingText="Adding..."
-												txnStatus={addAgentTreesContractTxnStatus}
-												onClick={addAgentTreesContract}
-												variant="outlined"
-												color="primary"
-												startIcon={<AddIcon />}
-												sx={{ mt: 2 }}
-											/>
-										</Alert>
-									)}
-								</Grid>
-								<Grid item xs={12} md={12} lg={6}>
-									{isCurrencyOperator && (
-										<Alert severity="success">
-											<Typography>
-												<Tooltip title={contracts.yielder_contract_index}>
-													<Typography fontWeight="bold" component="span">
-														Yielder Contract
+						<Grid item xs={12}>
+							<TableContainer>
+								<Table sx={{ minWidth: 650 }} aria-label="yields table">
+									<TableHead>
+										<TableRow>
+											<TableCell>Token</TableCell>
+											<TableCell>Yield Type</TableCell>
+											<TableCell>Yield Contract</TableCell>
+											<TableCell align="right">Rate</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{yields.map((yield_, index) => (
+											<TableRow key={index} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+												<TableCell component="th" scope="row">
+													<Typography fontWeight="">
+														{yield_.contract_address} / {yield_.token_id}
 													</Typography>
-												</Tooltip>{" "}
-												is an Operator of{" "}
-												<Tooltip title={treasury?.treasury_address}>
-													<Typography fontWeight="bold" component="span">
-														Treasury
+												</TableCell>
+												<TableCell>{yield_.yield_type}</TableCell>
+												<TableCell>
+													<Typography variant="subtitle1" fontWeight="bold">
+														{
+															{
+																[contracts.euro_e_contract_index]: "Euro E",
+																[contracts.tree_ft_contract_index]: "Tree",
+																[contracts.carbon_credit_contract_index]: "Carbon Credit",
+															}[yield_.yield_contract_address]
+														}
 													</Typography>
-												</Tooltip>{" "}
-												for{" "}
-												<Tooltip title={contracts.euro_e_contract_index}>
-													<Typography fontWeight="bold" component="span">
-														Euroe Stablecoin
+													<Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+														{yield_.yield_contract_address} / {yield_.yield_token_id}
 													</Typography>
-												</Tooltip>
-											</Typography>
-											{user.concordiumAccountAddress === treasury?.treasury_address && (
-												<TransactionButton
-													defaultText="Remove Operator"
-													loadingText="Removing..."
-													txnStatus={removeCurrencyOperatorTxnStatus}
-													onClick={removeCurrencyOperator}
-													variant="outlined"
-													color="primary"
-													startIcon={<DeleteIcon />}
-													sx={{ mt: 2 }}
-												/>
-											)}
-										</Alert>
-									)}
-									{!isCurrencyOperator && (
-										<Alert severity="error">
-											<Typography>
-												<Tooltip title={contracts.yielder_contract_index}>
-													<Typography fontWeight="bold" component="span">
-														Yielder Contract
-													</Typography>
-												</Tooltip>{" "}
-												is not an Operator of{" "}
-												<Tooltip title={treasury?.treasury_address}>
-													<Typography fontWeight="bold" component="span">
-														Treasury
-													</Typography>
-												</Tooltip>{" "}
-												for{" "}
-												<Tooltip title={contracts.euro_e_contract_index}>
-													<Typography fontWeight="bold" component="span">
-														Euroe Stablecoin
-													</Typography>
-												</Tooltip>
-											</Typography>
-											{user.concordiumAccountAddress === treasury?.treasury_address && (
-												<TransactionButton
-													defaultText="Add Operator"
-													loadingText="Adding..."
-													txnStatus={addCurrencyOperatorTxnStatus}
-													onClick={addCurrencyOperator}
-													variant="outlined"
-													color="primary"
-													startIcon={<AddIcon />}
-													sx={{ mt: 2 }}
-												/>
-											)}
-										</Alert>
-									)}
-								</Grid>
-							</Grid>
+												</TableCell>
+												<TableCell align="right">
+													{yield_.yield_contract_address === contracts.euro_e_contract_index
+														? toDisplayAmount(yield_.yield_rate_numerator, 6)
+														: yield_.yield_rate_numerator}
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</TableContainer>
+							<TablePagination
+								rowsPerPageOptions={[5, 10, 25]}
+								component="div"
+								count={(yieldsResponse?.page_count || 0) * rowsPerPage}
+								rowsPerPage={rowsPerPage}
+								page={currentPage}
+								onPageChange={handleChangePage}
+								onRowsPerPageChange={handleChangeRowsPerPage}
+							/>
 						</Grid>
 					</Grid>
 				) : (
@@ -535,6 +473,194 @@ export default function Yields({
 						<Typography>No yields available</Typography>
 					</Grid>
 				)}
+				<Grid item xs={12} md={12}>
+					<Grid container spacing={2} direction={"row-reverse"}>
+						<Grid item xs={12} md={6} lg={3}>
+							{agentTokenContract && (
+								<Alert severity="success">
+									<Typography>
+										Yielder contract is an agent of the token contract with roles {agentTokenContract.roles.join(", ")}
+									</Typography>
+									<TransactionButton
+										defaultText="Remove Agent"
+										loadingText="Removing..."
+										txnStatus={removeAgentTokenContractTxnStatus}
+										onClick={removeAgentTokenContract}
+										variant="outlined"
+										color="primary"
+										startIcon={<DeleteIcon />}
+										sx={{ mt: 2 }}
+									/>
+								</Alert>
+							)}
+							{!agentTokenContract && (
+								<Alert severity="error">
+									<Typography>
+										Yielder contract is not an agent of the token contract and therefore will not be able to burn older token
+										version or mint new token version.
+									</Typography>
+									<TransactionButton
+										defaultText="Add Agent"
+										loadingText="Adding..."
+										txnStatus={addAgentTokenContractTxnStatus}
+										onClick={addAgentTokenContract}
+										variant="outlined"
+										color="primary"
+										startIcon={<AddIcon />}
+										sx={{ mt: 2 }}
+									/>
+								</Alert>
+							)}
+						</Grid>
+						<Grid item xs={12} md={6} lg={3}>
+							{agentCarbonCreditsContract && (
+								<Alert severity="success">
+									<Typography>
+										Yielder contract is an agent of the carbon credits contract with roles{" "}
+										{agentCarbonCreditsContract.roles.join(", ")}
+									</Typography>
+									<TransactionButton
+										defaultText="Remove Agent"
+										loadingText="Removing..."
+										txnStatus={removeAgentCarbonCreditsContractTxnStatus}
+										onClick={removeAgentCarbonCreditsContract}
+										variant="outlined"
+										color="primary"
+										startIcon={<DeleteIcon />}
+										sx={{ mt: 2 }}
+									/>
+								</Alert>
+							)}
+							{!agentCarbonCreditsContract && (
+								<Alert severity="error">
+									<Typography>
+										Yielder contract is not an agent of the carbon credits contract and therefore will not be able to transfer
+										tokens from Treasury to the user.
+									</Typography>
+									<TransactionButton
+										defaultText="Add Agent"
+										loadingText="Adding..."
+										txnStatus={addAgentCarbonCreditsContractTxnStatus}
+										onClick={addAgentCarbonCreditsContract}
+										variant="outlined"
+										color="primary"
+										startIcon={<AddIcon />}
+										sx={{ mt: 2 }}
+									/>
+								</Alert>
+							)}
+						</Grid>
+						<Grid item xs={12} md={6} lg={3}>
+							{agentTreesContract && (
+								<Alert severity="success">
+									<Typography>
+										Yielder contract is an agent of the trees contract with roles {agentTreesContract.roles.join(", ")}
+									</Typography>
+									<TransactionButton
+										defaultText="Remove Agent"
+										loadingText="Removing..."
+										txnStatus={removeAgentTreesContractTxnStatus}
+										onClick={removeAgentTreesContract}
+										variant="outlined"
+										color="primary"
+										startIcon={<DeleteIcon />}
+										sx={{ mt: 2 }}
+									/>
+								</Alert>
+							)}
+							{!agentTreesContract && (
+								<Alert severity="error">
+									<Typography>
+										Yielder contract is not an agent of the trees contract and therefore will not be able to transfer tokens from
+										Treasury to the user.
+									</Typography>
+									<TransactionButton
+										defaultText="Add Agent"
+										loadingText="Adding..."
+										txnStatus={addAgentTreesContractTxnStatus}
+										onClick={addAgentTreesContract}
+										variant="outlined"
+										color="primary"
+										startIcon={<AddIcon />}
+										sx={{ mt: 2 }}
+									/>
+								</Alert>
+							)}
+						</Grid>
+						<Grid item xs={12} md={6} lg={3}>
+							{isCurrencyOperator && (
+								<Alert severity="success">
+									<Typography>
+										<Tooltip title={contracts.yielder_contract_index}>
+											<Typography fontWeight="bold" component="span">
+												Yielder Contract
+											</Typography>
+										</Tooltip>{" "}
+										is an Operator of{" "}
+										<Tooltip title={treasury?.treasury_address}>
+											<Typography fontWeight="bold" component="span">
+												Treasury
+											</Typography>
+										</Tooltip>{" "}
+										for{" "}
+										<Tooltip title={contracts.euro_e_contract_index}>
+											<Typography fontWeight="bold" component="span">
+												Euroe Stablecoin
+											</Typography>
+										</Tooltip>
+									</Typography>
+									{user.concordiumAccountAddress === treasury?.treasury_address && (
+										<TransactionButton
+											defaultText="Remove Operator"
+											loadingText="Removing..."
+											txnStatus={removeCurrencyOperatorTxnStatus}
+											onClick={removeCurrencyOperator}
+											variant="outlined"
+											color="primary"
+											startIcon={<DeleteIcon />}
+											sx={{ mt: 2 }}
+										/>
+									)}
+								</Alert>
+							)}
+							{!isCurrencyOperator && (
+								<Alert severity="error">
+									<Typography>
+										<Tooltip title={contracts.yielder_contract_index}>
+											<Typography fontWeight="bold" component="span">
+												Yielder Contract
+											</Typography>
+										</Tooltip>{" "}
+										is not an Operator of{" "}
+										<Tooltip title={treasury?.treasury_address}>
+											<Typography fontWeight="bold" component="span">
+												Treasury
+											</Typography>
+										</Tooltip>{" "}
+										for{" "}
+										<Tooltip title={contracts.euro_e_contract_index}>
+											<Typography fontWeight="bold" component="span">
+												Euroe Stablecoin
+											</Typography>
+										</Tooltip>
+									</Typography>
+									{user.concordiumAccountAddress === treasury?.treasury_address && (
+										<TransactionButton
+											defaultText="Add Operator"
+											loadingText="Adding..."
+											txnStatus={addCurrencyOperatorTxnStatus}
+											onClick={addCurrencyOperator}
+											variant="outlined"
+											color="primary"
+											startIcon={<AddIcon />}
+											sx={{ mt: 2 }}
+										/>
+									)}
+								</Alert>
+							)}
+						</Grid>
+					</Grid>
+				</Grid>
 			</Grid>
 		</Paper>
 	);

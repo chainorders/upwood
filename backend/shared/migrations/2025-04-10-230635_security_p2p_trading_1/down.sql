@@ -27,7 +27,8 @@ DROP COLUMN IF EXISTS max_currency_amount,
 DROP COLUMN IF EXISTS token_in_amount,
 DROP COLUMN IF EXISTS currency_out_amount,
 DROP COLUMN IF EXISTS token_out_amount,
-DROP COLUMN IF EXISTS currency_in_amount;
+DROP COLUMN IF EXISTS currency_in_amount,
+DROP COLUMN IF EXISTS token_id_calculation_base_token_id;
 
 ALTER TABLE security_p2p_trading_markets
 ALTER COLUMN sell_rate_denominator

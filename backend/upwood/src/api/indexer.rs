@@ -7,7 +7,7 @@ use shared::api::PagedResponse;
 use shared::db::cis2_security::{Agent, Token, TokenHolder, TokenHolderBalanceUpdate};
 use shared::db::security_mint_fund::{InvestmentRecord, SecurityMintFund};
 use shared::db::security_p2p_trading::{ExchangeRecord, Market};
-use shared::db::security_sft_multi_yielder::{Treasury, Yield};
+use shared::db::security_sft_multi_yielder::{Treasury, Yield, YieldType};
 use shared::db::txn_listener::{ListenerBlock, ListenerContract};
 use shared::db_shared::DbPool;
 
@@ -287,28 +287,74 @@ impl Api {
         Ok(Json(agent))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[oai(
-        path = "/admin/indexer/cis2/:contract_address/token/:token_id/yields/list",
+        path = "/admin/indexer/yield/list",
         method = "get",
         tag = "ApiTags::Indexer"
     )]
-    pub async fn admin_indexer_cis2_token_yields(
+    pub async fn admin_indexer_yield_list(
         &self,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
-        Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Vec<Yield>> {
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+        Query(token_contract_address): Query<Option<Decimal>>,
+        Query(token_id): Query<Option<Decimal>>,
+        Query(yield_token_contract_address): Query<Option<Decimal>>,
+        Query(yield_token_id): Query<Option<Decimal>>,
+        Query(yield_type): Query<Option<YieldType>>,
+    ) -> JsonResult<PagedResponse<Yield>> {
         ensure_is_admin(&claims)?;
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
         let mut conn = db_pool.get()?;
-        let yields = Yield::list_for_token(
+        let (yields, page_count) = Yield::list(
             &mut conn,
             contracts.yielder_contract_index,
-            contract_address,
+            token_contract_address,
             token_id,
+            yield_token_contract_address,
+            yield_token_id,
+            yield_type,
+            page,
+            page_size,
         )?;
-        Ok(Json(yields))
+        Ok(Json(PagedResponse {
+            data: yields,
+            page_count,
+            page,
+        }))
+    }
+
+    #[oai(
+        path = "/admin/indexer/yield/:token_contract_address/tokens",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_yield_tokens(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Data(contracts): Data<&SystemContractsConfig>,
+        Path(token_contract_address): Path<Decimal>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<Token>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let (tokens, page_count) = Yield::list_yielded_tokens(
+            &mut conn,
+            contracts.yielder_contract_index,
+            token_contract_address,
+            page,
+            page_size.unwrap_or(PAGE_SIZE),
+        )?;
+        Ok(Json(PagedResponse {
+            data: tokens,
+            page_count,
+            page,
+        }))
     }
 
     #[oai(

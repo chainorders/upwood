@@ -558,6 +558,7 @@ diesel::table! {
         update_time -> Timestamp,
         token_id_calculation_start -> Nullable<Numeric>,
         token_id_calculation_diff_millis -> Nullable<Numeric>,
+        token_id_calculation_base_token_id -> Nullable<Numeric>,
         market_type -> SecurityP2pTradingMarketType,
         max_token_amount -> Numeric,
         max_currency_amount -> Nullable<Numeric>,

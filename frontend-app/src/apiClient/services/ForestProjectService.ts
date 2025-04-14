@@ -24,7 +24,6 @@ import type { PagedResponse_LegalContract } from "../models/PagedResponse_LegalC
 import type { PagedResponse_LegalContractUserModel } from "../models/PagedResponse_LegalContractUserModel";
 import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
 import type { UserYieldsAggregate } from "../models/UserYieldsAggregate";
-import type { Yield } from "../models/Yield";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -629,26 +628,6 @@ export class ForestProjectService {
 			path: {
 				project_id: projectId,
 				contract_type: contractType,
-			},
-		});
-	}
-
-	/**
-	 * @param contractAddress
-	 * @param tokenId
-	 * @returns Yield
-	 * @throws ApiError
-	 */
-	public static getAdminForestProjectsContractTokenYeildList(
-		contractAddress: string,
-		tokenId: string,
-	): CancelablePromise<Array<Yield>> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/admin/forest_projects/{project_id}/contract/{contract_address}/token/{token_id}/yeild/list",
-			path: {
-				contract_address: contractAddress,
-				token_id: tokenId,
 			},
 		});
 	}

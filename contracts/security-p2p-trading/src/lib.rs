@@ -122,15 +122,6 @@ pub struct MintMarket {
     pub max_token_amount:   SecurityTokenAmount,
 }
 
-impl MintMarket {
-    pub fn calculate_token_id(&self, now: Timestamp) -> Option<TokenIdU64> {
-        let token_id = now
-            .duration_since(self.token_id.start)
-            .map(|d| d.millis() / self.token_id.diff_millis)?;
-        Some(TokenIdU64(token_id))
-    }
-}
-
 #[derive(Serialize, SchemaType, Clone, Debug, PartialEq, Eq)]
 pub struct TransferMarket {
     pub token_id:            SecurityTokenId,
@@ -509,8 +500,26 @@ pub fn buy(
 
 #[derive(Serialize, SchemaType, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TokenIdCalculation {
-    pub start:       Timestamp,
-    pub diff_millis: u64,
+    /// The start time of the market. This is the time when the market starts.
+    /// Also new tokens will be minted with id = ((now - start) / diff) + base token id.
+    pub start:         Timestamp,
+    /// The time difference between two token ids. This is the time it takes to mint a new token.
+    pub diff:          Duration,
+    /// The base token id. This is the token id of the first token minted.
+    pub base_token_id: SecurityTokenId,
+}
+
+impl TokenIdCalculation {
+    /// Creates a new token id calculation.
+    pub fn calculate_token_id(&self, now: Timestamp) -> Option<TokenIdU64> {
+        let token_id = now.duration_since(self.start);
+        let token_id = match token_id {
+            Some(d) => (d.millis()) / self.diff.millis(),
+            None => return None,
+        };
+        let token_id = self.base_token_id.0 + token_id;
+        Some(TokenIdU64(token_id))
+    }
 }
 
 #[derive(Serialize, SchemaType, Debug)]
@@ -566,6 +575,7 @@ pub fn mint(
             state.currency_token,
             currency_amount,
             market
+                .token_id
                 .calculate_token_id(now)
                 .ok_or(Error::MintMarketNotStarted)?,
             market.liquidity_provider,

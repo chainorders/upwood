@@ -14,7 +14,6 @@ import {
 	AccordionSummary,
 	AccordionDetails,
 	Breadcrumbs,
-	Button,
 } from "@mui/material";
 import {
 	ForestProject,
@@ -37,6 +36,7 @@ import MarketDetails from "./components/MarketDetails";
 import FundDetails from "./components/FundDetails";
 import TokenList from "./components/TokenList";
 import AddMarketPopup from "./components/AddMarketPopup";
+import AddContractYields from "./components/AddContractYields";
 import { User } from "../../lib/user.ts";
 
 const ProjectContractDetails = ({ user }: { user: User }) => {
@@ -51,6 +51,7 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 	const [project, setProject] = useState<ForestProject | null>(null);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [openMarketPopup, setOpenMarketPopup] = useState(false);
+	const [openYieldsPopup, setOpenYieldsPopup] = useState(false);
 
 	const handleOpenMarketPopup = () => {
 		setOpenMarketPopup(true);
@@ -58,6 +59,15 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 
 	const handleCloseMarketPopup = () => {
 		setOpenMarketPopup(false);
+		setRefreshCounter((c) => c + 1);
+	};
+
+	const handleOpenYieldsPopup = () => {
+		setOpenYieldsPopup(true);
+	};
+
+	const handleCloseYieldsPopup = () => {
+		setOpenYieldsPopup(false);
 		setRefreshCounter((c) => c + 1);
 	};
 
@@ -201,11 +211,6 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 								) : (
 									<Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
 										<Typography>No market details available</Typography>
-										{contracts && (
-											<Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleOpenMarketPopup}>
-												Add Market
-											</Button>
-										)}
 									</Box>
 								)}
 							</AccordionDetails>
@@ -241,6 +246,20 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 									</ListItemIcon>
 									<ListItemText primary="Update Contract" />
 								</ListItem>
+								{!market && contracts && (
+									<ListItem button onClick={handleOpenMarketPopup}>
+										<ListItemIcon>
+											<AddIcon />
+										</ListItemIcon>
+										<ListItemText primary="Add Market" />
+									</ListItem>
+								)}
+								<ListItem button onClick={handleOpenYieldsPopup}>
+									<ListItemIcon>
+										<AddIcon />
+									</ListItemIcon>
+									<ListItemText primary="Add Token with Yields" />
+								</ListItem>
 								<ListItem button onClick={() => alert("Not implemented")}>
 									<ListItemIcon>
 										<DeleteIcon />
@@ -253,14 +272,24 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 				</Grid>
 			</Box>
 			{contracts && contract && (
-				<AddMarketPopup
-					user={user}
-					contracts={contracts}
-					tokenContract={contract}
-					onDone={handleCloseMarketPopup}
-					open={openMarketPopup}
-					onClose={handleCloseMarketPopup}
-				/>
+				<>
+					<AddMarketPopup
+						user={user}
+						contracts={contracts}
+						tokenContract={contract}
+						onDone={handleCloseMarketPopup}
+						open={openMarketPopup}
+						onClose={handleCloseMarketPopup}
+					/>
+					<AddContractYields
+						contracts={contracts}
+						user={user}
+						tokenContract={contract}
+						onDone={handleCloseYieldsPopup}
+						open={openYieldsPopup}
+						onClose={handleCloseYieldsPopup}
+					/>
+				</>
 			)}
 		</>
 	);

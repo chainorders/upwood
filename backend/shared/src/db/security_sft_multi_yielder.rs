@@ -5,6 +5,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use super::cis2_security::Token;
 use crate::db_shared::{DbConn, DbResult};
 use crate::schema::{
     security_sft_multi_yielder_treasuries, security_sft_multi_yielder_yeild_distributions,
@@ -65,24 +66,111 @@ pub struct Yield {
 }
 
 impl Yield {
-    #[instrument(skip_all)]
-    pub fn list_for_token(
+    pub fn list_yielded_tokens(
         conn: &mut DbConn,
         contract: Decimal,
-        token_contract: Decimal,
-        token: Decimal,
-    ) -> DbResult<Vec<Self>> {
+        token_contract_address_: Decimal,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(
+        Vec<Token>,
+        i64, // page count
+    )> {
         use crate::schema::security_sft_multi_yielder_yields::dsl::*;
 
-        let yields = security_sft_multi_yielder_yields
-            .filter(
-                contract_address
-                    .eq(contract)
-                    .and(token_contract_address.eq(token_contract))
-                    .and(token_id.eq(token)),
+        let query = security_sft_multi_yielder_yields
+            .inner_join(
+                crate::schema::cis2_tokens::table.on(token_contract_address
+                    .eq(crate::schema::cis2_tokens::cis2_address)
+                    .and(token_id.eq(crate::schema::cis2_tokens::token_id))),
             )
-            .load(conn)?;
-        Ok(yields)
+            .filter(contract_address.eq(contract))
+            .filter(token_contract_address.eq(token_contract_address_))
+            .into_boxed();
+        let count_query = security_sft_multi_yielder_yields
+            .inner_join(
+                crate::schema::cis2_tokens::table.on(token_contract_address
+                    .eq(crate::schema::cis2_tokens::cis2_address)
+                    .and(token_id.eq(crate::schema::cis2_tokens::token_id))),
+            )
+            .filter(contract_address.eq(contract))
+            .filter(token_contract_address.eq(token_contract_address_))
+            .into_boxed();
+
+        let tokens = query
+            .select(crate::schema::cis2_tokens::all_columns)
+            .distinct()
+            .order_by(token_id.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Token>(conn)?;
+
+        let count = count_query.count().get_result::<i64>(conn)?;
+        let page_count = if count == 0 {
+            0
+        } else {
+            (count as f64 / page_size as f64).ceil() as i64
+        };
+        Ok((tokens, page_count))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(skip_all)]
+    pub fn list(
+        conn: &mut DbConn,
+        contract: Decimal,
+        token_contract_address_: Option<Decimal>,
+        token_id_: Option<Decimal>,
+        yield_token_contract_address_: Option<Decimal>,
+        yield_token_id_: Option<Decimal>,
+        yield_type_: Option<YieldType>,
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64 /* page count */)> {
+        use crate::schema::security_sft_multi_yielder_yields::dsl::*;
+
+        let mut query = security_sft_multi_yielder_yields
+            .filter(contract_address.eq(contract))
+            .into_boxed();
+        let mut count_query = security_sft_multi_yielder_yields
+            .filter(contract_address.eq(contract))
+            .into_boxed();
+        if let Some(token_contract_address_) = token_contract_address_ {
+            query = query.filter(token_contract_address.eq(token_contract_address_));
+            count_query = count_query.filter(token_contract_address.eq(token_contract_address_));
+        }
+        if let Some(token_id_) = token_id_ {
+            query = query.filter(token_id.eq(token_id_));
+            count_query = count_query.filter(token_id.eq(token_id_));
+        }
+        if let Some(yield_token_contract_address_) = yield_token_contract_address_ {
+            query = query.filter(yield_contract_address.eq(yield_token_contract_address_));
+            count_query =
+                count_query.filter(yield_contract_address.eq(yield_token_contract_address_));
+        }
+        if let Some(yield_token_id_) = yield_token_id_ {
+            query = query.filter(yield_token_id.eq(yield_token_id_));
+            count_query = count_query.filter(yield_token_id.eq(yield_token_id_));
+        }
+        if let Some(yield_type_) = yield_type_ {
+            query = query.filter(yield_type.eq(yield_type_));
+            count_query = count_query.filter(yield_type.eq(yield_type_));
+        }
+        let yields = query
+            .order_by(token_contract_address.desc())
+            .order_by(token_id.desc())
+            .order_by(yield_contract_address.desc())
+            .order_by(yield_token_id.desc())
+            .limit(page_size)
+            .offset(page * page_size)
+            .load::<Self>(conn)?;
+        let count = count_query.count().get_result::<i64>(conn)?;
+        let page_count = if count == 0 {
+            0
+        } else {
+            (count as f64 / page_size as f64).ceil() as i64
+        };
+        Ok((yields, page_count))
     }
 
     #[instrument(skip_all)]

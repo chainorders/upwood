@@ -33,7 +33,6 @@ import {
 	SystemContractsConfigApiModel,
 	Token,
 	UserService,
-	Yield,
 } from "../../apiClient";
 import AddFundPopup from "./components/AddFundPopup";
 import AddMarketPopup from "./components/AddMarketPopup";
@@ -53,7 +52,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 	const [preSaleTokenContract, setPreSaleTokenContract] = useState<ForestProjectTokenContract>();
 	const [market, setMarket] = useState<Market>();
 	const [fund, setFund] = useState<SecurityMintFund>();
-	const [yields, setYields] = useState<Yield[]>([]);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [project, setProject] = useState<ForestProject | null>(null);
@@ -103,7 +101,6 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 	useEffect(() => {
 		setLoading(true);
 		IndexerService.getAdminIndexerCis2Market(contract_address!, token_id!).then(setMarket);
-		IndexerService.getAdminIndexerCis2TokenYieldsList(contract_address!, token_id!).then(setYields);
 		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!).then(setFund);
 		IndexerService.getAdminIndexerCis2Token(contract_address!, token_id!)
 			.then(setToken)
@@ -234,18 +231,19 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 								<Typography>Yields</Typography>
 							</AccordionSummary>
 							<AccordionDetails>
-								{yields.length > 0 && tokenContract && contracts ? (
+								{tokenContract && contracts ? (
 									<Yields
 										user={user}
 										tokenId={token_id!}
 										tokenContract={tokenContract!}
 										yielderContract={contracts.yielder_contract_index}
-										yields={yields}
 										onRefresh={() => setRefreshCounter((c) => c + 1)}
 										contracts={contracts}
+										page={0}
+										pageSize={20}
 									/>
 								) : (
-									<Typography>No yields available</Typography>
+									<Typography>Loading yields...</Typography>
 								)}
 							</AccordionDetails>
 						</Accordion>

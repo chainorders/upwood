@@ -459,10 +459,12 @@ export const addMarketRequestJsonSchema: RJSFSchema = {
 														format: "date-time",
 														title: "Start",
 													},
-													diff_millis: {
-														type: "integer",
-														minimum: 0,
-														title: "Diff Millis",
+													diff: { type: "string", title: "Diff" },
+													base_token_id: {
+														type: "string",
+														title: "Base Token Id",
+														default: "",
+														format: "byte",
 													},
 												},
 											},
@@ -616,7 +618,7 @@ export type AddMarketRequestUi = {
 				tag: "Mint";
 				Mint: [
 					{
-						token_id: { start: string; diff_millis: number };
+						token_id: { start: string; diff: string; base_token_id: string };
 						rate: { numerator: number; denominator: number };
 						token_metadata_url: {
 							url: string;

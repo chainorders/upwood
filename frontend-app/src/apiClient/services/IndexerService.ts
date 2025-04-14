@@ -9,11 +9,12 @@ import type { PagedResponse_ExchangeRecord } from "../models/PagedResponse_Excha
 import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { PagedResponse_TokenHolderBalanceUpdate } from "../models/PagedResponse_TokenHolderBalanceUpdate";
+import type { PagedResponse_Yield } from "../models/PagedResponse_Yield";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
 import type { Token } from "../models/Token";
 import type { TokenHolder } from "../models/TokenHolder";
 import type { Treasury } from "../models/Treasury";
-import type { Yield } from "../models/Yield";
+import type { YieldType } from "../models/YieldType";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -246,21 +247,36 @@ export class IndexerService {
 	}
 
 	/**
-	 * @param contractAddress
+	 * @param page
+	 * @param pageSize
+	 * @param tokenContractAddress
 	 * @param tokenId
-	 * @returns Yield
+	 * @param yieldTokenContractAddress
+	 * @param yieldTokenId
+	 * @param yieldType
+	 * @returns PagedResponse_Yield
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenYieldsList(
-		contractAddress: string,
-		tokenId: string,
-	): CancelablePromise<Array<Yield>> {
+	public static getAdminIndexerYieldList(
+		page: number,
+		pageSize?: number,
+		tokenContractAddress?: string,
+		tokenId?: string,
+		yieldTokenContractAddress?: string,
+		yieldTokenId?: string,
+		yieldType?: YieldType,
+	): CancelablePromise<PagedResponse_Yield> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/yields/list",
-			path: {
-				contract_address: contractAddress,
+			url: "/admin/indexer/yield/list",
+			query: {
+				page: page,
+				page_size: pageSize,
+				token_contract_address: tokenContractAddress,
 				token_id: tokenId,
+				yield_token_contract_address: yieldTokenContractAddress,
+				yield_token_id: yieldTokenId,
+				yield_type: yieldType,
 			},
 		});
 	}

@@ -8,7 +8,6 @@ use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db::security_mint_fund::SecurityMintFund;
 use shared::db::security_p2p_trading::Market;
-use shared::db::security_sft_multi_yielder::Yield;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState, LegalContract,
     LegalContractUserModel, LegalContractUserSignature, Notification,
@@ -1183,31 +1182,6 @@ impl ForestProjectAdminApi {
             Error::InternalServer(PlainText(format!("Failed to delete token contract: {}", e)))
         })?;
         Ok(())
-    }
-
-    #[oai(
-        path = "/admin/forest_projects/:project_id/contract/:contract_address/token/:token_id/\
-                yeild/list",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_forest_project_token_yield_list(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
-    ) -> JsonResult<Vec<Yield>> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let yields = Yield::list_for_token(
-            conn,
-            contracts.yielder_contract_index,
-            contract_address,
-            token_id,
-        )?;
-        Ok(Json(yields))
     }
 
     #[oai(

@@ -41,10 +41,11 @@ interface AddMarketFormData {
 	marketType: string;
 	token_id_start?: string;
 	mint_rate_numerator?: number;
-	token_id_diff_millis?: number;
+	token_id_diff_days?: number;
 	token_id?: string;
 	max_token_amount?: number;
 	max_currency_amount?: number;
+	base_token_id?: number;
 }
 
 export default function AddMarketPopup({ token_id, onDone, contracts, user, tokenContract, open, onClose }: Props) {
@@ -57,7 +58,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 			buy_rate_numerator: 1 * 10 ** 6,
 			sell_rate_numerator: 1 * 10 ** 6,
 			token_id_start: format(toDate(tokenContract.created_at), "yyyy-MM-dd"), // Convert to UTC date string
-			token_id_diff_millis: 24 * 60 * 60 * 1000,
+			token_id_diff_days: 1,
 			marketType: token_id ? "transfer" : "mint",
 			mint_rate_numerator: 1 * 10 ** 6,
 			token_id,
@@ -92,7 +93,8 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 											},
 											token_id: {
 												start: format(toDate(data.token_id_start!), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
-												diff_millis: BigInt(data.token_id_diff_millis!),
+												diff: `${data.token_id_diff_days!}d`,
+												base_token_id: toTokenId(BigInt(data.base_token_id!), 8),
 											},
 											max_token_amount: data.max_token_amount!.toString(),
 										},
@@ -453,7 +455,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													)}
 												/>
 												<Controller
-													name="token_id_diff_millis"
+													name="token_id_diff_days"
 													control={control}
 													rules={{
 														required: marketType === "mint" ? "Time difference is required" : false,
@@ -461,13 +463,33 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													render={({ field, fieldState }) => (
 														<TextField
 															{...field}
-															label="Token ID Time Difference (milliseconds)"
+															label="Token ID Time Difference (Days)"
 															fullWidth
 															type="number"
 															variant="outlined"
 															size="small"
 															error={!!fieldState.error}
-															helperText={fieldState.error?.message || "Time difference in milliseconds (e.g., 86400000 for 1 day)"}
+															helperText={fieldState.error?.message || "Time difference in Days"}
+														/>
+													)}
+												/>
+												<Controller
+													name="base_token_id"
+													control={control}
+													rules={{
+														required: marketType === "mint" ? "Base token ID is required" : false,
+													}}
+													render={({ field, fieldState }) => (
+														<TextField
+															{...field}
+															label="Base Token ID"
+															fullWidth
+															type="number"
+															variant="outlined"
+															size="small"
+															error={!!fieldState.error}
+															helperText={fieldState.error?.message || "The starting token ID number"}
+															sx={{ mt: 2 }}
 														/>
 													)}
 												/>

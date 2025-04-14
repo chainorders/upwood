@@ -122,7 +122,10 @@ pub fn process_events(
                             token_id: None,
                             token_id_calculation_start: Some(market.token_id.start.millis.into()),
                             token_id_calculation_diff_millis: Some(
-                                market.token_id.diff_millis.into(),
+                                market.token_id.diff.millis().into(),
+                            ),
+                            token_id_calculation_base_token_id: Some(
+                                market.token_id.base_token_id.to_decimal(),
                             ),
                             sell_rate_numerator: Some(market.rate.numerator.into()),
                             sell_rate_denominator: Some(market.rate.denominator.into()),
@@ -148,6 +151,7 @@ pub fn process_events(
                             token_id: Some(market.token_id.to_decimal()),
                             token_id_calculation_start: None,
                             token_id_calculation_diff_millis: None,
+                            token_id_calculation_base_token_id: None,
                             buy_rate_numerator: Some(market.buy_rate.numerator.into()),
                             buy_rate_denominator: Some(market.buy_rate.denominator.into()),
                             sell_rate_numerator: Some(market.sell_rate.numerator.into()),

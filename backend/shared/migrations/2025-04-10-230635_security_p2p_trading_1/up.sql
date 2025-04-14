@@ -34,6 +34,7 @@ DROP NOT NULL;
 ALTER TABLE security_p2p_trading_markets
 ADD COLUMN token_id_calculation_start NUMERIC(78),
 ADD COLUMN token_id_calculation_diff_millis NUMERIC(78),
+ADD COLUMN token_id_calculation_base_token_id NUMERIC(20),
 ADD COLUMN market_type security_p2p_trading_market_type NOT NULL,
 ADD COLUMN max_token_amount NUMERIC(78) NOT NULL,
 ADD COLUMN max_currency_amount NUMERIC(78),

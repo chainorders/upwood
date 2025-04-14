@@ -72,6 +72,7 @@ export type { PagedResponse_UserKYCModel } from "./models/PagedResponse_UserKYCM
 export type { PagedResponse_UserRegistrationRequest } from "./models/PagedResponse_UserRegistrationRequest";
 export type { PagedResponse_UserTokenHolder } from "./models/PagedResponse_UserTokenHolder";
 export type { PagedResponse_UserTransaction } from "./models/PagedResponse_UserTransaction";
+export type { PagedResponse_Yield } from "./models/PagedResponse_Yield";
 export type { PlatformUpdate } from "./models/PlatformUpdate";
 export type { PortfolioValue } from "./models/PortfolioValue";
 export { ProcessorType } from "./models/ProcessorType";

@@ -349,8 +349,9 @@ pub fn test_flow_mint_sft_multi() {
                 liquidity_provider: liquidity_provider.address,
                 rate,
                 token_id: TokenIdCalculation {
-                    diff_millis: 24 * 60 * 60 * 1000, // 1 day
-                    start:       now,
+                    diff:   Duration::from_days(1), // 1 day
+                    start:         now,
+                    base_token_id: TokenIdU64(0),
                 },
                 token_metadata_url: security_sft_multi::types::ContractMetadataUrl {
                     hash: None,
@@ -397,7 +398,7 @@ pub fn test_flow_mint_sft_multi() {
     );
 
     chain
-        .tick_block_time(Duration::from_millis(24 * 60 * 60 * 1000))
+        .tick_block_time(Duration::from_days(1))
         .expect("tick block time");
     trading_contract
         .mint(&mut chain, &buyer, &MintParams {
@@ -443,7 +444,7 @@ pub fn test_flow_mint_sft_multi() {
         })
         .expect_err("mint should fail");
     chain
-        .tick_block_time(Duration::from_millis(24 * 60 * 60 * 1000))
+        .tick_block_time(Duration::from_days(1))
         .expect("tick block time");
     trading_contract
         .mint(&mut chain, &buyer, &MintParams {
