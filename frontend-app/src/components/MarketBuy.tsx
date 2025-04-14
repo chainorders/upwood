@@ -72,10 +72,10 @@ export default function MarketBuy({
 	}, [handleKeyDown]);
 
 	const [popupState, setPopupState] = useState<"buy" | "notify" | "bought">("buy");
-	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [euroeBalanceBuyer, setEuroeBalanceBuyer] = useState(BigInt(0));
-	const [tokenBalanceLp, setTokenBalanceLp] = useState(BigInt(0));
-	const [marketMaxTokenAmount] = useState<bigint>(BigInt(market.max_token_amount));
+	const [price, setPrice] = useState(0);
+	const [euroeBalanceBuyer, setEuroeBalanceBuyer] = useState(0);
+	const [tokenBalanceLp, setTokenBalanceLp] = useState(0);
+	const [marketMaxTokenAmount] = useState(Number(market.max_token_amount));
 	const [_txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isUserNotified, setIsUserNotified] = useState(userNotified);
@@ -104,7 +104,7 @@ export default function MarketBuy({
 		euroeStablecoin.balanceOf
 			.invoke(
 				concordiumNodeClient,
-				ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
+				ContractAddress.create(Number(market.currency_token_contract_address)),
 				[
 					{
 						token_id: "",
@@ -115,7 +115,7 @@ export default function MarketBuy({
 			)
 			.then((response) => euroeStablecoin.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
-				setEuroeBalanceBuyer(BigInt(balance[0]));
+				setEuroeBalanceBuyer(Number(balance[0]));
 			})
 			.catch((error) => {
 				console.error("Error fetching EuroE balance:", error);
@@ -123,11 +123,11 @@ export default function MarketBuy({
 	}, [market.currency_token_contract_address, buyer]);
 
 	useEffect(() => {
-		setPrice(BigInt(market.sell_rate_numerator) / BigInt(market.sell_rate_denominator));
+		setPrice(Number(market.sell_rate_numerator) / Number(market.sell_rate_denominator));
 		securitySftMulti.balanceOf
 			.invoke(
 				concordiumNodeClient,
-				ContractAddress.create(BigInt(market.token_contract_address), BigInt(0)),
+				ContractAddress.create(Number(market.token_contract_address)),
 				[
 					{
 						token_id: toTokenId(Number(market.token_id), 8),
@@ -138,7 +138,7 @@ export default function MarketBuy({
 			)
 			.then((response) => securitySftMulti.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
-				setTokenBalanceLp(BigInt(balance[0]));
+				setTokenBalanceLp(Number(balance[0]));
 			})
 			.catch((error) => {
 				console.error("Error fetching token balance:", error);
@@ -146,9 +146,9 @@ export default function MarketBuy({
 	}, [market, lp]);
 
 	const tokenAmount = watch("tokenAmount") || 0;
-	const totalPayment = BigInt(price) * BigInt(tokenAmount);
+	const totalPayment = price * tokenAmount;
 	useEffect(() => {
-		if (tokenAmount > Number(tokenBalanceLp)) {
+		if (tokenAmount > tokenBalanceLp) {
 			setPopupState("notify");
 		} else {
 			setPopupState("buy");
@@ -161,7 +161,7 @@ export default function MarketBuy({
 			const isOperator = await euroeStablecoin.operatorOf
 				.invoke(
 					concordiumNodeClient,
-					ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
+					ContractAddress.create(Number(market.currency_token_contract_address)),
 					[
 						{
 							owner: { Account: [buyer] },

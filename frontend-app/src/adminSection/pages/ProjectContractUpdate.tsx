@@ -35,19 +35,13 @@ import { adminUploadJson, hashMetadata } from "../libs/utils";
 
 const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: string }) => {
 	const { contract_address } = useParams<{ contract_address?: string }>();
-	const navigate = useNavigate();
 	const [loading, setLoading] = useState(true);
 	const [contract, setContract] = useState<ForestProjectTokenContract | null>(null);
 	const [project, setProject] = useState<ForestProject | null>(null);
 
 	// Metadata related state
 	const [expanded, setExpanded] = useState<boolean>(false);
-	const [metadata, setMetadata] = useState<TokenMetadata>({
-		name: "",
-		symbol: "",
-		decimals: 0,
-		description: "",
-	});
+	const [metadata, setMetadata] = useState<TokenMetadata>();
 	const [isMetadataLoading, setIsMetadataLoading] = useState<boolean>(false);
 	const [metadataError, setMetadataError] = useState<string | null>(null);
 
@@ -69,12 +63,7 @@ const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: strin
 		async (url: string) => {
 			if (!url || url.trim() === "") {
 				// Reset to default metadata if URL is empty
-				setMetadata({
-					name: project?.name || "",
-					symbol: symbol || "",
-					decimals: decimals || 0,
-					description: project?.desc_long || "",
-				});
+				// setMetadata();
 				setValue("metadata_hash", undefined);
 				return;
 			}
@@ -97,17 +86,12 @@ const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: strin
 				setMetadataError(error instanceof Error ? error.message : "Failed to fetch metadata");
 
 				// Set default values on error
-				setMetadata({
-					name: project?.name || "",
-					symbol: symbol || "",
-					decimals: decimals || 0,
-					description: project?.desc_long || "",
-				});
+				// setMetadata(defaultMetadata);
 			} finally {
 				setIsMetadataLoading(false);
 			}
 		},
-		[decimals, project?.desc_long, project?.name, symbol, setValue],
+		[setValue],
 	);
 
 	// Trigger metadata fetch when URL changes
@@ -149,7 +133,6 @@ const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: strin
 		ForestProjectService.putAdminForestProjectsContract(data)
 			.then(() => {
 				alert("Contract updated successfully");
-				navigate(-1);
 			})
 			.catch(() => {
 				alert("Failed to update contract");
@@ -192,8 +175,8 @@ const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: strin
 					<TokenMetadataForm
 						initialData={{
 							...metadata,
-							symbol: symbol || metadata.symbol,
-							decimals: decimals || metadata.decimals,
+							symbol: symbol || metadata?.symbol,
+							decimals: decimals || metadata?.decimals,
 						}}
 						onSubmit={handleMetadataSubmit}
 						submitButtonText="Generate Metadata URL"
@@ -208,8 +191,8 @@ const ProjectContractUpdate = ({ fileBaseUrl }: { user: User; fileBaseUrl: strin
 			<TokenMetadataForm
 				initialData={{
 					...metadata,
-					symbol: symbol || metadata.symbol,
-					decimals: decimals || metadata.decimals,
+					symbol: symbol || metadata?.symbol,
+					decimals: decimals || metadata?.decimals,
 				}}
 				onSubmit={handleMetadataSubmit}
 				submitButtonText="Generate Metadata URL"

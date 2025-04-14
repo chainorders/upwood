@@ -19,6 +19,7 @@ import { User } from "../lib/user";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/opacity.css";
 import MarketBuyCombined from "../components/MarketBuyCombined";
+import { toDisplayAmount } from "../lib/conversions";
 
 function ForestProjectMediaSection({
 	project,
@@ -162,17 +163,21 @@ export default function ForestProjectDetails({ user, source }: Props) {
 					</div>
 					<div className="col-20-percent col-m-padding-right-0 fl">
 						<span className="colb">CARBON CREDITS</span>
-						<span className="colc">{comingSoon ? "TBA" : project.forest_project.carbon_credits}</span>
+						<span className="colc">
+							{comingSoon ? "TBA" : toDisplayAmount(project.forest_project.carbon_credits.toString(), 0)}
+						</span>
 					</div>
 					<div className="col-20-percent col-m-padding-right-0 fl">
 						<span className="colb">SHARES AVAILABLE</span>
 						<span className="colc">
-							{comingSoon ? "TBA" : project.forest_project.shares_available - Number(project.supply)}
+							{comingSoon
+								? "TBA"
+								: toDisplayAmount((Number(project.forest_project.shares_available) - Number(project.supply)).toString(), 0)}
 						</span>
 					</div>
 					<div className="col-20-percent col-m-padding-right-0 fl">
 						<span className="colb">SHARES RESERVED</span>
-						<span className="colc">{comingSoon ? "TBA" : project.supply}</span>
+						<span className="colc">{comingSoon ? "TBA" : toDisplayAmount(project.supply, 0)}</span>
 					</div>
 					<div className="clr"></div>
 				</div>

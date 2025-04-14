@@ -19,7 +19,7 @@ import { signMessage, TxnStatus, updateContract } from "../lib/concordium";
 import greenTickIcon from "../assets/green-tick.svg";
 import { Link } from "react-router";
 
-interface BuyShareProps {
+interface FundInvestProps {
 	supply: string;
 	user: User;
 	contracts: SystemContractsConfigApiModel;
@@ -43,7 +43,8 @@ export default function FundInvest({
 	tokenContract,
 	project,
 	legalContractSigned,
-}: BuyShareProps) {
+	supply,
+}: FundInvestProps) {
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
 			if (e.key === "Escape" && close) {
@@ -66,9 +67,8 @@ export default function FundInvest({
 	}, [handleKeyDown]);
 
 	const [thankyou, setThankYou] = useState(false);
-	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [totalPayment, setTotalPayment] = useState(BigInt(0));
-	const [euroeBalance, setEuroeBalance] = useState(BigInt(0));
+	const [price, setPrice] = useState(0);
+	const [euroeBalance, setEuroeBalance] = useState(0);
 	const [_txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isInvesting, setIsInvesting] = useState(false);
@@ -85,13 +85,14 @@ export default function FundInvest({
 		defaultValues: {
 			terms: contractSigned,
 		},
+		mode: "onChange",
 	});
 
 	useEffect(() => {
 		euroeStablecoin.balanceOf
 			.invoke(
 				concordiumNodeClient,
-				ContractAddress.create(BigInt(contracts.euro_e_contract_index)),
+				ContractAddress.create(Number(contracts.euro_e_contract_index)),
 				[
 					{
 						token_id: "",
@@ -103,7 +104,7 @@ export default function FundInvest({
 			)
 			.then((response) => euroeStablecoin.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
-				setEuroeBalance(BigInt(balance[0]));
+				setEuroeBalance(Number(balance[0]));
 			})
 			.catch((err) => {
 				console.error("Error fetching balanceOf", err);
@@ -111,7 +112,7 @@ export default function FundInvest({
 	}, [contracts, user]);
 
 	useEffect(() => {
-		setPrice(BigInt(fund.rate_numerator) / BigInt(fund.rate_denominator));
+		setPrice(Number(fund.rate_numerator) / Number(fund.rate_denominator));
 	}, [fund]);
 
 	const onSubmit = async () => {
@@ -120,7 +121,7 @@ export default function FundInvest({
 			const isOperator = await euroeStablecoin.operatorOf
 				.invoke(
 					concordiumNodeClient,
-					ContractAddress.create(BigInt(fund.currency_token_contract_address), BigInt(0)),
+					ContractAddress.create(Number(fund.currency_token_contract_address), 0),
 					[
 						{
 							owner: { Account: [user.concordiumAccountAddress] },
@@ -186,17 +187,6 @@ export default function FundInvest({
 		}
 	};
 
-	const handleInvestmentAmountChange = (value: number) => {
-		clearErrors("investmentAmount");
-		const payment = BigInt(value) * price;
-		if (payment > euroeBalance) {
-			setError("investmentAmount", {
-				message: "Insufficient Balance",
-			});
-		}
-		setTotalPayment(payment);
-	};
-
 	const handleTermsChange = (checked: boolean) => {
 		clearErrors("terms");
 		if (checked && !legalContractSigned) {
@@ -218,6 +208,8 @@ export default function FundInvest({
 	};
 
 	const investmentAmountWatch = watch("investmentAmount") || 0;
+	const totalPayment = Number(investmentAmountWatch) * price;
+	const availableShares = Number(project.shares_available) - Number(supply);
 
 	return (
 		<div className="popup-overlay" onClick={handleOverlayClick}>
@@ -277,7 +269,21 @@ export default function FundInvest({
 							<Controller
 								name="investmentAmount"
 								control={control}
-								rules={{ required: "Investment amount is required", min: { value: 1, message: "Invalid investment amount" } }}
+								rules={{
+									required: "Investment amount is required",
+									min: { value: 1, message: "Invalid investment amount" },
+									max: {
+										value: availableShares,
+										message: "Investment amount exceeds available shares",
+									},
+									validate: (value) => {
+										const totalPayment = Number(value) * price;
+										if (totalPayment > euroeBalance) {
+											return "Insufficient Balance";
+										}
+										return true;
+									},
+								}}
 								render={({ field }) => (
 									<input
 										{...field}
@@ -285,10 +291,6 @@ export default function FundInvest({
 										id="investment-amount"
 										required
 										className={`textField ${errors.investmentAmount ? "error" : ""} center`}
-										onChange={(e) => {
-											field.onChange(e);
-											handleInvestmentAmountChange(Number(e.target.value));
-										}}
 										autoComplete="off"
 									/>
 								)}

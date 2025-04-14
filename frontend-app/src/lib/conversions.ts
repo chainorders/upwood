@@ -137,6 +137,13 @@ export const parseFinalizedUpdate: (
 	}
 };
 
+const numberFormatter = new Intl.NumberFormat("en-US", {
+	minimumFractionDigits: 0,
+	maximumFractionDigits: 2,
+	style: "decimal",
+	notation: "compact",
+});
+
 /**
  * Converts a string amount to a display amount with the specified number of decimals.
  * @param amount - The string amount to convert.
@@ -146,6 +153,12 @@ export const parseFinalizedUpdate: (
  * @throws An error if the amount cannot be converted to a BigInt.
  */
 export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2): string {
+	try { 
+		return numberFormatter.format(Number(amount) / 10 ** Number(decimals));
+	} catch (error) {
+		return "0";
+	}
+
 	if (decimals === 0) {
 		roundToDecimal = 0;
 	}

@@ -68,8 +68,8 @@ export default function MarketBuyMint({
 	}, [handleKeyDown]);
 
 	const [thankyou, setThankYou] = useState(false);
-	const [price, setPrice] = useState<bigint>(BigInt(0));
-	const [euroeBalance, setEuroeBalance] = useState(BigInt(0));
+	const [price, setPrice] = useState(Number(0));
+	const [euroeBalance, setEuroeBalance] = useState(Number(0));
 	const [_txnStatus, setTxnStatus] = useState<TxnStatus>("none");
 	const [contractSigned, setContractSigned] = useState(legalContractSigned);
 	const [isInvesting, setIsInvesting] = useState(false);
@@ -94,7 +94,7 @@ export default function MarketBuyMint({
 		euroeStablecoin.balanceOf
 			.invoke(
 				concordiumNodeClient,
-				ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
+				ContractAddress.create(Number(market.currency_token_contract_address)),
 				[
 					{
 						token_id: "",
@@ -106,16 +106,16 @@ export default function MarketBuyMint({
 			)
 			.then((response) => euroeStablecoin.balanceOf.parseReturnValue(response.returnValue!)!)
 			.then((balance) => {
-				setEuroeBalance(BigInt(balance[0]));
+				setEuroeBalance(Number(balance[0]));
 			});
 	}, [market.currency_token_contract_address, user]);
 
 	useEffect(() => {
-		setPrice(BigInt(market.sell_rate_numerator) / BigInt(market.sell_rate_denominator));
+		setPrice(Number(market.sell_rate_numerator) / Number(market.sell_rate_denominator));
 	}, [market.sell_rate_numerator, market.sell_rate_denominator]);
 
 	const tokenAmount = watch("tokenAmount") || 0;
-	const totalPayment = BigInt(tokenAmount) * price;
+	const totalPayment = Number(tokenAmount) * price;
 
 	const onSubmit = async (data: InvestmentFormData) => {
 		setIsInvesting(true);
@@ -123,7 +123,7 @@ export default function MarketBuyMint({
 			const isOperator = await euroeStablecoin.operatorOf
 				.invoke(
 					concordiumNodeClient,
-					ContractAddress.create(BigInt(market.currency_token_contract_address), BigInt(0)),
+					ContractAddress.create(Number(market.currency_token_contract_address)),
 					[
 						{
 							owner: { Account: [user.concordiumAccountAddress] },
