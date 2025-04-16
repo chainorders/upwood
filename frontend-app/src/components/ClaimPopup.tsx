@@ -3,7 +3,7 @@ import Button from "./Button";
 import closeIcon from "../assets/close.svg";
 import greenTickIcon from "../assets/green-tick.svg";
 import redCrossIcon from "../assets/red-cross.svg";
-import { ForestProjectTokenUserYieldClaim, SystemContractsConfigApiModel } from "../apiClient";
+import { YieldClaim, SystemContractsConfigApiModel } from "../apiClient";
 import { TxnStatus, updateContract } from "../lib/concordium";
 import { User } from "../lib/user";
 import securitySftMultiYielder from "../contractClients/generated/securitySftMultiYielder";
@@ -12,7 +12,7 @@ import securitySftSingle from "../contractClients/generated/securitySftSingle";
 
 interface ClaimPopupProps {
 	user: User;
-	yieldsClaimable: ForestProjectTokenUserYieldClaim[];
+	yieldsClaimable: YieldClaim[];
 	yieldsDisplay: {
 		carbonCredits: string;
 		euroE: string;

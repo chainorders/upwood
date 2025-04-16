@@ -89,7 +89,7 @@ impl ApiTestClient {
         &self,
         id_token: String,
         page: Option<i64>,
-    ) -> PagedResponse<ForestProjectFundsAffiliateRewardRecord> {
+    ) -> PagedResponse<AffiliateClaim> {
         let res = self
             .client
             .get("/user/affiliate/rewards/list")
@@ -384,7 +384,7 @@ impl ApiTestClient {
     pub async fn forest_project_yields_claimable(
         &self,
         id_token: String,
-    ) -> Vec<ForestProjectTokenUserYieldClaim> {
+    ) -> Vec<YieldClaim> {
         let res = self
             .client
             .get("/forest_projects/yields/claimable")

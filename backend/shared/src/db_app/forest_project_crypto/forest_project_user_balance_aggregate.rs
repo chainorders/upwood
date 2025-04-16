@@ -19,15 +19,6 @@ pub struct ForestProjectUserBalanceAgg {
 }
 
 impl ForestProjectUserBalanceAgg {
-    pub fn find(conn: &mut DbConn, user_id: &str, project_id: Uuid) -> QueryResult<Option<Self>> {
-        use crate::schema_manual::forest_project_user_balance_agg::dsl::*;
-        forest_project_user_balance_agg
-            .filter(cognito_user_id.eq(user_id))
-            .filter(forest_project_id.eq(project_id))
-            .first(conn)
-            .optional()
-    }
-
     pub fn list_by_user_id_and_forest_project_ids(
         conn: &mut DbConn,
         user_id: &str,

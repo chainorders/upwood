@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ClaimRequest } from "../models/ClaimRequest";
-import type { PagedResponse_ForestProjectFundsAffiliateRewardRecord } from "../models/PagedResponse_ForestProjectFundsAffiliateRewardRecord";
+import type { PagedResponse_AffiliateClaim } from "../models/PagedResponse_AffiliateClaim";
 import type { PagedResponse_UserTransaction } from "../models/PagedResponse_UserTransaction";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
@@ -13,12 +13,10 @@ import { request as __request } from "../core/request";
 export class WalletService {
 	/**
 	 * @param page
-	 * @returns PagedResponse_ForestProjectFundsAffiliateRewardRecord
+	 * @returns PagedResponse_AffiliateClaim
 	 * @throws ApiError
 	 */
-	public static getUserAffiliateRewardsList(
-		page?: number,
-	): CancelablePromise<PagedResponse_ForestProjectFundsAffiliateRewardRecord> {
+	public static getUserAffiliateRewardsList(page?: number): CancelablePromise<PagedResponse_AffiliateClaim> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/user/affiliate/rewards/list",

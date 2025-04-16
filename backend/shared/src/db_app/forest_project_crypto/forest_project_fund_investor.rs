@@ -25,8 +25,8 @@ impl ForestProjectFundInvestor {
         fund_contract_addr: Decimal,
         project_id: Option<Uuid>,
         currency: Option<(Decimal, Decimal)>,
-        investment_token_id_filter: Option<Decimal>,
-        investment_token_contract_addr: Option<Decimal>,
+        investment_token_id_: Option<Decimal>,
+        investment_token_contract_: Option<Decimal>,
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
@@ -75,7 +75,7 @@ impl ForestProjectFundInvestor {
                 );
         }
 
-        if let Some(investment_token_id_filter) = investment_token_id_filter {
+        if let Some(investment_token_id_filter) = investment_token_id_ {
             query = query.filter(
                 security_mint_fund_investors::investment_token_id.eq(investment_token_id_filter),
             );
@@ -84,7 +84,7 @@ impl ForestProjectFundInvestor {
             );
         }
 
-        if let Some(investment_token_contract_addr) = investment_token_contract_addr {
+        if let Some(investment_token_contract_addr) = investment_token_contract_ {
             query = query.filter(
                 security_mint_fund_investors::investment_token_contract_address
                     .eq(investment_token_contract_addr),

@@ -815,25 +815,19 @@ pub async fn test_forest_projects() {
             .await;
         assert_eq!(rewards_total, vec![
             UserYieldsAggregate {
-                cognito_user_id:          user_1.id.clone(),
-                yielder_contract_address: yielder_contract.0.to_decimal(),
-                yield_token_id:           0.into(),
-                yield_contract_address:   euroe.0.to_decimal(),
-                yield_amount:             1000.into(),
+                yield_token_id:         0.into(),
+                yield_contract_address: euroe.0.to_decimal(),
+                yield_amount:           1000.into(),
             },
             UserYieldsAggregate {
-                cognito_user_id:          user_1.id.clone(),
-                yielder_contract_address: yielder_contract.0.to_decimal(),
-                yield_token_id:           0.into(),
-                yield_contract_address:   carbon_credits.0.to_decimal(),
-                yield_amount:             50000.into(),
+                yield_token_id:         0.into(),
+                yield_contract_address: carbon_credits.0.to_decimal(),
+                yield_amount:           50000.into(),
             },
             UserYieldsAggregate {
-                cognito_user_id:          user_1.id.clone(),
-                yielder_contract_address: yielder_contract.0.to_decimal(),
-                yield_token_id:           0.into(),
-                yield_contract_address:   tree_sft.0.to_decimal(),
-                yield_amount:             100.into(),
+                yield_token_id:         0.into(),
+                yield_contract_address: tree_sft.0.to_decimal(),
+                yield_amount:           100.into(),
             },
         ]);
 
@@ -841,15 +835,11 @@ pub async fn test_forest_projects() {
         let rewards_claimable = user_1
             .call_api(|id_token| api.forest_project_yields_claimable(id_token))
             .await;
-        assert_eq!(rewards_claimable, vec![ForestProjectTokenUserYieldClaim {
-            forest_project_id:        fp_1.id,
-            token_id:                 fp_1_token_1.to_decimal(),
-            max_token_id:             fp_1_token_2.to_decimal(),
-            token_contract_address:   fp_1_contract.0.to_decimal(),
-            holder_address:           user_1.account_address.clone(),
-            token_balance:            100.into(),
-            cognito_user_id:          user_1.id.clone(),
-            yielder_contract_address: yielder_contract.0.to_decimal(),
+        assert_eq!(rewards_claimable, vec![YieldClaim {
+            token_id:               fp_1_token_1.to_decimal(),
+            max_token_id:           fp_1_token_2.to_decimal(),
+            token_contract_address: fp_1_contract.0.to_decimal(),
+            token_balance:          100.into(),
         }]);
     }
 
@@ -1288,8 +1278,11 @@ pub async fn test_forest_projects() {
                 .call_api(|token| api.user_affiliate_rewards_list(token, Some(0)))
                 .await;
             assert_eq!(affiliate_rewards.data.len(), 1);
-            assert_eq!(affiliate_rewards.data[0].reward_amount, 0.into());
-            assert_eq!(affiliate_rewards.data[0].remaining_reward_amount, 10.into());
+            assert_eq!(affiliate_rewards.data[0].affiliate_reward, 10.into());
+            assert_eq!(
+                affiliate_rewards.data[0].affiliate_remaining_reward,
+                10.into()
+            );
             assert_eq!(
                 affiliate_rewards.data[0].affiliate_cognito_user_id,
                 user_1.id.clone()
@@ -1301,9 +1294,7 @@ pub async fn test_forest_projects() {
         // Claiming affiliate rewards for user 1
         {
             let claim_req = user_1
-                .call_api(|token| {
-                    api.user_affiliate_rewards_claim(token, reward.investment_record_id)
-                })
+                .call_api(|token| api.user_affiliate_rewards_claim(token, reward.id))
                 .await;
 
             user_1
@@ -1354,9 +1345,12 @@ pub async fn test_forest_projects() {
                 affiliate_rewards.data[0].affiliate_commission,
                 Decimal::from_f64(0.05).unwrap()
             );
-            assert_eq!(affiliate_rewards.data[0].reward_amount, 10.into());
+            assert_eq!(affiliate_rewards.data[0].affiliate_reward, 10.into());
             // remaining reward amount should be 0 after claiming
-            assert_eq!(affiliate_rewards.data[0].remaining_reward_amount, 0.into());
+            assert_eq!(
+                affiliate_rewards.data[0].affiliate_remaining_reward,
+                0.into()
+            );
             assert_eq!(
                 affiliate_rewards.data[0].affiliate_cognito_user_id,
                 user_1.id

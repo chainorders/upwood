@@ -7,6 +7,7 @@ import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
 import type { PagedResponse_ExchangeRecord } from "../models/PagedResponse_ExchangeRecord";
 import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
+import type { PagedResponse_Token } from "../models/PagedResponse_Token";
 import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
 import type { PagedResponse_TokenHolderBalanceUpdate } from "../models/PagedResponse_TokenHolderBalanceUpdate";
 import type { PagedResponse_Yield } from "../models/PagedResponse_Yield";
@@ -277,6 +278,31 @@ export class IndexerService {
 				yield_token_contract_address: yieldTokenContractAddress,
 				yield_token_id: yieldTokenId,
 				yield_type: yieldType,
+			},
+		});
+	}
+
+	/**
+	 * @param tokenContractAddress
+	 * @param page
+	 * @param pageSize
+	 * @returns PagedResponse_Token
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerYieldTokens(
+		tokenContractAddress: string,
+		page: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_Token> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/yield/{token_contract_address}/tokens",
+			path: {
+				token_contract_address: tokenContractAddress,
+			},
+			query: {
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

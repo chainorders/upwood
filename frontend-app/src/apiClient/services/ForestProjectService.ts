@@ -8,7 +8,6 @@ import type { ForestProjectMedia } from "../models/ForestProjectMedia";
 import type { ForestProjectPrice } from "../models/ForestProjectPrice";
 import type { ForestProjectState } from "../models/ForestProjectState";
 import type { ForestProjectTokenContract } from "../models/ForestProjectTokenContract";
-import type { ForestProjectTokenUserYieldClaim } from "../models/ForestProjectTokenUserYieldClaim";
 import type { LegalContract } from "../models/LegalContract";
 import type { LegalContractUserModel } from "../models/LegalContractUserModel";
 import type { LegalContractUserSignature } from "../models/LegalContractUserSignature";
@@ -24,6 +23,7 @@ import type { PagedResponse_LegalContract } from "../models/PagedResponse_LegalC
 import type { PagedResponse_LegalContractUserModel } from "../models/PagedResponse_LegalContractUserModel";
 import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
 import type { UserYieldsAggregate } from "../models/UserYieldsAggregate";
+import type { YieldClaim } from "../models/YieldClaim";
 
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -176,10 +176,10 @@ export class ForestProjectService {
 	}
 
 	/**
-	 * @returns ForestProjectTokenUserYieldClaim
+	 * @returns YieldClaim
 	 * @throws ApiError
 	 */
-	public static getForestProjectsYieldsClaimable(): CancelablePromise<Array<ForestProjectTokenUserYieldClaim>> {
+	public static getForestProjectsYieldsClaimable(): CancelablePromise<Array<YieldClaim>> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/forest_projects/yields/claimable",

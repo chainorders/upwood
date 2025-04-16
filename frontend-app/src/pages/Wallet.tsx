@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
 	ForestProjectService,
-	ForestProjectTokenUserYieldClaim,
+	YieldClaim,
 	OpenAPI,
 	PagedResponse_ForestProjectAggApiModel,
 	PagedResponse_ForestProjectTokenContractAggApiModel,
@@ -42,7 +42,7 @@ export default function Wallet({ user }: WalletProps) {
 		onNextClick?: () => void;
 	}>({ pages: [] });
 	const [ownedTokenContractPage, setOwnedTokenContractPage] = useState(0);
-	const [yieldsClaimable, setYieldsClaimable] = useState<ForestProjectTokenUserYieldClaim[]>();
+	const [yieldsClaimable, setYieldsClaimable] = useState<YieldClaim[]>();
 	const [refreshCounter, setRefreshCounter] = useState(0);
 
 	useEffect(() => {

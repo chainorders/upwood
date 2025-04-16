@@ -226,9 +226,11 @@ impl ForestProjectApi {
         .collect::<std::collections::HashMap<_, _>>();
         let yields = ForestProjectTokenContractUserYields::list_by_forest_project_ids(
             conn,
-            &claims.sub,
-            &forest_project_ids,
             contracts.yielder_contract_index,
+            &claims.account.ok_or(Error::BadRequest(PlainText(
+                "Account not found in claims".to_string(),
+            )))?,
+            &forest_project_ids,
         )
         .map_err(|e| {
             error!("Failed to list user yields: {}", e);
@@ -240,7 +242,7 @@ impl ForestProjectApi {
                 .get(&contract.forest_project_id)
                 .map(|price| price.price)
                 .unwrap_or(Decimal::ZERO);
-            let euro_e_yeild = yields.iter().find(|yield_| {
+            let euro_e_yield = yields.iter().find(|yield_| {
                 yield_.forest_project_id == contract.forest_project_id
                     && yield_.yield_contract_address == contracts.euro_e_contract_index
                     && yield_.yield_token_id == contracts.euro_e_token_id
@@ -260,7 +262,7 @@ impl ForestProjectApi {
                 carbon_credit_yield_balance: carbon_credit_yield
                     .map(|m| m.yield_amount)
                     .unwrap_or(Decimal::ZERO),
-                euro_e_yields_balance:       euro_e_yeild
+                euro_e_yields_balance:       euro_e_yield
                     .map(|m| m.yield_amount)
                     .unwrap_or(Decimal::ZERO),
             });
@@ -348,12 +350,12 @@ impl ForestProjectApi {
         Data(contracts): Data<&SystemContractsConfig>,
     ) -> JsonResult<Vec<UserYieldsAggregate>> {
         let conn = &mut db_pool.get()?;
-        let (yields, _) = UserYieldsAggregate::list(
+        let yields = UserYieldsAggregate::list(
             conn,
-            &claims.sub,
             contracts.yielder_contract_index,
-            0,
-            i64::MAX,
+            &claims.account.ok_or(Error::BadRequest(PlainText(
+                "Account not found in claims".to_string(),
+            )))?,
         )
         .map_err(|e| {
             error!("Failed to list yields: {}", e);
@@ -372,19 +374,16 @@ impl ForestProjectApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<Vec<ForestProjectTokenUserYieldClaim>> {
+    ) -> JsonResult<Vec<YieldClaim>> {
         let conn = &mut db_pool.get()?;
-        let yields = ForestProjectTokenUserYieldClaim::list(
-            conn,
-            &claims.sub,
-            contracts.yielder_contract_index,
-            0,
-            i64::MAX,
-        )
-        .map_err(|e| {
-            error!("Failed to list claimable yields: {}", e);
-            Error::InternalServer(PlainText(format!("Failed to list claimable yields: {}", e)))
-        })?;
+        let account = claims.account.ok_or(Error::BadRequest(PlainText(
+            "Account not found in claims".to_string(),
+        )))?;
+        let yields =
+            YieldClaim::list(conn, contracts.yielder_contract_index, &account).map_err(|e| {
+                error!("Failed to list claimable yields: {}", e);
+                Error::InternalServer(PlainText(format!("Failed to list claimable yields: {}", e)))
+            })?;
         Ok(Json(yields))
     }
 

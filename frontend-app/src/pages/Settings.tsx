@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
 	Company,
-	ForestProjectFundsAffiliateRewardRecord,
+	AffiliateClaim,
 	OpenAPI,
-	PagedResponse_ForestProjectFundsAffiliateRewardRecord,
+	PagedResponse_AffiliateClaim,
 	PagedResponse_Guide,
 	PagedResponse_UserTransaction,
 	SystemContractsConfigApiModel,
@@ -61,7 +61,7 @@ function ClaimEarningsButton({
 	user,
 	contracts,
 }: {
-	reward?: ForestProjectFundsAffiliateRewardRecord;
+	reward?: AffiliateClaim;
 	user: User;
 	contracts: SystemContractsConfigApiModel;
 }) {
@@ -73,7 +73,7 @@ function ClaimEarningsButton({
 
 		setIsClaiming(true);
 		try {
-			await WalletService.getUserAffiliateRewardsClaim(reward.investment_record_id).then((res) =>
+			await WalletService.getUserAffiliateRewardsClaim(reward.id).then((res) =>
 				updateContract(
 					user.concordiumAccountAddress,
 					contracts.offchain_rewards_contract_index,
@@ -109,8 +109,8 @@ function ClaimEarningsButton({
 export default function Settings({ user, refreshUser }: { user: User; refreshUser: () => Promise<void> }) {
 	const [transactions, setTransactions] = useState<PagedResponse_UserTransaction>();
 	const [trasactionsPage, setTransactionsPage] = useState(0);
-	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_ForestProjectFundsAffiliateRewardRecord>();
-	const [claimableReward, setClaimableReward] = useState<ForestProjectFundsAffiliateRewardRecord>();
+	const [affiliateRewards, setAffiliateRewards] = useState<PagedResponse_AffiliateClaim>();
+	const [claimableReward, setClaimableReward] = useState<AffiliateClaim>();
 	const [affiliateRewardsPage, setAffiliateRewardsPage] = useState(0);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [guides, setGuides] = useState<PagedResponse_Guide>();
@@ -133,7 +133,7 @@ export default function Settings({ user, refreshUser }: { user: User; refreshUse
 			return;
 		}
 
-		const claimableReward = affiliateRewards.data.find((r) => BigInt(r.remaining_reward_amount) > 0);
+		const claimableReward = affiliateRewards.data.find((r) => BigInt(r.affiliate_remaining_reward) > 0);
 		setClaimableReward(claimableReward);
 	}, [affiliateRewards]);
 	useEffect(() => {
@@ -320,12 +320,12 @@ export default function Settings({ user, refreshUser }: { user: User; refreshUse
 										<tbody>
 											{affiliateRewards?.data.map((item, index) => (
 												<tr key={index}>
-													<td>{item.investment_record_id}</td>
-													<td>{item.investor_account_address}</td>
+													<td>{item.id}</td>
+													<td>{item.account_address}</td>
 													<td>{toDisplayAmount(item.currency_amount, 6)}</td>
 													<td>{parseFloat(item.affiliate_commission) * 100}%</td>
-													<td>{toDisplayAmount(item.reward_amount, 6)}</td>
-													<td>{toDisplayAmount(item.remaining_reward_amount, 6)}</td>
+													<td>{toDisplayAmount(item.affiliate_reward, 6)}</td>
+													<td>{toDisplayAmount(item.affiliate_remaining_reward, 6)}</td>
 												</tr>
 											))}
 										</tbody>

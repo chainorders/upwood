@@ -1,5 +1,6 @@
 use crate::schema::{
     forest_project_legal_contract_user_signatures, forest_project_legal_contracts,
+    forest_project_token_contracts,
 };
 
 diesel::table! {
@@ -27,36 +28,6 @@ diesel::table! {
         remaining_reward_amount -> Numeric,
         affiliate_cognito_user_id -> Varchar,
         affiliate_commission -> Numeric,
-    }
-}
-
-diesel::table! {
-    forest_project_token_user_yields (forest_project_id, token_id, token_contract_address, holder_address, yielder_contract_address, yield_token_id, yield_contract_address) {
-        forest_project_id -> Uuid,
-        token_id -> Numeric,
-        token_contract_address -> Numeric,
-        holder_address -> Varchar,
-        token_balance -> Numeric,
-        cognito_user_id -> Varchar,
-        yielder_contract_address -> Numeric,
-        yield_token_id -> Numeric,
-        yield_contract_address -> Numeric,
-        yield_amount -> Numeric,
-        max_token_id -> Numeric,
-        token_symbol -> Varchar,
-        token_decimals -> Integer,
-        yield_token_symbol -> Varchar,
-        yield_token_decimals -> Integer,
-    }
-}
-
-diesel::table! {
-    user_yields_aggregate (cognito_user_id, yielder_contract_address, yield_token_id, yield_contract_address) {
-        cognito_user_id -> Varchar,
-        yielder_contract_address -> Numeric,
-        yield_token_id -> Numeric,
-        yield_contract_address -> Numeric,
-        yield_amount -> Numeric,
     }
 }
 
@@ -187,18 +158,49 @@ diesel::table! {
 }
 
 diesel::table! {
-    forest_project_token_contract_user_yields (forest_project_id, token_contract_address, cognito_user_id, yielder_contract_address, yield_token_id, yield_contract_address) {
-        forest_project_id -> Uuid,
-        token_contract_address -> Numeric,
-        token_symbol -> Varchar,
-        token_decimals -> Integer,
-        cognito_user_id -> Varchar,
+    holder_yields (yielder_contract_address, holder_address, token_id, yield_contract_address, yield_token_id) {
         yielder_contract_address -> Numeric,
-        yield_token_id -> Numeric,
+        holder_address -> Varchar,
+        un_frozen_balance -> Numeric,
+        forest_project_id -> Uuid,
+        cis2_address -> Numeric,
+        token_id -> Numeric,
+        token_ver_to -> Numeric,
+        previous_yield_token_id -> Nullable<Numeric>,
         yield_contract_address -> Numeric,
-        yield_token_symbol -> Varchar,
-        yield_token_decimals -> Integer,
-        yield_amount -> Numeric,
+        yield_token_id -> Numeric,
+        yield_rate_numerator -> Numeric,
+        yield_rate_denominator -> Numeric,
+        yield_type -> Varchar,
+        yield_period -> Numeric,
+        yield_value -> Numeric,
+    }
+}
+
+diesel::table! {
+    affiliate_claims (id) {
+        forest_project_id -> Uuid,
+        contract_address -> Numeric,
+        id -> Uuid,
+        block_height -> Numeric,
+        txn_index -> Numeric,
+        token_contract_address -> Numeric,
+        token_id -> Numeric,
+        currency_token_id -> Numeric,
+        currency_token_contract_address -> Numeric,
+        account_address -> Varchar,
+        currency_amount -> Numeric,
+        token_amount -> Numeric,
+        create_time -> Timestamp,
+        user_cognito_user_id -> Varchar,
+        user_email -> Varchar,
+        affiliate_account_address -> Varchar,
+        affiliate_cognito_user_id -> Varchar,
+        affiliate_commission -> Numeric,
+        affiliate_reward -> Numeric,
+        claim_nonce -> Nullable<Numeric>,
+        claim_amount -> Nullable<Numeric>,
+        affiliate_remaining_reward -> Numeric,
     }
 }
 
@@ -211,3 +213,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     forest_project_legal_contract_user_signatures,
     forest_project_user_balance_agg,
 );
+
+diesel::allow_tables_to_appear_in_same_query!(holder_yields, forest_project_token_contracts,);

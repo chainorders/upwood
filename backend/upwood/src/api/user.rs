@@ -428,15 +428,14 @@ impl UserApi {
         BearerAuthorization(claims): BearerAuthorization,
         Data(db_pool): Data<&DbPool>,
         Query(page): Query<Option<i64>>,
-    ) -> JsonResult<PagedResponse<ForestProjectFundsAffiliateRewardRecord>> {
+    ) -> JsonResult<PagedResponse<AffiliateClaim>> {
         let page = page.unwrap_or(0);
         let mut conn = db_pool.get()?;
-        let (users, page_count) =
-            ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, page, PAGE_SIZE)
-                .map_err(|e| {
-                    error!("Error listing user affiliate rewards: {:?}", e);
-                    e
-                })?;
+        let (users, page_count) = AffiliateClaim::list(&mut conn, &claims.sub, page, PAGE_SIZE)
+            .map_err(|e| {
+                error!("Error listing user affiliate rewards: {:?}", e);
+                e
+            })?;
 
         Ok(Json(PagedResponse {
             data: users,
@@ -460,11 +459,9 @@ impl UserApi {
     ) -> JsonResult<ClaimRequest> {
         let account = ensure_account_registered(&claims)?;
         let mut conn = db_pool.get()?;
-        let reward =
-            ForestProjectFundsAffiliateRewardRecord::find(&mut conn, investment_record_id)?
-                .ok_or_else(|| Error::NotFound(PlainText("Reward not found".to_string())))?;
-        let remaining_reward_amount = reward.remaining_reward_amount;
-        if remaining_reward_amount.is_zero() {
+        let reward = AffiliateClaim::find(&mut conn, investment_record_id)?
+            .ok_or_else(|| Error::NotFound(PlainText("Reward not found".to_string())))?;
+        if reward.affiliate_remaining_reward.is_zero() {
             return Err(Error::BadRequest(PlainText(
                 "Reward already claimed".to_string(),
             )));
@@ -480,8 +477,8 @@ impl UserApi {
             account:               account.to_string(),
             account_nonce:         nonce.to_u64().unwrap(),
             contract_address:      contracts.offchain_rewards_contract_index,
-            reward_id:             reward.investment_record_id.as_bytes().to_vec(),
-            reward_amount:         remaining_reward_amount,
+            reward_id:             reward.id.as_bytes().to_vec(),
+            reward_amount:         reward.affiliate_remaining_reward,
             reward_token_id:       "".to_string(),
             reward_token_contract: contracts.euro_e_contract_index,
         };
@@ -586,11 +583,10 @@ impl UserApi {
     ) -> Result<Attachment<Vec<u8>>> {
         let mut conn = db_pool.get()?;
         let (rewards, _) =
-            ForestProjectFundsAffiliateRewardRecord::list(&mut conn, &claims.sub, 0, i64::MAX)
-                .map_err(|e| {
-                    error!("Error listing user affiliate rewards: {:?}", e);
-                    e
-                })?;
+            AffiliateClaim::list(&mut conn, &claims.sub, 0, i64::MAX).map_err(|e| {
+                error!("Error listing user affiliate rewards: {:?}", e);
+                e
+            })?;
 
         let mut wtr = csv::Writer::from_writer(vec![]);
         wtr.write_record([
@@ -608,12 +604,12 @@ impl UserApi {
 
         for reward in rewards {
             wtr.write_record(&[
-                reward.investment_record_id.to_string(),
-                reward.investor_account_address.to_string(),
-                reward.reward_amount.to_string(),
+                reward.id.to_string(),
+                reward.account_address.to_string(),
+                reward.affiliate_reward.to_string(),
                 reward.affiliate_commission.to_string(),
                 reward.currency_amount.to_string(),
-                reward.remaining_reward_amount.to_string(),
+                reward.affiliate_remaining_reward.to_string(),
             ])
             .map_err(|e| {
                 error!("Failed to write csv record: {}", e);

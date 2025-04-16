@@ -153,7 +153,7 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
  * @throws An error if the amount cannot be converted to a BigInt.
  */
 export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2): string {
-	try { 
+	try {
 		return numberFormatter.format(Number(amount) / 10 ** Number(decimals));
 	} catch (error) {
 		return "0";

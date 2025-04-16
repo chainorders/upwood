@@ -142,43 +142,6 @@ impl ForestProject {
 
         Ok((projects, page_count))
     }
-
-    pub fn user_notification_exists(
-        &self,
-        conn: &mut DbConn,
-        user_cognito_id: &str,
-    ) -> DbResult<bool> {
-        Notification::exists(conn, self.id, user_cognito_id)
-    }
-
-    pub fn user_notification(
-        &self,
-        conn: &mut DbConn,
-        user_cognito_id: &str,
-    ) -> DbResult<Option<Notification>> {
-        Notification::find(conn, self.id, user_cognito_id)
-    }
-
-    pub fn legal_contract(&self, conn: &mut DbConn) -> DbResult<Option<LegalContract>> {
-        LegalContract::find(conn, self.id)
-    }
-
-    pub fn user_legal_contract(
-        &self,
-        conn: &mut DbConn,
-        user_cognito_id: &str,
-    ) -> DbResult<Option<LegalContractUserSignature>> {
-        LegalContractUserSignature::find(conn, self.id, user_cognito_id)
-    }
-
-    pub fn media(
-        &self,
-        conn: &mut DbConn,
-        page: i64,
-        page_size: i64,
-    ) -> DbResult<(Vec<ForestProjectMedia>, i64)> {
-        ForestProjectMedia::list(conn, self.id, page, page_size)
-    }
 }
 
 #[derive(

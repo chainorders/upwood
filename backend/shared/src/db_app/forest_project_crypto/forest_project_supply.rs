@@ -22,39 +22,6 @@ pub struct ForestProjectSupply {
 }
 
 impl ForestProjectSupply {
-    pub fn find_by_forest_project_id(
-        conn: &mut DbConn,
-        project_id: Uuid,
-    ) -> QueryResult<Option<Self>> {
-        use crate::schema_manual::forest_project_supply::dsl::*;
-        forest_project_supply
-            .filter(forest_project_id.eq(project_id))
-            .first(conn)
-            .optional()
-    }
-
-    pub fn list_by_forest_project_state(
-        conn: &mut DbConn,
-        state: ForestProjectState,
-        page: i64,
-        page_size: i64,
-    ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_supply::dsl::*;
-
-        let total_count = forest_project_supply
-            .filter(forest_project_state.eq(state))
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let records = forest_project_supply
-            .filter(forest_project_state.eq(state))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
-        Ok((records, page_count))
-    }
-
     pub fn list_by_forest_project_ids(
         conn: &mut DbConn,
         project_ids: &[Uuid],
@@ -66,29 +33,5 @@ impl ForestProjectSupply {
             .load::<Self>(conn)?;
 
         Ok(records)
-    }
-
-    pub fn list_by_forest_project_id(
-        conn: &mut DbConn,
-        project_id: Uuid,
-        page: i64,
-        page_size: i64,
-    ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_supply::dsl::*;
-
-        let total_count = forest_project_supply
-            .filter(forest_project_id.eq(project_id))
-            .count()
-            .get_result::<i64>(conn)?;
-
-        let records = forest_project_supply
-            .filter(forest_project_id.eq(project_id))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-
-        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
-
-        Ok((records, page_count))
     }
 }
