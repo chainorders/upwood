@@ -11,5 +11,5 @@ export type AddMetadataRequest = {
 	 * The probability of the metadata to be chosen for minting
 	 * between 1 and 100
 	 */
-	probablity_percentage: number;
+	probability_percentage: number;
 };

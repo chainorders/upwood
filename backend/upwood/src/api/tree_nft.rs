@@ -7,7 +7,6 @@ use poem_openapi::OpenApi;
 use shared::api::PagedResponse;
 use shared::db::cis2_security::{list_holders_by_token_metadata_url, TokenHolder};
 use shared::db::nft_multi_rewarded::{AddressNonce, NftMultiRewardedDetails};
-use shared::db::security_sft_single::SftSingleTokenDetails;
 use shared::db_app::tree_nft_metadata::TreeNftMetadata;
 
 use crate::api::*;
@@ -65,36 +64,6 @@ impl Api {
             NftMultiRewardedDetails::find(&mut db_pool.get()?, contracts.tree_nft_contract_index)?
                 .ok_or(Error::NotFound(PlainText("Contract not found".to_string())))?;
         Ok(Json(contract))
-    }
-
-    /// Retrieves the details of the token associated with the TreeFT contract.
-    ///
-    /// This function is an administrative endpoint that requires the caller to be an admin.
-    /// It retrieves the token details from the database using the provided `DbPool` and `TreeFTContractAddress`.
-    ///
-    /// # Arguments
-    /// - `db_pool`: A reference to the database connection pool.
-    /// - `claims`: The bearer authorization claims of the caller.
-    /// - `carbon_credit_contract`: A reference to the TreeFT contract address.
-    ///
-    /// # Returns
-    /// A `JsonResult` containing the `TokenDetails` of the token associated with the TreeFT contract.
-    #[oai(
-        path = "/admin/tree_fts/contract",
-        method = "get",
-        tag = "ApiTags::TreeFT"
-    )]
-    pub async fn admin_tree_ft_contract(
-        &self,
-        Data(db_pool): Data<&DbPool>,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(contracts): Data<&SystemContractsConfig>,
-    ) -> JsonResult<SftSingleTokenDetails> {
-        ensure_is_admin(&claims)?;
-        let token =
-            SftSingleTokenDetails::find(contracts.tree_ft_contract_index, &mut db_pool.get()?)?
-                .ok_or(Error::NotFound(PlainText("Token not found".to_string())))?;
-        Ok(Json(token))
     }
 
     /// Retrieves a random metadata entry and generates a signed metadata object for minting a new NFT.
@@ -195,8 +164,8 @@ impl Api {
     ) -> JsonResult<TreeNftMetadata> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let tree_nft_metdata: TreeNftMetadata = req.try_into()?;
-        let metadata = tree_nft_metdata
+        let tree_nft_metadata: TreeNftMetadata = req.try_into()?;
+        let metadata = tree_nft_metadata
             .insert(&mut conn)?
             .ok_or(Error::BadRequest(PlainText(
                 "Failed to insert metadata".to_string(),
@@ -343,21 +312,21 @@ pub struct MetadataUrl {
 
 #[derive(Object, Debug)]
 pub struct AddMetadataRequest {
-    pub metadata_url:          MetadataUrl,
+    pub metadata_url:           MetadataUrl,
     /// The probability of the metadata to be chosen for minting
     /// between 1 and 100
-    pub probablity_percentage: i16,
+    pub probability_percentage: i16,
 }
 
 impl AddMetadataRequest {
-    pub fn probablity_percentage(&self) -> Result<i16> {
-        if self.probablity_percentage < 1 || self.probablity_percentage > 100 {
+    pub fn probability_percentage(&self) -> Result<i16> {
+        if self.probability_percentage < 1 || self.probability_percentage > 100 {
             return Err(Error::BadRequest(PlainText(
-                "Probablity percentage must be between 1 and 100".to_string(),
+                "Probability percentage must be between 1 and 100".to_string(),
             )));
         }
 
-        Ok(self.probablity_percentage)
+        Ok(self.probability_percentage)
     }
 
     pub fn metadata_url(&self) -> Result<::nft_multi_rewarded::MetadataUrl> {
@@ -394,7 +363,7 @@ impl TryInto<TreeNftMetadata> for AddMetadataRequest {
         Ok(TreeNftMetadata::new(
             metadata_url.url,
             metadata_url.hash.map(hex::encode),
-            self.probablity_percentage()?,
+            self.probability_percentage()?,
             chrono::Utc::now(),
         ))
     }

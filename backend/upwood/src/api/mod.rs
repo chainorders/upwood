@@ -1,4 +1,3 @@
-pub mod carbon_credits;
 pub mod files;
 pub mod forest_project;
 pub mod identity_registry;
@@ -43,7 +42,6 @@ pub type OpenApiServiceType = OpenApiService<
         tree_nft::Api,
         files::Api,
         identity_registry::Api,
-        carbon_credits::Api,
         forest_project::ForestProjectApi,
         forest_project::ForestProjectAdminApi,
         investment_portfolio::Api,
@@ -290,7 +288,6 @@ pub fn create_service() -> OpenApiServiceType {
             tree_nft::Api,
             files::Api,
             identity_registry::Api,
-            carbon_credits::Api,
             forest_project::ForestProjectApi,
             forest_project::ForestProjectAdminApi,
             investment_portfolio::Api,
@@ -413,12 +410,8 @@ enum ApiTags {
     Files,
     /// Operations about user
     User,
-    /// Operations about carbon credits
-    CarbonCredits,
     /// Operations about identity registry contract
     IdentityRegistry,
-    /// Operations about tree fungible token contract
-    TreeFT,
     /// Operations about tree nft contract
     TreeNft,
     /// Operations about tree nft metadata

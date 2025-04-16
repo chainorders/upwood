@@ -88,7 +88,7 @@ export const CreateTreeNftMetadataPopup: React.FC<CreateTreeNftMetadataPopupProp
 					url: data.metadata_url,
 					hash: data.metadata_hash || undefined,
 				},
-				probablity_percentage: Number(data.probablity_percentage),
+				probability_percentage: Number(data.probablity_percentage),
 			};
 
 			await TreeNftMetadataService.postAdminTreeNftMetadata(requestData);

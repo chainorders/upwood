@@ -82,7 +82,7 @@ async fn signature_tests() {
                     url:  NFT_METADATA.to_string(),
                     hash: None,
                 },
-                probablity_percentage: 100,
+                probability_percentage: 100,
             }),
         )
         .await

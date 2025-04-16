@@ -5,7 +5,6 @@ pub mod offchain_rewards;
 pub mod security_mint_fund;
 pub mod security_p2p_trading;
 pub mod security_sft_multi_yielder;
-pub mod security_sft_single;
 pub mod txn_listener;
 
 use concordium_rust_sdk::cis2;

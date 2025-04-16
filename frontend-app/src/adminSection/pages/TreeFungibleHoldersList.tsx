@@ -23,6 +23,7 @@ import TransactionButton from "../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../lib/concordium";
 import { User } from "../../lib/user";
 import nftMultiRewarded from "../../contractClients/generated/nftMultiRewarded";
+import { toDisplayAmount } from "../../lib/conversions";
 
 export default function TreeFungibleHoldersList({ user }: { user: User }) {
 	const [page, setPage] = useState(0);
@@ -177,9 +178,9 @@ export default function TreeFungibleHoldersList({ user }: { user: User }) {
 										</TableCell>
 										<TableCell>{holder.email}</TableCell>
 										<TableCell>{holder.account_address}</TableCell>
-										<TableCell>{holder.balance_frozen}</TableCell>
-										<TableCell>{holder.balance_unfrozen}</TableCell>
-										<TableCell>{holder.balance_total}</TableCell>
+										<TableCell title={holder.balance_frozen}>{toDisplayAmount(holder.balance_frozen, 0)}</TableCell>
+										<TableCell title={holder.balance_unfrozen}>{toDisplayAmount(holder.balance_unfrozen, 0)}</TableCell>
+										<TableCell title={holder.balance_total}>{toDisplayAmount(holder.balance_total, 0)}</TableCell>
 										<TableCell>
 											<TransactionButton
 												variant="contained"
