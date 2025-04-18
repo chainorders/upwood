@@ -41,11 +41,15 @@ export default function TokenContractsList() {
 			return;
 		}
 
-		IndexerService.getAdminIndexerCis2(contracts.carbon_credit_contract_index)
+		IndexerService.getAdminIndexerTokenContract(contracts.carbon_credit_contract_index)
 			.then(setCarbonCreditsContracts)
 			.catch(console.error);
-		IndexerService.getAdminIndexerCis2(contracts.tree_ft_contract_index).then(setETreesFtContract).catch(console.error);
-		IndexerService.getAdminIndexerCis2(contracts.tree_nft_contract_index).then(setETreesNftContract).catch(console.error);
+		IndexerService.getAdminIndexerTokenContract(contracts.tree_ft_contract_index)
+			.then(setETreesFtContract)
+			.catch(console.error);
+		IndexerService.getAdminIndexerTokenContract(contracts.tree_nft_contract_index)
+			.then(setETreesNftContract)
+			.catch(console.error);
 	}, [contracts]);
 
 	const contractDisplayData = [
@@ -81,8 +85,6 @@ export default function TokenContractsList() {
 								<TableCell sx={classes.tableHeaderCell}>Address</TableCell>
 								<TableCell sx={classes.tableHeaderCell}>Owner</TableCell>
 								<TableCell sx={classes.tableHeaderCell}>Created At</TableCell>
-								<TableCell sx={classes.tableHeaderCell}>Agents</TableCell>
-								<TableCell sx={classes.tableHeaderCell}>Tokens</TableCell>
 								<TableCell sx={classes.tableHeaderCell}>Action</TableCell>
 							</TableRow>
 						</TableHead>
@@ -98,8 +100,6 @@ export default function TokenContractsList() {
 										<TableCell>{data.contract!.contract_address}</TableCell>
 										<TableCell>{data.contract!.owner}</TableCell>
 										<TableCell>{formatDate(data.contract!.created_at)}</TableCell>
-										<TableCell>{data.contract!.agents_count}</TableCell>
-										<TableCell>{data.contract!.tokens_count}</TableCell>
 										<TableCell>
 											<MuiLink component={Link} to={`/admin/token-contracts/${data.contract!.contract_address}`}>
 												View

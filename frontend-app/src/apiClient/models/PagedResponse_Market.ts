@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ForestProjectMarketTrader } from "./ForestProjectMarketTrader";
+import type { Market } from "./Market";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_ForestProjectMarketTrader = {
+export type PagedResponse_Market = {
 	page_count: number;
 	page: number;
-	data: Array<ForestProjectMarketTrader>;
+	data: Array<Market>;
 };

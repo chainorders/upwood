@@ -7,12 +7,18 @@ import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
 import type { PagedResponse_Agent } from "../models/PagedResponse_Agent";
 import type { PagedResponse_ExchangeRecord } from "../models/PagedResponse_ExchangeRecord";
+import type { PagedResponse_ForestProjectContract } from "../models/PagedResponse_ForestProjectContract";
 import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
+import type { PagedResponse_InvestorUser } from "../models/PagedResponse_InvestorUser";
+import type { PagedResponse_Market } from "../models/PagedResponse_Market";
 import type { PagedResponse_Token } from "../models/PagedResponse_Token";
 import type { PagedResponse_TokenHolderUser } from "../models/PagedResponse_TokenHolderUser";
 import type { PagedResponse_TokenHolderUserBalanceUpdate } from "../models/PagedResponse_TokenHolderUserBalanceUpdate";
+import type { PagedResponse_TraderUser } from "../models/PagedResponse_TraderUser";
+import type { PagedResponse_UserYieldDistribution } from "../models/PagedResponse_UserYieldDistribution";
 import type { PagedResponse_Yield } from "../models/PagedResponse_Yield";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
+import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
 import type { Token } from "../models/Token";
 import type { TokenContract } from "../models/TokenContract";
 import type { TokenHolderBalanceUpdateType } from "../models/TokenHolderBalanceUpdateType";
@@ -44,8 +50,8 @@ export class IndexerService {
 	public static getAdminIndexerContractExists(contractAddress: string): CancelablePromise<boolean> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/contract/{contract_address}/exists",
-			path: {
+			url: "/admin/indexer/contract-exists",
+			query: {
 				contract_address: contractAddress,
 			},
 		});
@@ -56,12 +62,38 @@ export class IndexerService {
 	 * @returns TokenContract
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2(contractAddress: string): CancelablePromise<TokenContract> {
+	public static getAdminIndexerTokenContract(contractAddress: string): CancelablePromise<TokenContract> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}",
-			path: {
+			url: "/admin/indexer/token-contract",
+			query: {
 				contract_address: contractAddress,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param pageSize
+	 * @param projectId
+	 * @param contractType
+	 * @returns PagedResponse_ForestProjectContract
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerFpTokenContracts(
+		page: number,
+		pageSize: number,
+		projectId?: string,
+		contractType?: SecurityTokenContractType,
+	): CancelablePromise<PagedResponse_ForestProjectContract> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/fp-token-contracts",
+			query: {
+				project_id: projectId,
+				contract_type: contractType,
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}
@@ -73,18 +105,16 @@ export class IndexerService {
 	 * @returns PagedResponse_Agent
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2AgentList(
+	public static getAdminIndexerAgents(
 		contractAddress: string,
 		page: number,
-		pageSize?: number,
+		pageSize: number,
 	): CancelablePromise<PagedResponse_Agent> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/agent/list",
-			path: {
-				contract_address: contractAddress,
-			},
+			url: "/admin/indexer/agents",
 			query: {
+				contract_address: contractAddress,
 				page: page,
 				page_size: pageSize,
 			},
@@ -92,24 +122,22 @@ export class IndexerService {
 	}
 
 	/**
-	 * @param contractAddress
 	 * @param page
 	 * @param pageSize
+	 * @param contractAddress
 	 * @returns PagedResponse_Token
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenList(
-		contractAddress: string,
-		page?: number,
-		pageSize?: number,
+	public static getAdminIndexerTokens(
+		page: number,
+		pageSize: number,
+		contractAddress?: string,
 	): CancelablePromise<PagedResponse_Token> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/list",
-			path: {
-				contract_address: contractAddress,
-			},
+			url: "/admin/indexer/tokens",
 			query: {
+				contract_address: contractAddress,
 				page: page,
 				page_size: pageSize,
 			},
@@ -122,11 +150,11 @@ export class IndexerService {
 	 * @returns Token
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2Token(contractAddress: string, tokenId: string): CancelablePromise<Token> {
+	public static getAdminIndexerToken(contractAddress: string, tokenId: string): CancelablePromise<Token> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}",
-			path: {
+			url: "/admin/indexer/token",
+			query: {
 				contract_address: contractAddress,
 				token_id: tokenId,
 			},
@@ -139,30 +167,39 @@ export class IndexerService {
 	 * @returns Market
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2Market(contractAddress: string, tokenId?: string): CancelablePromise<Market> {
+	public static getAdminIndexerMarket(contractAddress: string, tokenId?: string): CancelablePromise<Market> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/market",
-			path: {
-				contract_address: contractAddress,
-			},
+			url: "/admin/indexer/market",
 			query: {
+				contract_address: contractAddress,
 				token_id: tokenId,
 			},
 		});
 	}
 
 	/**
+	 * @param page
+	 * @param pageSize
 	 * @param contractAddress
-	 * @returns Market
+	 * @param tokenId
+	 * @returns PagedResponse_Market
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2MarketList(contractAddress: string): CancelablePromise<Array<Market>> {
+	public static getAdminIndexerMarkets(
+		page: number,
+		pageSize: number,
+		contractAddress?: string,
+		tokenId?: string,
+	): CancelablePromise<PagedResponse_Market> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/market/list",
-			path: {
+			url: "/admin/indexer/markets",
+			query: {
 				contract_address: contractAddress,
+				token_id: tokenId,
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}
@@ -173,14 +210,11 @@ export class IndexerService {
 	 * @returns SecurityMintFund
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenFund(
-		contractAddress: string,
-		tokenId: string,
-	): CancelablePromise<SecurityMintFund> {
+	public static getAdminIndexerFund(contractAddress: string, tokenId: string): CancelablePromise<SecurityMintFund> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/fund",
-			path: {
+			url: "/admin/indexer/fund",
+			query: {
 				contract_address: contractAddress,
 				token_id: tokenId,
 			},
@@ -192,12 +226,12 @@ export class IndexerService {
 	 * @returns SecurityMintFund
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2FundList(
+	public static getAdminIndexerFunds(
 		investmentTokenContractAddress: string,
 	): CancelablePromise<Array<SecurityMintFund>> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/fund/list",
+			url: "/admin/indexer/funds",
 			query: {
 				investment_token_contract_address: investmentTokenContractAddress,
 			},
@@ -206,23 +240,23 @@ export class IndexerService {
 
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @param investmentTokenContract
 	 * @param investmentTokenId
 	 * @param investor
-	 * @param pageSize
 	 * @returns PagedResponse_InvestmentRecord
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2FundInvestmentRecordsList(
+	public static getAdminIndexerInvestmentRecords(
 		page: number,
+		pageSize: number,
 		investmentTokenContract?: string,
 		investmentTokenId?: string,
 		investor?: string,
-		pageSize?: number,
 	): CancelablePromise<PagedResponse_InvestmentRecord> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/fund/investment-records/list",
+			url: "/admin/indexer/investment-records",
 			query: {
 				investment_token_contract: investmentTokenContract,
 				investment_token_id: investmentTokenId,
@@ -235,25 +269,25 @@ export class IndexerService {
 
 	/**
 	 * @param page
+	 * @param pageSize
 	 * @param tokenContractAddress
 	 * @param tokenId
 	 * @param buyer
 	 * @param seller
-	 * @param pageSize
 	 * @returns PagedResponse_ExchangeRecord
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2FundMarketRecordsList(
+	public static getAdminIndexerExchangeRecords(
 		page: number,
+		pageSize: number,
 		tokenContractAddress?: string,
 		tokenId?: string,
 		buyer?: string,
 		seller?: string,
-		pageSize?: number,
 	): CancelablePromise<PagedResponse_ExchangeRecord> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/fund/market-records/list",
+			url: "/admin/indexer/exchange-records",
 			query: {
 				token_contract_address: tokenContractAddress,
 				token_id: tokenId,
@@ -272,19 +306,17 @@ export class IndexerService {
 	 * @returns Agent
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2Agent(
+	public static getAdminIndexerAgent(
 		contractAddress: string,
 		agentAddress: string,
 		isContract: boolean,
 	): CancelablePromise<Agent> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/agent/{agent_address}",
-			path: {
+			url: "/admin/indexer/agent",
+			query: {
 				contract_address: contractAddress,
 				agent_address: agentAddress,
-			},
-			query: {
 				is_contract: isContract,
 			},
 		});
@@ -295,32 +327,67 @@ export class IndexerService {
 	 * @param pageSize
 	 * @param tokenContractAddress
 	 * @param tokenId
-	 * @param yieldTokenContractAddress
-	 * @param yieldTokenId
+	 * @param yieldedTokenContractAddress
+	 * @param yieldedTokenId
 	 * @param yieldType
 	 * @returns PagedResponse_Yield
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerYieldList(
+	public static getAdminIndexerYields(
 		page: number,
-		pageSize?: number,
+		pageSize: number,
 		tokenContractAddress?: string,
 		tokenId?: string,
-		yieldTokenContractAddress?: string,
-		yieldTokenId?: string,
+		yieldedTokenContractAddress?: string,
+		yieldedTokenId?: string,
 		yieldType?: YieldType,
 	): CancelablePromise<PagedResponse_Yield> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/yield/list",
+			url: "/admin/indexer/yields",
 			query: {
-				page: page,
-				page_size: pageSize,
 				token_contract_address: tokenContractAddress,
 				token_id: tokenId,
-				yield_token_contract_address: yieldTokenContractAddress,
-				yield_token_id: yieldTokenId,
+				yielded_token_contract_address: yieldedTokenContractAddress,
+				yielded_token_id: yieldedTokenId,
 				yield_type: yieldType,
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param pageSize
+	 * @param forestProjectId
+	 * @param tokenContractAddress
+	 * @param toAddress
+	 * @param yieldedTokenContractAddress
+	 * @param yieldedTokenId
+	 * @returns PagedResponse_UserYieldDistribution
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerYieldDistributions(
+		page: number,
+		pageSize: number,
+		forestProjectId?: string,
+		tokenContractAddress?: string,
+		toAddress?: string,
+		yieldedTokenContractAddress?: string,
+		yieldedTokenId?: string,
+	): CancelablePromise<PagedResponse_UserYieldDistribution> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/yield-distributions",
+			query: {
+				forest_project_id: forestProjectId,
+				token_contract_address: tokenContractAddress,
+				to_address: toAddress,
+				yielded_token_contract_address: yieldedTokenContractAddress,
+				yielded_token_id: yieldedTokenId,
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}
@@ -332,18 +399,16 @@ export class IndexerService {
 	 * @returns PagedResponse_Token
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerYieldTokens(
+	public static getAdminIndexerYieldedTokens(
 		tokenContractAddress: string,
 		page: number,
-		pageSize?: number,
+		pageSize: number,
 	): CancelablePromise<PagedResponse_Token> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/yield/{token_contract_address}/tokens",
-			path: {
-				token_contract_address: tokenContractAddress,
-			},
+			url: "/admin/indexer/yielded-tokens",
 			query: {
+				token_contract_address: tokenContractAddress,
 				page: page,
 				page_size: pageSize,
 			},
@@ -352,24 +417,27 @@ export class IndexerService {
 
 	/**
 	 * @param page
+	 * @param pageSize
+	 * @param forestProjectId
 	 * @param contractAddress
 	 * @param tokenId
 	 * @param holderAddress
-	 * @param pageSize
 	 * @returns PagedResponse_TokenHolderUser
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2HolderList(
+	public static getAdminIndexerHolders(
 		page: number,
+		pageSize: number,
+		forestProjectId?: string,
 		contractAddress?: string,
 		tokenId?: string,
 		holderAddress?: string,
-		pageSize?: number,
 	): CancelablePromise<PagedResponse_TokenHolderUser> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/holder/list",
+			url: "/admin/indexer/holders",
 			query: {
+				forest_project_id: forestProjectId,
 				contract_address: contractAddress,
 				token_id: tokenId,
 				holder_address: holderAddress,
@@ -386,15 +454,15 @@ export class IndexerService {
 	 * @returns TokenHolderUser
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenHolder(
+	public static getAdminIndexerHolder(
 		contractAddress: string,
 		tokenId: string,
 		holderAddress: string,
 	): CancelablePromise<TokenHolderUser> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/{holder_address}",
-			path: {
+			url: "/admin/indexer/holder",
+			query: {
 				contract_address: contractAddress,
 				token_id: tokenId,
 				holder_address: holderAddress,
@@ -404,26 +472,29 @@ export class IndexerService {
 
 	/**
 	 * @param page
+	 * @param pageSize
+	 * @param forestProjectId
 	 * @param contractAddress
 	 * @param tokenId
 	 * @param holderAddress
 	 * @param updateType
-	 * @param pageSize
 	 * @returns PagedResponse_TokenHolderUserBalanceUpdate
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2BalanceUpdatesList(
+	public static getAdminIndexerBalanceUpdates(
 		page: number,
+		pageSize: number,
+		forestProjectId?: string,
 		contractAddress?: string,
 		tokenId?: string,
 		holderAddress?: string,
 		updateType?: TokenHolderBalanceUpdateType,
-		pageSize?: number,
 	): CancelablePromise<PagedResponse_TokenHolderUserBalanceUpdate> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/balance-updates/list",
+			url: "/admin/indexer/balance-updates",
 			query: {
+				forest_project_id: forestProjectId,
 				contract_address: contractAddress,
 				token_id: tokenId,
 				holder_address: holderAddress,
@@ -435,16 +506,76 @@ export class IndexerService {
 	}
 
 	/**
-	 * @param contractAddress
 	 * @returns Treasury
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerYielderTreasury(contractAddress: string): CancelablePromise<Treasury> {
+	public static getAdminIndexerTreasury(): CancelablePromise<Treasury> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/yielder/{contract_address}/treasury",
-			path: {
-				contract_address: contractAddress,
+			url: "/admin/indexer/treasury",
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param pageSize
+	 * @param forestProjectId
+	 * @param investmentContractAddress
+	 * @param investmentTokenId
+	 * @param investor
+	 * @returns PagedResponse_InvestorUser
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerInvestors(
+		page: number,
+		pageSize: number,
+		forestProjectId?: string,
+		investmentContractAddress?: string,
+		investmentTokenId?: string,
+		investor?: string,
+	): CancelablePromise<PagedResponse_InvestorUser> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/investors",
+			query: {
+				forest_project_id: forestProjectId,
+				investment_contract_address: investmentContractAddress,
+				investment_token_id: investmentTokenId,
+				investor: investor,
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param page
+	 * @param pageSize
+	 * @param forestProjectId
+	 * @param tokenContractAddress
+	 * @param tokenId
+	 * @param trader
+	 * @returns PagedResponse_TraderUser
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerTraders(
+		page: number,
+		pageSize: number,
+		forestProjectId?: string,
+		tokenContractAddress?: string,
+		tokenId?: string,
+		trader?: string,
+	): CancelablePromise<PagedResponse_TraderUser> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/traders",
+			query: {
+				forest_project_id: forestProjectId,
+				token_contract_address: tokenContractAddress,
+				token_id: tokenId,
+				trader: trader,
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { SecurityTokenContractType } from "./SecurityTokenContractType";
 import type { TokenHolderBalanceUpdateType } from "./TokenHolderBalanceUpdateType";
 
 export type TokenHolderUserBalanceUpdate = {
@@ -21,4 +22,7 @@ export type TokenHolderUserBalanceUpdate = {
 	create_time: string;
 	cognito_user_id?: string;
 	email?: string;
+	forest_project_id?: string;
+	forest_project_name?: string;
+	forest_project_contract_type?: SecurityTokenContractType;
 };

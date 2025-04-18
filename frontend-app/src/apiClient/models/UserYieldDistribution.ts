@@ -5,14 +5,18 @@
 
 import type { SecurityTokenContractType } from "./SecurityTokenContractType";
 
-export type TokenHolderUser = {
-	cis2_address: string;
-	token_id: string;
-	holder_address: string;
-	frozen_balance: string;
-	un_frozen_balance: string;
+export type UserYieldDistribution = {
+	id: string;
+	contract_address: string;
+	token_contract_address: string;
+	from_token_version: string;
+	to_token_version: string;
+	token_amount: string;
+	yield_contract_address: string;
+	yield_token_id: string;
+	yield_amount: string;
+	to_address: string;
 	create_time: string;
-	update_time: string;
 	cognito_user_id?: string;
 	email?: string;
 	forest_project_id?: string;

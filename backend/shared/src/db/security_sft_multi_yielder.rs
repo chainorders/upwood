@@ -121,8 +121,8 @@ impl Yield {
         contract: Decimal,
         token_contract_address_: Option<Decimal>,
         token_id_: Option<Decimal>,
-        yield_token_contract_address_: Option<Decimal>,
-        yield_token_id_: Option<Decimal>,
+        yielded_token_contract_address_: Option<Decimal>,
+        yielded_token_id_: Option<Decimal>,
         yield_type_: Option<YieldType>,
         page: i64,
         page_size: i64,
@@ -143,14 +143,14 @@ impl Yield {
             query = query.filter(token_id.eq(token_id_));
             count_query = count_query.filter(token_id.eq(token_id_));
         }
-        if let Some(yield_token_contract_address_) = yield_token_contract_address_ {
-            query = query.filter(yield_contract_address.eq(yield_token_contract_address_));
+        if let Some(yielded_token_contract_address_) = yielded_token_contract_address_ {
+            query = query.filter(yield_contract_address.eq(yielded_token_contract_address_));
             count_query =
-                count_query.filter(yield_contract_address.eq(yield_token_contract_address_));
+                count_query.filter(yield_contract_address.eq(yielded_token_contract_address_));
         }
-        if let Some(yield_token_id_) = yield_token_id_ {
-            query = query.filter(yield_token_id.eq(yield_token_id_));
-            count_query = count_query.filter(yield_token_id.eq(yield_token_id_));
+        if let Some(yielded_token_id_) = yielded_token_id_ {
+            query = query.filter(yield_token_id.eq(yielded_token_id_));
+            count_query = count_query.filter(yield_token_id.eq(yielded_token_id_));
         }
         if let Some(yield_type_) = yield_type_ {
             query = query.filter(yield_type.eq(yield_type_));

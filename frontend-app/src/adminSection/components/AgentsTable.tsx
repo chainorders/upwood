@@ -28,7 +28,7 @@ const AgentsTable: React.FC<AgentsTableProps> = ({ contract_index }) => {
 	useEffect(() => {
 		if (!contract_index) return;
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2AgentList(contract_index, page, pageSize)
+		IndexerService.getAdminIndexerAgents(contract_index, page, pageSize)
 			.then(setAgents)
 			.finally(() => setLoading(false));
 	}, [contract_index, page, pageSize]);

@@ -653,20 +653,25 @@ impl Token {
     #[instrument(skip(conn))]
     pub fn list(
         conn: &mut DbConn,
-        cis2_address: Decimal,
+        cis2_address: Option<Decimal>,
         page: i64,
         page_size: i64,
     ) -> DbResult<(Vec<Token>, i64)> {
-        let query = cis2_tokens::table.filter(cis2_tokens::cis2_address.eq(cis2_address));
+        let query = cis2_tokens::table;
+        let mut count_query = query.into_boxed();
+        let mut query = query.into_boxed();
+        if let Some(cis2_address) = cis2_address {
+            query = query.filter(cis2_tokens::cis2_address.eq(cis2_address));
+            count_query = count_query.filter(cis2_tokens::cis2_address.eq(cis2_address));
+        }
+        let query = query.order(cis2_tokens::create_time.desc());
+        let total_count: i64 = count_query.count().get_result(conn)?;
+        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
         let tokens = query
             .select(Token::as_select())
-            .order(cis2_tokens::token_id.desc())
             .offset(page * page_size)
             .limit(page_size)
             .get_results(conn)?;
-        let total_count: i64 = query.count().get_result(conn)?;
-
-        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
         Ok((tokens, page_count))
     }
 

@@ -609,7 +609,8 @@ impl ForestProjectAggApiModel {
         let (markets, _) = Market::list(
             conn,
             contracts.trading_contract_index,
-            Some(&project_contract_addresses),
+            Some(project_contract_addresses),
+            None,
             0,
             i64::MAX,
         )
@@ -975,113 +976,6 @@ impl ForestProjectAdminApi {
         let conn = &mut db_pool.get()?;
         ForestProjectPrice::delete(conn, project_id, price_at)?;
         Ok(())
-    }
-
-    #[oai(
-        path = "/admin/forest_projects/fund/investor/list",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    #[allow(clippy::too_many_arguments)]
-    pub async fn admin_forest_project_investor_list(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        Query(project_id): Query<Option<uuid::Uuid>>,
-        Query(investment_token_id): Query<Option<Decimal>>,
-        Query(investment_token_contract_address): Query<Option<Decimal>>,
-        Query(page): Query<i64>,
-        Query(page_size): Query<Option<i64>>,
-    ) -> JsonResult<PagedResponse<ForestProjectFundInvestor>> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let (investors, page_count) = ForestProjectFundInvestor::list(
-            conn,
-            contracts.mint_funds_contract_index,
-            project_id,
-            Some((contracts.euro_e_token_id, contracts.euro_e_contract_index)),
-            investment_token_id,
-            investment_token_contract_address,
-            page,
-            page_size.unwrap_or(PAGE_SIZE),
-        )?;
-        Ok(Json(PagedResponse {
-            data: investors,
-            page_count,
-            page,
-        }))
-    }
-
-    #[oai(
-        path = "/admin/forest_projects/market/trader/list",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    #[allow(clippy::too_many_arguments)]
-    pub async fn admin_forest_project_trader_list(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Data(contracts): Data<&SystemContractsConfig>,
-        Query(project_id): Query<Option<uuid::Uuid>>,
-        Query(token_id): Query<Option<Decimal>>,
-        Query(token_contract_address): Query<Option<Decimal>>,
-        Query(page): Query<i64>,
-        Query(page_size): Query<Option<i64>>,
-    ) -> JsonResult<PagedResponse<ForestProjectMarketTrader>> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let (traders, page_count) = ForestProjectMarketTrader::list(
-            conn,
-            contracts.trading_contract_index,
-            project_id,
-            Some((contracts.euro_e_token_id, contracts.euro_e_contract_index)),
-            token_id,
-            token_contract_address,
-            page,
-            page_size.unwrap_or(PAGE_SIZE),
-        )?;
-        Ok(Json(PagedResponse {
-            data: traders,
-            page_count,
-            page,
-        }))
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    #[oai(
-        path = "/admin/forest_projects/token/holders/list",
-        method = "get",
-        tag = "ApiTags::ForestProject"
-    )]
-    pub async fn admin_forest_project_token_holders_list(
-        &self,
-        BearerAuthorization(claims): BearerAuthorization,
-        Data(db_pool): Data<&DbPool>,
-        Query(cis2_address): Query<Option<Decimal>>,
-        Query(token_id): Query<Option<Decimal>>,
-        Query(holder_address): Query<Option<String>>,
-        Query(project_id): Query<Option<uuid::Uuid>>,
-        Query(page): Query<i64>,
-        Query(page_size): Query<Option<i64>>,
-    ) -> JsonResult<PagedResponse<ForestProjectTokenHolder>> {
-        ensure_is_admin(&claims)?;
-        let conn = &mut db_pool.get()?;
-        let (holders, page_count) = ForestProjectTokenHolder::list(
-            conn,
-            cis2_address,
-            token_id,
-            holder_address,
-            project_id,
-            page,
-            page_size.unwrap_or(PAGE_SIZE),
-        )?;
-        Ok(Json(PagedResponse {
-            data: holders,
-            page_count,
-            page,
-        }))
     }
 
     #[oai(

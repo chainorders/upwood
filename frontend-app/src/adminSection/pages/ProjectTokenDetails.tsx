@@ -100,9 +100,9 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 
 	useEffect(() => {
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2Market(contract_address!, token_id!).then(setMarket);
-		IndexerService.getAdminIndexerCis2TokenFund(contract_address!, token_id!).then(setFund);
-		IndexerService.getAdminIndexerCis2Token(contract_address!, token_id!)
+		IndexerService.getAdminIndexerMarket(contract_address!, token_id!).then(setMarket);
+		IndexerService.getAdminIndexerFund(contract_address!, token_id!).then(setFund);
+		IndexerService.getAdminIndexerToken(contract_address!, token_id!)
 			.then(setToken)
 			.catch(() => alert("Failed to fetch token details"))
 			.finally(() => setLoading(false));
@@ -138,7 +138,7 @@ const ProjectTokenDetails = ({ user }: { user: User }) => {
 
 	useEffect(() => {
 		if (preSaleTokenContract) {
-			IndexerService.getAdminIndexerCis2Token(preSaleTokenContract.contract_address!, token_id!).then(setPreSaleToken);
+			IndexerService.getAdminIndexerToken(preSaleTokenContract.contract_address!, token_id!).then(setPreSaleToken);
 		}
 	}, [preSaleTokenContract, token_id, refreshCounter]);
 

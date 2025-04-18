@@ -91,7 +91,7 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 	useEffect(() => {
 		if (!contract) return;
 
-		IndexerService.getAdminIndexerCis2Market(contract.contract_address).then(setMarket);
+		IndexerService.getAdminIndexerMarket(contract.contract_address).then(setMarket);
 		switch (contract.contract_type) {
 			case SecurityTokenContractType.PROPERTY: {
 				ForestProjectService.getAdminForestProjectsContractByType(
@@ -117,12 +117,12 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 			}
 		}
 		if (contract.fund_token_id) {
-			IndexerService.getAdminIndexerCis2TokenFund(contract.contract_address, contract.fund_token_id).then(setFund);
+			IndexerService.getAdminIndexerFund(contract.contract_address, contract.fund_token_id).then(setFund);
 		}
 	}, [contract, refreshCounter]);
 	useEffect(() => {
 		if (!contract) return;
-		IndexerService.getAdminIndexerCis2TokenList(contract.contract_address!).then(setTokens);
+		IndexerService.getAdminIndexerTokens(tokenPage, tokenPageSize, contract.contract_address!).then(setTokens);
 	}, [tokenPage, tokenPageSize, refreshCounter, contract]);
 
 	useEffect(() => {

@@ -26,7 +26,7 @@ import {
 	Stack,
 	Divider,
 } from "@mui/material";
-import { ForestProjectService, ForestProjectTokenHolder } from "../../apiClient";
+import { ForestProjectService, IndexerService, TokenHolderUser } from "../../apiClient";
 import SearchIcon from "@mui/icons-material/Search";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
@@ -55,7 +55,7 @@ interface FilterForm {
 
 const ProjectTokenHoldersList = () => {
 	const classes = useCommonStyles();
-	const [tokenHolders, setTokenHolders] = useState<ForestProjectTokenHolder[]>([]);
+	const [tokenHolders, setTokenHolders] = useState<TokenHolderUser[]>([]);
 	const [projects, setProjects] = useState<ForestProject[]>([]);
 	const [loading, setLoading] = useState<boolean>(false);
 	const [totalRows, setTotalRows] = useState<number>(0);
@@ -87,13 +87,13 @@ const ProjectTokenHoldersList = () => {
 	const fetchTokenHolders = useCallback(async (filters: FilterForm, page: number, pageSize: number) => {
 		setLoading(true);
 		try {
-			const response = await ForestProjectService.getAdminForestProjectsTokenHoldersList(
+			const response = await IndexerService.getAdminIndexerHolders(
 				page,
+				pageSize,
+				filters.project_id || undefined,
 				filters.cis2_address || undefined,
 				filters.token_id || undefined,
 				filters.holder_address || undefined,
-				filters.project_id || undefined,
-				pageSize,
 			);
 
 			// Map the response data to include project IDs
@@ -279,7 +279,9 @@ const ProjectTokenHoldersList = () => {
 													)}
 													{!holder.forest_project_id && holder.cis2_address.substring(0, 10) + "..."}
 												</TableCell>
-												<TableCell>{getContractTypeChip(holder.contract_type)}</TableCell>
+												<TableCell>
+													{holder.forest_project_contract_type ? getContractTypeChip(holder.forest_project_contract_type) : null}
+												</TableCell>
 												<TableCell>
 													{holder.forest_project_id && (
 														<Tooltip title="View Token Details">

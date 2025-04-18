@@ -13,12 +13,9 @@ import type { LegalContractUserModel } from "../models/LegalContractUserModel";
 import type { LegalContractUserSignature } from "../models/LegalContractUserSignature";
 import type { PagedResponse_ForestProject } from "../models/PagedResponse_ForestProject";
 import type { PagedResponse_ForestProjectAggApiModel } from "../models/PagedResponse_ForestProjectAggApiModel";
-import type { PagedResponse_ForestProjectFundInvestor } from "../models/PagedResponse_ForestProjectFundInvestor";
-import type { PagedResponse_ForestProjectMarketTrader } from "../models/PagedResponse_ForestProjectMarketTrader";
 import type { PagedResponse_ForestProjectMedia } from "../models/PagedResponse_ForestProjectMedia";
 import type { PagedResponse_ForestProjectPrice } from "../models/PagedResponse_ForestProjectPrice";
 import type { PagedResponse_ForestProjectTokenContractAggApiModel } from "../models/PagedResponse_ForestProjectTokenContractAggApiModel";
-import type { PagedResponse_ForestProjectTokenHolder } from "../models/PagedResponse_ForestProjectTokenHolder";
 import type { PagedResponse_LegalContract } from "../models/PagedResponse_LegalContract";
 import type { PagedResponse_LegalContractUserModel } from "../models/PagedResponse_LegalContractUserModel";
 import type { SecurityTokenContractType } from "../models/SecurityTokenContractType";
@@ -452,96 +449,6 @@ export class ForestProjectService {
 			},
 			body: requestBody,
 			mediaType: "application/json; charset=utf-8",
-		});
-	}
-
-	/**
-	 * @param page
-	 * @param projectId
-	 * @param investmentTokenId
-	 * @param investmentTokenContractAddress
-	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectFundInvestor
-	 * @throws ApiError
-	 */
-	public static getAdminForestProjectsFundInvestorList(
-		page: number,
-		projectId?: string,
-		investmentTokenId?: string,
-		investmentTokenContractAddress?: string,
-		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectFundInvestor> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/admin/forest_projects/fund/investor/list",
-			query: {
-				project_id: projectId,
-				investment_token_id: investmentTokenId,
-				investment_token_contract_address: investmentTokenContractAddress,
-				page: page,
-				page_size: pageSize,
-			},
-		});
-	}
-
-	/**
-	 * @param page
-	 * @param projectId
-	 * @param tokenId
-	 * @param tokenContractAddress
-	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectMarketTrader
-	 * @throws ApiError
-	 */
-	public static getAdminForestProjectsMarketTraderList(
-		page: number,
-		projectId?: string,
-		tokenId?: string,
-		tokenContractAddress?: string,
-		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectMarketTrader> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/admin/forest_projects/market/trader/list",
-			query: {
-				project_id: projectId,
-				token_id: tokenId,
-				token_contract_address: tokenContractAddress,
-				page: page,
-				page_size: pageSize,
-			},
-		});
-	}
-
-	/**
-	 * @param page
-	 * @param cis2Address
-	 * @param tokenId
-	 * @param holderAddress
-	 * @param projectId
-	 * @param pageSize
-	 * @returns PagedResponse_ForestProjectTokenHolder
-	 * @throws ApiError
-	 */
-	public static getAdminForestProjectsTokenHoldersList(
-		page: number,
-		cis2Address?: string,
-		tokenId?: string,
-		holderAddress?: string,
-		projectId?: string,
-		pageSize?: number,
-	): CancelablePromise<PagedResponse_ForestProjectTokenHolder> {
-		return __request(OpenAPI, {
-			method: "GET",
-			url: "/admin/forest_projects/token/holders/list",
-			query: {
-				cis2_address: cis2Address,
-				token_id: tokenId,
-				holder_address: holderAddress,
-				project_id: projectId,
-				page: page,
-				page_size: pageSize,
-			},
 		});
 	}
 

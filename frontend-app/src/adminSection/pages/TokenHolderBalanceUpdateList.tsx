@@ -36,7 +36,7 @@ export default function TokenHolderBalanceUpdateList() {
 		if (!contract || !token_id || !holder) return;
 
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2BalanceUpdatesList(page, contract, token_id, holder, undefined, pageSize)
+		IndexerService.getAdminIndexerBalanceUpdates(page, pageSize, undefined, contract, token_id, holder, undefined)
 			.then(setBalanceUpdates)
 			.catch(console.error)
 			.finally(() => {

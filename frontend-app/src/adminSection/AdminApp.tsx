@@ -24,14 +24,12 @@ import HandymanIcon from "@mui/icons-material/Handyman";
 import UpdateIcon from "@mui/icons-material/Update";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-import ForestIcon from "@mui/icons-material/Forest";
 import LandscapeIcon from "@mui/icons-material/Landscape";
 import WalletIcon from "@mui/icons-material/Wallet";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import StoreIcon from "@mui/icons-material/Store";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
-import TreeFungibleHoldersList from "./pages/TreeFungibleHoldersList.tsx";
 import TreeMetadataList from "./pages/TreeMetadataList.tsx";
 import InvestorsList from "./pages/InvestorsList.tsx";
 import TradersList from "./pages/TradersList.tsx";
@@ -118,12 +116,6 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/token-contracts",
 			icon: <TokenIcon />,
 			isActive: pathname.startsWith("/admin/token-contracts"),
-		},
-		{
-			name: "Tree Fungible Token Holders",
-			url: "/admin/tree/fungible/holders",
-			icon: <ForestIcon />,
-			isActive: pathname.startsWith("/admin/tree/fungible/holders"),
 		},
 		{
 			name: "Users",
@@ -346,7 +338,6 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						/>
 						<Route path="token-contracts" element={<TokenContractsList />} />
 						<Route path="token-contracts/:contract_index/*" element={<TokenContractDetails />} />
-						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />
 							<Route path="list" element={<UserList user={user} />} />

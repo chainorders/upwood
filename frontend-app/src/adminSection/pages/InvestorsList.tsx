@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import {
 	ForestProject,
 	ForestProjectService,
-	PagedResponse_ForestProjectFundInvestor,
+	IndexerService,
+	PagedResponse_InvestorUser,
 	SecurityTokenContractType,
 } from "../../apiClient";
 import { useSearchParams } from "react-router";
@@ -53,7 +54,7 @@ export default function InvestorsList() {
 	const [pageSize, setPageSize] = useState<number>(20);
 	const [page, setPage] = useState<number>(0);
 	const [loading, setLoading] = useState<boolean>(false);
-	const [investors, setInvestors] = useState<PagedResponse_ForestProjectFundInvestor>({
+	const [investors, setInvestors] = useState<PagedResponse_InvestorUser>({
 		data: [],
 		page,
 		page_count: 1,
@@ -73,12 +74,12 @@ export default function InvestorsList() {
 
 	useEffect(() => {
 		setLoading(true);
-		ForestProjectService.getAdminForestProjectsFundInvestorList(
+		IndexerService.getAdminIndexerInvestors(
 			page,
+			pageSize,
 			filters.get("projectId") || undefined,
 			filters.get("investmentTokenId") || undefined,
 			filters.get("investmentTokenContract") || undefined,
-			pageSize,
 		)
 			.then((data) => {
 				setInvestors(data);
@@ -230,10 +231,10 @@ export default function InvestorsList() {
 									investors.data.map((investor, index) => (
 										<TableRow key={index} sx={classes.tableRow}>
 											<TableCell>
-												<Tooltip title={investor.investor.investor}>
+												<Tooltip title={investor.investor}>
 													<Typography noWrap sx={{ maxWidth: 150, display: "flex", alignItems: "center" }}>
 														<PersonIcon fontSize="small" sx={{ mr: 0.5, opacity: 0.7 }} />
-														{investor.investor.investor.substring(0, 10)}...
+														{investor.investor}
 													</Typography>
 												</Tooltip>
 											</TableCell>
@@ -250,30 +251,32 @@ export default function InvestorsList() {
 											<TableCell>
 												<MuiLink
 													component={Link}
-													to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investor.investment_token_contract_address}/details`}
+													to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investment_token_contract_address}/details`}
 												>
-													{investor.investor.investment_token_contract_address}
+													{investor.investment_token_contract_address}
 												</MuiLink>
 											</TableCell>
-											<TableCell>{getFundTypeChip(investor.fund_type)}</TableCell>
 											<TableCell>
-												{investor.investor.investment_token_id && (
+												{investor.forest_project_contract_type ? getFundTypeChip(investor.forest_project_contract_type) : null}
+											</TableCell>
+											<TableCell>
+												{investor.investment_token_id && (
 													<MuiLink
 														component={Link}
-														to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investor.investment_token_contract_address}/token/${investor.investor.investment_token_id}/details`}
+														to={`/admin/projects/${investor.forest_project_id}/contract/${investor.investment_token_contract_address}/token/${investor.investment_token_id}/details`}
 													>
-														{investor.investor.investment_token_id}
+														{investor.investment_token_id}
 													</MuiLink>
 												)}
 											</TableCell>
-											<TableCell>{investor.investor.token_amount}</TableCell>
-											<TableCell>{investor.investor.token_amount_total}</TableCell>
-											<TableCell>{toDisplayAmount(investor.investor.currency_amount, 6, 6)}</TableCell>
-											<TableCell>{toDisplayAmount(investor.investor.currency_amount_total, 6, 6)}</TableCell>
+											<TableCell>{investor.token_amount}</TableCell>
+											<TableCell>{investor.token_amount_total}</TableCell>
+											<TableCell>{toDisplayAmount(investor.currency_amount, 6, 6)}</TableCell>
+											<TableCell>{toDisplayAmount(investor.currency_amount_total, 6, 6)}</TableCell>
 											<TableCell>
 												<Button
 													component={Link}
-													to={`/admin/fund/investment-records?investment_token_contract=${investor.investor.investment_token_contract_address}&investment_token_id=${investor.investor.investment_token_id || ""}&investor=${investor.investor.investor}`}
+													to={`/admin/fund/investment-records?investment_token_contract=${investor.investment_token_contract_address}&investment_token_id=${investor.investment_token_id || ""}&investor=${investor.investor}`}
 													size="small"
 													variant="outlined"
 													color="primary"

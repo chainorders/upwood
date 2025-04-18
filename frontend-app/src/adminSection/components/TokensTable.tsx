@@ -36,7 +36,7 @@ const TokensTable: React.FC<TokensTableProps> = ({ contract_index }) => {
 	useEffect(() => {
 		if (!contract_index) return;
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2TokenList(contract_index, page, pageSize)
+		IndexerService.getAdminIndexerTokens(page, pageSize, contract_index)
 			.then(setTokens)
 			.finally(() => setLoading(false));
 	}, [contract_index, page, pageSize]);

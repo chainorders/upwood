@@ -53,7 +53,8 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 			])
 			.then((res) => euroeStablecoin.operatorOf.parseReturnValue(res.returnValue!)!)
 			.then((res) => setIsCurrencyOperator(res[0]));
-		IndexerService.getAdminIndexerCis2Agent(market.token_contract_address, market.contract_address, true).then(setAgent);
+		console.log(market);
+		IndexerService.getAdminIndexerAgent(market.token_contract_address, market.contract_address, true).then(setAgent);
 		euroeStablecoin.balanceOf
 			.invoke(
 				concordiumNodeClient,
@@ -76,11 +77,9 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 			});
 
 		if (market.token_id) {
-			IndexerService.getAdminIndexerCis2TokenHolder(
-				market.token_contract_address,
-				market.token_id,
-				market.liquidity_provider,
-			).then(setLpTokenHolder);
+			IndexerService.getAdminIndexerHolder(market.token_contract_address, market.token_id, market.liquidity_provider).then(
+				setLpTokenHolder,
+			);
 		}
 	}, [market, refreshCounter]);
 

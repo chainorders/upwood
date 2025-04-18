@@ -11,6 +11,4 @@ export type TokenContract = {
 	created_at: string;
 	identity_registry?: string;
 	compliance_contract?: string;
-	agents_count: number;
-	tokens_count: number;
 };

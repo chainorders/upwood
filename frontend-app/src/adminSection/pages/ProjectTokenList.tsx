@@ -51,7 +51,7 @@ export default function ProjectTokenList({ user, market }: { user: User; market?
 	}, [id, contract_address, refreshCounter]);
 	useEffect(() => {
 		if (!tokenContract) return;
-		IndexerService.getAdminIndexerCis2TokenList(tokenContract.contract_address, page, pageSize)
+		IndexerService.getAdminIndexerTokens(page, pageSize, tokenContract.contract_address)
 			.then(setTokens)
 			.catch(console.error);
 	}, [tokenContract, page, pageSize]);

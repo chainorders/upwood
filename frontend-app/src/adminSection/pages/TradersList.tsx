@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ForestProject, ForestProjectService, PagedResponse_ForestProjectMarketTrader } from "../../apiClient";
+import { ForestProject, ForestProjectService, IndexerService, PagedResponse_TraderUser } from "../../apiClient";
 import { useSearchParams } from "react-router";
 import { useForm, Controller } from "react-hook-form";
 import {
@@ -51,7 +51,7 @@ export default function TradersList() {
 	const [pageSize, setPageSize] = useState<number>(20);
 	const [page, setPage] = useState<number>(0);
 	const [loading, setLoading] = useState<boolean>(false);
-	const [traders, setTraders] = useState<PagedResponse_ForestProjectMarketTrader>({
+	const [traders, setTraders] = useState<PagedResponse_TraderUser>({
 		data: [],
 		page,
 		page_count: 1,
@@ -71,12 +71,12 @@ export default function TradersList() {
 
 	useEffect(() => {
 		setLoading(true);
-		ForestProjectService.getAdminForestProjectsMarketTraderList(
+		IndexerService.getAdminIndexerTraders(
 			page,
-			filters.get("projectId") || undefined,
-			filters.get("tokenId") || undefined,
-			filters.get("tokenContract") || undefined,
 			pageSize,
+			filters.get("projectId") || undefined,
+			filters.get("tokenContract") || undefined,
+			filters.get("tokenId") || undefined,
 		)
 			.then((data) => {
 				setTraders(data);
@@ -203,10 +203,10 @@ export default function TradersList() {
 									traders.data.map((trader, index) => (
 										<TableRow key={index} sx={classes.tableRow}>
 											<TableCell>
-												<Tooltip title={trader.trader.trader}>
+												<Tooltip title={trader.trader}>
 													<Typography noWrap sx={{ maxWidth: 150, display: "flex", alignItems: "center" }}>
 														<PersonIcon fontSize="small" sx={{ mr: 0.5, opacity: 0.7 }} />
-														{trader.trader.trader.substring(0, 10)}...
+														{trader.trader}
 													</Typography>
 												</Tooltip>
 											</TableCell>
@@ -221,15 +221,15 @@ export default function TradersList() {
 												</MuiLink>
 											</TableCell>
 											<TableCell>
-												{trader.trader.token_id ? (
+												{trader.token_id ? (
 													<Chip
 														icon={<TokenIcon fontSize="small" />}
-														label={trader.trader.token_id}
+														label={trader.token_id}
 														size="small"
 														color="primary"
 														variant="outlined"
 														component={Link}
-														to={`/admin/projects/${trader.forest_project_id}/contract/${trader.trader.token_contract_address}/token/${trader.trader.token_id}/details`}
+														to={`/admin/projects/${trader.forest_project_id}/contract/${trader.token_contract_address}/token/${trader.token_id}/details`}
 														clickable
 													/>
 												) : (
@@ -239,47 +239,47 @@ export default function TradersList() {
 											<TableCell>
 												<MuiLink
 													component={Link}
-													to={`/admin/projects/${trader.forest_project_id}/contract/${trader.trader.token_contract_address}/details`}
+													to={`/admin/projects/${trader.forest_project_id}/contract/${trader.token_contract_address}/details`}
 												>
-													{trader.trader.token_contract_address.substring(0, 8)}...
+													{trader.token_contract_address.substring(0, 8)}...
 												</MuiLink>
 											</TableCell>
 											<TableCell>
 												<Chip
-													label={trader.trader.token_in_amount}
+													label={trader.token_in_amount}
 													size="small"
 													icon={<ArrowDownwardIcon fontSize="small" />}
-													color={BigInt(trader.trader.token_in_amount) > 0 ? "success" : "default"}
+													color={BigInt(trader.token_in_amount) > 0 ? "success" : "default"}
 												/>
 											</TableCell>
 											<TableCell>
 												<Chip
-													label={trader.trader.token_out_amount}
+													label={trader.token_out_amount}
 													size="small"
 													icon={<ArrowUpwardIcon fontSize="small" />}
-													color={BigInt(trader.trader.token_out_amount) > 0 ? "warning" : "default"}
+													color={BigInt(trader.token_out_amount) > 0 ? "warning" : "default"}
 												/>
 											</TableCell>
 											<TableCell>
 												<Chip
-													label={toDisplayAmount(trader.trader.currency_in_amount, 6, 2)}
+													label={toDisplayAmount(trader.currency_in_amount, 6, 2)}
 													size="small"
 													icon={<ArrowDownwardIcon fontSize="small" />}
-													color={BigInt(trader.trader.currency_in_amount) > 0 ? "success" : "default"}
+													color={BigInt(trader.currency_in_amount) > 0 ? "success" : "default"}
 												/>
 											</TableCell>
 											<TableCell>
 												<Chip
-													label={toDisplayAmount(trader.trader.currency_out_amount, 6, 2)}
+													label={toDisplayAmount(trader.currency_out_amount, 6, 2)}
 													size="small"
 													icon={<ArrowUpwardIcon fontSize="small" />}
-													color={BigInt(trader.trader.currency_out_amount) > 0 ? "warning" : "default"}
+													color={BigInt(trader.currency_out_amount) > 0 ? "warning" : "default"}
 												/>
 											</TableCell>
 											<TableCell>
 												<Button
 													component={Link}
-													to={`/admin/market/orders?token_contract=${trader.trader.token_contract_address}&token_id=${trader.trader.token_id || ""}&trader=${trader.trader.trader}`}
+													to={`/admin/market/orders?token_contract=${trader.token_contract_address}&token_id=${trader.token_id || ""}&trader=${trader.trader}`}
 													size="small"
 													variant="outlined"
 													color="primary"

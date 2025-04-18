@@ -59,12 +59,12 @@ export default function InvestmentRecordsList() {
 	) => {
 		setLoading(true);
 		try {
-			const response = await IndexerService.getAdminIndexerCis2FundInvestmentRecordsList(
-				page, // API uses 0-based pagination, so no need to add 1
+			const response = await IndexerService.getAdminIndexerInvestmentRecords(
+				page,
+				pageSize,
 				investmentTokenContract || undefined,
 				investmentTokenId || undefined,
 				investor || undefined,
-				pageSize,
 			);
 			setRecords(response.data || []);
 			setTotalCount(response.page_count * pageSize || 0);

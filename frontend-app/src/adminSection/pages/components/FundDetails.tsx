@@ -30,10 +30,10 @@ import {
 	ForestProjectService,
 	ForestProjectTokenContract,
 	SecurityMintFundState,
-	PagedResponse_ForestProjectFundInvestor,
-	ForestProjectFundInvestor,
 	IndexerService,
 	Agent,
+	PagedResponse_InvestorUser,
+	InvestorUser,
 } from "../../../apiClient";
 import TransactionButton from "../../../components/TransactionButton";
 import { TxnStatus, updateContract } from "../../../lib/concordium";
@@ -62,7 +62,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 	const [markFailedTxnStatus, setMarkFailedTxnStatus] = useState<TxnStatus>("none");
 	const [markSuccessTxnStatus, setMarkSuccessTxnStatus] = useState<TxnStatus>("none");
 	const [openSuccessPopup, setOpenSuccessPopup] = useState(false);
-	const [investors, setInvestors] = useState<PagedResponse_ForestProjectFundInvestor>();
+	const [investors, setInvestors] = useState<PagedResponse_InvestorUser>();
 	const [investorsPage, setInvestorsPage] = useState(0);
 	const [investorsRowsPerPage, setInvestorsRowsPerPage] = useState(10);
 	const [claimTxnStatus, setClaimTxnStatus] = useState<TxnStatus>("none");
@@ -91,21 +91,21 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 			.catch(() => {
 				setFundTokenMetadata(undefined);
 			});
-		IndexerService.getAdminIndexerCis2Agent(fund.token_contract_address, fund.contract_address, true).then(
+		IndexerService.getAdminIndexerAgent(fund.token_contract_address, fund.contract_address, true).then(
 			setAgentPresaleContract,
 		);
-		IndexerService.getAdminIndexerCis2Agent(fund.investment_token_contract_address, fund.contract_address, true).then(
+		IndexerService.getAdminIndexerAgent(fund.investment_token_contract_address, fund.contract_address, true).then(
 			setAgentInvestmentContract,
 		);
 	}, [fund, refreshCounter]);
 	useEffect(() => {
 		if (fund) {
-			ForestProjectService.getAdminForestProjectsFundInvestorList(
+			IndexerService.getAdminIndexerInvestors(
 				investorsPage,
-				undefined,
-				fund.investment_token_id,
-				fund.investment_token_contract_address,
 				investorsRowsPerPage,
+				undefined,
+				fund.investment_token_contract_address,
+				fund.investment_token_id,
 			).then(setInvestors);
 		}
 	}, [fund, investorsPage, investorsRowsPerPage, refreshCounter]);
@@ -209,7 +209,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 		setInvestorsPage(0);
 	};
 
-	const claimInvestment = async (investor: ForestProjectFundInvestor) => {
+	const claimInvestment = async (investor: InvestorUser) => {
 		try {
 			await updateContract(
 				user.concordiumAccountAddress,
@@ -218,7 +218,7 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 				{
 					investments: [
 						{
-							investor: investor.investor.investor,
+							investor: investor.investor,
 							security_token: {
 								id: toTokenId(BigInt(fund.investment_token_id), 8),
 								contract: {
@@ -536,11 +536,11 @@ export default function FundDetails({ fund, user, onRefresh }: FundDetailsProps)
 						</TableHead>
 						<TableBody>
 							{investors?.data.map((investor) => (
-								<TableRow key={investor.investor.investor}>
+								<TableRow key={investor.investor}>
 									<TableCell>{investor.email}</TableCell>
-									<TableCell>{investor.investor.investor}</TableCell>
-									<TableCell>{investor.investor.token_amount}</TableCell>
-									<TableCell>{investor.investor.currency_amount}</TableCell>
+									<TableCell>{investor.investor}</TableCell>
+									<TableCell>{investor.token_amount}</TableCell>
+									<TableCell>{investor.currency_amount}</TableCell>
 									<TableCell>
 										<TransactionButton
 											txnStatus={claimTxnStatus}

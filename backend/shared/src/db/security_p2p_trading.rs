@@ -159,7 +159,8 @@ impl Market {
     pub fn list(
         conn: &mut DbConn,
         contract_address: Decimal,
-        token_contract_addresses: Option<&[Decimal]>,
+        token_contract_addresses: Option<Vec<Decimal>>,
+        token_id: Option<Decimal>,
         page: i64,
         page_size: i64,
     ) -> DbResult<(Vec<Self>, i64)> {
@@ -169,7 +170,7 @@ impl Market {
         let count_query = security_p2p_trading_markets::table
             .filter(security_p2p_trading_markets::contract_address.eq(contract_address))
             .into_boxed();
-        let (query, count_query) = match token_contract_addresses {
+        let (query, count_query) = match &token_contract_addresses {
             Some(token_contract_addresses) => {
                 let query = query.filter(
                     security_p2p_trading_markets::token_contract_address
@@ -183,6 +184,16 @@ impl Market {
             }
             None => (query, count_query),
         };
+        let (query, count_query) = match token_id {
+            Some(token_id) => {
+                let query = query.filter(security_p2p_trading_markets::token_id.eq(token_id));
+                let count_query =
+                    count_query.filter(security_p2p_trading_markets::token_id.eq(token_id));
+                (query, count_query)
+            }
+            None => (query, count_query),
+        };
+        let query = query.order_by(security_p2p_trading_markets::create_time.desc());
 
         let markets = query
             .limit(page_size)
@@ -432,7 +443,6 @@ impl ExchangeRecord {
             count_query = count_query.filter(security_p2p_exchange_records::seller.eq(seller));
         }
         query = query.order_by(security_p2p_exchange_records::create_time.desc());
-        count_query = count_query.order_by(security_p2p_exchange_records::create_time.desc());
 
         let records = query
             .limit(page_size)

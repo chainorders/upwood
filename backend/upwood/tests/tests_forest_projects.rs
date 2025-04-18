@@ -560,7 +560,7 @@ pub async fn test_forest_projects() {
             });
         }
 
-        // successfull completion of mint fund 1
+        // successful completion of mint fund 1
         {
             admin
                 .transact(|account| {
@@ -583,14 +583,7 @@ pub async fn test_forest_projects() {
 
             let investors = admin
                 .call_api(|token| {
-                    api.admin_forest_project_investor_list(
-                        token,
-                        Some(fp_1.id),
-                        None,
-                        None,
-                        0,
-                        None,
-                    )
+                    api.admin_indexer_investors(token, Some(fp_1.id), None, None, None, 0, 10)
                 })
                 .await
                 .data;
@@ -606,7 +599,6 @@ pub async fn test_forest_projects() {
                                     .iter()
                                     .map(|i| security_mint_fund::types::ClaimInvestmentParam {
                                         investor:       i
-                                            .investor
                                             .investor
                                             .parse()
                                             .expect("Failed to parse investor"),
@@ -724,7 +716,7 @@ pub async fn test_forest_projects() {
         });
     }
 
-    // adding yeilds to the forest project 1
+    // adding yields to the forest project 1
     let fp_1_token_2 = TokenIdU64(2);
     {
         // minting carbon credits
@@ -1447,7 +1439,7 @@ pub fn deploy_upwood_contracts(
             )
         })
         .map(SftMultiYielderTestClient)
-        .expect("Failed to init yeilder contract");
+        .expect("Failed to init yielder contract");
     admin
         .transact(|sender| {
             chain.update(

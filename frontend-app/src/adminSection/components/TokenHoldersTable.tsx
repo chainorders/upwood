@@ -43,12 +43,13 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({ contract_index })
 
 	const fetchHolders = (page: number, pageSize: number, filters?: { token_id?: string; holder_address?: string }) => {
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2HolderList(
+		IndexerService.getAdminIndexerHolders(
 			page,
+			pageSize,
+			undefined,
 			contract_index,
 			filters?.token_id || undefined,
 			filters?.holder_address || undefined,
-			pageSize,
 		)
 			.then(setHolders)
 			.finally(() => setLoading(false));

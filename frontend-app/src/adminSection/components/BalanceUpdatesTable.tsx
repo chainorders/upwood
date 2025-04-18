@@ -52,13 +52,14 @@ const BalanceUpdatesTable: React.FC<BalanceUpdatesTableProps> = ({ contract_inde
 
 	useEffect(() => {
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2BalanceUpdatesList(
+		IndexerService.getAdminIndexerBalanceUpdates(
 			filters.page,
+			filters.pageSize,
+			undefined,
 			contract_index,
 			filters.token_id || undefined,
 			filters.holder_address || undefined,
 			filters.update_type || undefined,
-			filters.pageSize,
 		)
 			.then(setUpdates)
 			.finally(() => setLoading(false));

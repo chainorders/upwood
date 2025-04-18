@@ -92,7 +92,7 @@ export default function Yields({
 	// Fetch yields data
 	useEffect(() => {
 		setLoading(true);
-		IndexerService.getAdminIndexerYieldList(
+		IndexerService.getAdminIndexerYields(
 			currentPage,
 			rowsPerPage,
 			tokenContract.contract_address,
@@ -341,10 +341,10 @@ export default function Yields({
 	};
 
 	useEffect(() => {
-		IndexerService.getAdminIndexerCis2Agent(tokenContract.contract_address, yielderContract, true).then(
+		IndexerService.getAdminIndexerAgent(tokenContract.contract_address, yielderContract, true).then(
 			setAgentTokenContract,
 		);
-		IndexerService.getAdminIndexerYielderTreasury(yielderContract).then(setTreasury);
+		IndexerService.getAdminIndexerTreasury().then(setTreasury);
 	}, [refreshCounter, tokenContract.contract_address, yielderContract]);
 
 	useEffect(() => {
@@ -374,10 +374,10 @@ export default function Yields({
 			.then((response) => euroeStablecoin.operatorOf.parseReturnValue(response.returnValue!)!)
 			.then((response) => setIsCurrencyOperator(response[0]));
 
-		IndexerService.getAdminIndexerCis2Agent(contracts.carbon_credit_contract_index, yielderContract, true).then(
+		IndexerService.getAdminIndexerAgent(contracts.carbon_credit_contract_index, yielderContract, true).then(
 			setAgentCarbonCreditsContract,
 		);
-		IndexerService.getAdminIndexerCis2Agent(contracts.tree_ft_contract_index, yielderContract, true).then(
+		IndexerService.getAdminIndexerAgent(contracts.tree_ft_contract_index, yielderContract, true).then(
 			setAgentTreesContract,
 		);
 	}, [treasury, yielderContract, contracts, user.concordiumAccountAddress, refreshCounter]);

@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { ForestProjectTokenHolder } from "./ForestProjectTokenHolder";
+import type { ForestProjectContract } from "./ForestProjectContract";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_ForestProjectTokenHolder = {
+export type PagedResponse_ForestProjectContract = {
 	page_count: number;
 	page: number;
-	data: Array<ForestProjectTokenHolder>;
+	data: Array<ForestProjectContract>;
 };

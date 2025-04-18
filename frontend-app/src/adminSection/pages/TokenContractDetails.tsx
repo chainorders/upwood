@@ -57,7 +57,7 @@ export default function TokenContractDetailsLayout() {
 	}, []);
 	useEffect(() => {
 		if (!contract_index) return;
-		IndexerService.getAdminIndexerCis2(contract_index).then(setContract).catch(console.error);
+		IndexerService.getAdminIndexerTokenContract(contract_index).then(setContract).catch(console.error);
 	}, [contract_index]);
 
 	if (!contract_index) {
@@ -106,14 +106,6 @@ export default function TokenContractDetailsLayout() {
 								<TableRow>
 									<TableCell sx={classes.tableHeaderCell}>Compliance Contract</TableCell>
 									<TableCell>{contract.compliance_contract || "-"}</TableCell>
-								</TableRow>
-								<TableRow>
-									<TableCell sx={classes.tableHeaderCell}>Agents Count</TableCell>
-									<TableCell>{contract.agents_count}</TableCell>
-								</TableRow>
-								<TableRow>
-									<TableCell sx={classes.tableHeaderCell}>Tokens Count</TableCell>
-									<TableCell>{contract.tokens_count}</TableCell>
 								</TableRow>
 							</TableBody>
 						</Table>

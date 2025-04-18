@@ -2,13 +2,13 @@ use poem::http::StatusCode;
 use poem::test::{TestClient, TestResponse};
 use poem::Route;
 use poem_openapi::types::ToJSON;
-use rust_decimal::Decimal;
 use shared::api::PagedResponse;
 use shared::db_app::forest_project::{
     ForestProject, ForestProjectMedia, ForestProjectPrice, ForestProjectState,
 };
 use shared::db_app::forest_project_crypto::prelude::*;
 use shared::db_app::portfolio::UserTransaction;
+use shared::db_app::tokens::InvestorUser;
 use shared::db_app::users::UserKYCModel;
 use upwood::api;
 use upwood::api::files::UploadUrlResponse;
@@ -648,45 +648,6 @@ impl ApiTestClient {
             .await
     }
 
-    pub async fn admin_forest_project_investor_list(
-        &self,
-        id_token: String,
-        project_id: Option<Uuid>,
-        investment_token_id: Option<Decimal>,
-        investment_token_contract_address: Option<Decimal>,
-        page: i64,
-        page_size: Option<i64>,
-    ) -> PagedResponse<ForestProjectFundInvestor> {
-        let mut request = self
-            .client
-            .get("/admin/forest_projects/fund/investor/list")
-            .header("Authorization", format!("Bearer {}", id_token))
-            .query("page", &page.to_string());
-
-        if let Some(page_size) = page_size {
-            request = request.query("page_size", &page_size.to_string());
-        }
-        if let Some(project_id) = project_id {
-            request = request.query("project_id", &project_id.to_string());
-        }
-        if let Some(investment_token_id) = investment_token_id {
-            request = request.query("investment_token_id", &investment_token_id.to_string());
-        }
-        if let Some(investment_token_contract_address) = investment_token_contract_address {
-            request = request.query(
-                "investment_token_contract_address",
-                &investment_token_contract_address.to_string(),
-            );
-        }
-
-        let res = request.send().await.0;
-        assert_eq!(res.status(), StatusCode::OK);
-        res.into_body()
-            .into_json()
-            .await
-            .expect("Failed to parse list forest project investors response")
-    }
-
     pub async fn forest_project_token_contract_create(
         &self,
         id_token: String,
@@ -812,5 +773,50 @@ impl ApiTestClient {
             .into_json()
             .await
             .expect("Failed to parse portfolio value last n months response")
+    }
+}
+
+// Indexer Implementation
+impl ApiTestClient {
+    #[allow(clippy::too_many_arguments)]
+    pub async fn admin_indexer_investors(
+        &self,
+        id_token: String,
+        forest_project_id: Option<Uuid>,
+        investment_contract_address: Option<rust_decimal::Decimal>,
+        investment_token_id: Option<rust_decimal::Decimal>,
+        investor: Option<String>,
+        page: i64,
+        page_size: i64,
+    ) -> PagedResponse<InvestorUser> {
+        let mut req = self
+            .client
+            .get("/admin/indexer/investors")
+            .header("Authorization", format!("Bearer {}", id_token))
+            .query("page", &page.to_string())
+            .query("page_size", &page_size.to_string());
+
+        if let Some(forest_project_id) = forest_project_id {
+            req = req.query("forest_project_id", &forest_project_id.to_string());
+        }
+        if let Some(investment_contract_address) = investment_contract_address {
+            req = req.query(
+                "investment_contract_address",
+                &investment_contract_address.to_string(),
+            );
+        }
+        if let Some(investment_token_id) = investment_token_id {
+            req = req.query("investment_token_id", &investment_token_id.to_string());
+        }
+        if let Some(investor) = investor {
+            req = req.query("investor", &investor);
+        }
+
+        let res = req.send().await.0;
+        assert_eq!(res.status(), StatusCode::OK);
+        res.into_body()
+            .into_json()
+            .await
+            .expect("Failed to parse indexer investors response")
     }
 }

@@ -409,6 +409,7 @@ impl InvestmentRecord {
     serde::Deserialize,
     Clone,
     Copy,
+    Eq,
 )]
 #[ExistingTypePath = "crate::schema::sql_types::SecurityMintFundInvestmentRecordType"]
 pub enum InvestmentRecordType {
