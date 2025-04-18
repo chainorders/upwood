@@ -51,15 +51,28 @@ pub fn process_events(
         let event = event.parse::<Event>().expect("Failed to parse event");
         match event {
             Event::AgentAdded(AgentWithRoles { address, roles }) => {
-                Agent {
-                    agent_address: address.to_string(),
-                    cis2_address:  contract.to_decimal(),
-                    roles:         roles.into_iter().map(|r| Some(role_to_string(r))).collect(),
-                }
-                .insert(conn)?;
+                let roles = roles.iter().map(|r| Some(role_to_string(r))).collect();
+                let agent = match Agent::find(conn, contract.to_decimal(), &address.to_string())? {
+                    Some(agent) => Agent { roles, ..agent }.update(conn)?,
+                    None => {
+                        let agent = Agent {
+                            agent_address: address.to_string(),
+                            cis2_address: contract.to_decimal(),
+                            roles,
+                        };
+                        agent.insert(conn)?
+                    }
+                };
+                info!("Agent: {} added", agent.agent_address.to_string());
             }
             Event::AgentRemoved(address) => {
-                Agent::delete(conn, contract.to_decimal(), &address)?;
+                Agent::find(conn, contract.to_decimal(), &address.to_string())?
+                    .ok_or_else(|| ProcessorError::Cis2AgentNotFound {
+                        contract: contract.to_decimal(),
+                        agent:    address.to_string(),
+                    })?
+                    .delete(conn)?;
+                info!("Agent: {} removed", address.to_string());
             }
             Event::YieldAdded(UpsertYieldParams {
                 token_contract,
@@ -175,7 +188,7 @@ pub fn process_events(
     Ok(())
 }
 
-fn role_to_string(r: AgentRole) -> String {
+fn role_to_string(r: &AgentRole) -> String {
     match r {
         AgentRole::AddYield => "AddYield".to_string(),
         AgentRole::RemoveYield => "RemoveYield".to_string(),

@@ -78,7 +78,7 @@ async fn signature_tests() {
             admin_api_claims.clone(),
             Data(&pool),
             poem_openapi::payload::Json(AddMetadataRequest {
-                metadata_url:          api::tree_nft::MetadataUrl {
+                metadata_url:           api::tree_nft::MetadataUrl {
                     url:  NFT_METADATA.to_string(),
                     hash: None,
                 },

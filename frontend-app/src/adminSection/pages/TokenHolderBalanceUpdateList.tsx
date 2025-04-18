@@ -13,7 +13,7 @@ import {
 	TablePagination,
 	Chip,
 } from "@mui/material";
-import { IndexerService, PagedResponse_TokenHolderBalanceUpdate, TokenHolderBalanceUpdate } from "../../apiClient";
+import { IndexerService, PagedResponse_TokenHolderUserBalanceUpdate } from "../../apiClient";
 import { format } from "date-fns";
 
 export default function TokenHolderBalanceUpdateList() {
@@ -25,7 +25,7 @@ export default function TokenHolderBalanceUpdateList() {
 
 	const [page, setPage] = useState<number>(0);
 	const [pageSize, setPageSize] = useState<number>(20);
-	const [balanceUpdates, setBalanceUpdates] = useState<PagedResponse_TokenHolderBalanceUpdate>({
+	const [balanceUpdates, setBalanceUpdates] = useState<PagedResponse_TokenHolderUserBalanceUpdate>({
 		data: [],
 		page: 0,
 		page_count: 0,
@@ -36,13 +36,9 @@ export default function TokenHolderBalanceUpdateList() {
 		if (!contract || !token_id || !holder) return;
 
 		setLoading(true);
-		IndexerService.getAdminIndexerCis2TokenHolderBalanceUpdates(contract, token_id, holder, page, pageSize)
-			.then((response) => {
-				setBalanceUpdates(response);
-			})
-			.catch((error) => {
-				console.error("Error fetching balance updates:", error);
-			})
+		IndexerService.getAdminIndexerCis2BalanceUpdatesList(page, contract, token_id, holder, undefined, pageSize)
+			.then(setBalanceUpdates)
+			.catch(console.error)
 			.finally(() => {
 				setLoading(false);
 			});
@@ -114,9 +110,9 @@ export default function TokenHolderBalanceUpdateList() {
 								</TableCell>
 							</TableRow>
 						) : balanceUpdates.data.length > 0 ? (
-							balanceUpdates.data.map((update: TokenHolderBalanceUpdate) => (
+							balanceUpdates.data.map((update) => (
 								<TableRow key={update.id}>
-									<TableCell>{update.id_serial || update.id}</TableCell>
+									<TableCell>{update.id}</TableCell>
 									<TableCell>{update.block_height}</TableCell>
 									<TableCell>{update.txn_index}</TableCell>
 									<TableCell>{update.amount}</TableCell>

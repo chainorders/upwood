@@ -101,7 +101,12 @@ impl ForestProjectTokenContractUserYields {
             .filter(yielder_contract_address.eq(yielder_contract_address_))
             .filter(holder_address.eq(account))
             .filter(forest_project_id.eq_any(forest_project_ids))
-            .group_by((forest_project_id, cis2_address, yield_token_id, yield_contract_address))
+            .group_by((
+                forest_project_id,
+                cis2_address,
+                yield_token_id,
+                yield_contract_address,
+            ))
             .select((
                 forest_project_id,
                 cis2_address,

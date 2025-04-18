@@ -5,15 +5,18 @@
 import type { Agent } from "../models/Agent";
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
+import type { PagedResponse_Agent } from "../models/PagedResponse_Agent";
 import type { PagedResponse_ExchangeRecord } from "../models/PagedResponse_ExchangeRecord";
 import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
 import type { PagedResponse_Token } from "../models/PagedResponse_Token";
-import type { PagedResponse_TokenHolder } from "../models/PagedResponse_TokenHolder";
-import type { PagedResponse_TokenHolderBalanceUpdate } from "../models/PagedResponse_TokenHolderBalanceUpdate";
+import type { PagedResponse_TokenHolderUser } from "../models/PagedResponse_TokenHolderUser";
+import type { PagedResponse_TokenHolderUserBalanceUpdate } from "../models/PagedResponse_TokenHolderUserBalanceUpdate";
 import type { PagedResponse_Yield } from "../models/PagedResponse_Yield";
 import type { SecurityMintFund } from "../models/SecurityMintFund";
 import type { Token } from "../models/Token";
-import type { TokenHolder } from "../models/TokenHolder";
+import type { TokenContract } from "../models/TokenContract";
+import type { TokenHolderBalanceUpdateType } from "../models/TokenHolderBalanceUpdateType";
+import type { TokenHolderUser } from "../models/TokenHolderUser";
 import type { Treasury } from "../models/Treasury";
 import type { YieldType } from "../models/YieldType";
 
@@ -50,16 +53,56 @@ export class IndexerService {
 
 	/**
 	 * @param contractAddress
+	 * @returns TokenContract
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2(contractAddress: string): CancelablePromise<TokenContract> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/{contract_address}",
+			path: {
+				contract_address: contractAddress,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
 	 * @param page
 	 * @param pageSize
-	 * @returns Token
+	 * @returns PagedResponse_Agent
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerCis2AgentList(
+		contractAddress: string,
+		page: number,
+		pageSize?: number,
+	): CancelablePromise<PagedResponse_Agent> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/cis2/{contract_address}/agent/list",
+			path: {
+				contract_address: contractAddress,
+			},
+			query: {
+				page: page,
+				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
+	 * @param page
+	 * @param pageSize
+	 * @returns PagedResponse_Token
 	 * @throws ApiError
 	 */
 	public static getAdminIndexerCis2TokenList(
 		contractAddress: string,
 		page?: number,
 		pageSize?: number,
-	): CancelablePromise<Array<Token>> {
+	): CancelablePromise<PagedResponse_Token> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/indexer/cis2/{contract_address}/token/list",
@@ -308,27 +351,28 @@ export class IndexerService {
 	}
 
 	/**
+	 * @param page
 	 * @param contractAddress
 	 * @param tokenId
-	 * @param page
+	 * @param holderAddress
 	 * @param pageSize
-	 * @returns PagedResponse_TokenHolder
+	 * @returns PagedResponse_TokenHolderUser
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenHolderList(
-		contractAddress: string,
-		tokenId: string,
-		page?: number,
+	public static getAdminIndexerCis2HolderList(
+		page: number,
+		contractAddress?: string,
+		tokenId?: string,
+		holderAddress?: string,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_TokenHolder> {
+	): CancelablePromise<PagedResponse_TokenHolderUser> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/list",
-			path: {
+			url: "/admin/indexer/cis2/holder/list",
+			query: {
 				contract_address: contractAddress,
 				token_id: tokenId,
-			},
-			query: {
+				holder_address: holderAddress,
 				page: page,
 				page_size: pageSize,
 			},
@@ -339,14 +383,14 @@ export class IndexerService {
 	 * @param contractAddress
 	 * @param tokenId
 	 * @param holderAddress
-	 * @returns TokenHolder
+	 * @returns TokenHolderUser
 	 * @throws ApiError
 	 */
 	public static getAdminIndexerCis2TokenHolder(
 		contractAddress: string,
 		tokenId: string,
 		holderAddress: string,
-	): CancelablePromise<TokenHolder> {
+	): CancelablePromise<TokenHolderUser> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/{holder_address}",
@@ -359,30 +403,31 @@ export class IndexerService {
 	}
 
 	/**
+	 * @param page
 	 * @param contractAddress
 	 * @param tokenId
 	 * @param holderAddress
-	 * @param page
+	 * @param updateType
 	 * @param pageSize
-	 * @returns PagedResponse_TokenHolderBalanceUpdate
+	 * @returns PagedResponse_TokenHolderUserBalanceUpdate
 	 * @throws ApiError
 	 */
-	public static getAdminIndexerCis2TokenHolderBalanceUpdates(
-		contractAddress: string,
-		tokenId: string,
-		holderAddress: string,
+	public static getAdminIndexerCis2BalanceUpdatesList(
 		page: number,
+		contractAddress?: string,
+		tokenId?: string,
+		holderAddress?: string,
+		updateType?: TokenHolderBalanceUpdateType,
 		pageSize?: number,
-	): CancelablePromise<PagedResponse_TokenHolderBalanceUpdate> {
+	): CancelablePromise<PagedResponse_TokenHolderUserBalanceUpdate> {
 		return __request(OpenAPI, {
 			method: "GET",
-			url: "/admin/indexer/cis2/{contract_address}/token/{token_id}/holder/{holder_address}/balance-updates",
-			path: {
+			url: "/admin/indexer/cis2/balance-updates/list",
+			query: {
 				contract_address: contractAddress,
 				token_id: tokenId,
 				holder_address: holderAddress,
-			},
-			query: {
+				update_type: updateType,
 				page: page,
 				page_size: pageSize,
 			},

@@ -4,11 +4,12 @@ use poem_openapi::payload::Json;
 use poem_openapi::OpenApi;
 use rust_decimal::Decimal;
 use shared::api::PagedResponse;
-use shared::db::cis2_security::{Agent, Token, TokenHolder, TokenHolderBalanceUpdate};
+use shared::db::cis2_security::{Agent, Token, TokenHolderBalanceUpdateType};
 use shared::db::security_mint_fund::{InvestmentRecord, SecurityMintFund};
 use shared::db::security_p2p_trading::{ExchangeRecord, Market};
 use shared::db::security_sft_multi_yielder::{Treasury, Yield, YieldType};
 use shared::db::txn_listener::{ListenerBlock, ListenerContract};
+use shared::db_app::tokens::{TokenContract, TokenHolderUser, TokenHolderUserBalanceUpdate};
 use shared::db_shared::DbPool;
 
 use super::{ensure_is_admin, ApiTags, BearerAuthorization, SystemContractsConfig, PAGE_SIZE};
@@ -52,6 +53,43 @@ impl Api {
     }
 
     #[oai(
+        path = "/admin/indexer/cis2/:contract_address",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+    ) -> JsonResult<Option<TokenContract>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let contract = TokenContract::find(&mut conn, contract_address)?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
+        path = "/admin/indexer/cis2/:contract_address/agent/list",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_cis2_agents(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Path(contract_address): Path<Decimal>,
+        Query(page): Query<i64>,
+        Query(page_size): Query<Option<i64>>,
+    ) -> JsonResult<PagedResponse<Agent>> {
+        ensure_is_admin(&claims)?;
+        let page_size = page_size.unwrap_or(PAGE_SIZE);
+        let mut conn = db_pool.get()?;
+        let (agents, page_count) = Agent::list(&mut conn, contract_address, page, page_size)?;
+        Ok(Json(PagedResponse::new(agents, page, page_count)))
+    }
+
+    #[oai(
         path = "/admin/indexer/cis2/:contract_address/token/list",
         method = "get",
         tag = "ApiTags::Indexer"
@@ -63,13 +101,13 @@ impl Api {
         Path(contract_address): Path<Decimal>,
         Query(page): Query<Option<i64>>,
         Query(page_size): Query<Option<i64>>,
-    ) -> JsonResult<Vec<Token>> {
+    ) -> JsonResult<PagedResponse<Token>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
         let page = page.unwrap_or(0);
         let page_size = page_size.unwrap_or(PAGE_SIZE);
-        let (tokens, _) = Token::list(&mut conn, contract_address, page, page_size)?;
-        Ok(Json(tokens))
+        let (tokens, page_count) = Token::list(&mut conn, contract_address, page, page_size)?;
+        Ok(Json(PagedResponse::new(tokens, page, page_count)))
     }
 
     #[oai(
@@ -357,8 +395,9 @@ impl Api {
         }))
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[oai(
-        path = "/admin/indexer/cis2/:contract_address/token/:token_id/holder/list",
+        path = "/admin/indexer/cis2/holder/list",
         method = "get",
         tag = "ApiTags::Indexer"
     )]
@@ -366,17 +405,22 @@ impl Api {
         &self,
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
-        Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
-        Query(page): Query<Option<i64>>,
+        Query(contract_address): Query<Option<Decimal>>,
+        Query(token_id): Query<Option<Decimal>>,
+        Query(holder_address): Query<Option<String>>,
+        Query(page): Query<i64>,
         Query(page_size): Query<Option<i64>>,
-    ) -> JsonResult<PagedResponse<TokenHolder>> {
+    ) -> JsonResult<PagedResponse<TokenHolderUser>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let page = page.unwrap_or(0);
-        let page_size = page_size.unwrap_or(PAGE_SIZE);
-        let (holders, page_count) =
-            TokenHolder::list(&mut conn, contract_address, token_id, page, page_size)?;
+        let (holders, page_count) = TokenHolderUser::list(
+            &mut conn,
+            contract_address,
+            token_id,
+            holder_address.as_deref(),
+            page,
+            page_size.unwrap_or(PAGE_SIZE),
+        )?;
         Ok(Json(PagedResponse {
             data: holders,
             page_count,
@@ -396,39 +440,40 @@ impl Api {
         Path(contract_address): Path<Decimal>,
         Path(token_id): Path<Decimal>,
         Path(holder_address): Path<String>,
-    ) -> JsonResult<Option<TokenHolder>> {
+    ) -> JsonResult<Option<TokenHolderUser>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let holder = TokenHolder::find(&mut conn, contract_address, token_id, &holder_address)?;
+        let holder = TokenHolderUser::find(&mut conn, contract_address, token_id, &holder_address)?;
         Ok(Json(holder))
     }
 
     #[allow(clippy::too_many_arguments)]
     #[oai(
-        path = "/admin/indexer/cis2/:contract_address/token/:token_id/holder/:holder_address/\
-                balance-updates",
+        path = "/admin/indexer/cis2/balance-updates/list",
         method = "get",
         tag = "ApiTags::Indexer"
     )]
-    pub async fn admin_indexer_cis_token_holder_balance_updates(
+    pub async fn admin_indexer_cis_balance_updates(
         &self,
         Data(db_pool): Data<&DbPool>,
         BearerAuthorization(claims): BearerAuthorization,
-        Path(contract_address): Path<Decimal>,
-        Path(token_id): Path<Decimal>,
-        Path(holder_address): Path<String>,
+        Query(contract_address): Query<Option<Decimal>>,
+        Query(token_id): Query<Option<Decimal>>,
+        Query(holder_address): Query<Option<String>>,
+        Query(update_type): Query<Option<TokenHolderBalanceUpdateType>>,
         Query(page): Query<i64>,
         Query(page_size): Query<Option<i64>>,
-    ) -> JsonResult<PagedResponse<TokenHolderBalanceUpdate>> {
+    ) -> JsonResult<PagedResponse<TokenHolderUserBalanceUpdate>> {
         ensure_is_admin(&claims)?;
 
         let mut conn = db_pool.get()?;
         let page_size = page_size.unwrap_or(PAGE_SIZE);
-        let (updates, page_count) = TokenHolderBalanceUpdate::list(
+        let (updates, page_count) = TokenHolderUserBalanceUpdate::list(
             &mut conn,
-            Some(contract_address),
-            Some(token_id),
-            Some(holder_address),
+            contract_address,
+            token_id,
+            holder_address.as_deref(),
+            update_type,
             page,
             page_size,
         )?;

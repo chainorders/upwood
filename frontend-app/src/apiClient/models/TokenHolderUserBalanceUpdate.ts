@@ -5,9 +5,8 @@
 
 import type { TokenHolderBalanceUpdateType } from "./TokenHolderBalanceUpdateType";
 
-export type TokenHolderBalanceUpdate = {
+export type TokenHolderUserBalanceUpdate = {
 	id: string;
-	id_serial?: number;
 	block_height: string;
 	txn_index: string;
 	cis2_address: string;
@@ -20,4 +19,6 @@ export type TokenHolderBalanceUpdate = {
 	txn_instigator: string;
 	update_type: TokenHolderBalanceUpdateType;
 	create_time: string;
+	cognito_user_id?: string;
+	email?: string;
 };

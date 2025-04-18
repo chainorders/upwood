@@ -35,9 +35,12 @@ import TreeFungibleHoldersList from "./pages/TreeFungibleHoldersList.tsx";
 import TreeMetadataList from "./pages/TreeMetadataList.tsx";
 import InvestorsList from "./pages/InvestorsList.tsx";
 import TradersList from "./pages/TradersList.tsx";
-import TokenHoldersList from "./pages/TokenHoldersList.tsx";
+import ProjectTokenHoldersList from "./pages/ProjectTokenHoldersList.tsx";
 import TokenHolderBalanceUpdateList from "./pages/TokenHolderBalanceUpdateList.tsx";
 import InvestmentRecordsList from "./pages/InvestmentRecordsList.tsx";
+import TokenIcon from "@mui/icons-material/Token";
+import TokenContractsList from "./pages/TokenContractsList.tsx";
+import TokenContractDetails from "./pages/TokenContractDetails.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -109,6 +112,12 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/projects/token-holders",
 			icon: <WalletIcon />,
 			isActive: pathname.startsWith("/admin/projects/token-holders"),
+		},
+		{
+			name: "Token Contracts",
+			url: "/admin/token-contracts",
+			icon: <TokenIcon />,
+			isActive: pathname.startsWith("/admin/token-contracts"),
 		},
 		{
 			name: "Tree Fungible Token Holders",
@@ -330,11 +339,13 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						<Route path="fund/investors" element={<InvestorsList />} />
 						<Route path="fund/investment-records" element={<InvestmentRecordsList />} />
 						<Route path="market/traders" element={<TradersList />} />
-						<Route path="projects/token-holders" element={<TokenHoldersList />} />
+						<Route path="projects/token-holders" element={<ProjectTokenHoldersList />} />
 						<Route
 							path="projects/token-holders/balance-updates/:contract/:token_id/:holder"
 							element={<TokenHolderBalanceUpdateList />}
 						/>
+						<Route path="token-contracts" element={<TokenContractsList />} />
+						<Route path="token-contracts/:contract_index/*" element={<TokenContractDetails />} />
 						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />

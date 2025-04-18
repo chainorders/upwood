@@ -3,14 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { TokenHolderBalanceUpdate } from "./TokenHolderBalanceUpdate";
+import type { Agent } from "./Agent";
 
 /**
  * Pages Response. This is a generic response that can be used to return a list
  * of items with pagination.
  */
-export type PagedResponse_TokenHolderBalanceUpdate = {
+export type PagedResponse_Agent = {
 	page_count: number;
 	page: number;
-	data: Array<TokenHolderBalanceUpdate>;
+	data: Array<Agent>;
 };

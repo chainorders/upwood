@@ -14,7 +14,17 @@ use crate::schema::{
     cis2_token_holder_balance_updates, cis2_token_holders, cis2_tokens,
 };
 
-#[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq, Object, Serialize)]
+#[derive(
+    Selectable,
+    Queryable,
+    Identifiable,
+    Insertable,
+    Debug,
+    PartialEq,
+    Object,
+    Serialize,
+    AsChangeset,
+)]
 #[diesel(table_name = cis2_agents)]
 #[diesel(primary_key(cis2_address, agent_address))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -52,19 +62,34 @@ impl Agent {
 
     #[instrument(
         skip_all,
-        fields(contract = cis2_address.to_string(), agent_address = agent_address.to_string())
+        fields(contract = self.cis2_address.to_string(), agent_address = self.agent_address.to_string())
     )]
-    pub fn delete(
-        conn: &mut DbConn,
-        cis2_address: Decimal,
-        agent_address: &Address,
-    ) -> DbResult<()> {
+    pub fn update(&self, conn: &mut DbConn) -> DbResult<Self> {
+        let agent = diesel::update(cis2_agents::table)
+            .filter(
+                cis2_agents::cis2_address
+                    .eq(self.cis2_address)
+                    .and(cis2_agents::agent_address.eq(self.agent_address.to_string())),
+            )
+            .set(self)
+            .returning(Agent::as_returning())
+            .get_result(conn)?;
+        Ok(agent)
+    }
+
+    #[instrument(
+        skip_all,
+        fields(contract = self.cis2_address.to_string(), agent_address = self.agent_address.to_string())
+    )]
+    pub fn delete(&self, conn: &mut DbConn) -> DbResult<()> {
         let delete_filter = cis2_agents::cis2_address
-            .eq(cis2_address)
-            .and(cis2_agents::agent_address.eq(agent_address.to_string()));
+            .eq(&self.cis2_address)
+            .and(cis2_agents::agent_address.eq(&self.agent_address));
+
         diesel::delete(cis2_agents::table)
             .filter(delete_filter)
             .execute(conn)?;
+
         Ok(())
     }
 
@@ -72,8 +97,8 @@ impl Agent {
     pub fn list(
         conn: &mut DbConn,
         cis2_address: Decimal,
-        page_size: i64,
         page: i64,
+        page_size: i64,
     ) -> DbResult<(Vec<Agent>, i64)> {
         let select_filter = cis2_agents::cis2_address.eq(cis2_address);
         let res: Vec<Agent> = cis2_agents::table
@@ -107,6 +132,15 @@ impl Agent {
             .optional()?;
         Ok(res)
     }
+
+    #[instrument(skip(conn))]
+    pub fn count(conn: &mut DbConn, cis2_address: Decimal) -> DbResult<i64> {
+        let count = cis2_agents::table
+            .filter(cis2_agents::cis2_address.eq(cis2_address))
+            .count()
+            .get_result(conn)?;
+        Ok(count)
+    }
 }
 
 #[derive(Selectable, Queryable, Identifiable, Insertable, Debug, PartialEq)]
@@ -135,6 +169,15 @@ impl Compliance {
             .values(self)
             .execute(conn)?;
         Ok(())
+    }
+
+    #[instrument(skip(conn))]
+    pub fn find(conn: &mut DbConn, cis2_address: Decimal) -> DbResult<Option<Compliance>> {
+        let compliance = cis2_compliances::table
+            .filter(cis2_compliances::cis2_address.eq(cis2_address))
+            .first::<Compliance>(conn)
+            .optional()?;
+        Ok(compliance)
     }
 }
 
@@ -165,6 +208,15 @@ impl IdentityRegistry {
             .values(self)
             .execute(conn)?;
         Ok(())
+    }
+
+    #[instrument(skip(conn))]
+    pub fn find(conn: &mut DbConn, cis2_address: Decimal) -> DbResult<Option<IdentityRegistry>> {
+        let identity_registry = cis2_identity_registries::table
+            .filter(cis2_identity_registries::cis2_address.eq(cis2_address))
+            .first::<IdentityRegistry>(conn)
+            .optional()?;
+        Ok(identity_registry)
     }
 }
 
@@ -409,7 +461,7 @@ impl TokenHolderBalanceUpdate {
 }
 
 #[derive(
-    diesel_derive_enum::DbEnum, Debug, PartialEq, Enum, Clone, Copy, Serialize, Deserialize,
+    diesel_derive_enum::DbEnum, Debug, PartialEq, Enum, Clone, Copy, Serialize, Deserialize, Eq,
 )]
 #[ExistingTypePath = "crate::schema::sql_types::Cis2TokenHolderBalanceUpdateType"]
 pub enum TokenHolderBalanceUpdateType {
@@ -616,6 +668,15 @@ impl Token {
 
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
         Ok((tokens, page_count))
+    }
+
+    #[instrument(skip(conn))]
+    pub fn count(conn: &mut DbConn, cis2_address: Decimal) -> DbResult<i64> {
+        let count = cis2_tokens::table
+            .filter(cis2_tokens::cis2_address.eq(cis2_address))
+            .count()
+            .get_result(conn)?;
+        Ok(count)
     }
 }
 

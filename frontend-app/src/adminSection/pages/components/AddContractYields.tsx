@@ -123,8 +123,8 @@ export default function AddContractYields({
 
 	useEffect(() => {
 		if (open) {
-			IndexerService.getAdminIndexerCis2TokenList(tokenContract.contract_address).then((tokens) => {
-				const ids = tokens.map((t) => parseInt(t.token_id));
+			IndexerService.getAdminIndexerCis2TokenList(tokenContract.contract_address, 0, 1000).then((tokens) => {
+				const ids = tokens.data.map((t) => parseInt(t.token_id));
 				setExistingTokens(ids);
 			});
 			IndexerService.getAdminIndexerYieldList(0, 1000, tokenContract.contract_address).then((yields) => {

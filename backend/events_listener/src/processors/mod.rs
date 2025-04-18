@@ -92,6 +92,8 @@ pub enum ProcessorError {
     SecurityMintFundContractNotFound { contract: Decimal },
     #[error("Trade Contract not found: {contract}")]
     TradeContractNotFound { contract: Decimal },
+    #[error("Cis2Agent not found: {contract}, agent: {agent}")]
+    Cis2AgentNotFound { contract: Decimal, agent: String },
 }
 
 pub type ProcessorFnType = fn(

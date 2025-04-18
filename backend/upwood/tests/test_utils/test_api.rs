@@ -381,10 +381,7 @@ impl ApiTestClient {
             .expect("Failed to parse list forest project yields total response")
     }
 
-    pub async fn forest_project_yields_claimable(
-        &self,
-        id_token: String,
-    ) -> Vec<YieldClaim> {
+    pub async fn forest_project_yields_claimable(&self, id_token: String) -> Vec<YieldClaim> {
         let res = self
             .client
             .get("/forest_projects/yields/claimable")

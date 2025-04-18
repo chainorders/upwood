@@ -8,7 +8,6 @@ use concordium_cis2::{
 use concordium_protocols::concordium_cis2_security::*;
 use concordium_rust_sdk::base::contracts_common::{Deserial, Serial};
 use concordium_rust_sdk::base::smart_contracts::ContractEvent;
-use concordium_rust_sdk::types::ContractAddress;
 use diesel::Connection;
 use rust_decimal::Decimal;
 use shared::db::cis2_security::{
@@ -35,16 +34,13 @@ pub fn process_events_cis2<T, A>(
     txn_index: Decimal,
     txn_sender: &str,
     txn_instigator: &str,
-    contract: &ContractAddress,
+    contract: Decimal,
     event: Cis2Event<T, A>,
 ) -> Result<(), ProcessorError>
 where
     T: IsTokenId,
     A: IsTokenAmount+Serial,
 {
-    // Pre-calculate contract decimal once
-    let contract_decimal = contract.to_decimal();
-
     match event {
         Cis2Event::Mint(MintEvent {
             token_id,
@@ -56,9 +52,9 @@ where
             let owner_str = owner.to_string();
 
             conn.transaction::<_, ProcessorError, _>(|conn| {
-                Token::find(conn, contract_decimal, token_id_decimal)?
+                Token::find(conn, contract, token_id_decimal)?
                     .ok_or(ProcessorError::TokenNotFound {
-                        contract: contract_decimal,
+                        contract,
                         token_id: token_id_decimal,
                     })
                     .map(|mut token| {
@@ -68,30 +64,29 @@ where
                     })?
                     .update(conn)?;
 
-                let holder =
-                    TokenHolder::find(conn, contract_decimal, token_id_decimal, &owner_str)?
-                        .map(|mut holder| {
-                            holder.un_frozen_balance += amount_decimal;
-                            holder.update_time = block_time;
-                            holder
-                        })
-                        .unwrap_or_else(|| TokenHolder {
-                            cis2_address:      contract_decimal,
-                            holder_address:    owner_str.clone(),
-                            token_id:          token_id_decimal,
-                            frozen_balance:    Decimal::ZERO,
-                            un_frozen_balance: amount_decimal,
-                            update_time:       block_time,
-                            create_time:       block_time,
-                        })
-                        .upsert(conn)?;
+                let holder = TokenHolder::find(conn, contract, token_id_decimal, &owner_str)?
+                    .map(|mut holder| {
+                        holder.un_frozen_balance += amount_decimal;
+                        holder.update_time = block_time;
+                        holder
+                    })
+                    .unwrap_or_else(|| TokenHolder {
+                        cis2_address:      contract,
+                        holder_address:    owner_str.clone(),
+                        token_id:          token_id_decimal,
+                        frozen_balance:    Decimal::ZERO,
+                        un_frozen_balance: amount_decimal,
+                        update_time:       block_time,
+                        create_time:       block_time,
+                    })
+                    .upsert(conn)?;
 
                 TokenHolderBalanceUpdate {
                     id: Uuid::new_v4(),
                     id_serial: None,
                     block_height,
                     txn_index,
-                    cis2_address: contract_decimal,
+                    cis2_address: contract,
                     token_id: token_id_decimal,
                     holder_address: owner_str.clone(),
                     amount: amount_decimal,
@@ -116,7 +111,7 @@ where
             token_id,
             metadata_url,
         }) => {
-            Token::find(conn, contract_decimal, token_id.to_decimal())?
+            Token::find(conn, contract, token_id.to_decimal())?
                 .map(|mut token| {
                     token.metadata_url = metadata_url.url.clone();
                     token.metadata_hash = metadata_url.hash.map(hex::encode);
@@ -124,7 +119,7 @@ where
                     token
                 })
                 .unwrap_or_else(|| Token {
-                    cis2_address:  contract_decimal,
+                    cis2_address:  contract,
                     token_id:      token_id.to_decimal(),
                     metadata_url:  metadata_url.url.clone(),
                     metadata_hash: metadata_url.hash.map(hex::encode),
@@ -151,38 +146,37 @@ where
             let owner_str = owner.to_string();
 
             conn.transaction::<_, ProcessorError, _>(|conn| {
-                Token::find(conn, contract_decimal, token_id_decimal)?
+                Token::find(conn, contract, token_id_decimal)?
                     .map(|mut token| {
                         token.supply -= amount_decimal;
                         token.update_time = block_time;
                         token
                     })
                     .ok_or(ProcessorError::TokenNotFound {
-                        contract: contract_decimal,
+                        contract,
                         token_id: token_id_decimal,
                     })?
                     .update(conn)?;
 
-                let holder =
-                    TokenHolder::find(conn, contract_decimal, token_id_decimal, &owner_str)?
-                        .map(|mut holder| {
-                            holder.un_frozen_balance -= amount_decimal;
-                            holder.update_time = block_time;
-                            holder
-                        })
-                        .ok_or(ProcessorError::TokenHolderNotFound {
-                            contract:       contract_decimal,
-                            token_id:       token_id_decimal,
-                            holder_address: owner_str.clone(),
-                        })?
-                        .update(conn)?;
+                let holder = TokenHolder::find(conn, contract, token_id_decimal, &owner_str)?
+                    .map(|mut holder| {
+                        holder.un_frozen_balance -= amount_decimal;
+                        holder.update_time = block_time;
+                        holder
+                    })
+                    .ok_or(ProcessorError::TokenHolderNotFound {
+                        contract,
+                        token_id: token_id_decimal,
+                        holder_address: owner_str.clone(),
+                    })?
+                    .update(conn)?;
 
                 TokenHolderBalanceUpdate {
                     id: Uuid::new_v4(),
                     id_serial: None,
                     block_height,
                     txn_index,
-                    cis2_address: contract_decimal,
+                    cis2_address: contract,
                     token_id: token_id_decimal,
                     holder_address: owner_str.clone(),
                     amount: amount_decimal,
@@ -215,26 +209,25 @@ where
             let to_str = to.to_string();
 
             conn.transaction::<_, ProcessorError, _>(|conn| {
-                let holder_from =
-                    TokenHolder::find(conn, contract_decimal, token_id_decimal, &from_str)?
-                        .map(|mut holder| {
-                            holder.un_frozen_balance -= amount_decimal;
-                            holder.update_time = block_time;
-                            holder
-                        })
-                        .ok_or(ProcessorError::TokenHolderNotFound {
-                            contract:       contract_decimal,
-                            token_id:       token_id_decimal,
-                            holder_address: from_str.clone(),
-                        })?
-                        .update(conn)?;
+                let holder_from = TokenHolder::find(conn, contract, token_id_decimal, &from_str)?
+                    .map(|mut holder| {
+                        holder.un_frozen_balance -= amount_decimal;
+                        holder.update_time = block_time;
+                        holder
+                    })
+                    .ok_or(ProcessorError::TokenHolderNotFound {
+                        contract,
+                        token_id: token_id_decimal,
+                        holder_address: from_str.clone(),
+                    })?
+                    .update(conn)?;
 
                 TokenHolderBalanceUpdate {
                     id: Uuid::new_v4(),
                     id_serial: None,
                     block_height,
                     txn_index,
-                    cis2_address: contract_decimal,
+                    cis2_address: contract,
                     token_id: token_id_decimal,
                     holder_address: holder_from.holder_address.clone(),
                     amount: amount_decimal,
@@ -247,30 +240,29 @@ where
                 }
                 .insert(conn)?;
 
-                let holder_to =
-                    TokenHolder::find(conn, contract_decimal, token_id_decimal, &to_str)?
-                        .map(|mut holder| {
-                            holder.un_frozen_balance += amount_decimal;
-                            holder.update_time = block_time;
-                            holder
-                        })
-                        .unwrap_or_else(|| TokenHolder {
-                            cis2_address:      contract_decimal,
-                            holder_address:    to_str.clone(),
-                            token_id:          token_id_decimal,
-                            frozen_balance:    Decimal::ZERO,
-                            un_frozen_balance: amount_decimal,
-                            update_time:       block_time,
-                            create_time:       block_time,
-                        })
-                        .upsert(conn)?;
+                let holder_to = TokenHolder::find(conn, contract, token_id_decimal, &to_str)?
+                    .map(|mut holder| {
+                        holder.un_frozen_balance += amount_decimal;
+                        holder.update_time = block_time;
+                        holder
+                    })
+                    .unwrap_or_else(|| TokenHolder {
+                        cis2_address:      contract,
+                        holder_address:    to_str.clone(),
+                        token_id:          token_id_decimal,
+                        frozen_balance:    Decimal::ZERO,
+                        un_frozen_balance: amount_decimal,
+                        update_time:       block_time,
+                        create_time:       block_time,
+                    })
+                    .upsert(conn)?;
 
                 TokenHolderBalanceUpdate {
                     id: Uuid::new_v4(),
                     id_serial: None,
                     block_height,
                     txn_index,
-                    cis2_address: contract_decimal,
+                    cis2_address: contract,
                     token_id: token_id_decimal,
                     holder_address: holder_to.holder_address.clone(),
                     amount: amount_decimal,
@@ -296,7 +288,7 @@ where
             operator,
             update,
         }) => {
-            let record = Operator::new(contract_decimal, &owner, &operator);
+            let record = Operator::new(contract, &owner, &operator);
             match update {
                 OperatorUpdate::Add => {
                     record.insert(conn)?;
@@ -328,7 +320,7 @@ pub fn process_events<T, A, R>(
     txn_index: Decimal,
     txn_sender: &str,
     txn_instigator: &str,
-    contract: &ContractAddress,
+    contract: Decimal,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError>
 where
@@ -340,10 +332,6 @@ where
     if events.is_empty() {
         return Ok(());
     }
-
-    // Pre-calculate contract decimal once
-    let contract_decimal = contract.to_decimal();
-
     // Process all events within a single transaction
     conn.transaction(|conn| {
         for event in events {
@@ -355,7 +343,6 @@ where
             process_parsed_event(
                 conn,
                 contract,
-                contract_decimal,
                 parsed_event,
                 block_time,
                 block_height,
@@ -371,8 +358,7 @@ where
 #[allow(clippy::too_many_arguments)]
 pub fn process_parsed_event<T, A, R>(
     conn: &mut DbConn,
-    contract: &ContractAddress,
-    contract_decimal: Decimal,
+    contract: Decimal,
     parsed_event: Cis2SecurityEvent<T, A, R>,
     block_time: NaiveDateTime,
     block_height: Decimal,
@@ -387,34 +373,52 @@ where
 {
     match parsed_event {
         Cis2SecurityEvent::TokenRemoved(token_id) => {
-            let token_id_decimal = token_id.to_decimal();
-            Token::find(conn, contract_decimal, token_id_decimal)?
-                .ok_or(ProcessorError::TokenNotFound {
-                    contract: contract_decimal,
-                    token_id: token_id_decimal,
-                })?
+            let token_id = token_id.to_decimal();
+            Token::find(conn, contract, token_id)?
+                .ok_or(ProcessorError::TokenNotFound { contract, token_id })?
                 .delete(conn)?;
-            info!("Removed token_id {}", token_id_decimal);
+            info!("Removed token_id {}", token_id);
         }
         Cis2SecurityEvent::AgentAdded(AgentUpdatedEvent { agent, roles }) => {
             // Collect roles once instead of mapping multiple times
-            let role_strings: Vec<String> = roles.iter().map(|r| r.to_string()).collect();
-
-            Agent::new(agent, block_time, contract_decimal, role_strings.clone()).insert(conn)?;
+            let roles = roles.iter().map(|r| Some(r.to_string())).collect();
+            let agent_address = agent.to_string();
+            let agent = match Agent::find(conn, contract, &agent_address)? {
+                Some(mut agent) => {
+                    agent.roles = roles;
+                    agent.update(conn)?
+                }
+                None => Agent {
+                    agent_address: agent_address.clone(),
+                    roles:         roles.clone(),
+                    cis2_address:  contract,
+                }
+                .insert(conn)?,
+            };
 
             info!(
                 "Added agent {} with roles: {}",
-                agent.to_string(),
-                role_strings.join(", ")
+                agent.agent_address,
+                agent
+                    .roles
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<String>>()
+                    .join(", ")
             );
         }
         Cis2SecurityEvent::AgentRemoved(AgentUpdatedEvent { agent, roles: _ }) => {
-            Agent::delete(conn, contract_decimal, &agent)?;
+            Agent::find(conn, contract, &agent.to_string())?
+                .ok_or(ProcessorError::Cis2AgentNotFound {
+                    contract,
+                    agent: agent.to_string(),
+                })?
+                .delete(conn)?;
             info!("Removed agent {}", agent.to_string());
         }
         Cis2SecurityEvent::ComplianceAdded(ComplianceAdded(compliance_contract)) => {
             let compliance_decimal = compliance_contract.to_decimal();
-            Compliance::new(contract_decimal, compliance_decimal).upsert(conn)?;
+            Compliance::new(contract, compliance_decimal).upsert(conn)?;
             info!(
                 "Added compliance contract {}",
                 compliance_contract.to_string(),
@@ -424,7 +428,7 @@ where
             identity_registry_contract,
         )) => {
             let registry_decimal = identity_registry_contract.to_decimal();
-            IdentityRegistry::new(contract_decimal, registry_decimal).upsert(conn)?;
+            IdentityRegistry::new(contract, registry_decimal).upsert(conn)?;
             info!(
                 "Added identity registry contract {}",
                 identity_registry_contract.to_string(),
@@ -432,12 +436,12 @@ where
         }
         Cis2SecurityEvent::Paused(Paused { token_id }) => {
             let token_id_decimal = token_id.to_decimal();
-            Token::update_paused(conn, contract_decimal, token_id_decimal, true)?;
+            Token::update_paused(conn, contract, token_id_decimal, true)?;
             info!("Paused token_id {}", token_id_decimal);
         }
         Cis2SecurityEvent::UnPaused(Paused { token_id }) => {
             let token_id_decimal = token_id.to_decimal();
-            Token::update_paused(conn, contract_decimal, token_id_decimal, false)?;
+            Token::update_paused(conn, contract, token_id_decimal, false)?;
             info!("Unpaused token_id {}", token_id_decimal);
         }
         Cis2SecurityEvent::Recovered(RecoverEvent {
@@ -445,8 +449,8 @@ where
             new_account,
         }) => {
             let updated_rows = conn.transaction(|conn| {
-                RecoveryRecord::new(contract_decimal, &lost_account, &new_account).insert(conn)?;
-                TokenHolder::replace(conn, contract_decimal, &lost_account, &new_account)
+                RecoveryRecord::new(contract, &lost_account, &new_account).insert(conn)?;
+                TokenHolder::replace(conn, contract, &lost_account, &new_account)
             })?;
             info!("account recovery, {} token ids updated", updated_rows);
         }
@@ -461,7 +465,7 @@ where
 
             let holder = TokenHolder::update_balance_frozen(
                 conn,
-                contract_decimal,
+                contract,
                 token_id_decimal,
                 &address,
                 amount_decimal,
@@ -473,7 +477,7 @@ where
                 id_serial: None,
                 block_height,
                 txn_index,
-                cis2_address: contract_decimal,
+                cis2_address: contract,
                 token_id: token_id_decimal,
                 holder_address: address_str.clone(),
                 amount: amount_decimal,
@@ -502,7 +506,7 @@ where
 
             let holder = TokenHolder::update_balance_frozen(
                 conn,
-                contract_decimal,
+                contract,
                 token_id_decimal,
                 &address,
                 amount_decimal,
@@ -514,7 +518,7 @@ where
                 id_serial: None,
                 block_height,
                 txn_index,
-                cis2_address: contract_decimal,
+                cis2_address: contract,
                 token_id: token_id_decimal,
                 holder_address: address_str.clone(),
                 amount: amount_decimal,

@@ -40,17 +40,31 @@ pub fn process_events(
     contract: &ContractAddress,
     events: &[ContractEvent],
 ) -> Result<(), ProcessorError> {
+    let contract = contract.to_decimal();
     for event in events {
         let parsed_event = event.parse::<Event>().expect("Failed to parse event");
         trace!("Event details: {:#?}", parsed_event);
 
         match parsed_event {
-            Event::AgentAdded(e) => {
-                Agent::new(e, block_time, contract.to_decimal(), vec![]).insert(conn)?;
-                info!("Agent: {} added", e.to_string());
+            Event::AgentAdded(agent) => {
+                let agent = match Agent::find(conn, contract, &agent.to_string())? {
+                    Some(agent) => agent,
+                    None => Agent {
+                        agent_address: agent.to_string(),
+                        cis2_address:  contract,
+                        roles:         vec![],
+                    }
+                    .insert(conn)?,
+                };
+                info!("Agent: {} added", agent.agent_address.to_string());
             }
             Event::AgentRemoved(e) => {
-                Agent::delete(conn, contract.to_decimal(), &e)?;
+                Agent::find(conn, contract, &e.to_string())?
+                    .ok_or_else(|| ProcessorError::Cis2AgentNotFound {
+                        contract,
+                        agent: e.to_string(),
+                    })?
+                    .delete(conn)?;
                 info!("Agent: {} removed", e.to_string());
             }
             Event::Cis2(event) => {
@@ -67,7 +81,7 @@ pub fn process_events(
             }
             Event::RewardTokenUpdated(e) => {
                 NftMultiRewardedContract::new(
-                    contract.to_decimal(),
+                    contract,
                     e.reward_token.contract.to_decimal(),
                     e.reward_token.id.to_decimal(),
                     block_time,
@@ -78,7 +92,7 @@ pub fn process_events(
             Event::NonceUpdated(address, nonce) => {
                 AddressNonce {
                     address:          address.to_string(),
-                    contract_address: contract.to_decimal(),
+                    contract_address: contract,
                     nonce:            nonce as i64,
                 }
                 .upsert(conn)?;

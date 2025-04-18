@@ -53,7 +53,7 @@ interface FilterForm {
 	project_id?: string;
 }
 
-const TokenHoldersList = () => {
+const ProjectTokenHoldersList = () => {
 	const classes = useCommonStyles();
 	const [tokenHolders, setTokenHolders] = useState<ForestProjectTokenHolder[]>([]);
 	const [projects, setProjects] = useState<ForestProject[]>([]);
@@ -348,4 +348,4 @@ const TokenHoldersList = () => {
 	);
 };
 
-export default TokenHoldersList;
+export default ProjectTokenHoldersList;

@@ -13,8 +13,15 @@ import {
 	ButtonGroup,
 	DialogTitle,
 	DialogContent,
+	TablePagination,
 } from "@mui/material";
-import { ForestProjectService, Token, ForestProjectTokenContract, IndexerService, Market } from "../../apiClient";
+import {
+	ForestProjectService,
+	ForestProjectTokenContract,
+	IndexerService,
+	Market,
+	PagedResponse_Token,
+} from "../../apiClient";
 import { Link, useParams } from "react-router";
 import { AddProjectTokenPopup } from "./components/AddProjectTokenPopup";
 import Dialog from "@mui/material/Dialog";
@@ -23,8 +30,10 @@ import { User } from "../../lib/user";
 
 export default function ProjectTokenList({ user, market }: { user: User; market?: Market }) {
 	const { id, contract_address } = useParams<{ id: string; contract_address: string }>();
-	const [tokens, setTokens] = useState<Token[]>([]);
-	const [tokenContract, setTokenContract] = useState<ForestProjectTokenContract | null>(null);
+	const [tokens, setTokens] = useState<PagedResponse_Token>();
+	const [page, setPage] = useState(0);
+	const [pageSize, setPageSize] = useState(10);
+	const [tokenContract, setTokenContract] = useState<ForestProjectTokenContract>();
 	const [openPopup, setOpenPopup] = useState(false);
 	const [refreshCounter, setRefreshCounter] = useState(0);
 
@@ -38,21 +47,14 @@ export default function ProjectTokenList({ user, market }: { user: User; market?
 	};
 
 	useEffect(() => {
-		ForestProjectService.getAdminForestProjectsContract(contract_address!)
-			.then((contract) => {
-				setTokenContract(contract);
-			})
-			.catch(() => {
-				alert("Failed to fetch contract details");
-			});
-		IndexerService.getAdminIndexerCis2TokenList(contract_address!)
-			.then((tokens) => {
-				setTokens(tokens);
-			})
-			.catch(() => {
-				alert("Failed to fetch tokens");
-			});
+		ForestProjectService.getAdminForestProjectsContract(contract_address!).then(setTokenContract).catch(console.error);
 	}, [id, contract_address, refreshCounter]);
+	useEffect(() => {
+		if (!tokenContract) return;
+		IndexerService.getAdminIndexerCis2TokenList(tokenContract.contract_address, page, pageSize)
+			.then(setTokens)
+			.catch(console.error);
+	}, [tokenContract, page, pageSize]);
 
 	return (
 		<Box sx={{ flexGrow: 1, padding: 2 }}>
@@ -83,7 +85,7 @@ export default function ProjectTokenList({ user, market }: { user: User; market?
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{tokens.map((token) => (
+						{tokens?.data.map((token) => (
 							<TableRow key={token.cis2_address + token.token_id}>
 								<TableCell>{id}</TableCell>
 								<TableCell>{tokenContract?.contract_address}</TableCell>
@@ -109,8 +111,27 @@ export default function ProjectTokenList({ user, market }: { user: User; market?
 								</TableCell>
 							</TableRow>
 						))}
+						{tokens?.data.length === 0 && (
+							<TableRow>
+								<TableCell colSpan={12} align="center">
+									No tokens found.
+								</TableCell>
+							</TableRow>
+						)}
 					</TableBody>
 				</Table>
+				<TablePagination
+					component="div"
+					count={tokens?.page_count || 0 * pageSize}
+					page={page}
+					onPageChange={(_, newPage) => setPage(newPage)}
+					rowsPerPage={pageSize}
+					onRowsPerPageChange={(e) => {
+						setPageSize(parseInt(e.target.value, 10));
+						setPage(0);
+					}}
+					rowsPerPageOptions={[10, 20, 50]}
+				/>
 			</TableContainer>
 			<Dialog open={openPopup} onClose={handleClosePopup} fullWidth>
 				<DialogTitle>Add Token</DialogTitle>

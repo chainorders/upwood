@@ -8,6 +8,7 @@ use shared::db_shared::DbConn;
 use tracing::instrument;
 
 use super::cis2_security;
+use super::cis2_utils::ContractAddressToDecimal;
 use crate::processors::ProcessorError;
 
 pub fn module_ref() -> ModuleReference {
@@ -45,7 +46,7 @@ pub fn process_events(
         txn_index,
         txn_sender,
         txn_instigator,
-        contract,
+        contract.to_decimal(),
         events,
     )
 }

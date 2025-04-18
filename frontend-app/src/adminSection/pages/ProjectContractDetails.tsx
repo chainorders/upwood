@@ -21,10 +21,10 @@ import {
 	ForestProjectTokenContract,
 	IndexerService,
 	Market,
+	PagedResponse_Token,
 	SecurityMintFund,
 	SecurityTokenContractType,
 	SystemContractsConfigApiModel,
-	Token,
 	UserService,
 } from "../../apiClient";
 import { Link } from "react-router";
@@ -34,7 +34,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddIcon from "@mui/icons-material/Add";
 import MarketDetails from "./components/MarketDetails";
 import FundDetails from "./components/FundDetails";
-import TokenList from "./components/TokenList";
+import ProjectTokenList from "./components/ProjectTokenList.tsx";
 import AddMarketPopup from "./components/AddMarketPopup";
 import AddContractYields from "./components/AddContractYields";
 import { User } from "../../lib/user.ts";
@@ -46,7 +46,9 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 	const [market, setMarket] = useState<Market>();
 	const [fund, setFund] = useState<SecurityMintFund>();
 	const [preSaleTokenContract, setPreSaleTokenContract] = useState<ForestProjectTokenContract>();
-	const [tokens, setTokens] = useState<Token[]>([]);
+	const [tokens, setTokens] = useState<PagedResponse_Token>();
+	const [tokenPage, setTokenPage] = useState(0);
+	const [tokenPageSize, setTokenPageSize] = useState(10);
 	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [project, setProject] = useState<ForestProject | null>(null);
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
@@ -87,41 +89,41 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 		UserService.getSystemConfig().then(setContracts);
 	}, [refreshCounter]);
 	useEffect(() => {
-		if (contract) {
-			IndexerService.getAdminIndexerCis2Market(contract.contract_address).then(setMarket);
+		if (!contract) return;
+
+		IndexerService.getAdminIndexerCis2Market(contract.contract_address).then(setMarket);
+		switch (contract.contract_type) {
+			case SecurityTokenContractType.PROPERTY: {
+				ForestProjectService.getAdminForestProjectsContractByType(
+					contract.forest_project_id,
+					SecurityTokenContractType.PROPERTY_PRE_SALE,
+				).then((data) => {
+					setPreSaleTokenContract(data);
+				});
+				break;
+			}
+			case SecurityTokenContractType.BOND: {
+				ForestProjectService.getAdminForestProjectsContractByType(
+					contract.forest_project_id,
+					SecurityTokenContractType.BOND_PRE_SALE,
+				).then((data) => {
+					setPreSaleTokenContract(data);
+				});
+				break;
+			}
+			default: {
+				console.error("Unsupported contract type");
+				setPreSaleTokenContract(undefined);
+			}
 		}
-		if (contract && contract.fund_token_id) {
+		if (contract.fund_token_id) {
 			IndexerService.getAdminIndexerCis2TokenFund(contract.contract_address, contract.fund_token_id).then(setFund);
 		}
-		if (contract) {
-			switch (contract.contract_type) {
-				case SecurityTokenContractType.PROPERTY: {
-					ForestProjectService.getAdminForestProjectsContractByType(
-						contract.forest_project_id,
-						SecurityTokenContractType.PROPERTY_PRE_SALE,
-					).then((data) => {
-						setPreSaleTokenContract(data);
-					});
-					break;
-				}
-				case SecurityTokenContractType.BOND: {
-					ForestProjectService.getAdminForestProjectsContractByType(
-						contract.forest_project_id,
-						SecurityTokenContractType.BOND_PRE_SALE,
-					).then((data) => {
-						setPreSaleTokenContract(data);
-					});
-					break;
-				}
-				default: {
-					console.error("Unsupported contract type");
-					setPreSaleTokenContract(undefined);
-				}
-			}
-
-			IndexerService.getAdminIndexerCis2TokenList(contract.contract_address!).then(setTokens);
-		}
 	}, [contract, refreshCounter]);
+	useEffect(() => {
+		if (!contract) return;
+		IndexerService.getAdminIndexerCis2TokenList(contract.contract_address!).then(setTokens);
+	}, [tokenPage, tokenPageSize, refreshCounter, contract]);
 
 	useEffect(() => {
 		if (contract) {
@@ -188,12 +190,21 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 								<Typography>Tokens</Typography>
 							</AccordionSummary>
 							<AccordionDetails>
-								<TokenList
-									user={user}
-									tokens={tokens}
-									tokenContract={contract}
-									onTokenAdded={() => setRefreshCounter((c) => c + 1)}
-								/>
+								{tokens && tokens.data.length > 0 ? (
+									<ProjectTokenList
+										user={user}
+										tokens={tokens}
+										tokenContract={contract}
+										pageSize={tokenPageSize}
+										onPageChange={setTokenPage}
+										onPageSizeChange={setTokenPageSize}
+										onTokenAdded={() => setRefreshCounter((c) => c + 1)}
+									/>
+								) : (
+									<Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+										<Typography>Error loading Tokens</Typography>
+									</Box>
+								)}
 							</AccordionDetails>
 						</Accordion>
 						<Accordion sx={{ marginTop: 2 }}>

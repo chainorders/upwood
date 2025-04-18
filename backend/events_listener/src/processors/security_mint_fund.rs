@@ -64,16 +64,41 @@ pub fn process_events(
                 info!("Initialized mint fund contract: {}", contract.to_decimal());
             }
             Event::AgentAdded(agent) => {
-                Agent::new(
-                    agent.address,
-                    block_time,
-                    contract.to_decimal(),
-                    agent.roles.iter().map(agent_role_to_string).collect(),
-                )
-                .insert(conn)?;
+                let roles = agent
+                    .roles
+                    .iter()
+                    .map(|r| Some(role_to_string(r)))
+                    .collect();
+                let agent =
+                    match Agent::find(conn, contract.to_decimal(), &agent.address.to_string())? {
+                        Some(agent) => Agent { roles, ..agent }.update(conn)?,
+                        None => Agent {
+                            cis2_address: contract.to_decimal(),
+                            agent_address: agent.address.to_string(),
+                            roles,
+                        }
+                        .insert(conn)?,
+                    };
+
+                info!(
+                    "Agent added: {}, roles: {}",
+                    agent.agent_address,
+                    agent
+                        .roles
+                        .into_iter()
+                        .flatten()
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
             }
             Event::AgentRemoved(agent) => {
-                Agent::delete(conn, contract.to_decimal(), &agent)?;
+                Agent::find(conn, contract.to_decimal(), &agent.to_string())?
+                    .ok_or(ProcessorError::Cis2AgentNotFound {
+                        contract: contract.to_decimal(),
+                        agent:    agent.to_string(),
+                    })?
+                    .delete(conn)?;
+                info!("Agent removed: {}", agent.to_string());
             }
             Event::FundAdded(FundAddedEvent {
                 rate,
@@ -440,7 +465,7 @@ pub fn process_events(
     Ok(())
 }
 
-fn agent_role_to_string(r: &AgentRole) -> String {
+fn role_to_string(r: &AgentRole) -> String {
     match r {
         AgentRole::AddFund => "AddFund".to_string(),
         AgentRole::RemoveFund => "RemoveFund".to_string(),

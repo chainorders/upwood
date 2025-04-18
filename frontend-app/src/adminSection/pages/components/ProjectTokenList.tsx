@@ -12,8 +12,9 @@ import {
 	Dialog,
 	DialogTitle,
 	DialogContent,
+	TablePagination,
 } from "@mui/material";
-import { ForestProjectTokenContract, Market, Token } from "../../../apiClient";
+import { ForestProjectTokenContract, Market, PagedResponse_Token } from "../../../apiClient";
 import { useNavigate } from "react-router";
 import { AddProjectTokenPopup } from "./AddProjectTokenPopup";
 import { daysSince } from "../../../lib/conversions";
@@ -21,14 +22,26 @@ import { useState } from "react";
 import { User } from "../../../lib/user";
 
 interface TokenListProps {
-	tokens: Token[];
-	tokenContract?: ForestProjectTokenContract;
+	tokens: PagedResponse_Token;
+	tokenContract: ForestProjectTokenContract;
 	tokenContractMarket?: Market;
 	onTokenAdded: () => void;
+	onPageChange: (page: number) => void;
+	onPageSizeChange: (pageSize: number) => void;
 	user: User;
+	pageSize: number;
 }
 
-export default function TokenList({ tokens, tokenContract, onTokenAdded, user, tokenContractMarket }: TokenListProps) {
+export default function ProjectTokenList({
+	tokens,
+	tokenContract,
+	onTokenAdded,
+	user,
+	tokenContractMarket,
+	onPageChange,
+	onPageSizeChange,
+	pageSize,
+}: TokenListProps) {
 	const navigate = useNavigate();
 	const [openPopup, setOpenPopup] = useState(false);
 
@@ -66,7 +79,7 @@ export default function TokenList({ tokens, tokenContract, onTokenAdded, user, t
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{tokens.map((token) => (
+						{tokens.data.map((token) => (
 							<TableRow key={token.cis2_address + token.token_id}>
 								<TableCell>{tokenContract?.contract_address}</TableCell>
 								<TableCell>{tokenContract?.contract_type}</TableCell>
@@ -91,8 +104,29 @@ export default function TokenList({ tokens, tokenContract, onTokenAdded, user, t
 								</TableCell>
 							</TableRow>
 						))}
+						{tokens.data.length === 0 && (
+							<TableRow>
+								<TableCell colSpan={10} align="center">
+									No tokens found.
+								</TableCell>
+							</TableRow>
+						)}
 					</TableBody>
 				</Table>
+				<TablePagination
+					component="div"
+					count={tokens.page_count * pageSize}
+					page={tokens.page}
+					onPageChange={(_, newPage) => {
+						onPageChange(newPage);
+					}}
+					rowsPerPage={pageSize}
+					onRowsPerPageChange={(e) => {
+						onPageSizeChange(parseInt(e.target.value, 10));
+						onPageChange(0);
+					}}
+					rowsPerPageOptions={[10, 20, 50]}
+				/>
 			</TableContainer>
 			<Dialog open={openPopup} onClose={handleClosePopup} fullWidth>
 				<DialogTitle>Add Token</DialogTitle>

@@ -73,16 +73,38 @@ pub fn process_events(
                 );
             }
             Event::AgentAdded(agent) => {
-                Agent::new(
-                    agent.address,
-                    block_time,
-                    contract.to_decimal(),
-                    agent.roles.iter().map(agent_role_to_string).collect(),
-                )
-                .insert(conn)?;
+                let roles = agent
+                    .roles
+                    .iter()
+                    .map(|r| Some(role_to_string(r)))
+                    .collect();
+                let agent =
+                    match Agent::find(conn, contract.to_decimal(), &agent.address.to_string())? {
+                        Some(mut agent) => {
+                            agent.roles = roles;
+                            agent.update(conn)?
+                        }
+                        None => Agent {
+                            agent_address: agent.address.to_string(),
+                            cis2_address: contract.to_decimal(),
+                            roles,
+                        }
+                        .insert(conn)?,
+                    };
+                info!(
+                    "Agent: {} added with roles: {:?}",
+                    agent.agent_address.to_string(),
+                    agent.roles
+                );
             }
             Event::AgentRemoved(agent) => {
-                Agent::delete(conn, contract.to_decimal(), &agent)?;
+                Agent::find(conn, contract.to_decimal(), &agent.to_string())?
+                    .ok_or_else(|| ProcessorError::Cis2AgentNotFound {
+                        contract: contract.to_decimal(),
+                        agent:    agent.to_string(),
+                    })?
+                    .delete(conn)?;
+                info!("Agent: {} removed", agent.to_string());
             }
             Event::MarketAdded(AddMarketParams {
                 token_contract,
@@ -337,7 +359,7 @@ pub fn process_events(
     Ok(())
 }
 
-fn agent_role_to_string(agent_role: &AgentRole) -> String {
+fn role_to_string(agent_role: &AgentRole) -> String {
     match agent_role {
         AgentRole::AddMarket => "AddMarket".to_string(),
         AgentRole::RemoveMarket => "RemoveMarket".to_string(),
