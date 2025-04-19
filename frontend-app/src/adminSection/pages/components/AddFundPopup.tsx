@@ -108,7 +108,7 @@ export default function AddFundPopup({
 									}}
 								/>
 								<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-									Price per token unit: {toDisplayAmount(priceWatch?.toString() || "0", 6, 6)}
+									Price per token unit: {toDisplayAmount(priceWatch?.toString() || "0", 6)}
 								</Typography>
 							</Grid>
 						</Grid>

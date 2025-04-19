@@ -39,6 +39,7 @@ import InvestmentRecordsList from "./pages/InvestmentRecordsList.tsx";
 import TokenIcon from "@mui/icons-material/Token";
 import TokenContractsList from "./pages/TokenContractsList.tsx";
 import TokenContractDetails from "./pages/TokenContractDetails.tsx";
+import ForestTokenContractDetails from "./pages/ForestTokenContractDetails.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -338,6 +339,7 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 						/>
 						<Route path="token-contracts" element={<TokenContractsList />} />
 						<Route path="token-contracts/:contract_index/*" element={<TokenContractDetails />} />
+						<Route path="fp-token-contracts/:contract_index/*" element={<ForestTokenContractDetails />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />
 							<Route path="list" element={<UserList user={user} />} />

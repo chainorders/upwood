@@ -242,13 +242,13 @@ export default function FundInvest({
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
 								<span className="colb" title={price.toString()}>
-									{toDisplayAmount(price.toString(), 6, 2)}
+									{toDisplayAmount(price.toString(), 6)}
 								</span>
 							</div>
 							<div className="vis col-6 fl">
 								<span className="colc">Share available</span>
 								<span className="colb">
-									{toDisplayAmount(project.shares_available.toString(), tokenContract.decimals, 0)}
+									{toDisplayAmount(project.shares_available.toString(), tokenContract.decimals)}
 									&nbsp;{tokenContract.symbol}
 								</span>
 							</div>
@@ -299,10 +299,7 @@ export default function FundInvest({
 						</div>
 						<div className="resu">
 							<div className="left col-m-full col-mr-bottom-20 fl">
-								Get shares :{" "}
-								<span>
-									{toDisplayAmount(investmentAmountWatch.toString(), tokenContract.decimals, tokenContract.decimals)} Share
-								</span>
+								Get shares : <span>{toDisplayAmount(investmentAmountWatch.toString(), tokenContract.decimals)} Share</span>
 							</div>
 							<div className="right col-m-full fr">
 								Total payment : <span>{toDisplayAmount(totalPayment.toString(), 6)} EUROe</span>

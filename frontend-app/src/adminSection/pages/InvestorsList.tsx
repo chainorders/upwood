@@ -271,8 +271,8 @@ export default function InvestorsList() {
 											</TableCell>
 											<TableCell>{investor.token_amount}</TableCell>
 											<TableCell>{investor.token_amount_total}</TableCell>
-											<TableCell>{toDisplayAmount(investor.currency_amount, 6, 6)}</TableCell>
-											<TableCell>{toDisplayAmount(investor.currency_amount_total, 6, 6)}</TableCell>
+											<TableCell>{toDisplayAmount(investor.currency_amount, 6)}</TableCell>
+											<TableCell>{toDisplayAmount(investor.currency_amount_total, 6)}</TableCell>
 											<TableCell>
 												<Button
 													component={Link}

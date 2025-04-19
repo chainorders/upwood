@@ -40,7 +40,7 @@ const BalanceUpdatesTable: React.FC<BalanceUpdatesTableProps> = ({ contract_inde
 	const [updates, setUpdates] = useState<PagedResponse_TokenHolderUserBalanceUpdate>();
 	const [filters, setFilters] = useState<FilterFormValues & { page: number; pageSize: number }>({
 		page: 0,
-		pageSize: 10,
+		pageSize: 50,
 	});
 	const [loading, setLoading] = useState(false);
 
@@ -116,7 +116,7 @@ const BalanceUpdatesTable: React.FC<BalanceUpdatesTableProps> = ({ contract_inde
 									<FormControl fullWidth size="small">
 										<InputLabel>Update Type</InputLabel>
 										<Select {...field} label="Update Type">
-											<MenuItem value="">All</MenuItem>
+											<MenuItem value={undefined}>All</MenuItem>
 											<MenuItem value={TokenHolderBalanceUpdateType.MINT}>Mint</MenuItem>
 											<MenuItem value={TokenHolderBalanceUpdateType.BURN}>Burn</MenuItem>
 											<MenuItem value={TokenHolderBalanceUpdateType.TRANSFER_IN}>Transfer In</MenuItem>

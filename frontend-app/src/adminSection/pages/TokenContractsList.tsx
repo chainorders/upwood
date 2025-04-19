@@ -11,8 +11,15 @@ import {
 	Paper,
 	Divider,
 } from "@mui/material";
+import TablePagination from "@mui/material/TablePagination";
 import { Link } from "react-router";
-import { IndexerService, SystemContractsConfigApiModel, TokenContract, UserService } from "../../apiClient";
+import {
+	IndexerService,
+	PagedResponse_ForestProjectContract,
+	SystemContractsConfigApiModel,
+	TokenContract,
+	UserService,
+} from "../../apiClient";
 import { useEffect, useState } from "react";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import ForestIcon from "@mui/icons-material/Forest";
@@ -25,6 +32,9 @@ export default function TokenContractsList() {
 	const [carbonCreditsContracts, setCarbonCreditsContracts] = useState<TokenContract>();
 	const [eTreesFtContract, setETreesFtContract] = useState<TokenContract>();
 	const [eTreesNftContract, setETreesNftContract] = useState<TokenContract>();
+	const [fpTokenContracts, setFpTokenContracts] = useState<PagedResponse_ForestProjectContract>();
+	const [fpTokenContractsPage, setFpTokenContractsPage] = useState(0);
+	const [fpTokenContractsPageSize, setFpTokenContractsPageSize] = useState(10);
 	const classes = useCommonStyles();
 
 	const formatDate = (dateStr?: string) => {
@@ -51,6 +61,12 @@ export default function TokenContractsList() {
 			.then(setETreesNftContract)
 			.catch(console.error);
 	}, [contracts]);
+
+	useEffect(() => {
+		IndexerService.getAdminIndexerFpTokenContracts(fpTokenContractsPage, fpTokenContractsPageSize)
+			.then(setFpTokenContracts)
+			.catch(console.error);
+	}, [fpTokenContractsPage, fpTokenContractsPageSize]);
 
 	const contractDisplayData = [
 		{
@@ -110,6 +126,66 @@ export default function TokenContractsList() {
 						</TableBody>
 					</Table>
 				</TableContainer>
+			</Paper>
+
+			{/* New Table for fpTokenContracts */}
+			<Paper sx={{ ...classes.filterFormSection, mt: 4 }}>
+				<Typography variant="h6" mb={2}>
+					Forest Project Token Contracts
+				</Typography>
+				<Divider sx={{ mb: 3 }} />
+				<TableContainer component={Paper} sx={classes.tableContainer}>
+					<Table>
+						<TableHead>
+							<TableRow>
+								<TableCell sx={classes.tableHeaderCell}>Symbol</TableCell>
+								<TableCell sx={classes.tableHeaderCell}>Project Name</TableCell>
+								<TableCell sx={classes.tableHeaderCell}>Contract Type</TableCell>
+								<TableCell sx={classes.tableHeaderCell}>Address</TableCell>
+								<TableCell sx={classes.tableHeaderCell}>Owner</TableCell>
+								<TableCell sx={classes.tableHeaderCell}>Created At</TableCell>
+								<TableCell sx={classes.tableHeaderCell}>Action</TableCell>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							{fpTokenContracts?.data?.length ? (
+								fpTokenContracts.data.map((contract) => (
+									<TableRow key={contract.contract_address} sx={classes.tableRow}>
+										<TableCell>{contract.symbol}</TableCell>
+										<TableCell>{contract.forest_project_name}</TableCell>
+										<TableCell>{contract.contract_type}</TableCell>
+										<TableCell>{contract.contract_address}</TableCell>
+										<TableCell>{contract.owner}</TableCell>
+										<TableCell>{formatDate(contract.created_at)}</TableCell>
+										<TableCell>
+											<MuiLink component={Link} to={`/admin/fp-token-contracts/${contract.contract_address}`}>
+												View
+											</MuiLink>
+										</TableCell>
+									</TableRow>
+								))
+							) : (
+								<TableRow>
+									<TableCell colSpan={7} align="center">
+										No data
+									</TableCell>
+								</TableRow>
+							)}
+						</TableBody>
+					</Table>
+				</TableContainer>
+				<TablePagination
+					component="div"
+					count={fpTokenContracts?.page_count ? fpTokenContracts.page_count * fpTokenContractsPageSize : 0}
+					page={fpTokenContractsPage}
+					onPageChange={(_, newPage) => setFpTokenContractsPage(newPage)}
+					rowsPerPage={fpTokenContractsPageSize}
+					onRowsPerPageChange={(e) => {
+						setFpTokenContractsPageSize(parseInt(e.target.value, 10));
+						setFpTokenContractsPage(0);
+					}}
+					rowsPerPageOptions={[5, 10, 25, 50]}
+				/>
 			</Paper>
 		</Box>
 	);

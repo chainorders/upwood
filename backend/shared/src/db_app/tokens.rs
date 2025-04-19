@@ -1211,7 +1211,7 @@ impl ForestProjectContract {
         Ok((records, page_count))
     }
 
-    pub fn find(conn: &mut DbConn, contract_address: Decimal) -> QueryResult<Self> {
+    pub fn find(conn: &mut DbConn, contract_address: Decimal) -> QueryResult<Option<Self>> {
         let query = listener_contracts::table
             .inner_join(
                 forest_project_token_contracts::table.on(listener_contracts::contract_address
@@ -1231,7 +1231,8 @@ impl ForestProjectContract {
         let record = query
             .filter(listener_contracts::contract_address.eq(contract_address))
             .select(ForestProjectContract::as_select())
-            .first(conn)?;
+            .first(conn)
+            .optional()?;
         Ok(record)
     }
 }

@@ -278,7 +278,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													Price per token unit: € {toDisplayAmount(buyPrice?.toString() || "0", 6, 6)}
+													Price per token unit: € {toDisplayAmount(buyPrice?.toString() || "0", 6)}
 												</Typography>
 											</Grid>
 										</Grid>
@@ -312,7 +312,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													Price per token unit: € {toDisplayAmount(sellPrice?.toString() || "0", 6, 6)}
+													Price per token unit: € {toDisplayAmount(sellPrice?.toString() || "0", 6)}
 												</Typography>
 											</Grid>
 										</Grid>
@@ -374,7 +374,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													€ {toDisplayAmount(maxCurrencyAmount?.toString() || "0", 6, 6)}
+													€ {toDisplayAmount(maxCurrencyAmount?.toString() || "0", 6)}
 												</Typography>
 											</Grid>
 										</Grid>
@@ -410,7 +410,7 @@ export default function AddMarketPopup({ token_id, onDone, contracts, user, toke
 													}}
 												/>
 												<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-													Price per token unit: € {toDisplayAmount(mintPrice?.toString() || "0", 6, 6)}
+													Price per token unit: € {toDisplayAmount(mintPrice?.toString() || "0", 6)}
 												</Typography>
 											</Grid>
 										</Grid>

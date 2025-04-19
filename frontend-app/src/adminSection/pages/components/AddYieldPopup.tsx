@@ -219,7 +219,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(euroRateNumeratorWatch.toString(), 6, 6)} Euro per{" "}
+									{toDisplayAmount(euroRateNumeratorWatch.toString(), 6)} Euro per{" "}
 									{toDisplayAmount(euroRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens
 								</Typography>
@@ -291,7 +291,7 @@ export default function AddYieldPopup({ contract_address, token_id, onDone, user
 							</Grid>
 							<Grid item xs={12}>
 								<Typography variant="body2" align="right" color="textSecondary" sx={{ fontWeight: "medium" }}>
-									{toDisplayAmount(euroIntrestRateNumeratorWatch.toString(), 6, 6)} Euro per{" "}
+									{toDisplayAmount(euroIntrestRateNumeratorWatch.toString(), 6)} Euro per{" "}
 									{toDisplayAmount(euroIntrestRateDenominatorWatch.toString(), projectTokenContract?.decimals || 0)}{" "}
 									{projectTokenContract?.symbol || "Project"} Tokens per token version
 								</Typography>

@@ -63,6 +63,7 @@ export type { PagedResponse_MaintenanceMessage } from "./models/PagedResponse_Ma
 export type { PagedResponse_Market } from "./models/PagedResponse_Market";
 export type { PagedResponse_NewsArticle } from "./models/PagedResponse_NewsArticle";
 export type { PagedResponse_PlatformUpdate } from "./models/PagedResponse_PlatformUpdate";
+export type { PagedResponse_SecurityMintFund } from "./models/PagedResponse_SecurityMintFund";
 export type { PagedResponse_SupportQuestion } from "./models/PagedResponse_SupportQuestion";
 export type { PagedResponse_Token } from "./models/PagedResponse_Token";
 export type { PagedResponse_TokenHolder } from "./models/PagedResponse_TokenHolder";

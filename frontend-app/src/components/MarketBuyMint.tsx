@@ -241,13 +241,13 @@ export default function MarketBuyMint({
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
 								<span className="colb" title={price.toString()}>
-									{toDisplayAmount(price.toString(), 6, 2)}
+									{toDisplayAmount(price.toString(), 6)}
 								</span>
 							</div>
 							<div className="vis col-6 fl">
 								<span className="colc">Share available</span>
 								<span className="colb">
-									{toDisplayAmount(market.max_token_amount.toString(), tokenContract.decimals, 0)}
+									{toDisplayAmount(market.max_token_amount.toString(), tokenContract.decimals)}
 									&nbsp;{tokenContract.symbol}
 								</span>
 							</div>
@@ -309,8 +309,7 @@ export default function MarketBuyMint({
 						</div>
 						<div className="resu">
 							<div className="left col-m-full col-mr-bottom-20 fl">
-								Get shares :{" "}
-								<span>{toDisplayAmount(tokenAmount.toString(), tokenContract.decimals, tokenContract.decimals)} Share</span>
+								Get shares : <span>{toDisplayAmount(tokenAmount.toString(), tokenContract.decimals)} Share</span>
 							</div>
 							<div className="right col-m-full fr">
 								Total payment : <span>{toDisplayAmount(totalPayment.toString(), 6)} EUROe</span>

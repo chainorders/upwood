@@ -12,36 +12,45 @@ import {
 	TableContainer,
 	CircularProgress,
 } from "@mui/material";
-import { IndexerService, SystemContractsConfigApiModel, TokenContract, UserService } from "../../apiClient";
+import { ForestProjectContract, IndexerService, SystemContractsConfigApiModel, UserService } from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
 import { formatDateField } from "../../lib/conversions";
 import AgentsTable from "../components/AgentsTable";
 import TokensTable from "../components/TokensTable";
 import TokenHoldersTable from "../components/TokenHoldersTable";
 import BalanceUpdatesTable from "../components/BalanceUpdatesTable";
+import FundsTable from "../components/FundsTable";
+import InvestorsTable from "../components/InvestorsTable";
+import InvestmentRecordsTable from "../components/InvestmentRecordsTable";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 
-export default function TokenContractDetails() {
+export default function ForestTokenContractDetails() {
 	const { contract_index } = useParams();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
-	const [contract, setContract] = useState<TokenContract>();
+	const [contract, setContract] = useState<ForestProjectContract>();
 	const [tab, setTab] = useState(0);
 	const classes = useCommonStyles();
+
 	const tabRoutes = [
 		{ label: "Agents", component: <AgentsTable contract_index={contract_index!} /> },
 		{ label: "Tokens", component: <TokensTable contract_index={contract_index!} /> },
 		{ label: "Holders", component: <TokenHoldersTable contract_index={contract_index!} /> },
 		{ label: "Balance Updates", component: <BalanceUpdatesTable contract_index={contract_index!} /> },
+		{ label: "Active Funds", component: <FundsTable contract_index={contract_index!} /> },
+		{ label: "Investors", component: <InvestorsTable contract_index={contract_index!} /> },
+		{ label: "Investments", component: <InvestmentRecordsTable contract_index={contract_index!} /> },
 	];
 
-	const getDisplayContractName = (contract: TokenContract) => {
+	const getDisplayContractName = (contract: ForestProjectContract) => {
 		if (contract.contract_address === contracts?.tree_ft_contract_index) {
 			return "Fungible Tree";
 		} else if (contract.contract_address === contracts?.tree_nft_contract_index) {
 			return "Non-Fungible Tree";
 		} else if (contract.contract_address === contracts?.carbon_credit_contract_index) {
 			return "Carbon Credits";
+		} else if (contract.forest_project_name) {
+			return `${contract.forest_project_name} (${contract.contract_type})`;
 		}
 		return contract.contract_name;
 	};
@@ -51,7 +60,7 @@ export default function TokenContractDetails() {
 	}, []);
 	useEffect(() => {
 		if (!contract_index) return;
-		IndexerService.getAdminIndexerTokenContract(contract_index).then(setContract).catch(console.error);
+		IndexerService.getAdminIndexerFpTokenContract(contract_index).then(setContract).catch(console.error);
 	}, [contract_index]);
 
 	if (!contract_index) {

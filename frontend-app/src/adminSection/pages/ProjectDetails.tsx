@@ -433,7 +433,7 @@ export default function ProjectDetails({ fileBaseUrl }: { fileBaseUrl: string })
 										<TableBody>
 											{prices?.data.map((price) => (
 												<TableRow key={price.price_at}>
-													<TableCell>{toDisplayAmount(price.price, 6, 6)}</TableCell>
+													<TableCell>{toDisplayAmount(price.price, 6)}</TableCell>
 													<TableCell>{new Date(price.price_at).toLocaleDateString()}</TableCell>
 													<TableCell>{price.currency_token_id}</TableCell>
 													<TableCell>{price.currency_token_contract_address}</TableCell>

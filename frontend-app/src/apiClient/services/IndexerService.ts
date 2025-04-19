@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { Agent } from "../models/Agent";
+import type { ForestProjectContract } from "../models/ForestProjectContract";
 import type { ListenerBlock } from "../models/ListenerBlock";
 import type { Market } from "../models/Market";
 import type { PagedResponse_Agent } from "../models/PagedResponse_Agent";
@@ -11,6 +12,7 @@ import type { PagedResponse_ForestProjectContract } from "../models/PagedRespons
 import type { PagedResponse_InvestmentRecord } from "../models/PagedResponse_InvestmentRecord";
 import type { PagedResponse_InvestorUser } from "../models/PagedResponse_InvestorUser";
 import type { PagedResponse_Market } from "../models/PagedResponse_Market";
+import type { PagedResponse_SecurityMintFund } from "../models/PagedResponse_SecurityMintFund";
 import type { PagedResponse_Token } from "../models/PagedResponse_Token";
 import type { PagedResponse_TokenHolderUser } from "../models/PagedResponse_TokenHolderUser";
 import type { PagedResponse_TokenHolderUserBalanceUpdate } from "../models/PagedResponse_TokenHolderUserBalanceUpdate";
@@ -94,6 +96,21 @@ export class IndexerService {
 				contract_type: contractType,
 				page: page,
 				page_size: pageSize,
+			},
+		});
+	}
+
+	/**
+	 * @param contractAddress
+	 * @returns ForestProjectContract
+	 * @throws ApiError
+	 */
+	public static getAdminIndexerFpTokenContract(contractAddress: string): CancelablePromise<ForestProjectContract> {
+		return __request(OpenAPI, {
+			method: "GET",
+			url: "/admin/indexer/fp-token-contract",
+			query: {
+				contract_address: contractAddress,
 			},
 		});
 	}
@@ -223,17 +240,23 @@ export class IndexerService {
 
 	/**
 	 * @param investmentTokenContractAddress
-	 * @returns SecurityMintFund
+	 * @param page
+	 * @param pageSize
+	 * @returns PagedResponse_SecurityMintFund
 	 * @throws ApiError
 	 */
 	public static getAdminIndexerFunds(
 		investmentTokenContractAddress: string,
-	): CancelablePromise<Array<SecurityMintFund>> {
+		page: number,
+		pageSize: number,
+	): CancelablePromise<PagedResponse_SecurityMintFund> {
 		return __request(OpenAPI, {
 			method: "GET",
 			url: "/admin/indexer/funds",
 			query: {
 				investment_token_contract_address: investmentTokenContractAddress,
+				page: page,
+				page_size: pageSize,
 			},
 		});
 	}

@@ -239,12 +239,12 @@ export default function MarketSell({
 						<div className="container-in">
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
-								<span className="colb">{toDisplayAmount(price.toString(), 6, 2)} €</span>
+								<span className="colb">{toDisplayAmount(price.toString(), 6)} €</span>
 							</div>
 							<div className="vis col-6 fl">
 								<span className="colc">Share available</span>
 								<span className="colb">
-									{toDisplayAmount(tokenBalanceSeller.toString(), tokenContract.decimals, 0)}
+									{toDisplayAmount(tokenBalanceSeller.toString(), tokenContract.decimals)}
 									{tokenContract.symbol}
 								</span>
 							</div>
@@ -271,20 +271,15 @@ export default function MarketSell({
 											return "Invalid amount";
 										}
 										if (value > Number(tokenBalanceSeller)) {
-											return `You can only sell up to ${toDisplayAmount(tokenBalanceSeller.toString(), tokenContract.decimals, 0)} ${tokenContract.symbol}`;
+											return `You can only sell up to ${toDisplayAmount(tokenBalanceSeller.toString(), tokenContract.decimals)} ${tokenContract.symbol}`;
 										}
 										if (totalPayment > marketMaxCurrencyAmount) {
-											return `You can only sell up to ${toDisplayAmount(
-												marketMaxCurrencyAmount.toString(),
-												6,
-												2,
-											)} € worth of shares`;
+											return `You can only sell up to ${toDisplayAmount(marketMaxCurrencyAmount.toString(), 6)} € worth of shares`;
 										}
 										if (totalPayment > euroeBalanceLp) {
 											return `Insufficient EuroE liquidity provider balance. You need at least ${toDisplayAmount(
 												totalPayment.toString(),
 												6,
-												2,
 											)} €`;
 										}
 										return true;

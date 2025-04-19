@@ -201,12 +201,12 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 						<DetailRow
 							title={`${market.buy_rate_numerator} / ${market.buy_rate_denominator}`}
 							label="Buy Rate"
-							value={market.buy_rate_numerator ? toDisplayAmount(market.buy_rate_numerator, 6, 6) : "N/A"}
+							value={market.buy_rate_numerator ? toDisplayAmount(market.buy_rate_numerator, 6) : "N/A"}
 						/>
 						<DetailRow
 							title={`${market.sell_rate_numerator} / ${market.sell_rate_denominator}`}
 							label="Sell Rate"
-							value={market.sell_rate_numerator ? toDisplayAmount(market.sell_rate_numerator, 6, 6) : "N/A"}
+							value={market.sell_rate_numerator ? toDisplayAmount(market.sell_rate_numerator, 6) : "N/A"}
 						/>
 					</Box>
 
@@ -220,7 +220,7 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 							label="Max Currency Amount"
 							value={
 								market.max_currency_amount
-									? `${market.max_currency_amount} (${toDisplayAmount(market.max_currency_amount, 6, 2)})`
+									? `${market.max_currency_amount} (${toDisplayAmount(market.max_currency_amount, 6)})`
 									: "N/A"
 							}
 						/>
@@ -236,7 +236,7 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 						/>
 						<DetailRow
 							label="Currency Paid Out"
-							value={`${market.currency_out_amount} (${toDisplayAmount(market.currency_out_amount, 6, 2)})`}
+							value={`${market.currency_out_amount} (${toDisplayAmount(market.currency_out_amount, 6)})`}
 							title="Total amount of currency units which the market has given out when users sold tokens"
 						/>
 						<DetailRow
@@ -246,7 +246,7 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 						/>
 						<DetailRow
 							label="Currency Received"
-							value={`${market.currency_in_amount} (${toDisplayAmount(market.currency_in_amount, 6, 2)})`}
+							value={`${market.currency_in_amount} (${toDisplayAmount(market.currency_in_amount, 6)})`}
 							title="Total amount of currency units which the market has received when users bought tokens"
 						/>
 
@@ -307,9 +307,7 @@ export default function MarketDetails({ market, user, onRefresh }: MarketDetails
 							<Grid item xs={12} md={12} lg={6}>
 								{lpEuroEBalance > BigInt(0) ? (
 									<Alert severity="success" sx={classes.detailsAlert}>
-										<Typography>
-											Liquidity Provider has {toDisplayAmount(lpEuroEBalance.toString(), 6, 2)} EuroE balance
-										</Typography>
+										<Typography>Liquidity Provider has {toDisplayAmount(lpEuroEBalance.toString(), 6)} EuroE balance</Typography>
 									</Alert>
 								) : (
 									<Alert severity="warning" sx={classes.detailsAlert}>

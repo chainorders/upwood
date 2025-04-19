@@ -262,7 +262,7 @@ export default function TradersList() {
 											</TableCell>
 											<TableCell>
 												<Chip
-													label={toDisplayAmount(trader.currency_in_amount, 6, 2)}
+													label={toDisplayAmount(trader.currency_in_amount, 6)}
 													size="small"
 													icon={<ArrowDownwardIcon fontSize="small" />}
 													color={BigInt(trader.currency_in_amount) > 0 ? "success" : "default"}
@@ -270,7 +270,7 @@ export default function TradersList() {
 											</TableCell>
 											<TableCell>
 												<Chip
-													label={toDisplayAmount(trader.currency_out_amount, 6, 2)}
+													label={toDisplayAmount(trader.currency_out_amount, 6)}
 													size="small"
 													icon={<ArrowUpwardIcon fontSize="small" />}
 													color={BigInt(trader.currency_out_amount) > 0 ? "warning" : "default"}

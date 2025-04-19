@@ -284,12 +284,12 @@ export default function MarketBuy({
 						<div className="container-in">
 							<div className="vis col-6 fl">
 								<span className="colc">Price per share</span>
-								<span className="colb">{toDisplayAmount(price.toString(), 6, 2)} €</span>
+								<span className="colb">{toDisplayAmount(price.toString(), 6)} €</span>
 							</div>
 							<div className="vis col-6 fl">
 								<span className="colc">Share available</span>
 								<span className="colb">
-									{toDisplayAmount(market.max_token_amount.toString(), tokenContract.decimals, 0)}
+									{toDisplayAmount(market.max_token_amount.toString(), tokenContract.decimals)}
 									{tokenContract.symbol}
 								</span>
 							</div>
@@ -322,7 +322,6 @@ export default function MarketBuy({
 											return `Investment amount cannot exceed ${toDisplayAmount(
 												marketMaxTokenAmount.toString(),
 												tokenContract.decimals,
-												0,
 											)}`;
 										}
 										if (value > Number(tokenBalanceLp)) {

@@ -152,25 +152,9 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
  * @returns The display amount as a string.
  * @throws An error if the amount cannot be converted to a BigInt.
  */
-export function toDisplayAmount(amount: string, decimals: number, roundToDecimal = 2): string {
+export function toDisplayAmount(amount: string, decimals: number): string {
 	try {
 		return numberFormatter.format(Number(amount) / 10 ** Number(decimals));
-	} catch (error) {
-		return "0";
-	}
-
-	if (decimals === 0) {
-		roundToDecimal = 0;
-	}
-
-	try {
-		const amountNum = BigInt(amount);
-		const amountStr = amountNum.toString().padStart(decimals + 1, "0");
-		const amountStrLen = amountStr.length;
-		const integerPart = amountStr.slice(0, amountStrLen - decimals);
-		const decimalPart = amountStr.slice(amountStrLen - decimals);
-		const displayAmount = `${integerPart}.${decimalPart}`;
-		return parseFloat(displayAmount).toFixed(roundToDecimal);
 	} catch (error) {
 		return "0";
 	}
@@ -240,4 +224,10 @@ export function nameToInitials(name?: string) {
 	const names = name.split(" ");
 	const initials = names.map((name) => name[0]);
 	return initials.join("").slice(0, 2).toUpperCase();
+}
+
+export function formatDateField(dateStr?: string) {
+	if (!dateStr) return "-";
+	const date = new Date(dateStr);
+	return isNaN(date.getTime()) ? "-" : date.toISOString().slice(0, 19).replace("T", " ");
 }

@@ -264,7 +264,7 @@ export default function Settings({ user, refreshUser }: { user: User; refreshUse
 													</td>
 													<td>{item.transaction_type}</td>
 													<td>{item.account_address}</td>
-													<td>{toDisplayAmount(item.currency_amount, 6, 2)}€</td>
+													<td>{toDisplayAmount(item.currency_amount, 6)}€</td>
 												</tr>
 											))}
 										</tbody>

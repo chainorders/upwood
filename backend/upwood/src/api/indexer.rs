@@ -96,6 +96,23 @@ impl Api {
     }
 
     #[oai(
+        path = "/admin/indexer/fp-token-contract",
+        method = "get",
+        tag = "ApiTags::Indexer"
+    )]
+    pub async fn admin_indexer_fp_token_contract(
+        &self,
+        Data(db_pool): Data<&DbPool>,
+        BearerAuthorization(claims): BearerAuthorization,
+        Query(contract_address): Query<Decimal>,
+    ) -> JsonResult<Option<ForestProjectContract>> {
+        ensure_is_admin(&claims)?;
+        let mut conn = db_pool.get()?;
+        let contract = ForestProjectContract::find(&mut conn, contract_address)?;
+        Ok(Json(contract))
+    }
+
+    #[oai(
         path = "/admin/indexer/agents",
         method = "get",
         tag = "ApiTags::Indexer"
@@ -236,17 +253,19 @@ impl Api {
         Data(contracts): Data<&SystemContractsConfig>,
         BearerAuthorization(claims): BearerAuthorization,
         Query(investment_token_contract_address): Query<Decimal>,
-    ) -> JsonResult<Vec<SecurityMintFund>> {
+        Query(page): Query<i64>,
+        Query(page_size): Query<i64>,
+    ) -> JsonResult<PagedResponse<SecurityMintFund>> {
         ensure_is_admin(&claims)?;
         let mut conn = db_pool.get()?;
-        let (funds, _) = SecurityMintFund::list_by_investment_contracts(
+        let (funds, page_count) = SecurityMintFund::list_by_investment_contracts(
             &mut conn,
             contracts.mint_funds_contract_index,
             Some(&[investment_token_contract_address]),
-            0,
-            i64::MAX,
+            page,
+            page_size,
         )?;
-        Ok(Json(funds))
+        Ok(Json(PagedResponse::new(funds, page, page_count)))
     }
 
     #[allow(clippy::too_many_arguments)]

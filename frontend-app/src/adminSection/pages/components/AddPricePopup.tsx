@@ -83,7 +83,7 @@ export default function AddPricePopup({
 											}}
 										/>
 										<Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1, textAlign: "right" }}>
-											Price: € {toDisplayAmount(priceWatch?.toString() || "0", 6, 6)}
+											Price: € {toDisplayAmount(priceWatch?.toString() || "0", 6)}
 										</Typography>
 									</Grid>
 								</Grid>
