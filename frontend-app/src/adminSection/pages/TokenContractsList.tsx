@@ -34,7 +34,7 @@ export default function TokenContractsList() {
 	const [eTreesNftContract, setETreesNftContract] = useState<TokenContract>();
 	const [fpTokenContracts, setFpTokenContracts] = useState<PagedResponse_ForestProjectContract>();
 	const [fpTokenContractsPage, setFpTokenContractsPage] = useState(0);
-	const [fpTokenContractsPageSize, setFpTokenContractsPageSize] = useState(10);
+	const [fpTokenContractsPageSize, setFpTokenContractsPageSize] = useState(100);
 	const classes = useCommonStyles();
 
 	const formatDate = (dateStr?: string) => {
@@ -184,7 +184,7 @@ export default function TokenContractsList() {
 						setFpTokenContractsPageSize(parseInt(e.target.value, 10));
 						setFpTokenContractsPage(0);
 					}}
-					rowsPerPageOptions={[5, 10, 25, 50]}
+					rowsPerPageOptions={[5, 10, 25, 50, 100]}
 				/>
 			</Paper>
 		</Box>

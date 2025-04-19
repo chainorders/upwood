@@ -22,6 +22,11 @@ import BalanceUpdatesTable from "../components/BalanceUpdatesTable";
 import FundsTable from "../components/FundsTable";
 import InvestorsTable from "../components/InvestorsTable";
 import InvestmentRecordsTable from "../components/InvestmentRecordsTable";
+import TradersTable from "../components/TradersTable";
+import TradesTable from "../components/TradesTable";
+import YieldsTab from "../components/YieldsTab";
+import UserYieldDistributionsTab from "../components/UserYieldDistributionsTab";
+import MarketsTab from "../components/MarketsTab";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 
@@ -40,6 +45,11 @@ export default function ForestTokenContractDetails() {
 		{ label: "Active Funds", component: <FundsTable contract_index={contract_index!} /> },
 		{ label: "Investors", component: <InvestorsTable contract_index={contract_index!} /> },
 		{ label: "Investments", component: <InvestmentRecordsTable contract_index={contract_index!} /> },
+		{ label: "Markets", component: <MarketsTab contract_index={contract_index!} /> },
+		{ label: "Traders", component: <TradersTable contract_index={contract_index!} /> },
+		{ label: "Trades", component: <TradesTable contract_index={contract_index!} /> },
+		{ label: "Yields", component: <YieldsTab contract_index={contract_index!} /> },
+		{ label: "Yield Distributions", component: <UserYieldDistributionsTab contract_index={contract_index!} /> },
 	];
 
 	const getDisplayContractName = (contract: ForestProjectContract) => {

@@ -1199,7 +1199,9 @@ impl ForestProjectContract {
             .first::<i64>(conn)?;
         let records = query
             .select(ForestProjectContract::as_select())
-            .order(forest_project_token_contracts::created_at.desc())
+            .order(forest_project_token_contracts::forest_project_id.desc())
+            .then_order_by(forest_project_token_contracts::contract_address.asc())
+            .then_order_by(forest_project_token_contracts::created_at.asc())
             .limit(page_size)
             .offset(page * page_size)
             .load(conn)?;

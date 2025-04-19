@@ -25,17 +25,10 @@ import UpdateIcon from "@mui/icons-material/Update";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import LandscapeIcon from "@mui/icons-material/Landscape";
-import WalletIcon from "@mui/icons-material/Wallet";
-import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
-import StoreIcon from "@mui/icons-material/Store";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
 import TreeMetadataList from "./pages/TreeMetadataList.tsx";
-import InvestorsList from "./pages/InvestorsList.tsx";
-import TradersList from "./pages/TradersList.tsx";
-import ProjectTokenHoldersList from "./pages/ProjectTokenHoldersList.tsx";
 import TokenHolderBalanceUpdateList from "./pages/TokenHolderBalanceUpdateList.tsx";
-import InvestmentRecordsList from "./pages/InvestmentRecordsList.tsx";
 import TokenIcon from "@mui/icons-material/Token";
 import TokenContractsList from "./pages/TokenContractsList.tsx";
 import TokenContractDetails from "./pages/TokenContractDetails.tsx";
@@ -95,28 +88,10 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			isActive: pathname.startsWith("/admin/projects"),
 		},
 		{
-			name: "Fund Investors",
-			url: "/admin/fund/investors",
-			icon: <CurrencyExchangeIcon />,
-			isActive: pathname.startsWith("/admin/fund"),
-		},
-		{
-			name: "Market Traders",
-			url: "/admin/market/traders",
-			icon: <StoreIcon />,
-			isActive: pathname.startsWith("/admin/market"),
-		},
-		{
-			name: "Project Token Holders",
-			url: "/admin/projects/token-holders",
-			icon: <WalletIcon />,
-			isActive: pathname.startsWith("/admin/projects/token-holders"),
-		},
-		{
 			name: "Token Contracts",
 			url: "/admin/token-contracts",
 			icon: <TokenIcon />,
-			isActive: pathname.startsWith("/admin/token-contracts"),
+			isActive: pathname.startsWith("/admin/token-contracts") || pathname.startsWith("/admin/fp-token-contracts"),
 		},
 		{
 			name: "Users",
@@ -329,10 +304,6 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 								</Route>
 							</Route>
 						</Route>
-						<Route path="fund/investors" element={<InvestorsList />} />
-						<Route path="fund/investment-records" element={<InvestmentRecordsList />} />
-						<Route path="market/traders" element={<TradersList />} />
-						<Route path="projects/token-holders" element={<ProjectTokenHoldersList />} />
 						<Route
 							path="projects/token-holders/balance-updates/:contract/:token_id/:holder"
 							element={<TokenHolderBalanceUpdateList />}
