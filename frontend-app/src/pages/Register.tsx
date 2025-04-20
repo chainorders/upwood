@@ -1,7 +1,7 @@
 import { SubmitHandler, useForm } from "react-hook-form";
 import Button from "../components/Button";
 import { useEffect, useState } from "react";
-import { UserService } from "../apiClient";
+import { ApiError, UserService } from "../apiClient";
 import { detectConcordiumProvider, WalletApi } from "@concordium/browser-wallet-api-helpers";
 import { Web3StatementBuilder } from "@concordium/web-sdk";
 import { useNavigate } from "react-router";
@@ -52,27 +52,51 @@ export default function Register() {
 		}
 		if (!account) {
 			alert("No account selected");
+			setLoading(false);
 			return;
 		}
 
-		try {
-			const emailHash = await sha256(data.email);
-			const identityResponse = await wallepApi.requestVerifiablePresentation(
+		const emailHash = await sha256(data.email);
+		if (!emailHash) {
+			alert("Failed to hash email");
+			setLoading(false);
+			return;
+		}
+
+		const identityResponse = await wallepApi
+			.requestVerifiablePresentation(
 				emailHash,
 				new Web3StatementBuilder()
 					.addForIdentityCredentials([0, 1, 2], (b) =>
 						b.revealAttribute("firstName").revealAttribute("lastName").revealAttribute("nationality"),
 					)
 					.getStatements(),
-			);
-			await UserService.postUserRegister({
-				account_address: account!,
-				email: data.email,
-				temp_password: data.tempPassword,
-				password: data.password,
-				proof: identityResponse,
-				desired_investment_amount: data.investmentAmount,
+			)
+			.catch((e) => {
+				console.error(e);
+				return;
 			});
+
+		if (!identityResponse) {
+			alert("Failed to get identity response");
+			setLoading(false);
+			return;
+		}
+
+		const user = await UserService.postUserRegister({
+			account_address: account!,
+			email: data.email,
+			temp_password: data.tempPassword,
+			password: data.password,
+			proof: identityResponse,
+			desired_investment_amount: data.investmentAmount,
+		}).catch((e: ApiError) => {
+			console.error(e);
+			alert(`Failed to register: ${e.body}`);
+			return;
+		});
+
+		if (user) {
 			navigate("/login", {
 				state: {
 					email: data.email,
@@ -80,11 +104,10 @@ export default function Register() {
 				},
 			});
 			setLoading(false);
-		} catch (e) {
-			console.error(e);
-			alert("Failed to register");
-			setLoading(false);
+			return;
 		}
+
+		setLoading(false);
 	};
 
 	const password = watch("password");

@@ -2,6 +2,8 @@ use aws::cognito::{
     account_address_attribute, affiliate_account_address_attribute, email_attribute,
     email_verified_attribute, first_name_attribute, last_name_attribute, nationality_attribute,
 };
+use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthOutput;
+use aws_sdk_cognitoidentityprovider::types::ChallengeNameType;
 use chrono::Utc;
 use concordium::account::Signer;
 use concordium::identity::{Presentation, VerifyPresentationResponse};
@@ -27,6 +29,7 @@ use shared::db_app::portfolio::UserTransaction;
 use shared::db_app::users::{
     Company, CompanyInvitation, User, UserKYCModel, UserRegistrationRequest, UserTokenHolder,
 };
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::api::*;
@@ -159,7 +162,7 @@ impl UserApi {
         Data(contracts): Data<&SystemContractsConfig>,
         Json(req): Json<UserCreatePostReq>,
     ) -> JsonResult<UserKYCModel> {
-        let mut conn = db_pool.get()?;
+        let conn = &mut db_pool.get()?;
         let verification_res = {
             let proof = req
                 .proof()?
@@ -180,6 +183,83 @@ impl UserApi {
             )
             .await?
         };
+
+        let auth_res: InitiateAuthOutput = user_pool
+            .user_initiate_auth_req(&req.email, &req.temp_password)
+            .await
+            .map_err(|e| {
+                error!(
+                    "Error authorizing user with the provided temp password: {:?}",
+                    e
+                );
+                Error::InternalServer(PlainText("Invalid temp password".to_string()))
+            })?;
+        if !auth_res
+            .challenge_name()
+            .is_some_and(|c| ChallengeNameType::NewPasswordRequired.eq(c))
+        {
+            return Err(Error::BadRequest(PlainText(
+                "Invalid temp password".to_string(),
+            )));
+        }
+
+        let existing_cognito_user_by_email = user_pool.find_user_by_email(&req.email).await?;
+        let existing_db_user_by_email = User::find_by_email(conn, &req.email)?;
+        let existing_db_user_by_account =
+            User::find_by_account_address(conn, &req.account_address)?;
+
+        match (
+            existing_cognito_user_by_email,
+            existing_db_user_by_email,
+            existing_db_user_by_account,
+        ) {
+            (None, ..) => {
+                // User is not present in cognito. This means registration request was not accepted.
+                return Err(Error::BadRequest(PlainText(
+                    "User not found in Cognito. Hence cannot confirm the user. Please try to \
+                     register again"
+                        .to_string(),
+                )));
+            }
+            (Some(_), None, None) => {
+                // The ideal case. User is present in cognito but not in the database.
+                // User is present in cognito since the registration request was accepted.
+            }
+            (Some(_), Some(existing_db_user_by_email), None) => {
+                // User is present in cognito and in database by the same email. But the account address in db is different.
+                // This means the user is already registered with a different account address and the new account address is not in use
+                return Err(Error::BadRequest(PlainText(format!(
+                    "You are already registered with account address: {}. Please use the same \
+                     account address to register",
+                    existing_db_user_by_email.account_address
+                ))));
+            }
+            (Some(_), Some(existing_db_user_by_email), Some(existing_db_user_by_account)) => {
+                if existing_db_user_by_email.cognito_user_id
+                    != existing_db_user_by_account.cognito_user_id
+                {
+                    return Err(Error::BadRequest(PlainText(
+                        "Account address already registered with a different email".to_string(),
+                    )));
+                }
+
+                // User is present in cognito and in database by the same email and account address.
+                // This means the user is already registered with the same account address and email.
+                warn!(
+                    "User is already registered with the same account address and email. Account \
+                     address: {}, email: {}",
+                    req.account_address, req.email
+                );
+            }
+            (Some(_), None, Some(_)) => {
+                // User email is registered with cognito and account is present in the database.
+                // This means a new user is trying to register with the same account address but different email.
+                return Err(Error::BadRequest(PlainText(
+                    "Account address already registered with a different email".to_string(),
+                )));
+            }
+        }
+
         let cognito_user = user_pool
             .confirm_user(&req.email, &req.temp_password, &req.password, vec![
                 email_verified_attribute(true),
@@ -220,9 +300,9 @@ impl UserApi {
             affiliate_account_address: affiliate_account.clone(),
             company_id: None,
         }
-        .upsert(&mut conn)?;
+        .upsert(conn)?;
         let kyc_verified = Identity::exists(
-            &mut conn,
+            conn,
             contracts.identity_registry_contract_index,
             &user.account_address,
         )?;

@@ -66,10 +66,10 @@ impl User {
 
     pub fn find_by_account_address(
         conn: &mut DbConn,
-        account_address: &AccountAddress,
+        account_address: &str,
     ) -> DbResult<Option<User>> {
         users::table
-            .filter(users::account_address.eq(account_address.to_string()))
+            .filter(users::account_address.eq(account_address))
             .select(User::as_select())
             .first(conn)
             .optional()

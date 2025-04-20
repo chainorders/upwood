@@ -143,11 +143,11 @@
 	display: inline-block;
 	line-height: 30px;
 	padding-left: 40px;
-	background: url(/checkbox-plain.svg) top 3px left no-repeat;
+	background: url(../assets/checkbox-plain.svg) top 3px left no-repeat;
 }
 
 .field .checkbox input:checked + label span {
-	background: url(/checkbox-checked.svg) top 3px left no-repeat;
+	background: url(../assets/checkbox-checked.svg) top 3px left no-repeat;
 }
 
 .space-20 {

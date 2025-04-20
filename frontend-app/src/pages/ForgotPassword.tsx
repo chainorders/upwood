@@ -18,7 +18,7 @@ interface ConfirmCodeFormInputs {
 }
 
 export default function ForgotPassword() {
-	const [currentState, setCurrentState] = useState<"email" | "code" | "success" | "error">("error");
+	const [currentState, setCurrentState] = useState<"email" | "code" | "success" | "error">("email");
 	const [error, setError] = useState<string>();
 	const [reSubmitting, setResubmitting] = useState(false);
 

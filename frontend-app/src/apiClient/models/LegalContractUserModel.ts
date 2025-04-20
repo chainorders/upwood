@@ -13,5 +13,5 @@ export type LegalContractUserModel = {
 	created_at: string;
 	cognito_user_id: string;
 	signed_date: string;
-	user_token_balance: string;
+	user_token_balance?: string;
 };

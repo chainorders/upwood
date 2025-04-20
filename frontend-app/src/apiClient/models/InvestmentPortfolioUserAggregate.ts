@@ -21,10 +21,6 @@ export type InvestmentPortfolioUserAggregate = {
 	 */
 	yearly_return: string;
 	/**
-	 * Current portfolio value - Portfolio value at the beginning of the month - Amount invested in the month + Amount withdrawn in the month
-	 */
-	monthly_return: string;
-	/**
 	 * (Current portfolio value - Amount withdrawn) / Total amount invested
 	 */
 	return_on_investment: string;

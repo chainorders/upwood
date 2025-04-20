@@ -59,7 +59,7 @@ export default function ContractsDetails({ user }: ContractsDetailsProps) {
 										Signed date : <span>{formattedSignedDate}</span>
 									</div>
 									<div className="fr">
-										Tokens : <span>{contract.user_token_balance}</span>
+										Tokens : <span>{contract.user_token_balance || "-"}</span>
 									</div>
 									<div className="clr"></div>
 								</div>

@@ -70,10 +70,10 @@
 
 .authtextslider .bullets .orv.left {
 	margin-right: 3%;
-	background: url(/arrow-left.svg) center left no-repeat;
+	background: url(../assets/arrow-left.svg) center left no-repeat;
 }
 
 .authtextslider .bullets .orv.right {
 	margin-left: 3%;
-	background: url(/arrow-right.svg) center right no-repeat;
+	background: url(../assets/arrow-right.svg) center right no-repeat;
 }

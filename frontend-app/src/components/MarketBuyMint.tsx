@@ -186,6 +186,7 @@ export default function MarketBuyMint({
 			setIsInvesting(false);
 		} catch (e) {
 			console.error(e);
+			setError("tokenAmount", { message: typeof e === "string" ? e : "Transaction failed" });
 			setIsInvesting(false);
 		}
 	};
