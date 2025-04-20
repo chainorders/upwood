@@ -417,6 +417,7 @@ pub mod cognito {
             .unwrap()
     }
 
+    #[inline]
     pub fn first_name_attribute(first_name: &str) -> AttributeType {
         AttributeType::builder()
             .name("given_name".to_string())
@@ -425,6 +426,7 @@ pub mod cognito {
             .unwrap()
     }
 
+    #[inline]
     pub fn last_name_attribute(last_name: &str) -> AttributeType {
         AttributeType::builder()
             .name("family_name".to_string())
@@ -433,6 +435,7 @@ pub mod cognito {
             .unwrap()
     }
 
+    #[inline]
     pub fn name_attribute(first_name: &str, last_name: &str) -> AttributeType {
         AttributeType::builder()
             .name("name".to_string())
@@ -441,6 +444,7 @@ pub mod cognito {
             .unwrap()
     }
 
+    #[inline]
     pub fn nationality_attribute(nationality: &str) -> AttributeType {
         AttributeType::builder()
             .name("custom:nationality".to_string())
@@ -449,6 +453,7 @@ pub mod cognito {
             .unwrap()
     }
 
+    #[inline]
     pub fn company_id_attribute(company_id: Option<&uuid::Uuid>) -> AttributeType {
         AttributeType::builder()
             .name("custom:company_id".to_string())

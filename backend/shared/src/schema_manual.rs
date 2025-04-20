@@ -4,44 +4,6 @@ use crate::schema::{
 };
 
 diesel::table! {
-    forest_project_funds_affiliate_reward_records (investment_record_id) {
-        investment_record_id -> Uuid,
-        fund_contract_address -> Numeric,
-        investment_token_contract_address -> Numeric,
-        investment_token_id -> Numeric,
-        fund_type -> crate::schema::sql_types::ForestProjectSecurityTokenContractType,
-        forest_project_id -> Uuid,
-        is_default -> Nullable<Bool>,
-        investor_cognito_user_id -> Varchar,
-        investor_account_address -> Varchar,
-        currency_token_id -> Numeric,
-        currency_token_contract_address -> Numeric,
-        currency_amount -> Numeric,
-        token_amount -> Numeric,
-        investment_token_symbol -> Varchar,
-        investment_token_decimals -> Integer,
-        currency_token_symbol -> Varchar,
-        currency_token_decimals -> Integer,
-        claim_id -> Nullable<Uuid>,
-        claims_contract_address -> Nullable<Numeric>,
-        reward_amount -> Numeric,
-        remaining_reward_amount -> Numeric,
-        affiliate_cognito_user_id -> Varchar,
-        affiliate_commission -> Numeric,
-    }
-}
-
-diesel::table! {
-    forest_project_user_investment_amounts(cognito_user_id) {
-        cognito_user_id -> Varchar,
-        currency_token_id -> Numeric,
-        currency_token_contract_address -> Numeric,
-        total_currency_amount_locked -> Numeric,
-        total_currency_amount_invested -> Numeric,
-    }
-}
-
-diesel::table! {
     user_transactions (transaction_hash) {
         transaction_hash -> Varchar,
         block_height -> Numeric,
@@ -54,75 +16,6 @@ diesel::table! {
         account_address -> Varchar,
     }
 }
-
-diesel::define_sql_function!(
-    fn user_currency_value_for_forest_project_owned_tokens_at(
-        user_id: diesel::sql_types::Text,
-        time_at: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_exchange_input_amount(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_exchange_output_amount(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_exchange_profits(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_fund_investment_amount(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_fund_profits(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
-
-diesel::define_sql_function!(
-    fn user_token_manual_transfer_profits(
-        user_id: diesel::sql_types::Text,
-        from_time: diesel::sql_types::Timestamp,
-        to_time: diesel::sql_types::Timestamp,
-        currency_token_id: diesel::sql_types::Numeric,
-        currency_token_contract_address: diesel::sql_types::Numeric
-    ) -> diesel::sql_types::Numeric
-);
 
 diesel::table! {
     forest_project_supply (forest_project_id) {

@@ -539,9 +539,8 @@ pub async fn test_forest_projects() {
                 invested_value:                 100.into(),
                 current_portfolio_value:        Decimal::ZERO,
                 carbon_tons_offset:             Decimal::ZERO,
-                monthly_return:                 Decimal::from(-100),
                 return_on_investment:           Decimal::from(-100),
-                yearly_return:                  Decimal::from(-100),
+                yearly_return:                  Decimal::from(0),
             });
 
             let portfolio = user_2
@@ -554,9 +553,8 @@ pub async fn test_forest_projects() {
                 invested_value:                 200.into(),
                 current_portfolio_value:        Decimal::ZERO,
                 carbon_tons_offset:             Decimal::ZERO,
-                monthly_return:                 Decimal::from(-200),
                 return_on_investment:           Decimal::from(-100),
-                yearly_return:                  Decimal::from(-200),
+                yearly_return:                  Decimal::from(0),
             });
         }
 
@@ -632,8 +630,7 @@ pub async fn test_forest_projects() {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        200.into(), // 100 shares at 2 price
-                yearly_return:                  100.into(),
-                monthly_return:                 100.into(),
+                yearly_return:                  200.into(),
                 return_on_investment:           100.into(),
                 carbon_tons_offset:             Decimal::ZERO,
             });
@@ -647,8 +644,7 @@ pub async fn test_forest_projects() {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 200.into(),
                 current_portfolio_value:        400.into(),
-                yearly_return:                  200.into(),
-                monthly_return:                 200.into(),
+                yearly_return:                  400.into(),
                 return_on_investment:           100.into(),
                 carbon_tons_offset:             Decimal::ZERO,
             });
@@ -693,8 +689,7 @@ pub async fn test_forest_projects() {
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        200.into(), // 100 shares at 2 price
-            yearly_return:                  100.into(),
-            monthly_return:                 100.into(),
+            yearly_return:                  200.into(),
             return_on_investment:           100.into(),
             carbon_tons_offset:             Decimal::ZERO,
         });
@@ -710,7 +705,6 @@ pub async fn test_forest_projects() {
             // (initial price of 2 + 12 months increase of 1 each month) * 100 shares
             current_portfolio_value:        1400.into(),
             yearly_return:                  1200.into(),
-            monthly_return:                 100.into(),
             return_on_investment:           1300.into(),
             carbon_tons_offset:             Decimal::ZERO,
         });
@@ -946,7 +940,6 @@ pub async fn test_forest_projects() {
                 invested_value:                 100.into(),
                 current_portfolio_value:        1400.into(),
                 yearly_return:                  1200.into(),
-                monthly_return:                 100.into(),
                 return_on_investment:           1300.into(),
                 carbon_tons_offset:             1000.into(),
             });
@@ -979,14 +972,13 @@ pub async fn test_forest_projects() {
                 })
                 .await;
             // here only the `current_portfolio_value` has changed
-            // because transfers are assumed to be done at market rate / forest project price
+            // because transfers are not considered as a profit
             assert_eq!(portfolio, InvestmentPortfolioUserAggregate {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        700.into(),
-                yearly_return:                  1200.into(),
-                monthly_return:                 100.into(),
-                return_on_investment:           1300.into(),
+                yearly_return:                  500.into(),
+                return_on_investment:           600.into(),
                 carbon_tons_offset:             1000.into(),
             });
         }
@@ -1022,9 +1014,8 @@ pub async fn test_forest_projects() {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 100.into(),
                 current_portfolio_value:        700.into(),
-                yearly_return:                  1200.into(),
-                monthly_return:                 100.into(),
-                return_on_investment:           1300.into(),
+                yearly_return:                  500.into(),
+                return_on_investment:           600.into(),
                 carbon_tons_offset:             1000.into(),
             });
         }
@@ -1087,9 +1078,8 @@ pub async fn test_forest_projects() {
                 locked_mint_fund_euro_e_amount: 0.into(),
                 invested_value:                 75.into(), // 100 initially invested - 25 taken out
                 current_portfolio_value:        0.into(),
-                yearly_return:                  525.into(),
-                monthly_return:                 (-575).into(),
-                return_on_investment:           Decimal::from_f64(866.666667).unwrap(),
+                yearly_return:                  (-200).into(),
+                return_on_investment:           (-100).into(),
                 carbon_tons_offset:             1000.into(),
             });
         }
@@ -1167,9 +1157,8 @@ pub async fn test_forest_projects() {
             locked_mint_fund_euro_e_amount: 0.into(),
             invested_value:                 100.into(),
             current_portfolio_value:        700.into(), // 50 shares at 14 price
-            yearly_return:                  1175.into(),
-            monthly_return:                 75.into(),
-            return_on_investment:           1300.into(),
+            yearly_return:                  500.into(),
+            return_on_investment:           600.into(),
             carbon_tons_offset:             1000.into(),
         });
     }

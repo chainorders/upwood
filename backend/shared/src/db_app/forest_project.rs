@@ -537,7 +537,7 @@ impl LegalContract {
     }
 }
 
-#[derive(Object, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize, Queryable)]
 pub struct LegalContractUserModel {
     pub project_id:         uuid::Uuid,
     pub name:               String,
@@ -548,7 +548,39 @@ pub struct LegalContractUserModel {
     pub created_at:         NaiveDateTime,
     pub cognito_user_id:    String,
     pub signed_date:        NaiveDateTime,
-    pub user_token_balance: Decimal,
+    pub user_token_balance: Option<Decimal>,
+}
+
+impl<DB> Selectable<DB> for LegalContractUserModel
+where DB: diesel::backend::Backend
+{
+    type SelectExpression = (
+        schema::forest_project_legal_contracts::project_id,
+        schema::forest_project_legal_contracts::name,
+        schema::forest_project_legal_contracts::tag,
+        schema::forest_project_legal_contracts::text_url,
+        schema::forest_project_legal_contracts::edoc_url,
+        schema::forest_project_legal_contracts::pdf_url,
+        schema::forest_project_legal_contracts::created_at,
+        schema::forest_project_legal_contract_user_signatures::cognito_user_id,
+        schema::forest_project_legal_contract_user_signatures::updated_at,
+        diesel::dsl::Nullable<crate::schema_manual::forest_project_user_balance_agg::total_balance>,
+    );
+
+    fn construct_selection() -> Self::SelectExpression {
+        (
+            schema::forest_project_legal_contracts::project_id,
+            schema::forest_project_legal_contracts::name,
+            schema::forest_project_legal_contracts::tag,
+            schema::forest_project_legal_contracts::text_url,
+            schema::forest_project_legal_contracts::edoc_url,
+            schema::forest_project_legal_contracts::pdf_url,
+            schema::forest_project_legal_contracts::created_at,
+            schema::forest_project_legal_contract_user_signatures::cognito_user_id,
+            schema::forest_project_legal_contract_user_signatures::updated_at,
+            crate::schema_manual::forest_project_user_balance_agg::total_balance.nullable(),
+        )
+    }
 }
 
 impl LegalContractUserModel {
@@ -562,64 +594,16 @@ impl LegalContractUserModel {
                 signatures_dsl::forest_project_legal_contract_user_signatures
                     .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
             )
-            .inner_join(
+            .left_join(
                 balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
                     .eq(balance_dsl::forest_project_id)
-                    .and(balance_dsl::cognito_user_id.eq(user_id))),
+                    .and(balance_dsl::cognito_user_id.eq(signatures_dsl::cognito_user_id))),
             )
-            .select((
-                contracts_dsl::project_id,
-                contracts_dsl::name,
-                contracts_dsl::tag,
-                contracts_dsl::text_url,
-                contracts_dsl::edoc_url,
-                contracts_dsl::pdf_url,
-                contracts_dsl::created_at,
-                signatures_dsl::cognito_user_id,
-                signatures_dsl::updated_at,
-                balance_dsl::total_balance,
-            ))
+            .select(LegalContractUserModel::as_select())
             .filter(contracts_dsl::project_id.eq(project_id))
-            .first::<(
-                uuid::Uuid,
-                String,
-                String,
-                String,
-                String,
-                String,
-                NaiveDateTime,
-                String,
-                NaiveDateTime,
-                Decimal,
-            )>(conn)
-            .optional()?
-            .map(
-                |(
-                    project_id,
-                    name,
-                    tag,
-                    text_url,
-                    edoc_url,
-                    pdf_url,
-                    created_at,
-                    cognito_user_id,
-                    signed_date,
-                    user_token_balance,
-                )| {
-                    LegalContractUserModel {
-                        project_id,
-                        name,
-                        tag,
-                        text_url,
-                        edoc_url,
-                        pdf_url,
-                        created_at,
-                        cognito_user_id,
-                        signed_date,
-                        user_token_balance,
-                    }
-                },
-            );
+            .filter(signatures_dsl::cognito_user_id.eq(user_id))
+            .first(conn)
+            .optional()?;
 
         Ok(result)
     }
@@ -639,66 +623,22 @@ impl LegalContractUserModel {
                 signatures_dsl::forest_project_legal_contract_user_signatures
                     .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
             )
-            .inner_join(
+            .left_join(
                 balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
                     .eq(balance_dsl::forest_project_id)
-                    .and(balance_dsl::cognito_user_id.eq(user_id))),
+                    .and(balance_dsl::cognito_user_id.eq(signatures_dsl::cognito_user_id))),
             )
-            .select((
-                contracts_dsl::project_id,
-                contracts_dsl::name,
-                contracts_dsl::tag,
-                contracts_dsl::text_url,
-                contracts_dsl::edoc_url,
-                contracts_dsl::pdf_url,
-                contracts_dsl::created_at,
-                signatures_dsl::cognito_user_id,
-                signatures_dsl::updated_at,
-                balance_dsl::total_balance,
-            ))
+            .filter(signatures_dsl::cognito_user_id.eq(user_id))
+            .select(LegalContractUserModel::as_select())
             .order(contracts_dsl::created_at.desc())
             .limit(page_size)
             .offset(page * page_size)
-            .load(conn)?
-            .into_iter()
-            .map(
-                |(
-                    project_id,
-                    name,
-                    tag,
-                    text_url,
-                    edoc_url,
-                    pdf_url,
-                    created_at,
-                    cognito_user_id,
-                    signed_date,
-                    user_token_balance,
-                )| {
-                    LegalContractUserModel {
-                        project_id,
-                        name,
-                        tag,
-                        text_url,
-                        edoc_url,
-                        pdf_url,
-                        created_at,
-                        cognito_user_id,
-                        signed_date,
-                        user_token_balance,
-                    }
-                },
-            )
-            .collect::<Vec<Self>>();
+            .load::<LegalContractUserModel>(conn)?;
 
         let total_count = contracts_dsl::forest_project_legal_contracts
             .inner_join(
                 signatures_dsl::forest_project_legal_contract_user_signatures
                     .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
-            )
-            .inner_join(
-                balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
-                    .eq(balance_dsl::forest_project_id)
-                    .and(balance_dsl::cognito_user_id.eq(user_id))),
             )
             .count()
             .get_result::<i64>(conn)?;
