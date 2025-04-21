@@ -161,6 +161,8 @@ export default function MarketSell({
 	}, [tokenBalanceSeller]);
 
 	const onSubmit = async (data: NotifyFormData) => {
+		console.log("Submitting form with data:", data);
+		console.log("market", market);
 		setIsSelling(true);
 		try {
 			await updateContract(
@@ -170,7 +172,7 @@ export default function MarketSell({
 				{
 					rate: { numerator: BigInt(market.buy_rate_numerator), denominator: BigInt(market.buy_rate_denominator) },
 					contract: {
-						index: Number(market.currency_token_contract_address),
+						index: Number(market.token_contract_address),
 						subindex: 0,
 					},
 					amount: data.tokenAmount.toString(),

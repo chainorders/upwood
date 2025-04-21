@@ -105,7 +105,7 @@ export default function ProjectCardOwned({ project, user }: Props) {
 						liquidity_provider: project.property_market.liquidity_provider!,
 						token_contract_address: project.property_market.token_contract_address!,
 						token_id: project.property_market.token_id!,
-						contract_address: project.property_contract.contract_address,
+						contract_address: project.property_market.contract_address!,
 						max_currency_amount: project.property_market.max_currency_amount!,
 						max_token_amount: project.property_market.max_token_amount,
 					}}

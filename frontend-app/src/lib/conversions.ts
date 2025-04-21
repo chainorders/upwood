@@ -3,6 +3,7 @@ export const formatDate = (date: Date) => {
 };
 
 import {
+	AccountAddress,
 	BaseAccountTransactionSummary,
 	BlockItemSummaryInBlock,
 	ContractAddress,
@@ -14,7 +15,7 @@ import {
 	UpdateContractSummary,
 } from "@concordium/web-sdk";
 
-export function parseContractAddress(outcome: BlockItemSummaryInBlock): ContractAddress.Type {
+export function parseContractAddressFromBlockItemSummary(outcome: BlockItemSummaryInBlock): ContractAddress.Type {
 	switch (outcome.summary.type) {
 		case TransactionSummaryType.AccountTransaction:
 			switch (outcome.summary.transactionType) {
@@ -35,10 +36,6 @@ export function parseContractAddress(outcome: BlockItemSummaryInBlock): Contract
 		default:
 			throw new Error(`Unknown transaction type: ${outcome.summary.type}`);
 	}
-}
-
-export function contractAddToString(contractAddress: ContractAddress.Type): string {
-	return `${contractAddress.index.toString()}/${contractAddress.subindex.toString()}`;
 }
 
 export type ParsedError<TErr> = {
@@ -230,4 +227,67 @@ export function formatDateField(dateStr?: string) {
 	if (!dateStr) return "-";
 	const date = new Date(dateStr);
 	return isNaN(date.getTime()) ? "-" : date.toISOString().slice(0, 19).replace("T", " ");
+}
+
+export function toParamsAddress(address: string | number): {
+	Account: [string]
+} | {
+	Contract: [{ index: number, subindex: number }]
+} {
+	if (isAccountAddress(address)) {
+		const accountAddress = AccountAddress.fromBase58(address.toString());
+		return { Account: [accountAddress.toString()] };
+	} else {
+		const contractAddress: ContractAddress.Type = parseContractAddress(address);
+		return {
+			Contract: [{
+				index: Number(contractAddress.index),
+				subindex: Number(contractAddress.subindex || 0),
+			}]
+		};
+	}
+}
+/**
+ * Checks if the given address is an account address. 
+ * An Account address is base58 encoded string ex 4fWTMJSAymJoFeTbohJzwejT6Wzh1dAa2BtnbDicgjQrc94TgW, 3nAeCmWzoQyf1kmdCcxGy8dFi7nPSRm38FKoR4Ge5ZGJcFSuww
+ * A Contract Address can be a number Or a string with format <index,subindex>.
+ * @param address - The address to check.
+ * @returns True if the address is an account address, false otherwise.
+ */
+function isAccountAddress(address: string | number): boolean {
+	if (typeof address === "number") {
+		return false;
+	}
+	if (typeof address === "string" && address.length === 50) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Parses a contract address from a string or number.
+ * The address can be in the format "<index, subindex>" or just a number.
+ * @param address - The address to parse.
+ * @returns The parsed contract address.
+ * @throws An error if the address is in an invalid format.
+ */
+function parseContractAddress(address: string | number): ContractAddress.Type {
+	if (typeof address === "number") {
+		return ContractAddress.create(address);
+	} else if (typeof address === "string") {
+		const match = address.match(/^<\s*(\d+)\s*,\s*(\d+)\s*>$/);
+		if (match) {
+			const index = parseInt(match[1]);
+			const subindex = parseInt(match[2]);
+			return ContractAddress.create(index, subindex);
+		} else if (
+			address.match(/^\s*\d+\s*$/)
+		) {
+			const index = parseInt(address);
+			return ContractAddress.create(index);
+		}
+	}
+
+	// If the address is neither a number nor a valid string format, throw an error
+	throw new Error("Invalid contract address format");
 }

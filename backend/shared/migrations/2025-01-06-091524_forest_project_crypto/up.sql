@@ -86,6 +86,7 @@ GROUP BY
      token_contract.symbol,
      token_contract.decimals;
 
+-- TODO: REMOVE THIS VIEW
 CREATE VIEW forest_project_user_balance_agg AS
 SELECT
      usr.cognito_user_id,

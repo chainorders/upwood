@@ -23,7 +23,8 @@ export default function PortfolioValueChart(props: {
 	currencySymbol: string;
 }) {
 	const chartLabels = props.values.map((value) => new Date(value.at).toLocaleDateString("en-US", { month: "short" }));
-	const chartData = props.values.map((value) => value.portfolio_value);
+	const chartData = props.values.map((value) => Number(value.portfolio_value));
+	// const chartData: number[] = [0, 0, 0, 1000, 2000, 3000];
 
 	const data = {
 		labels: chartLabels,
@@ -33,11 +34,11 @@ export default function PortfolioValueChart(props: {
 				data: chartData,
 				borderColor: "#28a745",
 				backgroundColor: "rgba(40, 167, 69, 0.2)",
-				pointRadius: 8,
-				pointBackgroundColor: "#28a745",
-				pointBorderColor: "#fff",
-				tension: 0.4,
-				fill: false,
+				// pointRadius: 8,
+				// pointBackgroundColor: "#28a745",
+				// pointBorderColor: "#fff",
+				// tension: 0.4,
+				// fill: false,
 			},
 		],
 	};
@@ -61,7 +62,7 @@ export default function PortfolioValueChart(props: {
 				},
 				beginAtZero: true,
 				ticks: {
-					callback: (value: string | number) => `€${value}`,
+					// callback: (value: string | number) => `€${value}`,
 				},
 			},
 			x: {

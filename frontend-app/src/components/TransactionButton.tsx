@@ -10,7 +10,6 @@ interface SubmitButtonProps extends ButtonProps {
 const TransactionButton: React.FC<SubmitButtonProps> = ({ txnStatus, defaultText, loadingText, ...props }) => {
 	return (
 		<Button
-			variant="outlined"
 			disabled={txnStatus === "sending" || txnStatus === "waiting"}
 			startIcon={(txnStatus === "sending" || txnStatus === "waiting") && <CircularProgress size={20} />}
 			color={txnStatus === "error" ? "error" : txnStatus === "success" ? "success" : "primary"}

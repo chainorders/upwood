@@ -10,11 +10,17 @@ import {
 	TablePagination,
 	Box,
 	CircularProgress,
+	IconButton,
+	Button,
+	Typography,
 } from "@mui/material";
-import { PagedResponse_Token, IndexerService } from "../../apiClient";
+import { PagedResponse_Token, IndexerService, Token } from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
 import { toDisplayAmount } from "../../lib/conversions";
 import { format } from "date-fns";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import AddIcon from "@mui/icons-material/Add";
 
 function formatDateField(dateStr?: string) {
 	if (!dateStr) return "-";
@@ -24,9 +30,21 @@ function formatDateField(dateStr?: string) {
 
 interface TokensTableProps {
 	contract_index: string;
+	onPauseToken?: (token: Token) => void;
+	onUnpauseToken?: (token: Token) => void;
+	onAddToken?: () => void;
+	showAddToken?: boolean;
+	refreshCounter?: number;
 }
 
-const TokensTable: React.FC<TokensTableProps> = ({ contract_index }) => {
+const TokensTable: React.FC<TokensTableProps> = ({ 
+	contract_index, 
+	onPauseToken, 
+	onUnpauseToken,
+	onAddToken,
+	showAddToken = false,
+	refreshCounter = 0,
+}) => {
 	const classes = useCommonStyles();
 	const [tokens, setTokens] = useState<PagedResponse_Token>();
 	const [page, setPage] = useState(0);
@@ -39,12 +57,20 @@ const TokensTable: React.FC<TokensTableProps> = ({ contract_index }) => {
 		IndexerService.getAdminIndexerTokens(page, pageSize, contract_index)
 			.then(setTokens)
 			.finally(() => setLoading(false));
-	}, [contract_index, page, pageSize]);
+	}, [contract_index, page, pageSize, refreshCounter]);
 
 	if (loading) return <CircularProgress />;
 
 	return (
 		<Box>
+			{showAddToken && (
+				<Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+					<Typography variant="h6">Tokens</Typography>
+					<Button startIcon={<AddIcon />} onClick={onAddToken} variant="outlined">
+						Add Token
+					</Button>
+				</Box>
+			)}
 			<TableContainer component={Paper} sx={classes.tableContainer}>
 				<Table>
 					<TableHead>
@@ -56,6 +82,9 @@ const TokensTable: React.FC<TokensTableProps> = ({ contract_index }) => {
 							<TableCell sx={classes.tableHeaderCell}>Supply</TableCell>
 							<TableCell sx={classes.tableHeaderCell}>Created</TableCell>
 							<TableCell sx={classes.tableHeaderCell}>Updated</TableCell>
+							{(onPauseToken || onUnpauseToken) && (
+								<TableCell sx={classes.tableHeaderCell}>Actions</TableCell>
+							)}
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -69,11 +98,37 @@ const TokensTable: React.FC<TokensTableProps> = ({ contract_index }) => {
 									<TableCell>{toDisplayAmount(token.supply, 0)}</TableCell>
 									<TableCell>{formatDateField(token.create_time)}</TableCell>
 									<TableCell>{formatDateField(token.update_time)}</TableCell>
+									{(onPauseToken || onUnpauseToken) && (
+										<TableCell>
+											{token.is_paused 
+												? onUnpauseToken && (
+													<IconButton 
+														onClick={() => onUnpauseToken(token)} 
+														size="small"
+														color="success"
+														title="Unpause token"
+													>
+														<PlayArrowIcon />
+													</IconButton>
+												)
+												: onPauseToken && (
+													<IconButton 
+														onClick={() => onPauseToken(token)} 
+														size="small"
+														color="warning"
+														title="Pause token"
+													>
+														<PauseIcon />
+													</IconButton>
+												)
+											}
+										</TableCell>
+									)}
 								</TableRow>
 							))
 						) : (
 							<TableRow>
-								<TableCell colSpan={7} align="center">
+								<TableCell colSpan={(onPauseToken || onUnpauseToken) ? 8 : 7} align="center">
 									No tokens found.
 								</TableCell>
 							</TableRow>

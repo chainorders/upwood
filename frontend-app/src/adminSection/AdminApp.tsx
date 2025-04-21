@@ -25,6 +25,7 @@ import UpdateIcon from "@mui/icons-material/Update";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import LandscapeIcon from "@mui/icons-material/Landscape";
+import ForestIcon from "@mui/icons-material/Forest";
 import { lazy, Suspense } from "react";
 import UpdateMessagesList from "./pages/UpdateMessagesList.tsx";
 import TreeMetadataList from "./pages/TreeMetadataList.tsx";
@@ -33,6 +34,7 @@ import TokenIcon from "@mui/icons-material/Token";
 import TokenContractsList from "./pages/TokenContractsList.tsx";
 import TokenContractDetails from "./pages/TokenContractDetails.tsx";
 import ForestTokenContractDetails from "./pages/ForestTokenContractDetails.tsx";
+import TreeFungibleHoldersList from "./pages/TreeFungibleHoldersList.tsx";
 
 const ProjectList = lazy(() => import("./pages/ProjectList.tsx"));
 const ProjectCreate = lazy(() => import("./pages/ProjectCreate.tsx"));
@@ -92,6 +94,12 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 			url: "/admin/token-contracts",
 			icon: <TokenIcon />,
 			isActive: pathname.startsWith("/admin/token-contracts") || pathname.startsWith("/admin/fp-token-contracts"),
+		},
+		{
+			name: "Tree Fungible Token Holders",
+			url: "/admin/tree/fungible/holders",
+			icon: <ForestIcon />,
+			isActive: pathname.startsWith("/admin/tree/fungible/holders"),
 		},
 		{
 			name: "Users",
@@ -309,8 +317,9 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							element={<TokenHolderBalanceUpdateList />}
 						/>
 						<Route path="token-contracts" element={<TokenContractsList />} />
-						<Route path="token-contracts/:contract_index/*" element={<TokenContractDetails />} />
-						<Route path="fp-token-contracts/:contract_index/*" element={<ForestTokenContractDetails />} />
+						<Route path="token-contracts/:contract_index/*" element={<TokenContractDetails user={user} />} />
+						<Route path="fp-token-contracts/:contract_index/*" element={<ForestTokenContractDetails user={user} />} />
+						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />
 							<Route path="list" element={<UserList user={user} />} />

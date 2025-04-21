@@ -21,6 +21,11 @@ use super::*;
 use crate::utils::concordium::account::{verify_account_signature, AccountSignatures};
 pub const MEDIA_LIMIT: i64 = 4;
 pub struct ForestProjectApi;
+const FOREST_PROJECT_STATES: &[ForestProjectState; 3] = &[
+    ForestProjectState::Active,
+    ForestProjectState::Bond,
+    ForestProjectState::Funded,
+];
 
 #[OpenApi]
 impl ForestProjectApi {
@@ -38,12 +43,14 @@ impl ForestProjectApi {
         Path(page): Path<i64>,
     ) -> JsonResult<PagedResponse<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
+        let account = ensure_account_registered(&claims)?.to_string();
         let (project_ids, page_count) =
             ForestProject::list_ids(conn, Some(&[state]), page, i64::MAX).map_err(|e| {
                 error!("Failed to list projects ids: {}", e);
                 Error::InternalServer(PlainText(format!("Failed to list projects ids: {}", e)))
             })?;
-        let projects = ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub)?;
+        let projects =
+            ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub, &account)?;
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
@@ -64,8 +71,10 @@ impl ForestProjectApi {
         Path(project_id): Path<uuid::Uuid>,
     ) -> JsonResult<Option<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
+        let account = ensure_account_registered(&claims)?.to_string();
         let project =
-            ForestProjectAggApiModel::list(conn, contracts, &[project_id], &claims.sub)?.pop();
+            ForestProjectAggApiModel::list(conn, contracts, &[project_id], &claims.sub, &account)?
+                .pop();
         Ok(Json(project))
     }
 
@@ -81,21 +90,27 @@ impl ForestProjectApi {
         Data(contracts): Data<&SystemContractsConfig>,
     ) -> JsonResult<PagedResponse<ForestProjectAggApiModel>> {
         let conn = &mut db_pool.get()?;
-        let (user_owned_projects, page_count) =
-            ForestProjectUserBalanceAgg::list_by_user_id(conn, &claims.sub, 0, i64::MAX).map_err(
-                |e| {
-                    error!("Failed to list user owned projects: {}", e);
-                    Error::InternalServer(PlainText(format!(
-                        "Failed to list user owned projects: {}",
-                        e
-                    )))
-                },
-            )?;
+        let account = ensure_account_registered(&claims)?.to_string();
+        let (user_owned_projects, page_count) = ForestProjectUserBalanceAgg::list_by_user_id(
+            conn,
+            &account,
+            FOREST_PROJECT_STATES,
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list user owned projects: {}", e);
+            Error::InternalServer(PlainText(format!(
+                "Failed to list user owned projects: {}",
+                e
+            )))
+        })?;
         let project_ids = user_owned_projects
             .iter()
             .map(|p| p.forest_project_id)
             .collect::<Vec<_>>();
-        let projects = ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub)?;
+        let projects =
+            ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub, &account)?;
         Ok(Json(PagedResponse {
             data: projects,
             page_count,
@@ -115,21 +130,27 @@ impl ForestProjectApi {
         Data(contracts): Data<&SystemContractsConfig>,
     ) -> Result<Attachment<Vec<u8>>> {
         let conn = &mut db_pool.get()?;
-        let (user_owned_projects, _) =
-            ForestProjectUserBalanceAgg::list_by_user_id(conn, &claims.sub, 0, i64::MAX).map_err(
-                |e| {
-                    error!("Failed to list user owned projects: {}", e);
-                    Error::InternalServer(PlainText(format!(
-                        "Failed to list user owned projects: {}",
-                        e
-                    )))
-                },
-            )?;
+        let account = ensure_account_registered(&claims)?.to_string();
+        let (user_owned_projects, _) = ForestProjectUserBalanceAgg::list_by_user_id(
+            conn,
+            &account,
+            FOREST_PROJECT_STATES,
+            0,
+            i64::MAX,
+        )
+        .map_err(|e| {
+            error!("Failed to list user owned projects: {}", e);
+            Error::InternalServer(PlainText(format!(
+                "Failed to list user owned projects: {}",
+                e
+            )))
+        })?;
         let project_ids = user_owned_projects
             .iter()
             .map(|p| p.forest_project_id)
             .collect::<Vec<_>>();
-        let projects = ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub)?;
+        let projects =
+            ForestProjectAggApiModel::list(conn, contracts, &project_ids, &claims.sub, &account)?;
         let mut wtr = csv::Writer::from_writer(vec![]);
 
         wtr.write_record([
@@ -197,6 +218,7 @@ impl ForestProjectApi {
             ForestProjectTokenContractUserBalanceAgg::list_by_user_id(
                 conn,
                 &claims.sub,
+                FOREST_PROJECT_STATES,
                 page.unwrap_or(0),
                 page_size.unwrap_or(PAGE_SIZE),
             )
@@ -454,9 +476,12 @@ impl ForestProjectApi {
         Query(page_size): Query<Option<i64>>,
     ) -> JsonResult<PagedResponse<LegalContractUserModel>> {
         let conn = &mut db_pool.get()?;
+        let account = ensure_account_registered(&claims)?.to_string();
         let (contracts, page_count) = LegalContractUserModel::list(
             conn,
             &claims.sub,
+            &account,
+            FOREST_PROJECT_STATES,
             page.unwrap_or(0),
             page_size.unwrap_or(PAGE_SIZE),
         )
@@ -483,7 +508,8 @@ impl ForestProjectApi {
         Path(project_id): Path<uuid::Uuid>,
     ) -> JsonResult<Option<LegalContractUserModel>> {
         let conn = &mut db_pool.get()?;
-        let contract = LegalContractUserModel::find(conn, project_id, &claims.sub)?;
+        let account = ensure_account_registered(&claims)?.to_string();
+        let contract = LegalContractUserModel::find(conn, project_id, &claims.sub, &account)?;
         Ok(Json(contract))
     }
 }
@@ -509,6 +535,7 @@ impl ForestProjectAggApiModel {
         contracts: &SystemContractsConfig,
         project_ids: &[Uuid],
         user_id: &str,
+        account_address: &str,
     ) -> Result<Vec<Self>> {
         let (projects, _) = ForestProject::list(conn, Some(project_ids), None, 0, i64::MAX)
             .map_err(|e| {
@@ -547,7 +574,7 @@ impl ForestProjectAggApiModel {
         let project_user_balances =
             ForestProjectUserBalanceAgg::list_by_user_id_and_forest_project_ids(
                 conn,
-                user_id,
+                account_address,
                 project_ids,
             )?
             .into_iter()

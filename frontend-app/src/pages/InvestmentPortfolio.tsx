@@ -55,7 +55,7 @@ export default function InvestmentPortfolio({ user }: InvestmentPortfolioProps) 
 				portfolioValues
 					.map((r) => ({
 						...r,
-						portfolio_value: toDisplayAmount(r.portfolio_value, 6),
+						portfolio_value: (Number(r.portfolio_value) / 10 ** 6).toFixed(2),
 					}))
 					.reverse(),
 			);

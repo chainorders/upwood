@@ -12,7 +12,14 @@ import {
 	TableContainer,
 	CircularProgress,
 } from "@mui/material";
-import { IndexerService, SystemContractsConfigApiModel, TokenContract, UserService } from "../../apiClient";
+import {
+	IndexerService,
+	SystemContractsConfigApiModel,
+	TokenContract,
+	UserService,
+	Agent,
+	Token,
+} from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
 import { formatDateField } from "../../lib/conversions";
 import AgentsTable from "../components/AgentsTable";
@@ -21,27 +28,153 @@ import TokenHoldersTable from "../components/TokenHoldersTable";
 import BalanceUpdatesTable from "../components/BalanceUpdatesTable";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
+import AddAgentPopup from "./components/AddAgentPopup";
+import RemoveAgentPopup from "./components/RemoveAgentPopup";
+import PauseTokenPopup from "./components/PauseTokenPopup";
+import UnpauseTokenPopup from "./components/UnpauseTokenPopup";
+import { User } from "../../lib/user";
+import securitySftSingle from "../../contractClients/generated/securitySftSingle";
 
-export default function TokenContractDetails() {
+export default function TokenContractDetails({ user }: { user: User }) {
 	const { contract_index } = useParams();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [contract, setContract] = useState<TokenContract>();
+	const [refreshCounter, setRefreshCounter] = useState(0);
 	const [tab, setTab] = useState(0);
 	const classes = useCommonStyles();
+
+	// Popup state
+	const [addAgentOpen, setAddAgentOpen] = useState(false);
+	const [removeAgentOpen, setRemoveAgentOpen] = useState(false);
+	const [removeAgentAddress, setRemoveAgentAddress] = useState<string>("");
+	const [roles] = useState<string[]>([
+		"SetIdentityRegistry",
+		"SetCompliance",
+		"AddAgent",
+		"Mint",
+		"ForcedBurn",
+		"ForcedTransfer",
+		"Freeze",
+		"UnFreeze",
+		"HolderRecovery",
+		"Pause",
+		"UnPause",
+		"AddToken",
+		"Operator",
+	]);
+
+	// Token popup states
+	const [pauseTokenOpen, setPauseTokenOpen] = useState(false);
+	const [unpauseTokenOpen, setUnpauseTokenOpen] = useState(false);
+	const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+
+	const handleRefresh = () => {
+		setRefreshCounter((prev) => prev + 1);
+	};
+
+	const handlePauseToken = (token: Token) => {
+		setSelectedToken(token);
+		setPauseTokenOpen(true);
+	};
+
+	const handleUnpauseToken = (token: Token) => {
+		setSelectedToken(token);
+		setUnpauseTokenOpen(true);
+	};
+
 	const tabRoutes = [
-		{ label: "Agents", component: <AgentsTable contract_index={contract_index!} /> },
-		{ label: "Tokens", component: <TokensTable contract_index={contract_index!} /> },
+		{
+			label: "Agents",
+			component: (
+				<>
+					<AgentsTable
+						contract_index={contract_index!}
+						onAddAgent={() => setAddAgentOpen(true)}
+						onRemoveAgent={(agent: Agent) => {
+							setRemoveAgentAddress(agent.agent_address);
+							setRemoveAgentOpen(true);
+						}}
+						refreshCounter={refreshCounter}
+					/>
+					<AddAgentPopup
+						user={user}
+						open={addAgentOpen}
+						onClose={() => {
+							setAddAgentOpen(false);
+							setRefreshCounter((prev) => prev + 1);
+						}}
+						contractAddress={contract?.contract_address || ""}
+						roles={roles}
+						method={securitySftSingle.addAgent}
+					/>
+					<RemoveAgentPopup
+						user={user}
+						open={removeAgentOpen}
+						onClose={() => {
+							setRemoveAgentOpen(false);
+							setRefreshCounter((prev) => prev + 1);
+						}}
+						contractAddress={contract?.contract_address || ""}
+						agentAddress={removeAgentAddress}
+						method={securitySftSingle.removeAgent}
+					/>
+				</>
+			),
+		},
+		{
+			label: "Tokens",
+			component: (
+				<>
+					<TokensTable
+						contract_index={contract_index!}
+						onPauseToken={handlePauseToken}
+						onUnpauseToken={handleUnpauseToken}
+						refreshCounter={refreshCounter}
+					/>
+					{contract && selectedToken && (
+						<>
+							<PauseTokenPopup
+								open={pauseTokenOpen}
+								onClose={() => {
+									setPauseTokenOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								tokenId={selectedToken.token_id}
+								contractAddress={contract_index!}
+								user={user}
+								onSuccess={handleRefresh}
+								method={securitySftSingle.pause}
+								tokenIdSize={0}
+							/>
+							<UnpauseTokenPopup
+								open={unpauseTokenOpen}
+								onClose={() => {
+									setUnpauseTokenOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								tokenId={selectedToken.token_id}
+								contractAddress={contract_index!}
+								user={user}
+								onSuccess={handleRefresh}
+								method={securitySftSingle.unPause}
+								tokenIdSize={0}
+							/>
+						</>
+					)}
+				</>
+			),
+		},
 		{ label: "Holders", component: <TokenHoldersTable contract_index={contract_index!} /> },
 		{ label: "Balance Updates", component: <BalanceUpdatesTable contract_index={contract_index!} /> },
 	];
 
 	const getDisplayContractName = (contract: TokenContract) => {
 		if (contract.contract_address === contracts?.tree_ft_contract_index) {
-			return "Fungible Tree";
+			return `Fungible Tree (${contract.contract_name})`;
 		} else if (contract.contract_address === contracts?.tree_nft_contract_index) {
-			return "Non-Fungible Tree";
+			return `Non-Fungible Tree (${contract.contract_name})`;
 		} else if (contract.contract_address === contracts?.carbon_credit_contract_index) {
-			return "Carbon Credits";
+			return `Carbon Credit (${contract.contract_name})`;
 		}
 		return contract.contract_name;
 	};

@@ -1,7 +1,4 @@
-use crate::schema::{
-    forest_project_legal_contract_user_signatures, forest_project_legal_contracts,
-    forest_project_token_contracts,
-};
+use crate::schema::forest_project_token_contracts;
 
 diesel::table! {
     user_transactions (transaction_hash) {
@@ -24,14 +21,6 @@ diesel::table! {
         supply -> Nullable<Numeric>,
         symbol -> Varchar,
         decimals -> Integer,
-    }
-}
-
-diesel::table! {
-    forest_project_user_balance_agg (cognito_user_id, forest_project_id) {
-        cognito_user_id -> Varchar,
-        forest_project_id -> Uuid,
-        total_balance -> Numeric,
     }
 }
 
@@ -96,15 +85,5 @@ diesel::table! {
         affiliate_remaining_reward -> Numeric,
     }
 }
-
-diesel::allow_tables_to_appear_in_same_query!(
-    forest_project_legal_contracts,
-    forest_project_user_balance_agg
-);
-
-diesel::allow_tables_to_appear_in_same_query!(
-    forest_project_legal_contract_user_signatures,
-    forest_project_user_balance_agg,
-);
 
 diesel::allow_tables_to_appear_in_same_query!(holder_yields, forest_project_token_contracts,);

@@ -7,6 +7,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::forest_project::ForestProjectState;
 use super::forest_project_crypto::prelude::SecurityTokenContractType;
 use crate::db::cis2_security::TokenHolderBalanceUpdateType;
 use crate::db::security_mint_fund::InvestmentRecordType;
@@ -1183,6 +1184,10 @@ impl ForestProjectContract {
             );
         let mut count_query = query.into_boxed();
         let mut query = query.into_boxed();
+
+        query = query.filter(forest_projects::state.ne(ForestProjectState::Archived));
+        count_query = count_query.filter(forest_projects::state.ne(ForestProjectState::Archived));
+
         if let Some(project_id) = project_id {
             query = query.filter(forest_projects::id.eq(project_id));
             count_query = count_query.filter(forest_projects::id.eq(project_id));

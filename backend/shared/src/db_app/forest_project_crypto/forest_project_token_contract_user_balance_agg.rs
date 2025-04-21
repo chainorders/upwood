@@ -31,6 +31,7 @@ impl ForestProjectTokenContractUserBalanceAgg {
     pub fn list_by_user_id(
         conn: &mut DbConn,
         user_id: &str,
+        forest_project_states: &[ForestProjectState],
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
@@ -39,12 +40,15 @@ impl ForestProjectTokenContractUserBalanceAgg {
         let total_count = forest_project_token_contract_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
             .filter(total_balance.gt(Decimal::ZERO))
+            .filter(forest_project_state.eq_any(forest_project_states))
             .count()
             .get_result::<i64>(conn)?;
 
         let records = forest_project_token_contract_user_balance_agg
             .filter(cognito_user_id.eq(user_id))
             .filter(total_balance.gt(Decimal::ZERO))
+            .filter(forest_project_state.eq_any(forest_project_states))
+            .order_by((forest_project_id, contract_address))
             .limit(page_size)
             .offset(page * page_size)
             .load::<Self>(conn)?;

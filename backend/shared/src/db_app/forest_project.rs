@@ -6,8 +6,9 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::forest_project_crypto::prelude::ForestProjectUserBalanceAgg;
 use crate::db_shared::{DbConn, DbResult};
-use crate::schema;
+use crate::schema::{self, forest_projects};
 
 pub const TRACKED_TOKEN_ID: Decimal = Decimal::ZERO;
 
@@ -538,20 +539,19 @@ impl LegalContract {
 }
 
 #[derive(Object, Debug, PartialEq, Serialize, Deserialize, Queryable)]
-pub struct LegalContractUserModel {
-    pub project_id:         uuid::Uuid,
-    pub name:               String,
-    pub tag:                String,
-    pub text_url:           String,
-    pub edoc_url:           String,
-    pub pdf_url:            String,
-    pub created_at:         NaiveDateTime,
-    pub cognito_user_id:    String,
-    pub signed_date:        NaiveDateTime,
-    pub user_token_balance: Option<Decimal>,
+pub struct LegalContractUserDbModel {
+    pub project_id:      uuid::Uuid,
+    pub name:            String,
+    pub tag:             String,
+    pub text_url:        String,
+    pub edoc_url:        String,
+    pub pdf_url:         String,
+    pub created_at:      NaiveDateTime,
+    pub cognito_user_id: String,
+    pub signed_date:     NaiveDateTime,
 }
 
-impl<DB> Selectable<DB> for LegalContractUserModel
+impl<DB> Selectable<DB> for LegalContractUserDbModel
 where DB: diesel::backend::Backend
 {
     type SelectExpression = (
@@ -564,7 +564,6 @@ where DB: diesel::backend::Backend
         schema::forest_project_legal_contracts::created_at,
         schema::forest_project_legal_contract_user_signatures::cognito_user_id,
         schema::forest_project_legal_contract_user_signatures::updated_at,
-        diesel::dsl::Nullable<crate::schema_manual::forest_project_user_balance_agg::total_balance>,
     );
 
     fn construct_selection() -> Self::SelectExpression {
@@ -578,28 +577,21 @@ where DB: diesel::backend::Backend
             schema::forest_project_legal_contracts::created_at,
             schema::forest_project_legal_contract_user_signatures::cognito_user_id,
             schema::forest_project_legal_contract_user_signatures::updated_at,
-            crate::schema_manual::forest_project_user_balance_agg::total_balance.nullable(),
         )
     }
 }
 
-impl LegalContractUserModel {
+impl LegalContractUserDbModel {
     pub fn find(conn: &mut DbConn, project_id: Uuid, user_id: &str) -> DbResult<Option<Self>> {
         use crate::schema::forest_project_legal_contract_user_signatures::dsl as signatures_dsl;
         use crate::schema::forest_project_legal_contracts::dsl as contracts_dsl;
-        use crate::schema_manual::forest_project_user_balance_agg::dsl as balance_dsl;
 
         let result = contracts_dsl::forest_project_legal_contracts
             .inner_join(
                 signatures_dsl::forest_project_legal_contract_user_signatures
                     .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
             )
-            .left_join(
-                balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
-                    .eq(balance_dsl::forest_project_id)
-                    .and(balance_dsl::cognito_user_id.eq(signatures_dsl::cognito_user_id))),
-            )
-            .select(LegalContractUserModel::as_select())
+            .select(LegalContractUserDbModel::as_select())
             .filter(contracts_dsl::project_id.eq(project_id))
             .filter(signatures_dsl::cognito_user_id.eq(user_id))
             .first(conn)
@@ -611,29 +603,28 @@ impl LegalContractUserModel {
     pub fn list(
         conn: &mut DbConn,
         user_id: &str,
+        forest_project_states: &[ForestProjectState],
         page: i64,
         page_size: i64,
     ) -> DbResult<(Vec<Self>, i64)> {
         use crate::schema::forest_project_legal_contract_user_signatures::dsl as signatures_dsl;
         use crate::schema::forest_project_legal_contracts::dsl as contracts_dsl;
-        use crate::schema_manual::forest_project_user_balance_agg::dsl as balance_dsl;
 
         let results = contracts_dsl::forest_project_legal_contracts
             .inner_join(
                 signatures_dsl::forest_project_legal_contract_user_signatures
                     .on(contracts_dsl::project_id.eq(signatures_dsl::project_id)),
             )
-            .left_join(
-                balance_dsl::forest_project_user_balance_agg.on(contracts_dsl::project_id
-                    .eq(balance_dsl::forest_project_id)
-                    .and(balance_dsl::cognito_user_id.eq(signatures_dsl::cognito_user_id))),
+            .inner_join(
+                forest_projects::table.on(contracts_dsl::project_id.eq(forest_projects::id)),
             )
+            .filter(schema::forest_projects::state.eq_any(forest_project_states))
             .filter(signatures_dsl::cognito_user_id.eq(user_id))
-            .select(LegalContractUserModel::as_select())
+            .select(LegalContractUserDbModel::as_select())
             .order(contracts_dsl::created_at.desc())
             .limit(page_size)
             .offset(page * page_size)
-            .load::<LegalContractUserModel>(conn)?;
+            .load::<LegalContractUserDbModel>(conn)?;
 
         let total_count = contracts_dsl::forest_project_legal_contracts
             .inner_join(
@@ -646,6 +637,100 @@ impl LegalContractUserModel {
         let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
 
         Ok((results, page_count))
+    }
+}
+
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LegalContractUserModel {
+    pub project_id:         uuid::Uuid,
+    pub name:               String,
+    pub tag:                String,
+    pub text_url:           String,
+    pub edoc_url:           String,
+    pub pdf_url:            String,
+    pub created_at:         NaiveDateTime,
+    pub cognito_user_id:    String,
+    pub signed_date:        NaiveDateTime,
+    pub user_token_balance: Option<Decimal>,
+}
+
+impl LegalContractUserModel {
+    pub fn from_db_model(
+        db_model: &LegalContractUserDbModel,
+        user_token_balance: Option<Decimal>,
+    ) -> Self {
+        Self {
+            project_id: db_model.project_id,
+            name: db_model.name.clone(),
+            tag: db_model.tag.clone(),
+            text_url: db_model.text_url.clone(),
+            edoc_url: db_model.edoc_url.clone(),
+            pdf_url: db_model.pdf_url.clone(),
+            created_at: db_model.created_at,
+            cognito_user_id: db_model.cognito_user_id.clone(),
+            signed_date: db_model.signed_date,
+            user_token_balance,
+        }
+    }
+
+    pub fn list(
+        conn: &mut DbConn,
+        user_id: &str,
+        account_address: &str,
+        forest_project_states: &[ForestProjectState],
+        page: i64,
+        page_size: i64,
+    ) -> DbResult<(Vec<Self>, i64)> {
+        let (models, page_count) =
+            LegalContractUserDbModel::list(conn, user_id, forest_project_states, page, page_size)?;
+        let project_ids = models
+            .iter()
+            .map(|model| model.project_id)
+            .collect::<Vec<_>>();
+        let user_token_balances =
+            ForestProjectUserBalanceAgg::list_by_user_id_and_forest_project_ids(
+                conn,
+                account_address,
+                &project_ids,
+            )?;
+        let user_token_balance_map = user_token_balances
+            .into_iter()
+            .map(|balance| (balance.forest_project_id, balance.total_balance))
+            .collect::<std::collections::HashMap<_, _>>();
+        let results = models
+            .into_iter()
+            .map(|model| {
+                let user_token_balance = user_token_balance_map.get(&model.project_id).cloned();
+                LegalContractUserModel::from_db_model(&model, user_token_balance)
+            })
+            .collect::<Vec<_>>();
+        Ok((results, page_count))
+    }
+
+    pub fn find(
+        conn: &mut DbConn,
+        project_id: Uuid,
+        user_id: &str,
+        account_address: &str,
+    ) -> DbResult<Option<LegalContractUserModel>> {
+        let db_model = LegalContractUserDbModel::find(conn, project_id, user_id)?;
+        if let Some(db_model) = db_model {
+            let user_token_balance =
+                ForestProjectUserBalanceAgg::list_by_user_id_and_forest_project_ids(
+                    conn,
+                    account_address,
+                    &[db_model.project_id],
+                )?
+                .into_iter()
+                .find(|balance| balance.forest_project_id == db_model.project_id)
+                .map(|balance| balance.total_balance);
+            Ok(Some(LegalContractUserModel::from_db_model(
+                &db_model,
+                user_token_balance,
+            )))
+        } else {
+            Ok(None)
+        }
     }
 }
 

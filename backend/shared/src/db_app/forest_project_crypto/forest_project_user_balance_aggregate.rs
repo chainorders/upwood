@@ -4,16 +4,12 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::db_app::forest_project::ForestProjectState;
 use crate::db_shared::DbConn;
+use crate::schema::{cis2_token_holders, forest_project_token_contracts, forest_projects};
 
-#[derive(
-    Object, Selectable, Queryable, Identifiable, Debug, PartialEq, Serialize, Deserialize, Clone,
-)]
-#[diesel(table_name = crate::schema_manual::forest_project_user_balance_agg)]
-#[diesel(primary_key(cognito_user_id, forest_project_id))]
-#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(Object, Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ForestProjectUserBalanceAgg {
-    pub cognito_user_id:   String,
     pub forest_project_id: Uuid,
     pub total_balance:     Decimal,
 }
@@ -21,40 +17,89 @@ pub struct ForestProjectUserBalanceAgg {
 impl ForestProjectUserBalanceAgg {
     pub fn list_by_user_id_and_forest_project_ids(
         conn: &mut DbConn,
-        user_id: &str,
+        account_address: &str,
         project_ids: &[Uuid],
     ) -> QueryResult<Vec<Self>> {
-        use crate::schema_manual::forest_project_user_balance_agg::dsl::*;
-
-        forest_project_user_balance_agg
-            .filter(cognito_user_id.eq(user_id))
-            .filter(forest_project_id.eq_any(project_ids))
-            .load::<Self>(conn)
+        let ret = forest_projects::table
+            .inner_join(
+                forest_project_token_contracts::table
+                    .on(forest_projects::id.eq(forest_project_token_contracts::forest_project_id)),
+            )
+            .inner_join(
+                cis2_token_holders::table.on(forest_project_token_contracts::contract_address
+                    .eq(cis2_token_holders::cis2_address)),
+            )
+            .filter(cis2_token_holders::holder_address.eq(account_address))
+            .filter(forest_projects::id.eq_any(project_ids))
+            .group_by(forest_projects::id)
+            .select((
+                forest_projects::id,
+                diesel::dsl::sum(cis2_token_holders::un_frozen_balance).nullable(),
+            ))
+            .load::<(Uuid, Option<Decimal>)>(conn)?
+            .into_iter()
+            .map(
+                |(forest_project_id, total_balance)| ForestProjectUserBalanceAgg {
+                    forest_project_id,
+                    total_balance: total_balance.unwrap_or_default(),
+                },
+            )
+            .collect::<Vec<_>>();
+        Ok(ret)
     }
 
     pub fn list_by_user_id(
         conn: &mut DbConn,
-        user_id: &str,
+        account_address: &str,
+        forest_project_states: &[ForestProjectState],
         page: i64,
         page_size: i64,
     ) -> QueryResult<(Vec<Self>, i64)> {
-        use crate::schema_manual::forest_project_user_balance_agg::dsl::*;
+        let ret = forest_projects::table
+            .inner_join(
+                forest_project_token_contracts::table
+                    .on(forest_projects::id.eq(forest_project_token_contracts::forest_project_id)),
+            )
+            .inner_join(
+                cis2_token_holders::table.on(forest_project_token_contracts::contract_address
+                    .eq(cis2_token_holders::cis2_address)),
+            )
+            .filter(cis2_token_holders::holder_address.eq(account_address))
+            .filter(forest_projects::state.eq_any(forest_project_states))
+            .group_by(forest_projects::id)
+            .select((
+                forest_projects::id,
+                diesel::dsl::sum(cis2_token_holders::un_frozen_balance).nullable(),
+            ))
+            .offset(page * page_size)
+            .limit(page_size)
+            .load::<(Uuid, Option<Decimal>)>(conn)?
+            .into_iter()
+            .map(
+                |(forest_project_id, total_balance)| ForestProjectUserBalanceAgg {
+                    forest_project_id,
+                    total_balance: total_balance.unwrap_or_default(),
+                },
+            )
+            .collect::<Vec<_>>();
 
-        let total_count = forest_project_user_balance_agg
-            .filter(cognito_user_id.eq(user_id))
-            .filter(total_balance.gt(Decimal::ZERO))
+        let count = forest_projects::table
+            .inner_join(
+                forest_project_token_contracts::table
+                    .on(forest_projects::id.eq(forest_project_token_contracts::forest_project_id)),
+            )
+            .inner_join(
+                cis2_token_holders::table.on(forest_project_token_contracts::contract_address
+                    .eq(cis2_token_holders::cis2_address)),
+            )
+            .filter(cis2_token_holders::holder_address.eq(account_address))
+            .filter(forest_projects::state.eq_any(forest_project_states))
             .count()
             .get_result::<i64>(conn)?;
+        let page_count = count as f64 / page_size as f64;
+        let page_count = page_count.ceil() as i64;
+        let page_count = if page_count == 0 { 1 } else { page_count };
 
-        let records = forest_project_user_balance_agg
-            .filter(cognito_user_id.eq(user_id))
-            .filter(total_balance.gt(Decimal::ZERO))
-            .limit(page_size)
-            .offset(page * page_size)
-            .load::<Self>(conn)?;
-
-        let page_count = (total_count as f64 / page_size as f64).ceil() as i64;
-
-        Ok((records, page_count))
+        Ok((ret, page_count))
     }
 }

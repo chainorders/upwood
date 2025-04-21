@@ -190,7 +190,7 @@ const ProjectContractDetails = ({ user }: { user: User }) => {
 								<Typography>Tokens</Typography>
 							</AccordionSummary>
 							<AccordionDetails>
-								{tokens && tokens.data.length > 0 ? (
+								{tokens ? (
 									<ProjectTokenList
 										user={user}
 										tokens={tokens}
