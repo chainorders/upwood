@@ -1902,6 +1902,250 @@ export type RemoveAgentErrorUi =
 	| { tag: "InvalidNonce"; InvalidNonce: never }
 	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
 	| { tag: "BurnError"; BurnError: never };
+export const setTokenMetadataRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Set Token Metadata Request",
+	properties: {
+		params: {
+			type: "array",
+			items: {
+				type: "object",
+				title: "",
+				properties: {
+					token_id: {
+						type: "string",
+						title: "Token Id",
+						default: "",
+						format: "byte",
+					},
+					token_metadata: {
+						type: "object",
+						title: "Token Metadata",
+						properties: {
+							url: { type: "string", title: "Url", default: "" },
+							hash: {
+								type: "object",
+								title: "Hash",
+								properties: { tag: { type: "string", enum: ["None", "Some"] } },
+								required: ["tag"],
+								dependencies: {
+									tag: {
+										oneOf: [
+											{
+												properties: {
+													tag: { enum: ["None"] },
+													None: {
+														type: "object",
+														title: "None",
+														properties: {},
+													},
+												},
+											},
+											{
+												properties: {
+													tag: { enum: ["Some"] },
+													Some: {
+														type: "array",
+														items: { type: "string", title: "", default: "" },
+													},
+												},
+											},
+										],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			title: "Params",
+		},
+	},
+};
+export type SetTokenMetadataRequestUi = {
+	params: {
+		token_id: string;
+		token_metadata: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+	}[];
+};
+export const setTokenMetadataErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Set Token Metadata Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"InvalidTokenId",
+				"InsufficientFunds",
+				"Unauthorized",
+				"InvalidAmount",
+				"InvalidAddress",
+				"TransferInvokeError",
+				"UnauthorizedInvalidAgent",
+				"CheckSignature",
+				"InvalidSignature",
+				"InvalidNonce",
+				"InvalidContractAddress",
+				"BurnError",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidTokenId"] },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InsufficientFunds"] },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["Unauthorized"] },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAmount"] },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAddress"] },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["TransferInvokeError"] },
+						TransferInvokeError: {
+							type: "object",
+							title: "TransferInvokeError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["UnauthorizedInvalidAgent"] },
+						UnauthorizedInvalidAgent: {
+							type: "object",
+							title: "UnauthorizedInvalidAgent",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CheckSignature"] },
+						CheckSignature: {
+							type: "object",
+							title: "CheckSignature",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidSignature"] },
+						InvalidSignature: {
+							type: "object",
+							title: "InvalidSignature",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidNonce"] },
+						InvalidNonce: {
+							type: "object",
+							title: "InvalidNonce",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidContractAddress"] },
+						InvalidContractAddress: {
+							type: "object",
+							title: "InvalidContractAddress",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["BurnError"] },
+						BurnError: { type: "object", title: "BurnError", properties: {} },
+					},
+				},
+			],
+		},
+	},
+};
+export type SetTokenMetadataErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "InvalidTokenId"; InvalidTokenId: never }
+	| { tag: "InsufficientFunds"; InsufficientFunds: never }
+	| { tag: "Unauthorized"; Unauthorized: never }
+	| { tag: "InvalidAmount"; InvalidAmount: never }
+	| { tag: "InvalidAddress"; InvalidAddress: never }
+	| { tag: "TransferInvokeError"; TransferInvokeError: never }
+	| { tag: "UnauthorizedInvalidAgent"; UnauthorizedInvalidAgent: never }
+	| { tag: "CheckSignature"; CheckSignature: never }
+	| { tag: "InvalidSignature"; InvalidSignature: never }
+	| { tag: "InvalidNonce"; InvalidNonce: never }
+	| { tag: "InvalidContractAddress"; InvalidContractAddress: never }
+	| { tag: "BurnError"; BurnError: never };
 export const supportsRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: { type: "string", title: "", default: "" },
@@ -3058,6 +3302,24 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.removeAgentRequestSchemaBase64,
 			errorJsonSchema: removeAgentErrorJsonSchema,
 			errorSchemaBase64: types.removeAgentErrorSchemaBase64,
+		}),
+	setTokenMetadata: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.SetTokenMetadataRequest,
+			SetTokenMetadataRequestUi,
+			types.SetTokenMetadataError,
+			SetTokenMetadataErrorUi
+		>({
+			...props,
+			method: client.setTokenMetadata,
+			requestJsonSchema: setTokenMetadataRequestJsonSchema,
+			requestSchemaBase64: types.setTokenMetadataRequestSchemaBase64,
+			errorJsonSchema: setTokenMetadataErrorJsonSchema,
+			errorSchemaBase64: types.setTokenMetadataErrorSchemaBase64,
 		}),
 	supports: (props: {
 		contract: ContractAddress.Type;

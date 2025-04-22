@@ -205,6 +205,34 @@ export type RemoveAgentRequest =
 	| { Contract: [{ index: number; subindex: number }] };
 export const removeAgentRequestSchemaBase64 =
 	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type SetTokenMetadataError =
+	| { ParseError: Record<string, never> }
+	| { LogError: Record<string, never> }
+	| { InvalidTokenId: Record<string, never> }
+	| { InsufficientFunds: Record<string, never> }
+	| { Unauthorized: Record<string, never> }
+	| { InvalidAmount: Record<string, never> }
+	| { InvalidAddress: Record<string, never> }
+	| { TransferInvokeError: Record<string, never> }
+	| { UnauthorizedInvalidAgent: Record<string, never> }
+	| { CheckSignature: Record<string, never> }
+	| { InvalidSignature: Record<string, never> }
+	| { InvalidNonce: Record<string, never> }
+	| { InvalidContractAddress: Record<string, never> }
+	| { BurnError: Record<string, never> };
+export const setTokenMetadataErrorSchemaBase64 =
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIIAAAATG9nRXJyb3ICDgAAAEludmFsaWRUb2tlbklkAhEAAABJbnN1ZmZpY2llbnRGdW5kcwIMAAAAVW5hdXRob3JpemVkAg0AAABJbnZhbGlkQW1vdW50Ag4AAABJbnZhbGlkQWRkcmVzcwITAAAAVHJhbnNmZXJJbnZva2VFcnJvcgIYAAAAVW5hdXRob3JpemVkSW52YWxpZEFnZW50Ag4AAABDaGVja1NpZ25hdHVyZQIQAAAASW52YWxpZFNpZ25hdHVyZQIMAAAASW52YWxpZE5vbmNlAhYAAABJbnZhbGlkQ29udHJhY3RBZGRyZXNzAgkAAABCdXJuRXJyb3IC";
+export type SetTokenMetadataRequest = {
+	params: Array<{
+		token_id: string;
+		token_metadata: {
+			url: string;
+			hash: { None: Record<string, never> } | { Some: [string] };
+		};
+	}>;
+};
+export const setTokenMetadataRequestSchemaBase64 =
+	"FAABAAAABgAAAHBhcmFtcxACFAACAAAACAAAAHRva2VuX2lkHQAOAAAAdG9rZW5fbWV0YWRhdGEUAAIAAAADAAAAdXJsFgIEAAAAaGFzaBUCAAAABAAAAE5vbmUCBAAAAFNvbWUBAQAAABYC";
 export type SupportsError =
 	| { ParseError: Record<string, never> }
 	| { LogError: Record<string, never> }
@@ -405,6 +433,7 @@ export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
 	mintAgent: EntrypointName.fromString("mintAgent"),
 	operatorOf: EntrypointName.fromString("operatorOf"),
 	removeAgent: EntrypointName.fromString("removeAgent"),
+	setTokenMetadata: EntrypointName.fromString("setTokenMetadata"),
 	supports: EntrypointName.fromString("supports"),
 	tokenMetadata: EntrypointName.fromString("tokenMetadata"),
 	transfer: EntrypointName.fromString("transfer"),
@@ -418,6 +447,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 	mintAgent: "Mint Agent",
 	operatorOf: "Operator Of",
 	removeAgent: "Remove Agent",
+	setTokenMetadata: "Set Token Metadata",
 	supports: "Supports",
 	tokenMetadata: "Token Metadata",
 	transfer: "Transfer",
@@ -426,7 +456,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const nftMultiRewarded = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"0535cd3dd8633b115996b51fdba0bf7914edef3ad4bcc36662802bcfd7cedf64",
+			"3cf639feb0bd76537a9cf19557f10222365e50600318fa4d3f8b73594c1deccb",
 		),
 		ContractName.fromString("nft_multi_rewarded"),
 		initRequestSchemaBase64,
@@ -487,6 +517,17 @@ export const nftMultiRewarded = {
 		removeAgentRequestSchemaBase64,
 		undefined,
 		removeAgentErrorSchemaBase64,
+	),
+	setTokenMetadata: new ReceiveMethod<
+		SetTokenMetadataRequest,
+		never,
+		SetTokenMetadataError
+	>(
+		ContractName.fromString("nft_multi_rewarded"),
+		EntrypointName.fromString("setTokenMetadata"),
+		setTokenMetadataRequestSchemaBase64,
+		undefined,
+		setTokenMetadataErrorSchemaBase64,
 	),
 	supports: new ReceiveMethod<SupportsRequest, SupportsResponse, SupportsError>(
 		ContractName.fromString("nft_multi_rewarded"),

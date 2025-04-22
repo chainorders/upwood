@@ -134,6 +134,7 @@ export const initRequestJsonSchema: RJSFSchema = {
 										"AddToken",
 										"Operator",
 										"RemoveToken",
+										"SetTokenMetadata",
 									],
 								},
 							},
@@ -277,6 +278,16 @@ export const initRequestJsonSchema: RJSFSchema = {
 												},
 											},
 										},
+										{
+											properties: {
+												tag: { enum: ["SetTokenMetadata"] },
+												SetTokenMetadata: {
+													type: "object",
+													title: "SetTokenMetadata",
+													properties: {},
+												},
+											},
+										},
 									],
 								},
 							},
@@ -319,7 +330,8 @@ export type initRequestUi = {
 			| { tag: "UnPause"; UnPause: never }
 			| { tag: "AddToken"; AddToken: never }
 			| { tag: "Operator"; Operator: never }
-			| { tag: "RemoveToken"; RemoveToken: never }[];
+			| { tag: "RemoveToken"; RemoveToken: never }
+			| { tag: "SetTokenMetadata"; SetTokenMetadata: never }[];
 	}[];
 };
 export const initErrorJsonSchema: RJSFSchema = {
@@ -553,6 +565,7 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 							"AddToken",
 							"Operator",
 							"RemoveToken",
+							"SetTokenMetadata",
 						],
 					},
 				},
@@ -684,6 +697,16 @@ export const addAgentRequestJsonSchema: RJSFSchema = {
 									},
 								},
 							},
+							{
+								properties: {
+									tag: { enum: ["SetTokenMetadata"] },
+									SetTokenMetadata: {
+										type: "object",
+										title: "SetTokenMetadata",
+										properties: {},
+									},
+								},
+							},
 						],
 					},
 				},
@@ -710,7 +733,8 @@ export type AddAgentRequestUi = {
 		| { tag: "UnPause"; UnPause: never }
 		| { tag: "AddToken"; AddToken: never }
 		| { tag: "Operator"; Operator: never }
-		| { tag: "RemoveToken"; RemoveToken: never }[];
+		| { tag: "RemoveToken"; RemoveToken: never }
+		| { tag: "SetTokenMetadata"; SetTokenMetadata: never }[];
 };
 export const addAgentErrorJsonSchema: RJSFSchema = {
 	type: "object",
@@ -2338,6 +2362,7 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 							"AddToken",
 							"Operator",
 							"RemoveToken",
+							"SetTokenMetadata",
 						],
 					},
 				},
@@ -2469,6 +2494,16 @@ export const isAgentRequestJsonSchema: RJSFSchema = {
 									},
 								},
 							},
+							{
+								properties: {
+									tag: { enum: ["SetTokenMetadata"] },
+									SetTokenMetadata: {
+										type: "object",
+										title: "SetTokenMetadata",
+										properties: {},
+									},
+								},
+							},
 						],
 					},
 				},
@@ -2495,7 +2530,8 @@ export type IsAgentRequestUi = {
 		| { tag: "UnPause"; UnPause: never }
 		| { tag: "AddToken"; AddToken: never }
 		| { tag: "Operator"; Operator: never }
-		| { tag: "RemoveToken"; RemoveToken: never }[];
+		| { tag: "RemoveToken"; RemoveToken: never }
+		| { tag: "SetTokenMetadata"; SetTokenMetadata: never }[];
 };
 export const isAgentResponseJsonSchema: RJSFSchema = {
 	type: "boolean",
@@ -4840,6 +4876,242 @@ export type SetIdentityRegistryErrorUi =
 	| { tag: "InvalidAddress"; InvalidAddress: never }
 	| { tag: "RecoveredAddress"; RecoveredAddress: never }
 	| { tag: "SecurityNotSet"; SecurityNotSet: never };
+export const setTokenMetadataRequestJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Set Token Metadata Request",
+	properties: {
+		params: {
+			type: "array",
+			items: {
+				type: "object",
+				title: "",
+				properties: {
+					token_id: {
+						type: "string",
+						title: "Token Id",
+						default: "",
+						format: "byte",
+					},
+					token_metadata: {
+						type: "object",
+						title: "Token Metadata",
+						properties: {
+							url: { type: "string", title: "Url", default: "" },
+							hash: {
+								type: "object",
+								title: "Hash",
+								properties: { tag: { type: "string", enum: ["None", "Some"] } },
+								required: ["tag"],
+								dependencies: {
+									tag: {
+										oneOf: [
+											{
+												properties: {
+													tag: { enum: ["None"] },
+													None: {
+														type: "object",
+														title: "None",
+														properties: {},
+													},
+												},
+											},
+											{
+												properties: {
+													tag: { enum: ["Some"] },
+													Some: {
+														type: "array",
+														items: { type: "string", title: "", default: "" },
+													},
+												},
+											},
+										],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			title: "Params",
+		},
+	},
+};
+export type SetTokenMetadataRequestUi = {
+	params: {
+		token_id: string;
+		token_metadata: {
+			url: string;
+			hash: { tag: "None"; None: never } | { tag: "Some"; Some: [string] };
+		};
+	}[];
+};
+export const setTokenMetadataErrorJsonSchema: RJSFSchema = {
+	type: "object",
+	title: "Set Token Metadata Error",
+	properties: {
+		tag: {
+			type: "string",
+			enum: [
+				"ParseError",
+				"LogError",
+				"InvalidTokenId",
+				"InsufficientFunds",
+				"Unauthorized",
+				"UnVerifiedIdentity",
+				"InCompliantTransfer",
+				"CallContractError",
+				"PausedToken",
+				"InvalidAmount",
+				"InvalidAddress",
+				"RecoveredAddress",
+				"SecurityNotSet",
+			],
+		},
+	},
+	required: ["tag"],
+	dependencies: {
+		tag: {
+			oneOf: [
+				{
+					properties: {
+						tag: { enum: ["ParseError"] },
+						ParseError: { type: "object", title: "ParseError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["LogError"] },
+						LogError: { type: "object", title: "LogError", properties: {} },
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidTokenId"] },
+						InvalidTokenId: {
+							type: "object",
+							title: "InvalidTokenId",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InsufficientFunds"] },
+						InsufficientFunds: {
+							type: "object",
+							title: "InsufficientFunds",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["Unauthorized"] },
+						Unauthorized: {
+							type: "object",
+							title: "Unauthorized",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["UnVerifiedIdentity"] },
+						UnVerifiedIdentity: {
+							type: "object",
+							title: "UnVerifiedIdentity",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InCompliantTransfer"] },
+						InCompliantTransfer: {
+							type: "object",
+							title: "InCompliantTransfer",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["CallContractError"] },
+						CallContractError: {
+							type: "object",
+							title: "CallContractError",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["PausedToken"] },
+						PausedToken: {
+							type: "object",
+							title: "PausedToken",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAmount"] },
+						InvalidAmount: {
+							type: "object",
+							title: "InvalidAmount",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["InvalidAddress"] },
+						InvalidAddress: {
+							type: "object",
+							title: "InvalidAddress",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["RecoveredAddress"] },
+						RecoveredAddress: {
+							type: "object",
+							title: "RecoveredAddress",
+							properties: {},
+						},
+					},
+				},
+				{
+					properties: {
+						tag: { enum: ["SecurityNotSet"] },
+						SecurityNotSet: {
+							type: "object",
+							title: "SecurityNotSet",
+							properties: {},
+						},
+					},
+				},
+			],
+		},
+	},
+};
+export type SetTokenMetadataErrorUi =
+	| { tag: "ParseError"; ParseError: never }
+	| { tag: "LogError"; LogError: never }
+	| { tag: "InvalidTokenId"; InvalidTokenId: never }
+	| { tag: "InsufficientFunds"; InsufficientFunds: never }
+	| { tag: "Unauthorized"; Unauthorized: never }
+	| { tag: "UnVerifiedIdentity"; UnVerifiedIdentity: never }
+	| { tag: "InCompliantTransfer"; InCompliantTransfer: never }
+	| { tag: "CallContractError"; CallContractError: never }
+	| { tag: "PausedToken"; PausedToken: never }
+	| { tag: "InvalidAmount"; InvalidAmount: never }
+	| { tag: "InvalidAddress"; InvalidAddress: never }
+	| { tag: "RecoveredAddress"; RecoveredAddress: never }
+	| { tag: "SecurityNotSet"; SecurityNotSet: never };
 export const supportsRequestJsonSchema: RJSFSchema = {
 	type: "array",
 	items: { type: "string", title: "", default: "" },
@@ -6637,6 +6909,24 @@ export const ENTRYPOINTS_UI: {
 			requestSchemaBase64: types.setIdentityRegistryRequestSchemaBase64,
 			errorJsonSchema: setIdentityRegistryErrorJsonSchema,
 			errorSchemaBase64: types.setIdentityRegistryErrorSchemaBase64,
+		}),
+	setTokenMetadata: (props: {
+		contract: ContractAddress.Type;
+		uiSchema?: UiSchema;
+		uiWidgets?: RegistryWidgetsType;
+	}) =>
+		GenericUpdate<
+			types.SetTokenMetadataRequest,
+			SetTokenMetadataRequestUi,
+			types.SetTokenMetadataError,
+			SetTokenMetadataErrorUi
+		>({
+			...props,
+			method: client.setTokenMetadata,
+			requestJsonSchema: setTokenMetadataRequestJsonSchema,
+			requestSchemaBase64: types.setTokenMetadataRequestSchemaBase64,
+			errorJsonSchema: setTokenMetadataErrorJsonSchema,
+			errorSchemaBase64: types.setTokenMetadataErrorSchemaBase64,
 		}),
 	supports: (props: {
 		contract: ContractAddress.Type;
