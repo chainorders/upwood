@@ -15,18 +15,35 @@ import {
 	Grid,
 	Divider,
 	Tooltip,
+	IconButton,
 } from "@mui/material";
-import { PagedResponse_TokenHolderUser, IndexerService } from "../../apiClient";
+import { PagedResponse_TokenHolderUser, IndexerService, TokenHolderUser } from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
 import { format } from "date-fns";
 import { toDisplayAmount } from "../../lib/conversions";
 import { useForm, Controller } from "react-hook-form";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import LockIcon from "@mui/icons-material/Lock";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 
 interface TokenHoldersTableProps {
 	contract_index: string;
+	onFreezeHolder?: (holder: TokenHolderUser) => void;
+	onUnfreezeHolder?: (holder: TokenHolderUser) => void;
+	onTransferHolder?: (holder: TokenHolderUser) => void;
+	onBurnHolder?: (holder: TokenHolderUser) => void;
+	refreshCounter?: number;
 }
 
-const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({ contract_index }) => {
+const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({
+	contract_index,
+	onFreezeHolder,
+	onUnfreezeHolder,
+	onTransferHolder,
+	onBurnHolder,
+	refreshCounter,
+}) => {
 	const classes = useCommonStyles();
 	const [holders, setHolders] = useState<PagedResponse_TokenHolderUser>();
 	const [page, setPage] = useState(0);
@@ -119,6 +136,7 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({ contract_index })
 							<TableCell sx={classes.tableHeaderCell}>Unfrozen Balance</TableCell>
 							<TableCell sx={classes.tableHeaderCell}>Created</TableCell>
 							<TableCell sx={classes.tableHeaderCell}>Updated</TableCell>
+							<TableCell sx={classes.tableHeaderCell}>Actions</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -136,11 +154,43 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({ contract_index })
 									<TableCell>{toDisplayAmount(holder.un_frozen_balance, 0)}</TableCell>
 									<TableCell>{format(new Date(holder.create_time), "yyyy-MM-dd HH:mm:ss")}</TableCell>
 									<TableCell>{format(new Date(holder.update_time), "yyyy-MM-dd HH:mm:ss")}</TableCell>
+									<TableCell>
+										<Box display="flex" alignItems="center">
+											{onUnfreezeHolder && (
+												<Tooltip title="Unfreeze holder" arrow>
+													<IconButton onClick={() => onUnfreezeHolder(holder)} color="success">
+														<LockOpenIcon />
+													</IconButton>
+												</Tooltip>
+											)}
+											{onFreezeHolder && (
+												<Tooltip title="Freeze holder" arrow>
+													<IconButton onClick={() => onFreezeHolder(holder)} color="warning" sx={{ ml: 1 }}>
+														<LockIcon />
+													</IconButton>
+												</Tooltip>
+											)}
+											{onTransferHolder && (
+												<Tooltip title="Transfer holder" arrow>
+													<IconButton onClick={() => onTransferHolder(holder)} color="primary" sx={{ ml: 1 }}>
+														<SwapHorizIcon />
+													</IconButton>
+												</Tooltip>
+											)}
+											{onBurnHolder && (
+												<Tooltip title="Burn holder" arrow>
+													<IconButton onClick={() => onBurnHolder(holder)} color="error" sx={{ ml: 1 }}>
+														<DeleteForeverIcon />
+													</IconButton>
+												</Tooltip>
+											)}
+										</Box>
+									</TableCell>
 								</TableRow>
 							))
 						) : (
 							<TableRow>
-								<TableCell colSpan={7} align="center">
+								<TableCell colSpan={8} align="center">
 									No holders found.
 								</TableCell>
 							</TableRow>

@@ -19,6 +19,7 @@ import {
 	UserService,
 	Agent,
 	Token,
+	TokenHolderUser,
 } from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
 import { formatDateField } from "../../lib/conversions";
@@ -44,6 +45,10 @@ import PauseTokenPopup from "../components/PauseTokenPopup";
 import UnpauseTokenPopup from "../components/UnpauseTokenPopup";
 import AddTokenPopup from "./components/AddTokenPopup";
 import UpdateTokenMetadataPopup from "../components/UpdateTokenMetadataPopup";
+import FreezeHolderBalancePopup from "../components/FreezeHolderBalancePopup";
+import UnfreezeHolderBalancePopup from "../components/UnfreezeHolderBalancePopup";
+import TransferHolderBalancePopup from "../components/TransferHolderBalancePopup";
+import BurnHolderBalancePopup from "../components/BurnHolderBalancePopup";
 
 export default function ForestTokenContractDetails({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) {
 	const { contract_index } = useParams();
@@ -77,8 +82,12 @@ export default function ForestTokenContractDetails({ user, fileBaseUrl }: { user
 	const [unpauseTokenOpen, setUnpauseTokenOpen] = useState(false);
 	const [addTokenOpen, setAddTokenOpen] = useState(false);
 	const [updateTokenMetadataOpen, setUpdateTokenMetadataOpen] = useState(false);
-	const [selectedToken, setSelectedToken] = useState<Token | null>(null);
-
+	const [selectedToken, setSelectedToken] = useState<Token>();
+	const [freezeHolderOpen, setFreezeHolderOpen] = useState(false);
+	const [unfreezeHolderOpen, setUnfreezeHolderOpen] = useState(false);
+	const [transferHolderOpen, setTransferHolderOpen] = useState(false);
+	const [burnHolderOpen, setBurnHolderOpen] = useState(false);
+	const [selectedHolder, setSelectedHolder] = useState<TokenHolderUser>();
 	const handleRefresh = () => {
 		setRefreshCounter((prev) => prev + 1);
 	};
@@ -211,7 +220,93 @@ export default function ForestTokenContractDetails({ user, fileBaseUrl }: { user
 				</>
 			),
 		},
-		{ label: "Holders", component: <TokenHoldersTable contract_index={contract_index!} /> },
+		{
+			label: "Holders",
+			component: (
+				<>
+					<TokenHoldersTable
+						contract_index={contract_index!}
+						onFreezeHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setFreezeHolderOpen(true);
+						}}
+						onUnfreezeHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setUnfreezeHolderOpen(true);
+						}}
+						onTransferHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setTransferHolderOpen(true);
+						}}
+						onBurnHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setBurnHolderOpen(true);
+						}}
+						refreshCounter={refreshCounter}
+					/>
+					{contract && selectedHolder && (
+						<>
+							<FreezeHolderBalancePopup
+								open={freezeHolderOpen}
+								onClose={() => {
+									setFreezeHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setFreezeHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftMulti.freeze}
+								tokenIdSize={8}
+							/>
+							<UnfreezeHolderBalancePopup
+								open={unfreezeHolderOpen}
+								onClose={() => {
+									setUnfreezeHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setUnfreezeHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftMulti.unFreeze}
+								tokenIdSize={8}
+							/>
+							<TransferHolderBalancePopup
+								open={transferHolderOpen}
+								onClose={() => {
+									setTransferHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setTransferHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftMulti.transfer}
+								tokenIdSize={8}
+							/>
+							<BurnHolderBalancePopup
+								open={burnHolderOpen}
+								onClose={() => {
+									setBurnHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setBurnHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftMulti.burn}
+								tokenIdSize={8}
+							/>
+						</>
+					)}
+				</>
+			),
+		},
 		{ label: "Balance Updates", component: <BalanceUpdatesTable contract_index={contract_index!} /> },
 		{ label: "Active Funds", component: <FundsTable contract_index={contract_index!} /> },
 		{ label: "Investors", component: <InvestorsTable contract_index={contract_index!} /> },

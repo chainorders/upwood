@@ -36,6 +36,10 @@ import UnpauseTokenPopup from "../components/UnpauseTokenPopup";
 import { User } from "../../lib/user";
 import securitySftSingle from "../../contractClients/generated/securitySftSingle";
 import UpdateTokenMetadataPopup from "../components/UpdateTokenMetadataPopup";
+import FreezeHolderBalancePopup from "../components/FreezeHolderBalancePopup";
+import UnfreezeHolderBalancePopup from "../components/UnfreezeHolderBalancePopup";
+import TransferHolderBalancePopup from "../components/TransferHolderBalancePopup";
+import BurnHolderBalancePopup from "../components/BurnHolderBalancePopup";
 
 export default function TokenContractDetails({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) {
 	const { contract_index } = useParams();
@@ -65,25 +69,17 @@ export default function TokenContractDetails({ user, fileBaseUrl }: { user: User
 		"Operator",
 	]);
 
+	const [selectedToken, setSelectedToken] = useState<Token>();
+	const [selectedHolder, setSelectedHolder] = useState<TokenHolderUser>();
+
 	// Token popup states
 	const [pauseTokenOpen, setPauseTokenOpen] = useState(false);
 	const [unpauseTokenOpen, setUnpauseTokenOpen] = useState(false);
 	const [updateTokenMetadataOpen, setUpdateTokenMetadataOpen] = useState(false);
-	const [selectedToken, setSelectedToken] = useState<Token>();
-
-	const handleRefresh = () => {
-		setRefreshCounter((prev) => prev + 1);
-	};
-
-	const handlePauseToken = (token: Token) => {
-		setSelectedToken(token);
-		setPauseTokenOpen(true);
-	};
-
-	const handleUnpauseToken = (token: Token) => {
-		setSelectedToken(token);
-		setUnpauseTokenOpen(true);
-	};
+	const [freezeHolderOpen, setFreezeHolderOpen] = useState(false);
+	const [unfreezeHolderOpen, setUnfreezeHolderOpen] = useState(false);
+	const [transferHolderOpen, setTransferHolderOpen] = useState(false);
+	const [burnHolderOpen, setBurnHolderOpen] = useState(false);
 
 	const tabRoutes = [
 		{
@@ -130,8 +126,14 @@ export default function TokenContractDetails({ user, fileBaseUrl }: { user: User
 				<>
 					<TokensTable
 						contract_index={contract_index!}
-						onPauseToken={handlePauseToken}
-						onUnpauseToken={handleUnpauseToken}
+						onPauseToken={(token) => {
+							setSelectedToken(token);
+							setPauseTokenOpen(true);
+						}}
+						onUnpauseToken={(token) => {
+							setSelectedToken(token);
+							setUnpauseTokenOpen(true);
+						}}
 						onUpdateTokenMetadata={(token: Token) => {
 							setSelectedToken(token);
 							setUpdateTokenMetadataOpen(true);
@@ -144,12 +146,13 @@ export default function TokenContractDetails({ user, fileBaseUrl }: { user: User
 								open={pauseTokenOpen}
 								onClose={() => {
 									setPauseTokenOpen(false);
-									setRefreshCounter((prev) => prev + 1);
 								}}
 								tokenId={selectedToken.token_id}
 								contractAddress={contract_index!}
 								user={user}
-								onSuccess={handleRefresh}
+								onSuccess={() => {
+									setPauseTokenOpen(false);
+								}}
 								method={securitySftSingle.pause}
 								tokenIdSize={0}
 							/>
@@ -157,12 +160,14 @@ export default function TokenContractDetails({ user, fileBaseUrl }: { user: User
 								open={unpauseTokenOpen}
 								onClose={() => {
 									setUnpauseTokenOpen(false);
-									setRefreshCounter((prev) => prev + 1);
 								}}
 								tokenId={selectedToken.token_id}
 								contractAddress={contract_index!}
 								user={user}
-								onSuccess={handleRefresh}
+								onSuccess={() => {
+									setUnpauseTokenOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
 								method={securitySftSingle.unPause}
 								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
 							/>
@@ -170,12 +175,14 @@ export default function TokenContractDetails({ user, fileBaseUrl }: { user: User
 								open={updateTokenMetadataOpen}
 								onClose={() => {
 									setUpdateTokenMetadataOpen(false);
-									setRefreshCounter((prev) => prev + 1);
 								}}
 								tokenId={selectedToken.token_id}
 								contractAddress={contract_index!}
 								user={user}
-								onUpdate={handleRefresh}
+								onUpdate={() => {
+									setUpdateTokenMetadataOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
 								method={securitySftSingle.setTokenMetadata}
 								fileBaseUrl={fileBaseUrl}
 								initialHash={selectedToken.metadata_hash}
@@ -187,7 +194,93 @@ export default function TokenContractDetails({ user, fileBaseUrl }: { user: User
 				</>
 			),
 		},
-		{ label: "Holders", component: <TokenHoldersTable contract_index={contract_index!} /> },
+		{
+			label: "Holders",
+			component: (
+				<>
+					<TokenHoldersTable
+						contract_index={contract_index!}
+						onFreezeHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setFreezeHolderOpen(true);
+						}}
+						onUnfreezeHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setUnfreezeHolderOpen(true);
+						}}
+						onTransferHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setTransferHolderOpen(true);
+						}}
+						onBurnHolder={(holder: TokenHolderUser) => {
+							setSelectedHolder(holder);
+							setBurnHolderOpen(true);
+						}}
+						refreshCounter={refreshCounter}
+					/>
+					{contract && selectedHolder && (
+						<>
+							<FreezeHolderBalancePopup
+								open={freezeHolderOpen}
+								onClose={() => {
+									setFreezeHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setFreezeHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftSingle.freeze}
+								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
+							/>
+							<UnfreezeHolderBalancePopup
+								open={unfreezeHolderOpen}
+								onClose={() => {
+									setUnfreezeHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setUnfreezeHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftSingle.unFreeze}
+								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
+							/>
+							<TransferHolderBalancePopup
+								open={transferHolderOpen}
+								onClose={() => {
+									setTransferHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setTransferHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftSingle.transfer}
+								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
+							/>
+							<BurnHolderBalancePopup
+								open={burnHolderOpen}
+								onClose={() => {
+									setBurnHolderOpen(false);
+								}}
+								holder={selectedHolder}
+								user={user}
+								onSuccess={() => {
+									setBurnHolderOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								method={securitySftSingle.burn}
+								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
+							/>
+						</>
+					)}
+				</>
+			),
+		},
 		{ label: "Balance Updates", component: <BalanceUpdatesTable contract_index={contract_index!} /> },
 	];
 
