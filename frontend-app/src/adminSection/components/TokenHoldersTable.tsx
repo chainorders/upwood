@@ -42,7 +42,6 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({
 	onUnfreezeHolder,
 	onTransferHolder,
 	onBurnHolder,
-	refreshCounter,
 }) => {
 	const classes = useCommonStyles();
 	const [holders, setHolders] = useState<PagedResponse_TokenHolderUser>();
