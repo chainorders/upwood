@@ -19,6 +19,7 @@ import {
 	UserService,
 	Agent,
 	Token,
+	TokenHolderUser,
 } from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
 import { formatDateField } from "../../lib/conversions";
@@ -29,13 +30,14 @@ import BalanceUpdatesTable from "../components/BalanceUpdatesTable";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import AddAgentPopup from "./components/AddAgentPopup";
-import RemoveAgentPopup from "./components/RemoveAgentPopup";
-import PauseTokenPopup from "./components/PauseTokenPopup";
-import UnpauseTokenPopup from "./components/UnpauseTokenPopup";
+import RemoveAgentPopup from "../components/RemoveAgentPopup";
+import PauseTokenPopup from "../components/PauseTokenPopup";
+import UnpauseTokenPopup from "../components/UnpauseTokenPopup";
 import { User } from "../../lib/user";
 import securitySftSingle from "../../contractClients/generated/securitySftSingle";
+import UpdateTokenMetadataPopup from "../components/UpdateTokenMetadataPopup";
 
-export default function TokenContractDetails({ user }: { user: User }) {
+export default function TokenContractDetails({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) {
 	const { contract_index } = useParams();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [contract, setContract] = useState<TokenContract>();
@@ -66,7 +68,8 @@ export default function TokenContractDetails({ user }: { user: User }) {
 	// Token popup states
 	const [pauseTokenOpen, setPauseTokenOpen] = useState(false);
 	const [unpauseTokenOpen, setUnpauseTokenOpen] = useState(false);
-	const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+	const [updateTokenMetadataOpen, setUpdateTokenMetadataOpen] = useState(false);
+	const [selectedToken, setSelectedToken] = useState<Token>();
 
 	const handleRefresh = () => {
 		setRefreshCounter((prev) => prev + 1);
@@ -129,6 +132,10 @@ export default function TokenContractDetails({ user }: { user: User }) {
 						contract_index={contract_index!}
 						onPauseToken={handlePauseToken}
 						onUnpauseToken={handleUnpauseToken}
+						onUpdateTokenMetadata={(token: Token) => {
+							setSelectedToken(token);
+							setUpdateTokenMetadataOpen(true);
+						}}
 						refreshCounter={refreshCounter}
 					/>
 					{contract && selectedToken && (
@@ -157,7 +164,23 @@ export default function TokenContractDetails({ user }: { user: User }) {
 								user={user}
 								onSuccess={handleRefresh}
 								method={securitySftSingle.unPause}
-								tokenIdSize={0}
+								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
+							/>
+							<UpdateTokenMetadataPopup
+								open={updateTokenMetadataOpen}
+								onClose={() => {
+									setUpdateTokenMetadataOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								tokenId={selectedToken.token_id}
+								contractAddress={contract_index!}
+								user={user}
+								onUpdate={handleRefresh}
+								method={securitySftSingle.setTokenMetadata}
+								fileBaseUrl={fileBaseUrl}
+								initialHash={selectedToken.metadata_hash}
+								initialUrl={selectedToken.metadata_url}
+								tokenIdSize={contract_index === contracts?.tree_nft_contract_index ? 8 : 0}
 							/>
 						</>
 					)}

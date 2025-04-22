@@ -26,6 +26,10 @@ pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>
 pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_std::ContractAddress;
+pub type SetTokenMetadataParams =
+    concordium_cis2_security::SetTokenMetadataParams<TokenId, ContractMetadataUrl>;
+pub type SetTokenMetadataParam =
+    concordium_cis2_security::SetTokenMetadataParam<TokenId, ContractMetadataUrl>;
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct InitParam {

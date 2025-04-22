@@ -37,14 +37,15 @@ import MarketsTab from "../components/MarketsTab";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import AddAgentPopup from "./components/AddAgentPopup";
-import RemoveAgentPopup from "./components/RemoveAgentPopup";
+import RemoveAgentPopup from "../components/RemoveAgentPopup";
 import { User } from "../../lib/user";
 import securitySftMulti from "../../contractClients/generated/securitySftMulti";
-import PauseTokenPopup from "./components/PauseTokenPopup";
-import UnpauseTokenPopup from "./components/UnpauseTokenPopup";
+import PauseTokenPopup from "../components/PauseTokenPopup";
+import UnpauseTokenPopup from "../components/UnpauseTokenPopup";
 import AddTokenPopup from "./components/AddTokenPopup";
+import UpdateTokenMetadataPopup from "../components/UpdateTokenMetadataPopup";
 
-export default function ForestTokenContractDetails({ user }: { user: User }) {
+export default function ForestTokenContractDetails({ user, fileBaseUrl }: { user: User; fileBaseUrl: string }) {
 	const { contract_index } = useParams();
 	const [contracts, setContracts] = useState<SystemContractsConfigApiModel>();
 	const [contract, setContract] = useState<ForestProjectContract>();
@@ -75,6 +76,7 @@ export default function ForestTokenContractDetails({ user }: { user: User }) {
 	const [pauseTokenOpen, setPauseTokenOpen] = useState(false);
 	const [unpauseTokenOpen, setUnpauseTokenOpen] = useState(false);
 	const [addTokenOpen, setAddTokenOpen] = useState(false);
+	const [updateTokenMetadataOpen, setUpdateTokenMetadataOpen] = useState(false);
 	const [selectedToken, setSelectedToken] = useState<Token | null>(null);
 
 	const handleRefresh = () => {
@@ -89,6 +91,11 @@ export default function ForestTokenContractDetails({ user }: { user: User }) {
 	const handleUnpauseToken = (token: Token) => {
 		setSelectedToken(token);
 		setUnpauseTokenOpen(true);
+	};
+
+	const handleUpdateTokenMetadata = (token: Token) => {
+		setSelectedToken(token);
+		setUpdateTokenMetadataOpen(true);
 	};
 
 	const tabRoutes = [
@@ -138,6 +145,7 @@ export default function ForestTokenContractDetails({ user }: { user: User }) {
 						contract_index={contract_index!}
 						onPauseToken={handlePauseToken}
 						onUnpauseToken={handleUnpauseToken}
+						onUpdateTokenMetadata={handleUpdateTokenMetadata}
 						onAddToken={() => setAddTokenOpen(true)}
 						showAddToken={true}
 						refreshCounter={refreshCounter}
@@ -180,6 +188,22 @@ export default function ForestTokenContractDetails({ user }: { user: User }) {
 								user={user}
 								onSuccess={handleRefresh}
 								method={securitySftMulti.addToken}
+								tokenIdSize={8}
+							/>
+							<UpdateTokenMetadataPopup
+								open={updateTokenMetadataOpen}
+								onClose={() => {
+									setUpdateTokenMetadataOpen(false);
+									setRefreshCounter((prev) => prev + 1);
+								}}
+								tokenId={selectedToken.token_id}
+								contractAddress={contract_index!}
+								user={user}
+								onUpdate={handleRefresh}
+								method={securitySftMulti.setTokenMetadata}
+								fileBaseUrl={fileBaseUrl}
+								initialHash={selectedToken.metadata_hash}
+								initialUrl={selectedToken.metadata_url}
 								tokenIdSize={8}
 							/>
 						</>

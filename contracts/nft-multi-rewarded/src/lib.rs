@@ -260,6 +260,45 @@ pub fn token_metadata(
 
 #[receive(
     contract = "nft_multi_rewarded",
+    name = "setTokenMetadata",
+    parameter = "SetTokenMetadataParams",
+    enable_logger,
+    mutable,
+    error = "Error"
+)]
+pub fn set_token_metadata(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let SetTokenMetadataParams { params }: SetTokenMetadataParams = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    let is_authorized = state
+        .addresses
+        .get(&ctx.sender())
+        .map_or(false, |a| a.is_agent);
+    ensure!(is_authorized, Error::Unauthorized);
+
+    for SetTokenMetadataParam {
+        token_id,
+        token_metadata,
+    } in params
+    {
+        state
+            .tokens
+            .entry(token_id)
+            .occupied_or(Error::InvalidTokenId)?
+            .modify(|metadata| *metadata = token_metadata.clone().into());
+        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+            metadata_url: token_metadata.into(),
+            token_id,
+        })))?;
+    }
+    Ok(())
+}
+
+#[receive(
+    contract = "nft_multi_rewarded",
     name = "transfer",
     enable_logger,
     mutable,

@@ -18,6 +18,7 @@ use shared::db_shared::DbConn;
 use tracing::{info, instrument, trace};
 use uuid::Uuid;
 
+use super::RoleToString;
 use crate::processors::cis2_utils::*;
 use crate::processors::ProcessorError;
 
@@ -326,7 +327,7 @@ pub fn process_events<T, A, R>(
 where
     T: IsTokenId+fmt::Debug,
     A: IsTokenAmount+fmt::Debug,
-    R: Deserial+fmt::Debug+std::string::ToString,
+    R: Deserial+fmt::Debug+RoleToString,
 {
     // Early return if there are no events to process
     if events.is_empty() {
@@ -369,7 +370,7 @@ pub fn process_parsed_event<T, A, R>(
 where
     T: IsTokenId+fmt::Debug,
     A: IsTokenAmount+fmt::Debug,
-    R: Deserial+fmt::Debug+std::string::ToString,
+    R: Deserial+fmt::Debug+RoleToString,
 {
     match parsed_event {
         Cis2SecurityEvent::TokenRemoved(token_id) => {

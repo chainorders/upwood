@@ -26,28 +26,8 @@ pub enum AgentRole {
     HolderRecovery,
     Pause,
     UnPause,
-    AddToken,
     Operator,
-}
-
-impl std::fmt::Display for AgentRole {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AgentRole::SetIdentityRegistry => write!(f, "SetIdentityRegistry"),
-            AgentRole::SetCompliance => write!(f, "SetCompliance"),
-            AgentRole::AddAgent => write!(f, "AddAgent"),
-            AgentRole::Mint => write!(f, "Mint"),
-            AgentRole::ForcedBurn => write!(f, "ForcedBurn"),
-            AgentRole::ForcedTransfer => write!(f, "ForcedTransfer"),
-            AgentRole::Freeze => write!(f, "Freeze"),
-            AgentRole::UnFreeze => write!(f, "UnFreeze"),
-            AgentRole::HolderRecovery => write!(f, "HolderRecovery"),
-            AgentRole::Pause => write!(f, "Pause"),
-            AgentRole::UnPause => write!(f, "UnPause"),
-            AgentRole::AddToken => write!(f, "AddToken"),
-            AgentRole::Operator => write!(f, "Operator"),
-        }
-    }
+    SetTokenMetadata,
 }
 
 impl AgentRole {
@@ -67,6 +47,7 @@ impl AgentRole {
             Self::Pause,
             Self::UnPause,
             Self::Operator,
+            Self::SetTokenMetadata,
         ]
     }
 }
@@ -83,6 +64,10 @@ pub type BalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
 pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
 pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
+pub type SetTokenMetadataParams =
+    concordium_cis2_security::SetTokenMetadataParams<TokenId, ContractMetadataUrl>;
+pub type SetTokenMetadataParam =
+    concordium_cis2_security::SetTokenMetadataParam<TokenId, ContractMetadataUrl>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 

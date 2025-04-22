@@ -420,3 +420,7 @@ impl Processors {
         Ok(is_any_processed)
     }
 }
+
+pub trait RoleToString {
+    fn to_string(&self) -> String;
+}

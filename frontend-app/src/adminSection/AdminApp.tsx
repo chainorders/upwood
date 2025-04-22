@@ -317,8 +317,14 @@ export default function AdminApp({ user, logout }: { user?: User; logout: () => 
 							element={<TokenHolderBalanceUpdateList />}
 						/>
 						<Route path="token-contracts" element={<TokenContractsList />} />
-						<Route path="token-contracts/:contract_index/*" element={<TokenContractDetails user={user} />} />
-						<Route path="fp-token-contracts/:contract_index/*" element={<ForestTokenContractDetails user={user} />} />
+						<Route
+							path="token-contracts/:contract_index/*"
+							element={<TokenContractDetails user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />}
+						/>
+						<Route
+							path="fp-token-contracts/:contract_index/*"
+							element={<ForestTokenContractDetails user={user} fileBaseUrl={import.meta.env.VITE_FILES_BASE_URL} />}
+						/>
 						<Route path="tree/fungible/holders" element={<TreeFungibleHoldersList user={user} />} />
 						<Route path="users/*">
 							<Route index element={<UserList user={user} />} />

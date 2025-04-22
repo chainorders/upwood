@@ -204,3 +204,14 @@ impl<T: IsTokenId> TokenOwnerUId<T> {
 impl<T: Eq+IsTokenId> TokenOwnerUId<T> {
     pub fn matches_token(&self, token_id: &TokenUId<T>) -> bool { self.token_id.eq(token_id) }
 }
+
+#[derive(Serialize, SchemaType)]
+pub struct SetTokenMetadataParam<T, M: Into<MetadataUrl>> {
+    pub token_id:       T,
+    pub token_metadata: M,
+}
+
+#[derive(Serialize, SchemaType)]
+pub struct SetTokenMetadataParams<T, M: Into<MetadataUrl>> {
+    pub params: Vec<SetTokenMetadataParam<T, M>>,
+}

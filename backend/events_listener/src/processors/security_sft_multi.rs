@@ -7,8 +7,8 @@ use security_sft_multi::types::{AgentRole, TokenAmount, TokenId};
 use shared::db_shared::DbConn;
 use tracing::instrument;
 
-use super::cis2_security;
 use super::cis2_utils::ContractAddressToDecimal;
+use super::{cis2_security, RoleToString};
 use crate::processors::ProcessorError;
 
 pub fn module_ref() -> ModuleReference {
@@ -49,4 +49,26 @@ pub fn process_events(
         contract.to_decimal(),
         events,
     )
+}
+
+impl RoleToString for AgentRole {
+    fn to_string(&self) -> String {
+        match self {
+            AgentRole::AddAgent => "AddAgent".to_string(),
+            AgentRole::AddToken => "AddToken".to_string(),
+            AgentRole::RemoveToken => "RemoveToken".to_string(),
+            AgentRole::Mint => "Mint".to_string(),
+            AgentRole::ForcedBurn => "ForcedBurn".to_string(),
+            AgentRole::ForcedTransfer => "ForcedTransfer".to_string(),
+            AgentRole::Freeze => "Freeze".to_string(),
+            AgentRole::UnFreeze => "UnFreeze".to_string(),
+            AgentRole::HolderRecovery => "HolderRecovery".to_string(),
+            AgentRole::Operator => "Operator".to_string(),
+            AgentRole::SetCompliance => "SetCompliance".to_string(),
+            AgentRole::SetTokenMetadata => "SetTokenMetadata".to_string(),
+            AgentRole::SetIdentityRegistry => "SetIdentityRegistry".to_string(),
+            AgentRole::Pause => "Pause".to_string(),
+            AgentRole::UnPause => "UnPause".to_string(),
+        }
+    }
 }

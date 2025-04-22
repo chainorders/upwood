@@ -11,27 +11,27 @@ import {
 	Divider,
 	alpha,
 } from "@mui/material";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { User } from "../../../lib/user";
-import { TxnStatus, updateContract } from "../../../lib/concordium";
-import TransactionButton from "../../../components/TransactionButton";
-import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
-import { toTokenId } from "../../../lib/conversions";
-import useCommonStyles from "../../../theme/useCommonStyles";
-import securitySftSingle from "../../../contractClients/generated/securitySftSingle";
+import PauseIcon from "@mui/icons-material/Pause";
+import { User } from "../../lib/user";
+import { TxnStatus, updateContract } from "../../lib/concordium";
+import TransactionButton from "../../components/TransactionButton";
+import securitySftMulti from "../../contractClients/generated/securitySftMulti";
+import { toTokenId } from "../../lib/conversions";
+import useCommonStyles from "../../theme/useCommonStyles";
+import securitySftSingle from "../../contractClients/generated/securitySftSingle";
 
-interface UnpauseTokenPopupProps {
+interface PauseTokenPopupProps {
 	open: boolean;
 	onClose: () => void;
 	onSuccess?: () => void;
 	tokenId: string;
 	contractAddress: string;
 	user: User;
-	method: typeof securitySftMulti.unPause | typeof securitySftSingle.unPause;
+	method: typeof securitySftMulti.pause | typeof securitySftSingle.pause;
 	tokenIdSize: number;
 }
 
-const UnpauseTokenPopup: React.FC<UnpauseTokenPopupProps> = ({
+const PauseTokenPopup: React.FC<PauseTokenPopupProps> = ({
 	open,
 	onClose,
 	onSuccess,
@@ -45,7 +45,7 @@ const UnpauseTokenPopup: React.FC<UnpauseTokenPopupProps> = ({
 	const [txnStatus, setTxnStatus] = React.useState<TxnStatus>("none");
 	const [error, setError] = React.useState<string>();
 
-	const handleUnpauseToken = async () => {
+	const handlePauseToken = async () => {
 		setError(undefined);
 		try {
 			await updateContract(
@@ -84,7 +84,7 @@ const UnpauseTokenPopup: React.FC<UnpauseTokenPopupProps> = ({
 		<Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
 			<DialogTitle sx={{ pb: 1 }}>
 				<Typography variant="h6" component="div" fontWeight={600}>
-					Unpause Token
+					Pause Token
 				</Typography>
 			</DialogTitle>
 			<Divider />
@@ -94,20 +94,20 @@ const UnpauseTokenPopup: React.FC<UnpauseTokenPopupProps> = ({
 					sx={{
 						p: 3,
 						mb: 2,
-						backgroundColor: (theme) => alpha(theme.palette.success.main, 0.05),
+						backgroundColor: (theme) => alpha(theme.palette.warning.main, 0.05),
 						borderRadius: 1,
-						border: (theme) => `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+						border: (theme) => `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
 					}}
 				>
 					<Box display="flex" alignItems="center" mb={2}>
-						<PlayArrowIcon color="success" sx={{ mr: 1 }} />
-						<Typography variant="subtitle2" color="success.main" fontWeight={600}>
-							You are about to activate a token
+						<PauseIcon color="warning" sx={{ mr: 1 }} />
+						<Typography variant="subtitle2" color="warning.main" fontWeight={600}>
+							You are about to pause a token
 						</Typography>
 					</Box>
 
 					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-						Unpausing this token will enable transfers and minting operations.
+						Pausing this token will prevent transfers and minting operations until it is unpaused.
 					</Typography>
 
 					<Paper
@@ -156,13 +156,13 @@ const UnpauseTokenPopup: React.FC<UnpauseTokenPopupProps> = ({
 					Cancel
 				</Button>
 				<TransactionButton
-					onClick={handleUnpauseToken}
+					onClick={handlePauseToken}
 					variant="contained"
-					color="success"
-					startIcon={<PlayArrowIcon />}
+					color="warning"
+					startIcon={<PauseIcon />}
 					txnStatus={txnStatus}
-					defaultText="Unpause Token"
-					loadingText="Unpausing Token..."
+					defaultText="Pause Token"
+					loadingText="Pausing Token..."
 					size="medium"
 				/>
 			</DialogActions>
@@ -170,4 +170,4 @@ const UnpauseTokenPopup: React.FC<UnpauseTokenPopupProps> = ({
 	);
 };
 
-export default UnpauseTokenPopup;
+export default PauseTokenPopup;

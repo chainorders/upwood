@@ -802,6 +802,42 @@ pub fn token_metadata(
     Ok(TokenMetadataQueryResponse(res))
 }
 
+#[receive(
+    contract = "security_sft_single",
+    name = "setTokenMetadata",
+    mutable,
+    enable_logger,
+    parameter = "SetTokenMetadataParams",
+    error = "Error"
+)]
+pub fn set_token_metadata(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let SetTokenMetadataParams { params }: SetTokenMetadataParams = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    let is_authorized = state
+        .addresses
+        .get(&ctx.sender())
+        .is_some_and(|a| a.is_agent(&[AgentRole::SetTokenMetadata]));
+    ensure!(is_authorized, Error::Unauthorized);
+
+    for SetTokenMetadataParam {
+        token_id,
+        token_metadata,
+    } in params
+    {
+        state.token.metadata_url = token_metadata.clone().into();
+        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+            token_id,
+            metadata_url: token_metadata.into(),
+        })))?;
+    }
+
+    Ok(())
+}
+
 /// Determines whether the contract supports a specific concordium standard.
 ///
 /// # Returns

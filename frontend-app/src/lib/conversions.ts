@@ -229,26 +229,30 @@ export function formatDateField(dateStr?: string) {
 	return isNaN(date.getTime()) ? "-" : date.toISOString().slice(0, 19).replace("T", " ");
 }
 
-export function toParamsAddress(address: string | number): {
-	Account: [string]
-} | {
-	Contract: [{ index: number, subindex: number }]
-} {
+export function toParamsAddress(address: string | number):
+	| {
+			Account: [string];
+	  }
+	| {
+			Contract: [{ index: number; subindex: number }];
+	  } {
 	if (isAccountAddress(address)) {
 		const accountAddress = AccountAddress.fromBase58(address.toString());
 		return { Account: [accountAddress.toString()] };
 	} else {
 		const contractAddress: ContractAddress.Type = parseContractAddress(address);
 		return {
-			Contract: [{
-				index: Number(contractAddress.index),
-				subindex: Number(contractAddress.subindex || 0),
-			}]
+			Contract: [
+				{
+					index: Number(contractAddress.index),
+					subindex: Number(contractAddress.subindex || 0),
+				},
+			],
 		};
 	}
 }
 /**
- * Checks if the given address is an account address. 
+ * Checks if the given address is an account address.
  * An Account address is base58 encoded string ex 4fWTMJSAymJoFeTbohJzwejT6Wzh1dAa2BtnbDicgjQrc94TgW, 3nAeCmWzoQyf1kmdCcxGy8dFi7nPSRm38FKoR4Ge5ZGJcFSuww
  * A Contract Address can be a number Or a string with format <index,subindex>.
  * @param address - The address to check.
@@ -280,9 +284,7 @@ function parseContractAddress(address: string | number): ContractAddress.Type {
 			const index = parseInt(match[1]);
 			const subindex = parseInt(match[2]);
 			return ContractAddress.create(index, subindex);
-		} else if (
-			address.match(/^\s*\d+\s*$/)
-		) {
+		} else if (address.match(/^\s*\d+\s*$/)) {
 			const index = parseInt(address);
 			return ContractAddress.create(index);
 		}

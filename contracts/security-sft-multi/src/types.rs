@@ -8,6 +8,10 @@ pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU64;
 pub type TokenId = TokenIdU64;
 pub type Event = Cis2SecurityEvent<TokenId, TokenAmount, AgentRole>;
+pub type SetTokenMetadataParams =
+    concordium_cis2_security::SetTokenMetadataParams<TokenId, ContractMetadataUrl>;
+pub type SetTokenMetadataParam =
+    concordium_cis2_security::SetTokenMetadataParam<TokenId, ContractMetadataUrl>;
 
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq, Clone, Copy)]
 pub enum AgentRole {
@@ -29,27 +33,7 @@ pub enum AgentRole {
     AddToken,
     Operator,
     RemoveToken,
-}
-
-impl std::fmt::Display for AgentRole {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AgentRole::SetIdentityRegistry => write!(f, "SetIdentityRegistry"),
-            AgentRole::SetCompliance => write!(f, "SetCompliance"),
-            AgentRole::AddAgent => write!(f, "AddAgent"),
-            AgentRole::Mint => write!(f, "Mint"),
-            AgentRole::ForcedBurn => write!(f, "ForcedBurn"),
-            AgentRole::ForcedTransfer => write!(f, "ForcedTransfer"),
-            AgentRole::Freeze => write!(f, "Freeze"),
-            AgentRole::UnFreeze => write!(f, "UnFreeze"),
-            AgentRole::HolderRecovery => write!(f, "HolderRecovery"),
-            AgentRole::Pause => write!(f, "Pause"),
-            AgentRole::UnPause => write!(f, "UnPause"),
-            AgentRole::AddToken => write!(f, "AddToken"),
-            AgentRole::Operator => write!(f, "Operator"),
-            AgentRole::RemoveToken => write!(f, "RemoveToken"),
-        }
-    }
+    SetTokenMetadata,
 }
 
 impl AgentRole {
@@ -71,6 +55,7 @@ impl AgentRole {
             Self::AddToken,
             Self::Operator,
             Self::RemoveToken,
+            Self::SetTokenMetadata,
         ]
     }
 }

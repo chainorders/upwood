@@ -13,6 +13,7 @@ import {
 	IconButton,
 	Button,
 	Typography,
+	Tooltip,
 } from "@mui/material";
 import { PagedResponse_Token, IndexerService, Token } from "../../apiClient";
 import useCommonStyles from "../../theme/useCommonStyles";
@@ -21,6 +22,7 @@ import { format } from "date-fns";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
 
 function formatDateField(dateStr?: string) {
 	if (!dateStr) return "-";
@@ -33,15 +35,17 @@ interface TokensTableProps {
 	onPauseToken?: (token: Token) => void;
 	onUnpauseToken?: (token: Token) => void;
 	onAddToken?: () => void;
+	onUpdateTokenMetadata?: (token: Token) => void;
 	showAddToken?: boolean;
 	refreshCounter?: number;
 }
 
-const TokensTable: React.FC<TokensTableProps> = ({ 
-	contract_index, 
-	onPauseToken, 
+const TokensTable: React.FC<TokensTableProps> = ({
+	contract_index,
+	onPauseToken,
 	onUnpauseToken,
 	onAddToken,
+	onUpdateTokenMetadata,
 	showAddToken = false,
 	refreshCounter = 0,
 }) => {
@@ -82,7 +86,7 @@ const TokensTable: React.FC<TokensTableProps> = ({
 							<TableCell sx={classes.tableHeaderCell}>Supply</TableCell>
 							<TableCell sx={classes.tableHeaderCell}>Created</TableCell>
 							<TableCell sx={classes.tableHeaderCell}>Updated</TableCell>
-							{(onPauseToken || onUnpauseToken) && (
+							{(onPauseToken || onUnpauseToken || onUpdateTokenMetadata) && (
 								<TableCell sx={classes.tableHeaderCell}>Actions</TableCell>
 							)}
 						</TableRow>
@@ -98,37 +102,40 @@ const TokensTable: React.FC<TokensTableProps> = ({
 									<TableCell>{toDisplayAmount(token.supply, 0)}</TableCell>
 									<TableCell>{formatDateField(token.create_time)}</TableCell>
 									<TableCell>{formatDateField(token.update_time)}</TableCell>
-									{(onPauseToken || onUnpauseToken) && (
+									{(onPauseToken || onUnpauseToken || onUpdateTokenMetadata) && (
 										<TableCell>
-											{token.is_paused 
-												? onUnpauseToken && (
-													<IconButton 
-														onClick={() => onUnpauseToken(token)} 
-														size="small"
-														color="success"
-														title="Unpause token"
-													>
-														<PlayArrowIcon />
-													</IconButton>
-												)
-												: onPauseToken && (
-													<IconButton 
-														onClick={() => onPauseToken(token)} 
-														size="small"
-														color="warning"
-														title="Pause token"
-													>
-														<PauseIcon />
-													</IconButton>
-												)
-											}
+											<Box display="flex" alignItems="center">
+												{token.is_paused
+													? onUnpauseToken && (
+															<Tooltip title="Unpause token">
+																<IconButton onClick={() => onUnpauseToken(token)} size="small" color="success">
+																	<PlayArrowIcon />
+																</IconButton>
+															</Tooltip>
+														)
+													: onPauseToken && (
+															<Tooltip title="Pause token">
+																<IconButton onClick={() => onPauseToken(token)} size="small" color="warning">
+																	<PauseIcon />
+																</IconButton>
+															</Tooltip>
+														)}
+
+												{onUpdateTokenMetadata && (
+													<Tooltip title="Update metadata">
+														<IconButton onClick={() => onUpdateTokenMetadata(token)} size="small" color="primary" sx={{ ml: 1 }}>
+															<EditIcon />
+														</IconButton>
+													</Tooltip>
+												)}
+											</Box>
 										</TableCell>
 									)}
 								</TableRow>
 							))
 						) : (
 							<TableRow>
-								<TableCell colSpan={(onPauseToken || onUnpauseToken) ? 8 : 7} align="center">
+								<TableCell colSpan={onPauseToken || onUnpauseToken || onUpdateTokenMetadata ? 8 : 7} align="center">
 									No tokens found.
 								</TableCell>
 							</TableRow>

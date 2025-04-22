@@ -10,13 +10,13 @@ import {
 	Divider,
 	alpha,
 } from "@mui/material";
-import TransactionButton from "../../../components/TransactionButton";
-import { TxnStatus, updateContract } from "../../../lib/concordium";
-import { User } from "../../../lib/user";
-import { toParamsAddress } from "../../../lib/conversions";
-import useCommonStyles from "../../../theme/useCommonStyles";
-import securitySftSingle from "../../../contractClients/generated/securitySftSingle";
-import securitySftMulti from "../../../contractClients/generated/securitySftMulti";
+import TransactionButton from "../../components/TransactionButton";
+import { TxnStatus, updateContract } from "../../lib/concordium";
+import { User } from "../../lib/user";
+import { toParamsAddress } from "../../lib/conversions";
+import useCommonStyles from "../../theme/useCommonStyles";
+import securitySftSingle from "../../contractClients/generated/securitySftSingle";
+import securitySftMulti from "../../contractClients/generated/securitySftMulti";
 
 interface RemoveAgentPopupProps {
 	user: User;
@@ -48,8 +48,8 @@ export default function RemoveAgentPopup({
 				toParamsAddress(agentAddress),
 				setTxnStatus,
 			);
-            setTxnStatus("success");
-            handleClose();
+			setTxnStatus("success");
+			handleClose();
 		} catch (error) {
 			if (error instanceof Error) {
 				setError(error.message);
@@ -108,26 +108,24 @@ export default function RemoveAgentPopup({
 						<Typography variant="body1" fontWeight={500}>
 							{agentAddress}
 						</Typography>
-                    </Paper>
-                    {error && (
-					<Paper
-                        elevation={0}
-						sx={{
-                            p: 2,
-                            ml: 1,
-							backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
-							borderLeft: (theme) => `4px solid ${theme.palette.error.main}`,
-							borderRadius: 1,
-						}}
-					>
-						<Typography variant="body2" color="error">
-							{error}
-						</Typography>
 					</Paper>
-				)}
+					{error && (
+						<Paper
+							elevation={0}
+							sx={{
+								p: 2,
+								ml: 1,
+								backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
+								borderLeft: (theme) => `4px solid ${theme.palette.error.main}`,
+								borderRadius: 1,
+							}}
+						>
+							<Typography variant="body2" color="error">
+								{error}
+							</Typography>
+						</Paper>
+					)}
 				</Paper>
-
-				
 			</DialogContent>
 			<DialogActions sx={classes.dialogFormActions}>
 				<Button onClick={handleClose} variant="outlined" size="medium">
