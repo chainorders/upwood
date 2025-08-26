@@ -1,100 +1,147 @@
-use concordium_cis2::{
-    AdditionalData, OnReceivingCis2DataParams, Receiver, TokenAmountU64, TokenIdVec, Transfer,
+use concordium_cis2::{AdditionalData, TokenAmountU64, TokenIdU64, TokenIdUnit, Transfer};
+use concordium_protocols::concordium_cis2_ext::cis2_client::Cis2Client;
+use concordium_protocols::concordium_cis2_ext::ContractMetadataUrl;
+use concordium_protocols::concordium_cis2_security::cis2_security_client::Cis2SecurityClient;
+use concordium_protocols::concordium_cis2_security::{
+    AddTokenParams, AgentWithRoles, MintParam, TokenAmountSecurity, TokenUId,
 };
-use concordium_protocols::concordium_cis2_ext::cis2_client::{self, Cis2ClientError};
-use concordium_protocols::concordium_cis2_security::TokenUId;
 use concordium_protocols::rate::Rate;
-use concordium_rwa_utils::conversions::to_additional_data;
-use concordium_std::ops::SubAssign;
+use concordium_std::ops::DerefMut;
 use concordium_std::*;
 
+/// The type of the Token Amount used in the EuroE. This should match the type used in the `euroe` contract.
+pub type CurrencyTokenAmount = TokenAmountU64;
+/// The type of the token id used in the EuroE contract. This should match the type used in the `euroe` contract.
+pub type CurrencyTokenId = TokenIdUnit;
+pub type CurrencyTokenAddress = TokenUId<CurrencyTokenId>;
+/// The type of the Token Amount used in the contract. This should match the type used in the `security-sft-multi` contract.
 pub type TokenAmount = TokenAmountU64;
-pub type AnyTokenUId = TokenUId<TokenIdVec>;
+/// The type of the token id used in the contract. This should match the type used in the `security-sft-multi` contract.
+pub type SecurityTokenId = TokenIdU64;
+pub type SecurityTokenAddress = TokenUId<SecurityTokenId>;
+pub type SecurityTokenAmount = TokenAmountU64;
+pub type ContractResult<T> = Result<T, Error>;
 
-/// Represents Sell event.
-/// This is the event that is emitted when a user deposits tokens to be sold.
 #[derive(Serialize, SchemaType, Debug)]
-pub struct SellEvent {
-    /// The address of the user who deposited the tokens.
-    pub from:   AccountAddress,
-    /// The amount of tokens that were deposited.
-    pub amount: TokenAmount,
-    /// The rate at which a buyer can convert deposited tokens to currency token.
-    pub rate:   Rate,
+pub struct ExchangeEvent {
+    pub token_contract:  ContractAddress,
+    pub token_id:        SecurityTokenId,
+    pub seller:          AccountAddress,
+    pub buyer:           AccountAddress,
+    pub token_amount:    TokenAmount,
+    pub rate:            Rate,
+    pub currency_amount: CurrencyTokenAmount,
+    pub exchange_type:   ExchangeType,
 }
 
-/// Represents SellCancelled event.
-/// This is the event that is emitted when a user cancels a sell position.
 #[derive(Serialize, SchemaType, Debug)]
-pub struct SellCancelledEvent {
-    // The address of the user who cancelled the sell position.
-    pub from:   AccountAddress,
-    // The amount of tokens that were returned to the user.
-    pub amount: TokenAmount,
-}
-
-/// Represents Exchange event.
-/// This event is emitted when a user exchanges tokens with another user.
-#[derive(Serialize, SchemaType, Debug)]
-pub struct Exchange {
-    pub payer:       AccountAddress,
-    pub pay_amount:  TokenAmount,
-    pub sell_amount: TokenAmount,
-    pub seller:      AccountAddress,
+pub enum ExchangeType {
+    /// Bought by the liquidity provider
+    /// This is the case when the liquidity provider buys tokens from the seller.
+    /// The seller is the one who sells the tokens to the liquidity provider.
+    Buy,
+    /// Sold by the liquidity provider
+    /// This is the case when the liquidity provider sells tokens to the buyer.
+    /// The buyer is the one who buys the tokens from the liquidity provider.
+    Sell,
+    /// Minted by the liquidity provider
+    /// This is the case when the liquidity provider mints tokens for the buyer.
+    /// The buyer is the one who buys the tokens from the liquidity provider.
+    Mint,
 }
 
 #[derive(Serialize, SchemaType, Debug)]
 pub enum Event {
-    Initialized(InitParam),
-    Sell(SellEvent),
-    SellCancelled(SellCancelledEvent),
-    Exchange(Exchange),
+    Initialized(CurrencyTokenAddress),
+    AgentAdded(AgentWithRoles<AgentRole>),
+    AgentRemoved(Address),
+    MarketAdded(AddMarketParams),
+    Exchanged(ExchangeEvent),
+    MarketRemoved(ContractAddress),
 }
 
 #[derive(Serial, Reject, SchemaType)]
 pub enum Error {
     ParseError,
     Unauthorized,
-    Cis2CallError,
-    InvalidToken,
-    SellPositionExists,
-    SellPositionMissing,
     InvalidConversion,
-    InvalidAmount,
     LogError,
+    AgentExists,
+    InvalidMarket,
+    TokenTransfer,
+    CurrencyTransfer,
+    InvalidRate,
+    MintMarketNotStarted,
+    AddToken,
+    TokenMint,
+    InvalidMarketType,
+    MarketTokenLimitExceeded,
 }
 impl From<ParseError> for Error {
     fn from(_: ParseError) -> Self { Error::ParseError }
 }
-impl From<Cis2ClientError> for Error {
-    fn from(_: Cis2ClientError) -> Self { Error::Cis2CallError }
-}
 impl From<LogError> for Error {
     fn from(_: LogError) -> Self { Error::LogError }
 }
-pub type ContractResult<T> = Result<T, Error>;
 
-#[derive(Serialize, Clone, SchemaType, PartialEq, Debug)]
-pub struct Deposit {
-    pub amount: TokenAmount,
-    pub rate:   Rate,
+#[derive(Serialize, SchemaType, Debug, Clone, Copy)]
+pub enum AgentRole {
+    AddMarket,
+    RemoveMarket,
+    Operator,
 }
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 pub struct State<S=StateApi> {
-    token:    AnyTokenUId,
-    currency: AnyTokenUId,
-    deposits: StateMap<AccountAddress, Deposit, S>,
+    pub currency_token: CurrencyTokenAddress,
+    pub agents:         StateMap<Address, StateSet<AgentRole, S>, S>,
+    pub markets:        StateMap<ContractAddress, Market, S>,
+}
+
+impl State {
+    pub fn has_agent(&self, agent: &Address, role: AgentRole) -> bool {
+        self.agents
+            .get(agent)
+            .map_or(false, |roles| roles.contains(&role))
+    }
+}
+
+#[derive(Serialize, Clone, SchemaType, Debug, PartialEq, Eq)]
+pub enum Market {
+    Mint(MintMarket),
+    Transfer(TransferMarket),
+}
+
+#[derive(Serialize, SchemaType, Clone, Debug, PartialEq, Eq)]
+pub struct MintMarket {
+    pub token_id:           TokenIdCalculation,
+    pub rate:               Rate,
+    pub token_metadata_url: ContractMetadataUrl,
+    pub liquidity_provider: AccountAddress,
+    pub max_token_amount:   SecurityTokenAmount,
+}
+
+#[derive(Serialize, SchemaType, Clone, Debug, PartialEq, Eq)]
+pub struct TransferMarket {
+    pub token_id:            SecurityTokenId,
+    pub liquidity_provider:  AccountAddress,
+    /// The rate at which the liquidity provider buys the tokens.
+    /// This is the rate at which sellers can sell their tokens to the liquidity provider.
+    pub buy_rate:            Rate,
+    /// The rate at which the liquidity provider sells the tokens.
+    /// This is the rate at which buyers can buy tokens from the liquidity provider.
+    pub sell_rate:           Rate,
+    pub max_token_amount:    SecurityTokenAmount,
+    pub max_currency_amount: CurrencyTokenAmount,
 }
 
 /// Initialization parameters for the contract.
 #[derive(Serialize, SchemaType, Clone, Debug)]
 pub struct InitParam {
-    /// The token that is being sold.
-    pub token:    AnyTokenUId,
     /// The token that is being used to pay for the tokens being sold.
-    pub currency: AnyTokenUId,
+    pub currency: CurrencyTokenAddress,
+    pub agents:   Vec<AgentWithRoles<AgentRole>>,
 }
 
 #[init(
@@ -110,61 +157,188 @@ pub fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
-    logger.log(&Event::Initialized(params.clone()))?;
-    Ok(State {
-        token:    params.token,
-        currency: params.currency,
-        deposits: state_builder.new_map(),
-    })
+    let agents = {
+        let mut agents = state_builder.new_map();
+        // Insert owner as agent
+        let _ = agents.insert(ctx.init_origin().into(), {
+            let mut roles = state_builder.new_set();
+            roles.insert(AgentRole::AddMarket);
+            roles.insert(AgentRole::RemoveMarket);
+            roles.insert(AgentRole::Operator);
+            roles
+        });
+
+        for agent in params.agents.iter() {
+            let _ = agents.insert(agent.address, {
+                let mut roles = state_builder.new_set();
+                for role in agent.roles.iter() {
+                    roles.insert(*role);
+                }
+                roles
+            });
+        }
+
+        agents
+    };
+    let state = State {
+        currency_token: params.currency,
+        agents,
+        markets: state_builder.new_map(),
+    };
+
+    logger.log(&Event::Initialized(params.currency))?;
+    for agent in state.agents.iter() {
+        logger.log(&Event::AgentAdded(AgentWithRoles {
+            address: *agent.0,
+            roles:   agent.1.iter().map(|r| *r).collect(),
+        }))?;
+    }
+    Ok(state)
 }
 
-/// Represents a sell position.
-#[derive(Serialize, SchemaType)]
-pub struct TransferSellParams {
-    /// The amount of tokens that are being sold.
-    pub amount: TokenAmount,
-    /// The rate at which a buyer can convert deposited tokens to currency token.
-    pub rate:   Rate,
-}
-
-/// This function is called when a user wants to sell tokens.
-/// To be able to call this function the user must have added current contract as an operator in the token contract for the token which is to be sold.
-/// The function will transfer the tokens to be sold from the user to the current contract.
-/// Tokens are received in the `sell` entrypoint.
 #[receive(
     contract = "security_p2p_trading",
-    name = "transferSell",
+    name = "addAgent",
     mutable,
-    parameter = "TransferSellParams",
-    error = "Error"
+    parameter = "AgentWithRoles<AgentRole>",
+    enable_logger
 )]
-pub fn transfer_sell(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
-    let params: TransferSellParams = ctx.parameter_cursor().get()?;
-    let token = host.state().token.clone();
-    cis2_client::transfer_single(host, &token.contract, Transfer {
-        token_id: token.id,
-        amount:   params.amount,
-        from:     ctx.sender(),
-        to:       Receiver::from_contract(
-            ctx.self_address(),
-            OwnedEntrypointName::new_unchecked("sell".into()),
-        ),
-        data:     to_additional_data(params.rate).map_err(|_| Error::ParseError)?,
-    })?;
+fn add_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let agent: AgentWithRoles<AgentRole> = ctx.parameter_cursor().get()?;
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::Unauthorized
+    );
+
+    let (state, state_builder) = host.state_and_builder();
+    let roles = {
+        let mut roles_state = state_builder.new_set();
+        for role in agent.roles.iter() {
+            roles_state.insert(*role);
+        }
+        roles_state
+    };
+    state
+        .agents
+        .entry(agent.address)
+        .vacant_or(Error::AgentExists)?
+        .insert(roles);
+    logger.log(&Event::AgentAdded(agent))?;
     Ok(())
 }
 
-pub type SellReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, Rate>;
+#[receive(
+    contract = "security_p2p_trading",
+    name = "removeAgent",
+    mutable,
+    parameter = "Address",
+    enable_logger
+)]
+fn remove_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let agent: Address = ctx.parameter_cursor().get()?;
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::Unauthorized
+    );
+    let (state, _) = host.state_and_builder();
+    state.agents.remove(&agent);
+    logger.log(&Event::AgentRemoved(agent))?;
+    Ok(())
+}
 
-/// This function is called when a user wants to sell tokens.
-/// This function can only be called by a smart contract.
-/// In order to call this function the token holder should transfer the tokens to be sold to the current contract and token contract should call this function.
-/// Current contract will only allow trusted token contracts to call this function.
+#[derive(Serialize, SchemaType, Debug)]
+pub struct AddMarketParams {
+    pub token_contract: ContractAddress,
+    pub market:         Market,
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "addMarket",
+    mutable,
+    parameter = "AddMarketParams",
+    enable_logger
+)]
+fn add_market(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: AddMarketParams = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    ensure!(
+        state.has_agent(&ctx.sender(), AgentRole::AddMarket),
+        Error::Unauthorized
+    );
+
+    let existing = state
+        .markets
+        .insert(params.token_contract, params.market.clone());
+    if existing.is_some() {
+        logger.log(&Event::MarketRemoved(params.token_contract))?;
+    }
+    logger.log(&Event::MarketAdded(params))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "removeMarket",
+    mutable,
+    parameter = "ContractAddress",
+    enable_logger
+)]
+fn remove_market(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let market: ContractAddress = ctx.parameter_cursor().get()?;
+    let (state, _) = host.state_and_builder();
+    ensure!(
+        state.has_agent(&ctx.sender(), AgentRole::RemoveMarket),
+        Error::Unauthorized
+    );
+    state
+        .markets
+        .remove_and_get(&market)
+        .ok_or(Error::InvalidMarket)?;
+    logger.log(&Event::MarketRemoved(market))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "getMarket",
+    parameter = "ContractAddress"
+)]
+fn get_market(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<Market> {
+    let contract: ContractAddress = ctx.parameter_cursor().get()?;
+    let state = host.state();
+    let market = state.markets.get(&contract).ok_or(Error::InvalidMarket)?;
+    Ok(market.clone())
+}
+
+#[derive(Serialize, SchemaType)]
+pub struct ExchangeParams {
+    pub contract: ContractAddress,
+    pub amount:   SecurityTokenAmount,
+    pub rate:     Rate,
+}
+
 #[receive(
     contract = "security_p2p_trading",
     name = "sell",
     mutable,
-    parameter = "SellReceiveParams",
+    parameter = "ExchangeParams",
     error = "Error",
     enable_logger
 )]
@@ -173,265 +347,278 @@ pub fn sell(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let params: SellReceiveParams = ctx.parameter_cursor().get()?;
-    let state = host.state();
-
-    let incoming_token = TokenUId {
-        id:       params.token_id.clone(),
-        contract: match ctx.sender() {
-            Address::Account(_) => bail!(Error::Unauthorized),
-            Address::Contract(c) => c,
-        },
-    };
-    ensure!(incoming_token.eq(&state.token), Error::InvalidToken);
-    let from = match params.from {
-        Address::Account(from) => from,
+    let params: ExchangeParams = ctx.parameter_cursor().get()?;
+    let seller = match ctx.sender() {
+        Address::Account(a) => a,
         Address::Contract(_) => bail!(Error::Unauthorized),
     };
-    host.state_mut()
-        .deposits
-        .entry(from)
-        .vacant_or(Error::SellPositionExists)?
-        .insert(Deposit {
-            amount: params.amount,
-            rate:   params.data,
-        });
-    logger.log(&Event::Sell(SellEvent {
-        from,
-        amount: params.amount,
-        rate: params.data,
-    }))?;
-    Ok(())
-}
-
-/// This function should be called by the owner of the tokens being sold to cancel the sell position.
-/// The function will transfer the tokens back to the user.
-#[receive(
-    contract = "security_p2p_trading",
-    name = "cancelSell",
-    mutable,
-    error = "Error",
-    enable_logger
-)]
-pub fn cancel_sell(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let sender = match ctx.sender() {
-        Address::Account(from) => from,
-        Address::Contract(_) => bail!(Error::Unauthorized),
-    };
-    let deposit_token = host.state().token.clone();
-    let deposits = host
-        .state_mut()
-        .deposits
-        .remove_and_get(&sender)
-        .ok_or(Error::SellPositionMissing)?;
-    cis2_client::transfer_single(host, &deposit_token.contract, Transfer {
-        token_id: deposit_token.id,
-        amount:   deposits.amount,
-        from:     ctx.self_address().into(),
-        to:       Receiver::Account(sender),
-        data:     AdditionalData::empty(),
-    })?;
-    logger.log(&Event::SellCancelled(SellCancelledEvent {
-        from:   sender,
-        amount: deposits.amount,
-    }))?;
-    Ok(())
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct ForceCancelSellParams {
-    pub from: AccountAddress,
-    pub to:   AccountAddress,
-}
-
-/// This function can only be called by the owner of the current contract.
-/// The function will transfer the tokens to the user specified in the `from` field to the user specified in the `to` field.
-/// The function will also remove the sell position of the user specified in the `from` field.
-/// This functions is intended to be called in cases where the security token holder has been recovered in the token contract but the sell position is still active.
-#[receive(
-    contract = "security_p2p_trading",
-    name = "forceCancelSell",
-    mutable,
-    parameter = "ForceCancelSellParams",
-    error = "Error",
-    enable_logger
-)]
-pub fn force_cancel_sell(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    ensure!(
-        ctx.sender().matches_account(&ctx.owner()),
-        Error::Unauthorized
-    );
-    let ForceCancelSellParams { from, to } = ctx.parameter_cursor().get()?;
-    let deposit_token = host.state().token.clone();
-    let deposits = host
-        .state_mut()
-        .deposits
-        .remove_and_get(&from)
-        .ok_or(Error::SellPositionMissing)?;
-    cis2_client::transfer_single(host, &deposit_token.contract, Transfer {
-        token_id: deposit_token.id,
-        amount:   deposits.amount,
-        from:     ctx.self_address().into(),
-        to:       Receiver::Account(to),
-        data:     AdditionalData::empty(),
-    })?;
-    logger.log(&Event::SellCancelled(SellCancelledEvent {
-        from,
-        amount: deposits.amount,
-    }))?;
-    Ok(())
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct TransferExchangeParams {
-    pub pay: TokenAmount,
-    pub get: ExchangeParams,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct ExchangeParams {
-    pub from: AccountAddress,
-    pub rate: Rate,
-}
-
-/// This function should be called by the buyer of the tracked security token.
-/// The function will transfer currency token from the sender to the contract. The transfer is received by the `exchange` entrypoint.
-/// To be able to call this function the sender must have the current contract added as an operator to the currency token contract.
-#[receive(
-    contract = "security_p2p_trading",
-    name = "transferExchange",
-    mutable,
-    parameter = "TransferExchangeParams",
-    error = "Error"
-)]
-pub fn transfer_exchange(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
-    let params: TransferExchangeParams = ctx.parameter_cursor().get()?;
-    let currency = host.state().currency.clone();
-    cis2_client::transfer_single(host, &currency.contract, Transfer {
-        token_id: currency.id,
-        amount:   params.pay,
-        from:     ctx.sender(),
-        to:       Receiver::from_contract(
-            ctx.self_address(),
-            OwnedEntrypointName::new_unchecked("exchange".into()),
-        ),
-        data:     to_additional_data(params.get).map_err(|_| Error::ParseError)?,
-    })?;
-    Ok(())
-}
-
-pub type ExchangeReceiveParams = OnReceivingCis2DataParams<TokenIdVec, TokenAmount, ExchangeParams>;
-
-/// This function is called by the currency token contract when the currency token is received.
-/// This would happen when the currency token holder transfers currency token to the current contract.
-/// The function will calculate the amounts of the security token to be transferred to the buyer and the currency token to be transferred to the seller
-/// and will settle the amounts.
-#[receive(
-    contract = "security_p2p_trading",
-    name = "exchange",
-    mutable,
-    parameter = "ExchangeReceiveParams",
-    error = "Error",
-    enable_logger
-)]
-pub fn exchange(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let ExchangeReceiveParams {
-        amount: pay_amount,
-        from: payer,
-        token_id: currency_token_id,
-        data: ExchangeParams { from: seller, rate },
-    } = ctx.parameter_cursor().get()?;
-    let currency = TokenUId {
-        id:       currency_token_id,
-        contract: match ctx.sender() {
-            Address::Account(_) => bail!(Error::Unauthorized),
-            Address::Contract(c) => c,
-        },
-    };
-    let payer = match payer {
-        Address::Account(payer) => payer,
-        Address::Contract(_) => bail!(Error::Unauthorized),
-    };
-
-    let (token, pay_amount, sell_amount) = {
+    let (currency_token, currency_amount, liquidity_provider, token_id) = {
         let state = host.state_mut();
-        ensure!(currency.eq(&state.currency), Error::InvalidToken);
-
-        let mut deposit = state
-            .deposits
-            .get_mut(&seller)
-            .ok_or(Error::SellPositionMissing)?;
-        ensure!(deposit.rate.eq(&rate), Error::SellPositionMissing);
-
-        let (sell_amount, un_converted_pay_amount) = deposit
-            .rate
-            .convert(&pay_amount.0)
+        let mut market = state
+            .markets
+            .get_mut(&params.contract)
+            .ok_or(Error::InvalidMarket)?;
+        let market = match market.deref_mut() {
+            Market::Mint(_) => bail!(Error::InvalidMarketType),
+            Market::Transfer(m) => m,
+        };
+        ensure!(market.buy_rate.eq(&params.rate), Error::InvalidRate);
+        let (currency_amount, _) = market
+            .buy_rate
+            .convert_token_amount_with_rem(&params.amount)
             .map_err(|_| Error::InvalidConversion)?;
-
-        let sell_amount = TokenAmountU64(sell_amount);
-        ensure_eq!(un_converted_pay_amount, 0, Error::InvalidAmount);
-        ensure!(sell_amount.le(&deposit.amount), Error::InvalidAmount);
-        ensure!(sell_amount.gt(&TokenAmountU64(0)), Error::InvalidAmount);
-        deposit.amount.sub_assign(sell_amount);
-
-        (state.token.clone(), pay_amount, sell_amount)
+        market.max_token_amount += params.amount;
+        market.max_currency_amount = market
+            .max_currency_amount
+            .0
+            .checked_sub(currency_amount.0)
+            .map(CurrencyTokenAmount::from)
+            .ok_or(Error::MarketTokenLimitExceeded)?;
+        (
+            state.currency_token,
+            currency_amount,
+            market.liquidity_provider,
+            market.token_id,
+        )
     };
 
-    cis2_client::transfer_single(host, &currency.contract, Transfer {
-        token_id: currency.id.clone(),
-        amount:   pay_amount,
-        from:     ctx.self_address().into(),
-        to:       Receiver::Account(seller),
+    // Transfer currency from liquidity provider to seller
+    host.invoke_transfer_single(&currency_token.contract, Transfer {
+        amount:   currency_amount,
+        token_id: currency_token.id,
+        from:     liquidity_provider.into(),
+        to:       seller.into(),
         data:     AdditionalData::empty(),
-    })?;
-    cis2_client::transfer_single(host, &token.contract, Transfer {
-        token_id: token.id,
-        amount:   sell_amount,
-        from:     ctx.self_address().into(),
-        to:       Receiver::Account(payer),
-        data:     AdditionalData::empty(),
-    })?;
-    logger.log(&Event::Exchange(Exchange {
-        payer,
-        pay_amount,
-        sell_amount,
-        seller,
-    }))?;
+    })
+    .map_err(|_| Error::CurrencyTransfer)?;
+    // Transfer tokens from seller to liquidity provider
+    host.invoke_transfer_single(&params.contract, Transfer {
+        amount: params.amount,
+        token_id,
+        from: seller.into(),
+        to: liquidity_provider.into(),
+        data: AdditionalData::empty(),
+    })
+    .map_err(|_| Error::TokenTransfer)?;
 
+    // Log the sell event.
+    logger.log(&Event::Exchanged(ExchangeEvent {
+        token_contract: params.contract,
+        token_id,
+        seller,
+        buyer: liquidity_provider,
+        token_amount: params.amount,
+        rate: params.rate,
+        currency_amount,
+        exchange_type: ExchangeType::Buy,
+    }))?;
     Ok(())
 }
 
-#[derive(Serialize, SchemaType)]
-pub struct GetDepositParams {
-    pub from: AccountAddress,
-}
-
-/// This function is non mutable and returns the deposit of the seller specified by the `from` parameter.
 #[receive(
     contract = "security_p2p_trading",
-    name = "getDeposit",
-    parameter = "GetDepositParams",
-    return_value = "Deposit"
+    name = "buy",
+    mutable,
+    parameter = "ExchangeParams",
+    error = "Error",
+    enable_logger
 )]
-pub fn get_deposit(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<Deposit> {
-    let params: GetDepositParams = ctx.parameter_cursor().get()?;
-    let deposit = host
-        .state()
-        .deposits
-        .get(&params.from)
-        .ok_or(Error::SellPositionMissing)?;
+pub fn buy(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: ExchangeParams = ctx.parameter_cursor().get()?;
+    let buyer = match ctx.sender() {
+        Address::Account(a) => a,
+        Address::Contract(_) => bail!(Error::Unauthorized),
+    };
+    let (currency_token, currency_amount, liquidity_provider, token_id) = {
+        let state = host.state_mut();
+        let mut market = state
+            .markets
+            .get_mut(&params.contract)
+            .ok_or(Error::InvalidMarket)?;
+        let market = match market.deref_mut() {
+            Market::Mint(_) => bail!(Error::InvalidMarketType),
+            Market::Transfer(m) => m,
+        };
 
-    Ok(deposit.clone())
+        ensure!(market.sell_rate.eq(&params.rate), Error::InvalidRate);
+        let (currency_amount, _) = market
+            .sell_rate
+            .convert_token_amount_with_rem(&params.amount)
+            .map_err(|_| Error::InvalidConversion)?;
+        market.max_token_amount = market
+            .max_token_amount
+            .0
+            .checked_sub(params.amount.0)
+            .map(SecurityTokenAmount::from)
+            .ok_or(Error::MarketTokenLimitExceeded)?;
+        market.max_currency_amount += currency_amount;
+
+        (
+            state.currency_token,
+            currency_amount,
+            market.liquidity_provider,
+            market.token_id,
+        )
+    };
+
+    // Transfer tokens from currency from buyer to liquidity provider
+    host.invoke_transfer_single(&currency_token.contract, Transfer {
+        amount:   currency_amount,
+        token_id: currency_token.id,
+        from:     buyer.into(),
+        to:       liquidity_provider.into(),
+        data:     AdditionalData::empty(),
+    })
+    .map_err(|_| Error::CurrencyTransfer)?;
+    // Transfer Tokens from liquidity provider to buyer
+    host.invoke_transfer_single(&params.contract, Transfer {
+        amount: params.amount,
+        token_id,
+        from: liquidity_provider.into(),
+        to: buyer.into(),
+        data: AdditionalData::empty(),
+    })
+    .map_err(|_| Error::TokenTransfer)?;
+
+    // Log the buy event.
+    logger.log(&Event::Exchanged(ExchangeEvent {
+        token_contract: params.contract,
+        token_id,
+        seller: liquidity_provider,
+        buyer,
+        token_amount: params.amount,
+        rate: params.rate,
+        currency_amount,
+        exchange_type: ExchangeType::Sell,
+    }))?;
+    Ok(())
+}
+
+#[derive(Serialize, SchemaType, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TokenIdCalculation {
+    /// The start time of the market. This is the time when the market starts.
+    /// Also new tokens will be minted with id = ((now - start) / diff) + base token id.
+    pub start:         Timestamp,
+    /// The time difference between two token ids. This is the time it takes to mint a new token.
+    pub diff:          Duration,
+    /// The base token id. This is the token id of the first token minted.
+    pub base_token_id: SecurityTokenId,
+}
+
+impl TokenIdCalculation {
+    /// Creates a new token id calculation.
+    pub fn calculate_token_id(&self, now: Timestamp) -> Option<TokenIdU64> {
+        let token_id = now.duration_since(self.start);
+        let token_id = match token_id {
+            Some(d) => (d.millis()) / self.diff.millis(),
+            None => return None,
+        };
+        let token_id = self.base_token_id.0 + token_id;
+        Some(TokenIdU64(token_id))
+    }
+}
+
+#[derive(Serialize, SchemaType, Debug)]
+pub struct MintParams {
+    pub token_contract: ContractAddress,
+    pub amount:         SecurityTokenAmount,
+    pub rate:           Rate,
+}
+
+#[receive(
+    contract = "security_p2p_trading",
+    name = "mint",
+    mutable,
+    parameter = "MintParams",
+    error = "Error",
+    enable_logger
+)]
+pub fn mint(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: MintParams = ctx.parameter_cursor().get()?;
+    let buyer = match ctx.sender() {
+        Address::Account(a) => a,
+        Address::Contract(_) => bail!(Error::Unauthorized),
+    };
+    let now = ctx.metadata().block_time();
+
+    let (currency_token, currency_amount, token_id, liquidity_provider, token_metadata_url) = {
+        let state = host.state_mut();
+        let mut market = state
+            .markets
+            .get_mut(&params.token_contract)
+            .ok_or(Error::InvalidMarket)?;
+        let market = match market.deref_mut() {
+            Market::Mint(m) => m,
+            Market::Transfer(_) => bail!(Error::InvalidMarketType),
+        };
+        ensure!(market.rate.eq(&params.rate), Error::InvalidRate);
+        let (currency_amount, _) = market
+            .rate
+            .convert_token_amount_with_rem(&params.amount)
+            .map_err(|_| Error::InvalidConversion)?;
+        market.max_token_amount = market
+            .max_token_amount
+            .0
+            .checked_sub(params.amount.0)
+            .map(SecurityTokenAmount::from)
+            .ok_or(Error::MarketTokenLimitExceeded)?;
+
+        (
+            state.currency_token,
+            currency_amount,
+            market
+                .token_id
+                .calculate_token_id(now)
+                .ok_or(Error::MintMarketNotStarted)?,
+            market.liquidity_provider,
+            market.token_metadata_url.clone(),
+        )
+    };
+
+    if host
+        .invoke_token_metadata_single(&params.token_contract, token_id)
+        .is_err()
+    {
+        host.invoke_add_token(&params.token_contract, &AddTokenParams {
+            token_id,
+            token_metadata: token_metadata_url,
+        })
+        .map_err(|_| Error::AddToken)?;
+    }
+
+    host.invoke_transfer_single(&currency_token.contract, Transfer {
+        amount:   currency_amount,
+        token_id: currency_token.id,
+        from:     buyer.into(),
+        to:       liquidity_provider.into(),
+        data:     AdditionalData::empty(),
+    })
+    .map_err(|_| Error::CurrencyTransfer)?;
+    host.invoke_mint_single(&params.token_contract, token_id, MintParam {
+        address: buyer.into(),
+        amount:  TokenAmountSecurity {
+            un_frozen: params.amount,
+            ..Default::default()
+        },
+    })
+    .map_err(|_| Error::TokenMint)?;
+    logger.log(&Event::Exchanged(ExchangeEvent {
+        token_contract: params.token_contract,
+        token_id,
+        seller: liquidity_provider,
+        buyer,
+        token_amount: params.amount,
+        rate: params.rate,
+        currency_amount,
+        exchange_type: ExchangeType::Mint,
+    }))?;
+    Ok(())
 }

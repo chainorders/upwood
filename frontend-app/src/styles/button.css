@@ -1,0 +1,186 @@
+.button {
+	line-height: 44px;
+	display: inline-block;
+	width: 100%;
+	text-align: center;
+	border: 1px solid rgba(215, 219, 208, 1);
+	box-shadow: 2px 2px 4px 0px rgba(160, 160, 160, 0.25);
+	border-radius: 8px;
+	cursor: pointer;
+	color: initial;
+	text-decoration: none;
+	color: initial;
+	background: transparent;
+	font-family: roboto;
+}
+
+.button.radius16 {
+	border-radius: 16px;
+}
+
+.button.disabled {
+	cursor: not-allowed;
+}
+
+.button.active {
+	background: rgba(15, 180, 4, 1);
+	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
+	color: #fff;
+	font-weight: 500;
+}
+
+.button.danger {
+	background: red;
+}
+
+.button.active.disabled {
+	background: #9ad78a;
+}
+
+.button.style2 {
+	border-radius: 16px;
+}
+
+.button.style3 {
+	color: rgba(15, 180, 4, 1);
+	border: 1px solid rgba(15, 180, 4, 1);
+	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
+}
+
+.button.style4 {
+	border: 0;
+	box-shadow: none;
+	font-weight: 600;
+}
+
+.button.style5 {
+	border: 0;
+	box-shadow: none;
+	color: rgba(15, 180, 4, 1);
+	font-weight: 600;
+}
+
+.button.text-align-left-on-mob {
+	text-align: left;
+}
+
+.button img.left {
+	margin-right: 10px;
+	position: relative;
+	top: 2px;
+}
+
+.button img.right {
+	margin-left: 10px;
+	position: relative;
+	top: 2px;
+}
+
+.button {
+	line-height: 44px;
+	display: inline-block;
+	width: 100%;
+	text-align: center;
+	border: 1px solid rgba(215, 219, 208, 1);
+	box-shadow: 2px 2px 4px 0px rgba(160, 160, 160, 0.25);
+	border-radius: 8px;
+	cursor: pointer;
+	color: initial;
+	text-decoration: none;
+	color: initial;
+}
+
+.button.disabled {
+	cursor: not-allowed;
+}
+
+.button.active {
+	background: rgba(15, 180, 4, 1);
+	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
+	color: #fff;
+}
+
+.button.active.disabled,
+.button.active:disabled {
+	background: #9ad78a;
+}
+
+.button.style2 {
+	border-radius: 16px;
+}
+
+.button.style3 {
+	color: rgba(15, 180, 4, 1);
+	border: 1px solid rgba(15, 180, 4, 1);
+	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
+}
+.button.style3.active {
+	color: white;
+}
+.button img {
+	margin-right: 10px;
+	position: relative;
+	top: 2px;
+}
+
+.button__loader {
+	border: none;
+	outline: none;
+	position: relative;
+	background-color: rgba(15, 180, 4, 1);
+	/* color: #fff; */
+	border-radius: 0.5rem;
+	/* box-shadow: 0 18px 40px rgba(15, 180, 4, 0.3); */
+	overflow: hidden;
+	cursor: wait;
+}
+
+.button__loader.active {
+	background-color: rgba(15, 180, 4, 1);
+	box-shadow: 2px 2px 4px 0px rgba(15, 180, 4, 0.25);
+}
+
+.button__loader:not(.active) {
+	background-color: rgb(213, 212, 212);
+	box-shadow: 0 18px 40px rgba(160, 160, 160, 0.3);
+}
+
+.button__loader::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 150%;
+	height: 100%;
+	background: repeating-linear-gradient(
+		60deg,
+		transparent,
+		transparent 0.75rem,
+		rgba(15, 180, 4, 0.8) 0.75rem,
+		rgba(15, 180, 4, 0.8) 1.5rem
+	);
+	animation: load 1s infinite linear;
+}
+
+.button__loader:not(.active)::before {
+	background: repeating-linear-gradient(
+		60deg,
+		transparent,
+		transparent 0.75rem,
+		rgba(255, 255, 255, 0.8) 0.75rem,
+		rgba(255, 255, 255, 0.8) 1.5rem
+	);
+}
+
+.button__text {
+	position: relative;
+}
+
+@keyframes load {
+	0% {
+		transform: translateX(0);
+	}
+	100% {
+		transform: translateX(-1.75rem);
+	}
+}

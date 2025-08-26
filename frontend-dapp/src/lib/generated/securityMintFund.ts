@@ -13,15 +13,84 @@ import {
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "security_mint_fund";
 export type initRequest = {
-	token: { contract: { index: number; subindex: number }; id: string };
 	currency_token: { contract: { index: number; subindex: number }; id: string };
-	investment_token: {
-		contract: { index: number; subindex: number };
-		id: string;
-	};
+	agents: Array<{
+		address:
+			| { Account: [string] }
+			| { Contract: [{ index: number; subindex: number }] };
+		roles: Array<
+			| { AddFund: Record<string, never> }
+			| { RemoveFund: Record<string, never> }
+			| { UpdateFundState: Record<string, never> }
+			| { Operator: Record<string, never> }
+		>;
+	}>;
+};
+export const initRequestSchemaBase64 =
+	"FAACAAAADgAAAGN1cnJlbmN5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABgAAAGFnZW50cxACFAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVBAAAAAcAAABBZGRGdW5kAgoAAABSZW1vdmVGdW5kAg8AAABVcGRhdGVGdW5kU3RhdGUCCAAAAE9wZXJhdG9yAg==";
+export const initErrorSchemaBase64 =
+	"FQ8AAAAMAAAAVW5BdXRob3JpemVkAgoAAABQYXJzZUVycm9yAggAAABMb2dFcnJvcgIVAAAAQ3VycmVuY3lUb2tlblRyYW5zZmVyAhEAAABJbnZhbGlkQ29udmVyc2lvbgIQAAAASW52YWxpZEZ1bmRTdGF0ZQIJAAAAVG9rZW5NaW50AgkAAABUb2tlbkJ1cm4CDAAAAFRva2VuQmFsYW5jZQINAAAAVG9rZW5VbkZyZWV6ZQINAAAASW52YWxpZEZ1bmRJZAIPAAAASW52YWxpZEludmVzdG9yAhAAAABOb25FeGlzdGVudFRva2VuAgsAAABBZ2VudEV4aXN0cwIKAAAARnVuZEV4aXN0cwI=";
+export type AddAgentRequest = {
+	address:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
+	roles: Array<
+		| { AddFund: Record<string, never> }
+		| { RemoveFund: Record<string, never> }
+		| { UpdateFundState: Record<string, never> }
+		| { Operator: Record<string, never> }
+	>;
+};
+export const addAgentRequestSchemaBase64 =
+	"FAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVBAAAAAcAAABBZGRGdW5kAgoAAABSZW1vdmVGdW5kAg8AAABVcGRhdGVGdW5kU3RhdGUCCAAAAE9wZXJhdG9yAg==";
+export type AddFundRequest = {
+	token: { contract: { index: number; subindex: number }; id: string };
 	rate: { numerator: bigint; denominator: bigint };
-	fund_state:
-		| { Open: Record<string, never> }
+	security_token: { contract: { index: number; subindex: number }; id: string };
+};
+export const addFundRequestSchemaBase64 =
+	"FAADAAAABQAAAHRva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUOAAAAc2VjdXJpdHlfdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQA=";
+export type ClaimInvestmentRequest = {
+	investments: Array<{
+		security_token: {
+			contract: { index: number; subindex: number };
+			id: string;
+		};
+		investor: string;
+	}>;
+};
+export const claimInvestmentRequestSchemaBase64 =
+	"FAABAAAACwAAAGludmVzdG1lbnRzEAIUAAIAAAAOAAAAc2VjdXJpdHlfdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQAIAAAAaW52ZXN0b3IL";
+export type InvestRequest = {
+	token_id: string;
+	amount: string;
+	from:
+		| { Account: [string] }
+		| { Contract: [{ index: number; subindex: number }] };
+	data: { contract: { index: number; subindex: number }; id: string };
+};
+export const investRequestSchemaBase64 =
+	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAA==";
+export type RemoveAgentRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const removeAgentRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type RemoveFundRequest = {
+	contract: { index: number; subindex: number };
+	id: string;
+};
+export const removeFundRequestSchemaBase64 =
+	"FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
+export type TransferInvestRequest = {
+	amount: string;
+	security_token: { contract: { index: number; subindex: number }; id: string };
+};
+export const transferInvestRequestSchemaBase64 =
+	"FAACAAAABgAAAGFtb3VudBslAAAADgAAAHNlY3VyaXR5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
+export type UpdateFundStateRequest = {
+	security_token: { contract: { index: number; subindex: number }; id: string };
+	state:
 		| {
 				Success: [
 					| { Account: [string] }
@@ -30,59 +99,60 @@ export type initRequest = {
 		  }
 		| { Fail: Record<string, never> };
 };
-export const initRequestSchemaBase64 =
-	"FAAFAAAABQAAAHRva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ADgAAAGN1cnJlbmN5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0AEAAAAGludmVzdG1lbnRfdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQAEAAAAcmF0ZRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQoAAABmdW5kX3N0YXRlFQMAAAAEAAAAT3BlbgIHAAAAU3VjY2VzcwEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAECAAAADBYBBAAAAEZhaWwC";
-export const initErrorSchemaBase64 =
-	"FQoAAAAMAAAAVW5BdXRob3JpemVkAgoAAABQYXJzZUVycm9yAggAAABMb2dFcnJvcgIVAAAAQ3VycmVuY3lUb2tlblRyYW5zZmVyAhEAAABJbnZhbGlkQ29udmVyc2lvbgIQAAAASW52YWxpZEZ1bmRTdGF0ZQIJAAAAVG9rZW5NaW50AgsAAABUb2tlbkZyZWV6ZQIOAAAAVG9rZW5Gb3JjZUJ1cm4CDAAAAFRva2VuQmFsYW5jZQI=";
-export type CancelInvestmentRequest = {
-	investments: Array<{ investor: string; amount: string }>;
-};
-export const cancelInvestmentRequestSchemaBase64 =
-	"FAABAAAACwAAAGludmVzdG1lbnRzEAIUAAIAAAAIAAAAaW52ZXN0b3ILBgAAAGFtb3VudBslAAAA";
-export type ClaimInvestmentRequest = {
-	investments: Array<{ investor: string }>;
-};
-export const claimInvestmentRequestSchemaBase64 =
-	"FAABAAAACwAAAGludmVzdG1lbnRzEAIUAAEAAAAIAAAAaW52ZXN0b3IL";
-export type InvestRequest = {
-	token_id: string;
-	amount: string;
-	from:
-		| { Account: [string] }
-		| { Contract: [{ index: number; subindex: number }] };
-	data: string;
-};
-export const investRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YR0B";
-export type TransferInvestRequest = { amount: string };
-export const transferInvestRequestSchemaBase64 = "FAABAAAABgAAAGFtb3VudBslAAAA";
-export type UpdateFundStateRequest =
-	| { Open: Record<string, never> }
-	| {
-			Success: [
-				| { Account: [string] }
-				| { Contract: [{ index: number; subindex: number }, string] },
-			];
-	  }
-	| { Fail: Record<string, never> };
 export const updateFundStateRequestSchemaBase64 =
-	"FQMAAAAEAAAAT3BlbgIHAAAAU3VjY2VzcwEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAECAAAADBYBBAAAAEZhaWwC";
+	"FAACAAAADgAAAHNlY3VyaXR5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAHN0YXRlFQIAAAAHAAAAU3VjY2VzcwEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAECAAAADBYBBAAAAEZhaWwC";
 export type event =
 	| {
 			Initialized: [
+				{ contract: { index: number; subindex: number }; id: string },
+			];
+	  }
+	| {
+			AgentAdded: [
+				{
+					address:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
+					roles: Array<
+						| { AddFund: Record<string, never> }
+						| { RemoveFund: Record<string, never> }
+						| { UpdateFundState: Record<string, never> }
+						| { Operator: Record<string, never> }
+					>;
+				},
+			];
+	  }
+	| {
+			AgentRemoved: [
+				| { Account: [string] }
+				| { Contract: [{ index: number; subindex: number }] },
+			];
+	  }
+	| {
+			FundAdded: [
 				{
 					token: { contract: { index: number; subindex: number }; id: string };
-					currency_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
-					investment_token: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
 					rate: { numerator: bigint; denominator: bigint };
-					fund_state:
-						| { Open: Record<string, never> }
+					security_token: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+				},
+			];
+	  }
+	| {
+			FundRemoved: [
+				{ contract: { index: number; subindex: number }; id: string },
+			];
+	  }
+	| {
+			FundStateUpdated: [
+				{
+					security_token: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					state:
 						| {
 								Success: [
 									| { Account: [string] }
@@ -95,65 +165,82 @@ export type event =
 	  }
 	| {
 			Invested: [
-				{ currency_amount: string; security_amount: string; investor: string },
+				{
+					security_token: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					investor: string;
+					security_amount: string;
+					currency_amount: string;
+				},
+			];
+	  }
+	| {
+			InvestmentClaimed: [
+				{
+					security_token: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					investor: string;
+					security_amount: string;
+					currency_amount: string;
+				},
 			];
 	  }
 	| {
 			InvestmentCancelled: [
-				{ currency_amount: string; security_amount: string; investor: string },
-			];
-	  }
-	| {
-			FundStateUpdated: [
-				| { Open: Record<string, never> }
-				| {
-						Success: [
-							| { Account: [string] }
-							| { Contract: [{ index: number; subindex: number }, string] },
-						];
-				  }
-				| { Fail: Record<string, never> },
-			];
-	  }
-	| { InvestmentClaimed: [{ investor: string; security_amount: string }] }
-	| {
-			InvestmentDisbursed: [
 				{
+					security_token: {
+						contract: { index: number; subindex: number };
+						id: string;
+					};
+					investor: string;
+					security_amount: string;
 					currency_amount: string;
-					receiver:
-						| { Account: [string] }
-						| { Contract: [{ index: number; subindex: number }, string] };
 				},
 			];
 	  };
 export const eventSchemaBase64 =
-	"FQYAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQABQAAAAUAAAB0b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAA4AAABjdXJyZW5jeV90b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdABAAAABpbnZlc3RtZW50X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUKAAAAZnVuZF9zdGF0ZRUDAAAABAAAAE9wZW4CBwAAAFN1Y2Nlc3MBAQAAABUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAgAAAAwWAQQAAABGYWlsAggAAABJbnZlc3RlZAEBAAAAFAADAAAADwAAAGN1cnJlbmN5X2Ftb3VudBslAAAADwAAAHNlY3VyaXR5X2Ftb3VudBslAAAACAAAAGludmVzdG9yCxMAAABJbnZlc3RtZW50Q2FuY2VsbGVkAQEAAAAUAAMAAAAPAAAAY3VycmVuY3lfYW1vdW50GyUAAAAPAAAAc2VjdXJpdHlfYW1vdW50GyUAAAAIAAAAaW52ZXN0b3ILEAAAAEZ1bmRTdGF0ZVVwZGF0ZWQBAQAAABUDAAAABAAAAE9wZW4CBwAAAFN1Y2Nlc3MBAQAAABUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAgAAAAwWAQQAAABGYWlsAhEAAABJbnZlc3RtZW50Q2xhaW1lZAEBAAAAFAACAAAACAAAAGludmVzdG9yCw8AAABzZWN1cml0eV9hbW91bnQbJQAAABMAAABJbnZlc3RtZW50RGlzYnVyc2VkAQEAAAAUAAIAAAAPAAAAY3VycmVuY3lfYW1vdW50GyUAAAAIAAAAcmVjZWl2ZXIVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQIAAAAMFgE=";
+	"FQkAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAoAAABBZ2VudEFkZGVkAQEAAAAUAAIAAAAHAAAAYWRkcmVzcxUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwFAAAAcm9sZXMQAhUEAAAABwAAAEFkZEZ1bmQCCgAAAFJlbW92ZUZ1bmQCDwAAAFVwZGF0ZUZ1bmRTdGF0ZQIIAAAAT3BlcmF0b3ICDAAAAEFnZW50UmVtb3ZlZAEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADAkAAABGdW5kQWRkZWQBAQAAABQAAwAAAAUAAAB0b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFDgAAAHNlY3VyaXR5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ACwAAAEZ1bmRSZW1vdmVkAQEAAAAUAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQAQAAAARnVuZFN0YXRlVXBkYXRlZAEBAAAAFAACAAAADgAAAHNlY3VyaXR5X3Rva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABQAAAHN0YXRlFQIAAAAHAAAAU3VjY2VzcwEBAAAAFQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAECAAAADBYBBAAAAEZhaWwCCAAAAEludmVzdGVkAQEAAAAUAAQAAAAOAAAAc2VjdXJpdHlfdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQAIAAAAaW52ZXN0b3ILDwAAAHNlY3VyaXR5X2Ftb3VudBslAAAADwAAAGN1cnJlbmN5X2Ftb3VudBslAAAAEQAAAEludmVzdG1lbnRDbGFpbWVkAQEAAAAUAAQAAAAOAAAAc2VjdXJpdHlfdG9rZW4UAAIAAAAIAAAAY29udHJhY3QMAgAAAGlkHQAIAAAAaW52ZXN0b3ILDwAAAHNlY3VyaXR5X2Ftb3VudBslAAAADwAAAGN1cnJlbmN5X2Ftb3VudBslAAAAEwAAAEludmVzdG1lbnRDYW5jZWxsZWQBAQAAABQABAAAAA4AAABzZWN1cml0eV90b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAgAAABpbnZlc3RvcgsPAAAAc2VjdXJpdHlfYW1vdW50GyUAAAAPAAAAY3VycmVuY3lfYW1vdW50GyUAAAA=";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
-	cancelInvestment: EntrypointName.fromString("cancelInvestment"),
+	addAgent: EntrypointName.fromString("addAgent"),
+	addFund: EntrypointName.fromString("addFund"),
 	claimInvestment: EntrypointName.fromString("claimInvestment"),
 	invest: EntrypointName.fromString("invest"),
+	removeAgent: EntrypointName.fromString("removeAgent"),
+	removeFund: EntrypointName.fromString("removeFund"),
 	transferInvest: EntrypointName.fromString("transferInvest"),
 	updateFundState: EntrypointName.fromString("updateFundState"),
 };
 export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
-	cancelInvestment: "Cancel Investment",
+	addAgent: "Add Agent",
+	addFund: "Add Fund",
 	claimInvestment: "Claim Investment",
 	invest: "Invest",
+	removeAgent: "Remove Agent",
+	removeFund: "Remove Fund",
 	transferInvest: "Transfer Invest",
 	updateFundState: "Update Fund State",
 };
 export const securityMintFund = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"1c018184383f94499a13cbbb53152c00a2f2a4d42d621c30924a438c95352f6d",
+			"828b07d078c953b169dc2792f62aee769585d2a1d37fc7918aef99c1e52f17db",
 		),
 		ContractName.fromString("security_mint_fund"),
 		initRequestSchemaBase64,
 	),
-	cancelInvestment: new ReceiveMethod<CancelInvestmentRequest>(
+	addAgent: new ReceiveMethod<AddAgentRequest>(
 		ContractName.fromString("security_mint_fund"),
-		EntrypointName.fromString("cancelInvestment"),
-		cancelInvestmentRequestSchemaBase64,
+		EntrypointName.fromString("addAgent"),
+		addAgentRequestSchemaBase64,
+	),
+	addFund: new ReceiveMethod<AddFundRequest>(
+		ContractName.fromString("security_mint_fund"),
+		EntrypointName.fromString("addFund"),
+		addFundRequestSchemaBase64,
 	),
 	claimInvestment: new ReceiveMethod<ClaimInvestmentRequest>(
 		ContractName.fromString("security_mint_fund"),
@@ -164,6 +251,16 @@ export const securityMintFund = {
 		ContractName.fromString("security_mint_fund"),
 		EntrypointName.fromString("invest"),
 		investRequestSchemaBase64,
+	),
+	removeAgent: new ReceiveMethod<RemoveAgentRequest>(
+		ContractName.fromString("security_mint_fund"),
+		EntrypointName.fromString("removeAgent"),
+		removeAgentRequestSchemaBase64,
+	),
+	removeFund: new ReceiveMethod<RemoveFundRequest>(
+		ContractName.fromString("security_mint_fund"),
+		EntrypointName.fromString("removeFund"),
+		removeFundRequestSchemaBase64,
 	),
 	transferInvest: new ReceiveMethod<TransferInvestRequest>(
 		ContractName.fromString("security_mint_fund"),

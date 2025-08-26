@@ -1,4 +1,3 @@
-use concordium_rwa_utils::state_implementations::agents_state::IsAgentsState;
 use concordium_std::*;
 
 use super::types::{AttributeTag, AttributeValue, *};
@@ -134,10 +133,4 @@ impl<S: HasStateApi> State<S> {
 
         state
     }
-}
-
-impl IsAgentsState<StateApi> for State {
-    fn agents(&self) -> &StateSet<Address, StateApi> { &self.agents }
-
-    fn agents_mut(&mut self) -> &mut StateSet<Address, StateApi> { &mut self.agents }
 }

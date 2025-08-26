@@ -67,14 +67,16 @@
 				"rust-analyzer.linkedProjects": [
 					"compliance/Cargo.toml",
 					"concordium-protocols/Cargo.toml",
+					"euroe/Cargo.toml",
 					"identity-registry/Cargo.toml",
 					"integration-tests/Cargo.toml",
-					"security-sft-rewards/Cargo.toml",
-					"security-sft-single/Cargo.toml",
-					"security-p2p-trading/Cargo.toml",
-					"security-mint-fund/Cargo.toml",
 					"nft-multi-rewarded/Cargo.toml",
-					"utils/Cargo.toml"
+					"offchain-rewards/Cargo.toml",
+					"security-mint-fund/Cargo.toml",
+					"security-p2p-trading/Cargo.toml",
+					"security-sft-multi/Cargo.toml",
+					"security-sft-multi-yielder/Cargo.toml",
+					"security-sft-single/Cargo.toml"
 				]
 			},
 			"extensions": [
@@ -102,5 +104,8 @@
 				"bpruitt-goddard.mermaid-markdown-syntax-highlighting"
 			]
 		}
-	}
+	},
+	"runArgs": [
+		"--memory=10g"
+	]
 }

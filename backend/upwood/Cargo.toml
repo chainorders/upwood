@@ -1,0 +1,78 @@
+[package]
+name = "upwood"
+version = "0.1.0"
+edition = "2021"
+default-run = "upwood_api_server"
+
+[dependencies]
+shared = { path = "../shared" }
+nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
+offchain-rewards = { path = "../../contracts/offchain-rewards" }
+concordium-cis2 = { workspace = true }
+poem-openapi = { workspace = true, features = [
+    "swagger-ui",
+    "chrono",
+    "rust_decimal",
+    "uuid",
+] }
+poem.workspace = true
+uuid = { workspace = true, features = ["v4", "serde"] }
+diesel = { workspace = true, features = [
+    "numeric",
+    "postgres",
+    "r2d2",
+    "chrono",
+    "uuid",
+] }
+diesel_migrations = { workspace = true, features = ["postgres"] }
+r2d2 = { workspace = true }
+libotp = "0.2.0"
+chrono = { workspace = true }
+tokio = { workspace = true, features = ["full", "tracing"] }
+dotenvy = { workspace = true }
+clap = { workspace = true, features = ["derive", "env"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+concordium-rust-sdk = { workspace = true }
+events_listener = { path = "../events_listener" }
+jsonwebtokens-cognito = "0.1.1"
+jsonwebtokens = "1.2.0"
+serde_json = { workspace = true }
+serde = { workspace = true }
+hex.workspace = true
+aws-config = { version = "1.0.1", features = ["behavior-version-latest"] }
+aws-sdk-cognitoidentityprovider = { version = "1.3.0" }
+aws-sdk-sesv2 = "1.68.0"
+aws-sdk-s3 = { version = "1.4.0", features = ["rt-tokio"] }
+aws-smithy-types-convert = { version = "0.60.0", features = ["convert-chrono"] }
+sha2 = "0.10.8"
+thiserror = { workspace = true }
+config.workspace = true
+secure-string = { version = "0.3.0", features = ["serde"] }
+passwords = "3.1.16"
+aws-credential-types = { version = "1.2.1", features = [
+    "hardcoded-credentials",
+] }
+rust_decimal = { workspace = true, features = ["db-diesel-postgres"] }
+test-log = { version = "0.2.16", features = ["trace"] }
+itertools = "0.14.0"
+csv = "1.3.1"
+
+[dev-dependencies]
+shared_tests = { path = "../shared_tests" }
+concordium-rwa-identity-registry = { path = "../../contracts/identity-registry" }
+security-sft-single = { path = "../../contracts/security-sft-single" }
+security-sft-multi = { path = "../../contracts/security-sft-multi" }
+security-sft-multi-yielder = { path = "../../contracts/security-sft-multi-yielder" }
+nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
+security-mint-fund = { path = "../../contracts/security-mint-fund" }
+security-p2p-trading = { path = "../../contracts/security-p2p-trading" }
+concordium-rwa-compliance = { path = "../../contracts/compliance" }
+integration-tests = { path = "../../contracts/integration-tests" }
+concordium-smart-contract-testing = { workspace = true }
+concordium-protocols = { path = "../../contracts/concordium-protocols" }
+concordium-cis2 = { workspace = true }
+rand = { version = "*" }
+poem = { workspace = true, features = ["test"] }
+tracing-test = { version = "*", features = ["no-env-filter"] }
+reqwest = { version = "*", features = ["json", "blocking"] }

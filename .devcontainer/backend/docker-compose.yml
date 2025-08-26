@@ -17,8 +17,6 @@ services:
         RUSTUP_HOME: /usr/local/rustup
     env_file:
       - .env
-    environment:
-      - JAEGER_HOST=http://jaeger:4317/v1/traces
     command: sleep infinity
     network_mode: service:db
     security_opt:
@@ -29,10 +27,11 @@ services:
       - ../..:/workspace:cached
       - cargo:/usr/local/cargo
       - rustup:/usr/local/rustup
+      - ../aws_accessKeys.csv:/etc/aws/aws_accessKeys.export
     deploy:
       resources:
         limits:
-          memory: 25G
+          memory: 15G
   db:
     image: postgres:14-alpine
     restart: unless-stopped
@@ -42,13 +41,3 @@ services:
       - PG_DATA=/var/lib/progresql/data
     volumes:
       - postgres-data:/var/lib/progresql/data
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - 5778:5778
-      - 16686:16686

@@ -22,109 +22,51 @@
 //! * Claim their Investment, Only if the state of the contract is `Success` this request will
 //!     * mint their `Investment` token
 //!     * burn their `Token`
-
-use concordium_cis2::{
-    AdditionalData, BalanceOfQuery, OnReceivingCis2Params, Receiver, TokenAmountU64, TokenIdVec,
-    Transfer,
-};
-use concordium_protocols::concordium_cis2_ext::cis2_client;
+pub mod types;
+use concordium_cis2::{AdditionalData, Receiver, Transfer};
+use concordium_protocols::concordium_cis2_ext::cis2_client::Cis2Client;
+use concordium_protocols::concordium_cis2_ext::{IsTokenAmount, ToAdditionalData};
+use concordium_protocols::concordium_cis2_security::cis2_security_client::Cis2SecurityClient;
 use concordium_protocols::concordium_cis2_security::{
-    cis2_security_client, Burn, FreezeParam, MintParam, TokenUId,
+    AgentWithRoles, Burn, FreezeParam, MintParam, TokenAmountSecurity, TokenUId,
 };
-use concordium_protocols::rate::{ExchangeError, Rate};
+use concordium_protocols::rate::Rate;
+use concordium_std::ops::AddAssign;
 use concordium_std::*;
+use types::*;
 
-pub type ContractResult<T> = Result<T, Error>;
-pub type TokenAmount = TokenAmountU64;
-pub type CurrencyTokenAmount = TokenAmountU64;
-pub type AnyTokenUId = TokenUId<TokenIdVec>;
-
-#[derive(Serialize, SchemaType, Reject)]
-pub enum Error {
-    UnAuthorized,
-    ParseError,
-    LogError,
-    CurrencyTokenTransfer,
-    InvalidConversion,
-    InvalidFundState,
-    TokenMint,
-    TokenFreeze,
-    TokenForceBurn,
-    TokenBalance,
+#[derive(Serial, DeserialWithState, Debug)]
+#[concordium(state_parameter = "S")]
+pub struct Fund<S> {
+    pub state:       FundState,
+    pub investments: StateMap<AccountAddress, CurrencyTokenAmount, S>,
+    /// This is the token which will be minted in locked state after investment. This is the initial token minted by the contract upon investment.
+    pub token:       SecurityTokenUId,
+    /// This is the rate  which will be used to convert from `currency_token` token to `security_token` Token.
+    pub rate:        Rate,
 }
 
-impl From<ParseError> for Error {
-    fn from(_: ParseError) -> Self { Error::ParseError }
-}
-impl From<ExchangeError> for Error {
-    fn from(_: ExchangeError) -> Self { Error::InvalidConversion }
-}
-impl From<LogError> for Error {
-    fn from(_: LogError) -> Self { Error::LogError }
-}
-/// Current state fo the func represented by this contract.
-#[derive(Serialize, SchemaType, Clone, Debug)]
-pub enum FundState {
-    Open,
-    Success(Receiver),
-    Fail,
-}
-
-impl FundState {
-    pub fn accepting_investments(&self) -> bool { matches!(self, FundState::Open) }
-
-    pub fn can_cancel_investment(&self) -> bool {
-        matches!(self, FundState::Open | FundState::Fail)
-    }
-
-    pub fn can_claim_investment(&self) -> bool { matches!(self, FundState::Success(_)) }
-}
-
-#[derive(Serialize, SchemaType, Clone, Debug)]
-pub struct State {
-    /// Token representing the security. Security token represented by `investment_token` will be minted after completion of this fund.
-    /// Upon completion of this contract's fund this is is the token which will be burned.
-    pub token:            AnyTokenUId,
+#[derive(Serial, DeserialWithState)]
+#[concordium(state_parameter = "S")]
+pub struct State<S=StateApi> {
+    /// Agents who can interact with this contract.
+    /// Agents are allowed to Start a new fund, Update the fund & force the claim for a user Or force the return of amount to a user.
+    pub agents:         StateMap<Address, StateSet<AgentRole, S>, S>,
     /// This is the token which is used to fund this contract.
-    pub currency_token:   AnyTokenUId,
-    /// The actual security token to be minted after successful completion of this contract's fund.
-    pub investment_token: AnyTokenUId,
-    /// This is the rate  which will be used to convert from `Currency` token to `Investment` Token.
-    pub rate:             Rate,
-    /// Current state of the fund.
-    pub fund_state:       FundState,
+    /// This will usualle be EuroE Token
+    pub currency_token: CurrencyTokenUId,
+    /// Map of all the funds which are currently in this contract.
+    /// Key is the token which will be minted in locked state after investment. This is the initial token minted by the contract upon investment.
+    pub funds:          StateMap<SecurityTokenUId, Fund<S>, S>,
 }
 
-#[derive(Serialize, SchemaType, Debug)]
-pub struct InvestedEvent {
-    pub currency_amount: CurrencyTokenAmount,
-    pub security_amount: TokenAmount,
-    pub investor:        AccountAddress,
+impl State<StateApi> {
+    pub fn has_agent(&self, address: Address, role: AgentRole) -> bool {
+        self.agents
+            .get(&address)
+            .map_or(false, |roles| roles.contains(&role))
+    }
 }
-
-#[derive(Serialize, SchemaType, Debug)]
-pub struct InvestmentClaimedEvent {
-    pub investor:        AccountAddress,
-    pub security_amount: TokenAmount,
-}
-
-#[derive(Serialize, SchemaType, Debug)]
-pub struct InvestmentDisbursedEvent {
-    pub currency_amount: CurrencyTokenAmount,
-    pub receiver:        Receiver,
-}
-
-#[derive(Serialize, SchemaType, Debug)]
-pub enum Event {
-    Initialized(State),
-    Invested(InvestedEvent),
-    InvestmentCancelled(InvestedEvent),
-    FundStateUpdated(FundState),
-    InvestmentClaimed(InvestmentClaimedEvent),
-    InvestmentDisbursed(InvestmentDisbursedEvent),
-}
-
-pub type InitParam = State;
 
 #[init(
     contract = "security_mint_fund",
@@ -133,18 +75,220 @@ pub type InitParam = State;
     event = "Event",
     enable_logger
 )]
-fn init(ctx: &InitContext, _: &mut StateBuilder, logger: &mut Logger) -> InitResult<State> {
-    let params: State = ctx.parameter_cursor().get()?;
-    logger.log(&Event::Initialized(params.clone()))?;
-    Ok(params)
+fn init(
+    ctx: &InitContext,
+    state_builder: &mut StateBuilder,
+    logger: &mut Logger,
+) -> InitResult<State> {
+    let params: InitParam = ctx.parameter_cursor().get()?;
+    logger.log(&Event::Initialized(params.currency_token))?;
+    let agents = {
+        let mut agents = state_builder.new_map();
+        let roles = {
+            let mut roles = state_builder.new_set();
+            for role in AgentRole::owner().iter() {
+                roles.insert(*role);
+            }
+            roles
+        };
+        let _ = agents.insert(ctx.init_origin().into(), roles);
+        logger.log(&Event::AgentAdded(AgentWithRoles {
+            address: ctx.init_origin().into(),
+            roles:   AgentRole::owner(),
+        }))?;
+
+        for agent in params.agents.iter() {
+            let roles = {
+                let mut roles = state_builder.new_set();
+                for role in agent.roles.iter() {
+                    roles.insert(*role);
+                }
+                roles
+            };
+            let _ = agents.insert(agent.address, roles);
+            logger.log(&Event::AgentAdded(agent.clone()))?;
+        }
+
+        agents
+    };
+    Ok(State {
+        currency_token: params.currency_token,
+        agents,
+        funds: state_builder.new_map(),
+    })
 }
 
-/// Parameters for `transferInvest` function.
-/// This is the parameters which will be used to transfer `Currency` token to this contract.
-#[derive(Serialize, SchemaType)]
-pub struct TransferInvestParams {
-    /// Amount of currency token to be invested in current contract's fund.
-    pub amount: CurrencyTokenAmount,
+#[receive(
+    contract = "security_mint_fund",
+    name = "addAgent",
+    mutable,
+    parameter = "AgentWithRoles<AgentRole>",
+    enable_logger
+)]
+fn add_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let agent: AgentWithRoles<AgentRole> = ctx.parameter_cursor().get()?;
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::UnAuthorized
+    );
+
+    let (state, state_builder) = host.state_and_builder();
+    let roles = {
+        let mut roles_state = state_builder.new_set();
+        for role in agent.roles.iter() {
+            roles_state.insert(*role);
+        }
+        roles_state
+    };
+    state
+        .agents
+        .entry(agent.address)
+        .vacant_or(Error::AgentExists)?
+        .insert(roles);
+    logger.log(&Event::AgentAdded(agent))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_mint_fund",
+    name = "removeAgent",
+    mutable,
+    parameter = "Address",
+    enable_logger
+)]
+fn remove_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let agent: Address = ctx.parameter_cursor().get()?;
+    ensure!(
+        ctx.sender().matches_account(&ctx.owner()),
+        Error::UnAuthorized
+    );
+    let (state, _) = host.state_and_builder();
+    state.agents.remove(&agent);
+    logger.log(&Event::AgentRemoved(agent))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_mint_fund",
+    name = "addFund",
+    mutable,
+    parameter = "AddFundParams",
+    enable_logger
+)]
+fn add_fund(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: AddFundParams = ctx.parameter_cursor().get()?;
+    let (state, state_builder) = host.state_and_builder();
+    ensure!(
+        state.has_agent(ctx.sender(), AgentRole::AddFund),
+        Error::UnAuthorized
+    );
+
+    let existing = state.funds.insert(params.security_token, Fund {
+        state:       FundState::Open,
+        investments: state_builder.new_map(),
+        token:       params.token,
+        rate:        params.rate,
+    });
+    ensure!(existing.is_none(), Error::FundExists);
+
+    // ensure that the token exists
+    let _ = host
+        .invoke_token_metadata_single(&params.token.contract, params.token.id)
+        .map_err(|_| Error::NonExistentToken)?;
+    let _ = host
+        .invoke_token_metadata_single(&params.security_token.contract, params.security_token.id)
+        .map_err(|_| Error::NonExistentToken)?;
+
+    logger.log(&Event::FundAdded(FundAddedEvent {
+        token:          params.token,
+        rate:           params.rate,
+        security_token: params.security_token,
+    }))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_mint_fund",
+    name = "removeFund",
+    mutable,
+    parameter = "SecurityTokenUId",
+    enable_logger
+)]
+fn remove_fund(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let fund_id: SecurityTokenUId = ctx.parameter_cursor().get()?;
+    let (state, _) = host.state_and_builder();
+    ensure!(
+        state.has_agent(ctx.sender(), AgentRole::RemoveFund),
+        Error::UnAuthorized
+    );
+    let fund = state
+        .funds
+        .remove_and_get(&fund_id)
+        .ok_or(Error::InvalidFundId)?;
+    ensure!(fund.investments.is_empty(), Error::InvalidFundState);
+    logger.log(&Event::FundRemoved(fund_id))?;
+    Ok(())
+}
+
+#[receive(
+    contract = "security_mint_fund",
+    name = "updateFundState",
+    mutable,
+    parameter = "UpdateFundStateParams",
+    enable_logger
+)]
+fn update_fund_state(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let params: UpdateFundStateParams = ctx.parameter_cursor().get()?;
+    let state = host.state();
+    ensure!(
+        state.has_agent(ctx.sender(), AgentRole::UpdateFundState),
+        Error::UnAuthorized
+    );
+    let fund = state
+        .funds
+        .get(&params.security_token)
+        .ok_or(Error::InvalidFundId)?;
+    {
+        let fund_state = match (&fund.state, &params.state) {
+            (FundState::Open, UpdateFundState::Success(params)) => {
+                FundState::Success(FundSuccessState {
+                    funds_receiver: params.clone(),
+                })
+            }
+            (FundState::Open, UpdateFundState::Fail) => FundState::Fail,
+            (FundState::Fail, _) => bail!(Error::InvalidFundState),
+            (FundState::Success(_), _) => bail!(Error::InvalidFundState),
+        };
+        host.state_mut()
+            .funds
+            .entry(params.security_token)
+            .and_modify(|fund| {
+                fund.state = fund_state;
+            });
+    }
+
+    logger.log(&Event::FundStateUpdated(params))?;
+    Ok(())
 }
 
 #[receive(
@@ -154,9 +298,9 @@ pub struct TransferInvestParams {
     parameter = "TransferInvestParams"
 )]
 fn transfer_invest(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResult<()> {
-    let currency_token = host.state().currency_token.clone();
+    let currency_token = host.state().currency_token;
     let params: TransferInvestParams = ctx.parameter_cursor().get()?;
-    cis2_client::transfer_single(host, &currency_token.contract, Transfer {
+    host.invoke_transfer_single(&currency_token.contract, Transfer {
         token_id: currency_token.id,
         amount:   params.amount,
         to:       Receiver::Contract(
@@ -164,14 +308,15 @@ fn transfer_invest(ctx: &ReceiveContext, host: &mut Host<State>) -> ContractResu
             OwnedEntrypointName::new_unchecked("invest".into()),
         ),
         from:     ctx.sender(),
-        data:     AdditionalData::empty(),
+        data:     params
+            .security_token
+            .to_additional_data()
+            .ok_or(Error::ParseError)?,
     })
     .map_err(|_| Error::CurrencyTokenTransfer)?;
 
     Ok(())
 }
-
-pub type InvestReceiveParams = OnReceivingCis2Params<TokenIdVec, CurrencyTokenAmount>;
 
 #[receive(
     contract = "security_mint_fund",
@@ -181,206 +326,69 @@ pub type InvestReceiveParams = OnReceivingCis2Params<TokenIdVec, CurrencyTokenAm
     enable_logger
 )]
 fn invest(ctx: &ReceiveContext, host: &mut Host<State>, logger: &mut Logger) -> ContractResult<()> {
-    let params: InvestReceiveParams = ctx.parameter_cursor().get()?;
-    ensure!(
-        params.amount.gt(&TokenAmountU64(0)),
-        Error::InvalidConversion
-    );
-
-    let from = match params.from {
+    let InvestReceiveParams {
+        amount: curr_amount,
+        data: security_token,
+        token_id,
+        from,
+    } = ctx.parameter_cursor().get()?;
+    let from = match from {
         Address::Account(a) => a,
         Address::Contract(_) => bail!(Error::UnAuthorized),
     };
     let currency_token = TokenUId {
-        id:       params.token_id,
+        id:       token_id,
         contract: match ctx.sender() {
             Address::Account(_) => bail!(Error::UnAuthorized),
             Address::Contract(c) => c,
         },
     };
 
-    let (amount, token) = {
-        let state = host.state();
-        ensure!(
-            state.fund_state.accepting_investments(),
-            Error::InvalidFundState
-        );
+    let (wrapped_amount, wrapped_token) = {
+        let state = host.state_mut();
+        let mut fund = state
+            .funds
+            .get_mut(&security_token)
+            .ok_or(Error::InvalidFundId)?;
         ensure!(
             state.currency_token.eq(&currency_token),
             Error::UnAuthorized
         );
-
-        let (security_amount, un_converted_currency_amount) =
-            state.rate.convert(&params.amount.0)?;
-        ensure_eq!(un_converted_currency_amount, 0, Error::InvalidConversion);
-        ensure!(security_amount > 0, Error::InvalidConversion);
-        let security_amount = TokenAmountU64(security_amount);
-
-        (security_amount, state.token.clone())
+        match fund.state {
+            FundState::Open => {
+                // Add the investment to the fund
+                fund.investments
+                    .entry(from)
+                    .or_insert_with(CurrencyTokenAmount::zero)
+                    .modify(|amount| amount.add_assign(curr_amount));
+                // Convert the currency amount to wrapped amount
+                let security_amount = fund.rate.convert_currency_amount(&curr_amount)?;
+                (security_amount, fund.token)
+            }
+            _ => bail!(Error::InvalidFundState),
+        }
     };
 
-    cis2_security_client::mint_single(host, &token.contract, token.id.clone(), MintParam {
-        address: from,
-        amount,
+    host.invoke_mint_single(&wrapped_token.contract, wrapped_token.id, MintParam {
+        address: from.into(),
+        amount:  TokenAmountSecurity::new_frozen(wrapped_amount),
     })
     .map_err(|_| Error::TokenMint)?;
-    cis2_security_client::freeze_single(host, &token.contract, from.into(), FreezeParam {
-        token_id:     token.id,
-        token_amount: amount,
-    })
-    .map_err(|_| Error::TokenFreeze)?;
+
     logger.log(&Event::Invested(InvestedEvent {
-        currency_amount: params.amount,
-        security_amount: amount,
-        investor:        from,
+        security_token,
+        currency_amount: curr_amount,
+        security_amount: wrapped_amount,
+        investor: from,
     }))?;
     Ok(())
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct CancelInvestmentParam {
-    pub investor: AccountAddress,
-    pub amount:   CurrencyTokenAmount,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct CancelInvestParams {
-    pub investments: Vec<CancelInvestmentParam>,
-}
-
-#[receive(
-    contract = "security_mint_fund",
-    name = "cancelInvestment",
-    mutable,
-    parameter = "CancelInvestParams",
-    enable_logger
-)]
-fn cancel_investment(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let sender = match ctx.sender() {
-        Address::Account(a) => a,
-        Address::Contract(_) => bail!(Error::UnAuthorized),
-    };
-    let state = host.state();
-    ensure!(
-        state.fund_state.can_cancel_investment(),
-        Error::InvalidFundState
-    );
-    let currency_token = state.currency_token.clone();
-    let token = state.token.clone();
-    let rate = state.rate;
-
-    let params: CancelInvestParams = ctx.parameter_cursor().get()?;
-    for investment in params.investments {
-        ensure!(
-            sender.eq(&investment.investor) || sender.eq(&ctx.owner()),
-            Error::UnAuthorized
-        );
-        ensure!(
-            investment.amount.gt(&TokenAmountU64(0)),
-            Error::InvalidConversion
-        );
-
-        let (security_amount, un_converted_currency_amount) = rate.convert(&investment.amount.0)?;
-        ensure_eq!(un_converted_currency_amount, 0, Error::InvalidConversion);
-        ensure!(security_amount > 0, Error::InvalidConversion);
-        let security_amount = TokenAmountU64(security_amount);
-
-        cis2_security_client::force_burn_single(host, &token.contract, Burn {
-            token_id: token.id.clone(),
-            amount:   security_amount,
-            owner:    investment.investor.into(),
-        })
-        .map_err(|_| Error::TokenForceBurn)?;
-        cis2_client::transfer_single(host, &currency_token.contract, Transfer {
-            token_id: currency_token.id.clone(),
-            amount:   investment.amount,
-            from:     ctx.self_address().into(),
-            to:       investment.investor.into(),
-            data:     AdditionalData::empty(),
-        })
-        .map_err(|_| Error::CurrencyTokenTransfer)?;
-
-        logger.log(&Event::InvestmentCancelled(InvestedEvent {
-            currency_amount: investment.amount,
-            security_amount,
-            investor: investment.investor,
-        }))?;
-    }
-
-    Ok(())
-}
-
-#[receive(
-    contract = "security_mint_fund",
-    name = "updateFundState",
-    mutable,
-    parameter = "FundState",
-    enable_logger
-)]
-fn update_fund_state(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    logger: &mut Logger,
-) -> ContractResult<()> {
-    let params: FundState = ctx.parameter_cursor().get()?;
-    ensure!(
-        ctx.sender().matches_account(&ctx.owner()),
-        Error::UnAuthorized
-    );
-    let fund_state = match (&host.state().fund_state, params) {
-        (FundState::Open, FundState::Open) => bail!(Error::InvalidFundState),
-        (FundState::Open, fund_state) => fund_state,
-        (FundState::Fail, _) => bail!(Error::InvalidFundState),
-        (FundState::Success(_), _) => bail!(Error::InvalidFundState),
-    };
-    host.state_mut().fund_state = fund_state.clone();
-
-    if let FundState::Success(funds_receiver) = &fund_state {
-        let currency_token = host.state().currency_token.clone();
-        let balance_of_currency: CurrencyTokenAmount =
-            cis2_client::balance_of_single(host, &currency_token.contract, BalanceOfQuery {
-                token_id: currency_token.id.clone(),
-                address:  ctx.self_address().into(),
-            })
-            .map_err(|_| Error::TokenBalance)?;
-        cis2_client::transfer_single(host, &currency_token.contract, Transfer {
-            token_id: currency_token.id,
-            amount:   balance_of_currency,
-            from:     ctx.self_address().into(),
-            to:       funds_receiver.clone(),
-            data:     AdditionalData::empty(),
-        })
-        .map_err(|_| Error::CurrencyTokenTransfer)?;
-        logger.log(&Event::InvestmentDisbursed(InvestmentDisbursedEvent {
-            currency_amount: balance_of_currency,
-            receiver:        funds_receiver.clone(),
-        }))?;
-    }
-
-    logger.log(&Event::FundStateUpdated(fund_state))?;
-
-    Ok(())
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct ClaimInvestmentParam {
-    pub investor: AccountAddress,
-}
-
-#[derive(Serialize, SchemaType)]
-pub struct ClaimInvestParams {
-    pub investments: Vec<ClaimInvestmentParam>,
 }
 
 #[receive(
     contract = "security_mint_fund",
     name = "claimInvestment",
     mutable,
-    parameter = "ClaimInvestParams",
+    parameter = "ClaimInvestmentParams",
     enable_logger
 )]
 fn claim_investment(
@@ -388,52 +396,116 @@ fn claim_investment(
     host: &mut Host<State>,
     logger: &mut Logger,
 ) -> ContractResult<()> {
-    let sender = match ctx.sender() {
-        Address::Account(a) => a,
-        Address::Contract(_) => bail!(Error::UnAuthorized),
-    };
-
-    let state = host.state();
-    ensure!(
-        state.fund_state.can_claim_investment(),
-        Error::InvalidFundState
-    );
-    let token = state.token.clone();
-    let investment_token = state.investment_token.clone();
-
-    let params: ClaimInvestParams = ctx.parameter_cursor().get()?;
+    let sender = ctx.sender();
+    let params: ClaimInvestmentParams = ctx.parameter_cursor().get()?;
     for investment in params.investments {
-        ensure!(
-            sender.eq(&investment.investor) || sender.eq(&ctx.owner()),
-            Error::UnAuthorized
-        );
-        let security_amount: TokenAmount =
-            cis2_client::balance_of_single(host, &token.contract, BalanceOfQuery {
-                token_id: token.id.clone(),
-                address:  investment.investor.into(),
-            })
-            .map_err(|_| Error::TokenBalance)?;
-        cis2_security_client::force_burn_single(host, &token.contract, Burn {
-            token_id: token.id.clone(),
-            amount:   security_amount,
-            owner:    investment.investor.into(),
-        })
-        .map_err(|_| Error::TokenForceBurn)?;
-        cis2_security_client::mint_single(
-            host,
-            &investment_token.contract,
-            investment_token.id.clone(),
-            MintParam {
-                address: investment.investor,
-                amount:  security_amount,
-            },
-        )
-        .map_err(|_| Error::TokenMint)?;
+        let security_token = investment.security_token;
 
-        logger.log(&Event::InvestmentClaimed(InvestmentClaimedEvent {
-            security_amount,
-            investor: investment.investor,
-        }))?;
+        let (token, currency_token, currency_amount, security_amount, fund_state) = {
+            let state = host.state_mut();
+            if !sender.matches_account(&investment.investor) {
+                ensure!(
+                    &state.has_agent(sender, AgentRole::Operator),
+                    Error::UnAuthorized
+                );
+            }
+            let currency_token = state.currency_token;
+            let mut fund = state
+                .funds
+                .get_mut(&investment.security_token)
+                .ok_or(Error::InvalidFundId)?;
+            // Invested currency amount
+            let currency_amount = fund
+                .investments
+                .remove_and_get(&investment.investor)
+                .ok_or(Error::InvalidInvestor)?;
+            // Promised security amount
+            let security_amount = fund.rate.convert_currency_amount(&currency_amount)?;
+            (
+                fund.token,
+                currency_token,
+                currency_amount,
+                security_amount,
+                fund.state.clone(),
+            )
+        };
+
+        match fund_state {
+            FundState::Open => bail!(Error::InvalidFundState),
+            FundState::Success(FundSuccessState { funds_receiver }) => {
+                // Transfer the currency amount to the receiver
+                host.invoke_transfer_single(&currency_token.contract, Transfer {
+                    amount:   currency_amount,
+                    token_id: currency_token.id,
+                    from:     ctx.self_address().into(),
+                    to:       funds_receiver.clone(),
+                    data:     AdditionalData::empty(),
+                })
+                .map_err(|_| Error::CurrencyTokenTransfer)?;
+
+                if security_token.eq(&token) {
+                    // Only Un Freeze Tokens
+                    host.invoke_un_freeze_single(
+                        &security_token.contract,
+                        investment.investor.into(),
+                        FreezeParam {
+                            token_amount: security_amount,
+                            token_id:     security_token.id,
+                        },
+                    )
+                    .map_err(|_| Error::TokenUnFreeze)?;
+                } else {
+                    // Burn the initially minted tokens
+                    host.invoke_burn_single(&token.contract, Burn {
+                        token_id: token.id,
+                        amount:   security_amount,
+                        owner:    investment.investor.into(),
+                    })
+                    .map_err(|_| Error::TokenBurn)?;
+                    // Mint the security tokens
+                    host.invoke_mint_single(
+                        &security_token.contract,
+                        security_token.id,
+                        MintParam {
+                            address: investment.investor.into(),
+                            amount:  TokenAmountSecurity::new_un_frozen(security_amount),
+                        },
+                    )
+                    .map_err(|_| Error::TokenMint)?;
+                }
+
+                logger.log(&Event::InvestmentClaimed(InvestedEvent {
+                    security_token: investment.security_token,
+                    security_amount,
+                    investor: investment.investor,
+                    currency_amount,
+                }))?;
+            }
+            FundState::Fail => {
+                // Return the Invested currency amount
+                host.invoke_transfer_single(&currency_token.contract, Transfer {
+                    amount:   currency_amount,
+                    token_id: currency_token.id,
+                    from:     ctx.self_address().into(),
+                    to:       investment.investor.into(),
+                    data:     AdditionalData::empty(),
+                })
+                .map_err(|_| Error::CurrencyTokenTransfer)?;
+                host.invoke_burn_single(&token.contract, Burn {
+                    token_id: token.id,
+                    amount:   security_amount,
+                    owner:    investment.investor.into(),
+                })
+                .map_err(|_| Error::TokenBurn)?;
+
+                logger.log(&Event::InvestmentCancelled(InvestedEvent {
+                    security_token: investment.security_token,
+                    security_amount,
+                    investor: investment.investor,
+                    currency_amount,
+                }))?;
+            }
+        }
     }
 
     Ok(())

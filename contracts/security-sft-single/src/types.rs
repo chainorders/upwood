@@ -1,10 +1,9 @@
 use concordium_cis2::TokenIdUnit;
 use concordium_protocols::concordium_cis2_ext;
-use concordium_protocols::concordium_cis2_security::{self, Cis2SecurityEvent};
-use concordium_std::{ContractAddress, SchemaType, Serialize};
+use concordium_protocols::concordium_cis2_security::{self, Cis2SecurityEvent, SecurityParams};
+use concordium_std::{SchemaType, Serialize};
 
 use super::error::Error;
-
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU64;
 pub type TokenId = TokenIdUnit;
@@ -27,6 +26,8 @@ pub enum AgentRole {
     HolderRecovery,
     Pause,
     UnPause,
+    Operator,
+    SetTokenMetadata,
 }
 
 impl AgentRole {
@@ -45,6 +46,8 @@ impl AgentRole {
             Self::HolderRecovery,
             Self::Pause,
             Self::UnPause,
+            Self::Operator,
+            Self::SetTokenMetadata,
         ]
     }
 }
@@ -61,13 +64,16 @@ pub type BalanceOfQueryParams = concordium_cis2::BalanceOfQueryParams<TokenId>;
 pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenAmount>;
 pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
 pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
+pub type SetTokenMetadataParams =
+    concordium_cis2_security::SetTokenMetadataParams<TokenId, ContractMetadataUrl>;
+pub type SetTokenMetadataParam =
+    concordium_cis2_security::SetTokenMetadataParam<TokenId, ContractMetadataUrl>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
 pub use concordium_cis2_security::RecoverParam;
 
 #[derive(Serialize, SchemaType)]
 pub struct InitParam {
-    pub identity_registry: ContractAddress,
-    pub compliance:        ContractAddress,
-    pub sponsors:          Option<ContractAddress>,
-    pub metadata_url:      ContractMetadataUrl,
+    pub metadata_url: ContractMetadataUrl,
+    pub security:     Option<SecurityParams>,
+    pub agents:       Vec<Agent>,
 }

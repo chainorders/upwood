@@ -1,0 +1,16 @@
+.vscode
+.git
+.gitignore
+.idea
+.env
+.env.local
+.env.development.local
+.yarn
+node_modules
+.devcontainer
+.dockerignore
+contracts/**/target
+backend/target
+frontend-dapp
+data
+cdk-deployment

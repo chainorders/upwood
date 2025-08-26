@@ -1,0 +1,79 @@
+.authtextslider {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 50%;
+	height: 100%;
+	background: url(../assets/bgauth.jpg) center no-repeat;
+	background-size: cover;
+	padding: 0 230px 0 60px;
+	color: #fff;
+	display: flex;
+	/* Enables Flexbox */
+	flex-direction: column;
+	/* Arrange items vertically */
+	justify-content: center;
+	/* Centers items vertically */
+}
+
+.authtextslider .title {
+	font-size: 48px;
+	line-height: 56px;
+	font-weight: 600;
+	margin-bottom: 30px;
+}
+
+.authtextslider .description {
+	font-size: 20px;
+	line-height: 36px;
+	margin-bottom: 40px;
+}
+
+.authtextslider .bullets {
+	text-align: center;
+}
+
+.authtextslider .bullets .bullet {
+	width: 10%;
+	margin: 0 2%;
+	height: 40px;
+	background: transparent;
+	border: 0;
+	opacity: 0.5;
+	cursor: pointer;
+	position: relative;
+}
+
+.authtextslider .bullets .bullet.active {
+	opacity: 1;
+}
+
+.authtextslider .bullets .bullet:before {
+	content: "";
+	width: 100%;
+	height: 3px;
+	background: #fff;
+	position: absolute;
+	top: 50%;
+	margin-top: -1.5px;
+	left: 0;
+}
+
+.authtextslider .bullets .orv {
+	width: 26%;
+	height: 40px;
+	border: 0;
+	opacity: 1;
+	cursor: pointer;
+	position: relative;
+}
+
+.authtextslider .bullets .orv.left {
+	margin-right: 3%;
+	background: url(../assets/arrow-left.svg) center left no-repeat;
+}
+
+.authtextslider .bullets .orv.right {
+	margin-left: 3%;
+	background: url(../assets/arrow-right.svg) center right no-repeat;
+}

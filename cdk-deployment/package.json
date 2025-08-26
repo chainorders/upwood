@@ -1,0 +1,33 @@
+{
+	"name": "cdk-deployment",
+	"version": "0.1.0",
+	"bin": "bin/cdk-deployment.js",
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"test": "jest",
+		"cdk": "cdk",
+		"format": "yarn prettier . --write"
+	},
+	"devDependencies": {
+		"@types/dotenv": "^8.2.3",
+		"@types/jest": "^29.5.12",
+		"@types/node": "^22.13.5",
+		"aws-cdk": "^2.1000.3",
+		"dotenv": "^16.4.7",
+		"jest": "^29.7.0",
+		"prettier": "3.2.5",
+		"ts-jest": "^29.2.5",
+		"ts-node": "^10.9.2",
+		"typescript": "~5.6.2"
+	},
+	"prettier": {
+		"tabWidth": 2,
+		"useTabs": true
+	},
+	"dependencies": {
+		"aws-cdk-lib": "2.160.0",
+		"constructs": "^10.0.0",
+		"source-map-support": "^0.5.21"
+	}
+}

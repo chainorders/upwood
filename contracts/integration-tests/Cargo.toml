@@ -9,14 +9,15 @@ concordium-cis2 = { version = "6.1.0", default-features = false }
 concordium-protocols = { path = "../concordium-protocols" }
 concordium-rwa-identity-registry = { path = "../identity-registry" }
 concordium-rwa-compliance = { path = "../compliance" }
-security-sft-rewards = { path = "../security-sft-rewards" }
 security-sft-single = { path = "../security-sft-single" }
+security-sft-multi = { path = "../security-sft-multi" }
+security-sft-multi-yielder = { path = "../security-sft-multi-yielder" }
 security-p2p-trading = { path = "../security-p2p-trading" }
 security-mint-fund = { path = "../security-mint-fund" }
-rand_core = "0.6.4"
-
-[dev-dependencies]
-concordium-smart-contract-testing = "4.2.0"
+nft-multi-rewarded = { path = "../nft-multi-rewarded" }
+offchain-rewards = { path = "../offchain-rewards" }
+concordium-smart-contract-testing = { version = "4.4.0" }
+concordium_base = "7.0.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

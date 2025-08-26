@@ -1,3 +1,4 @@
 target
 wallet.export
 *specs.json
+.secure.env

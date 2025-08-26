@@ -15,12 +15,15 @@
     "security-mint-fund",
     "nft-multi-rewarded",
     "integration-tests",
-    "utils"
+    "offchain-rewards",
+    "security-sft-multi",
+    "security-sft-multi-yielder"
   ],
   "scripts": {
     "format": "yarn workspaces foreach -Ap --include 'contracts/*' run format",
     "deploy": "yarn workspaces foreach -A --include 'contracts/*' run deploy",
     "build": "yarn && yarn workspaces foreach -Ap --include 'contracts/*' run build",
+    "clean": "yarn workspaces foreach -Ap --include 'contracts/*' run clean",
     "test": "yarn workspaces foreach -Ap --include 'contracts/*' run test"
   }
 }

@@ -13,218 +13,299 @@ import {
 import { InitMethod, ReceiveMethod } from "../GenericContract";
 export const CONTRACT_NAME = "security_p2p_trading";
 export type initRequest = {
-	token: { contract: { index: number; subindex: number }; id: string };
 	currency: { contract: { index: number; subindex: number }; id: string };
+	agents: Array<{
+		address:
+			| { Account: [string] }
+			| { Contract: [{ index: number; subindex: number }] };
+		roles: Array<
+			| { AddMarket: Record<string, never> }
+			| { RemoveMarket: Record<string, never> }
+			| { Operator: Record<string, never> }
+		>;
+	}>;
 };
 export const initRequestSchemaBase64 =
-	"FAACAAAABQAAAHRva2VuFAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ACAAAAGN1cnJlbmN5FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0A";
+	"FAACAAAACAAAAGN1cnJlbmN5FAACAAAACAAAAGNvbnRyYWN0DAIAAABpZB0ABgAAAGFnZW50cxACFAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVAwAAAAkAAABBZGRNYXJrZXQCDAAAAFJlbW92ZU1hcmtldAIIAAAAT3BlcmF0b3IC";
 export const initErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
-export type CancelSellError =
-	| { ParseError: Record<string, never> }
-	| { Unauthorized: Record<string, never> }
-	| { Cis2CallError: Record<string, never> }
-	| { InvalidToken: Record<string, never> }
-	| { SellPositionExists: Record<string, never> }
-	| { SellPositionMissing: Record<string, never> }
-	| { InvalidConversion: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { LogError: Record<string, never> };
-export const cancelSellErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
-export type ExchangeError =
-	| { ParseError: Record<string, never> }
-	| { Unauthorized: Record<string, never> }
-	| { Cis2CallError: Record<string, never> }
-	| { InvalidToken: Record<string, never> }
-	| { SellPositionExists: Record<string, never> }
-	| { SellPositionMissing: Record<string, never> }
-	| { InvalidConversion: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { LogError: Record<string, never> };
-export const exchangeErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
-export type ExchangeRequest = {
-	token_id: string;
-	amount: string;
-	from:
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
+export type AddAgentRequest = {
+	address:
 		| { Account: [string] }
 		| { Contract: [{ index: number; subindex: number }] };
-	data: { from: string; rate: { numerator: bigint; denominator: bigint } };
+	roles: Array<
+		| { AddMarket: Record<string, never> }
+		| { RemoveMarket: Record<string, never> }
+		| { Operator: Record<string, never> }
+	>;
 };
-export const exchangeRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAQAAABmcm9tCwQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IF";
-export type ForceCancelSellError =
+export const addAgentRequestSchemaBase64 =
+	"FAACAAAABwAAAGFkZHJlc3MVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMBQAAAHJvbGVzEAIVAwAAAAkAAABBZGRNYXJrZXQCDAAAAFJlbW92ZU1hcmtldAIIAAAAT3BlcmF0b3IC";
+export type AddMarketRequest = {
+	token_contract: { index: number; subindex: number };
+	market:
+		| {
+				Mint: [
+					{
+						token_id: { start: string; diff: string; base_token_id: string };
+						rate: { numerator: bigint; denominator: bigint };
+						token_metadata_url: {
+							url: string;
+							hash: { None: Record<string, never> } | { Some: [string] };
+						};
+						liquidity_provider: string;
+						max_token_amount: string;
+					},
+				];
+		  }
+		| {
+				Transfer: [
+					{
+						token_id: string;
+						liquidity_provider: string;
+						buy_rate: { numerator: bigint; denominator: bigint };
+						sell_rate: { numerator: bigint; denominator: bigint };
+						max_token_amount: string;
+						max_currency_amount: string;
+					},
+				];
+		  };
+};
+export const addMarketRequestSchemaBase64 =
+	"FAACAAAADgAAAHRva2VuX2NvbnRyYWN0DAYAAABtYXJrZXQVAgAAAAQAAABNaW50AQEAAAAUAAUAAAAIAAAAdG9rZW5faWQUAAMAAAAFAAAAc3RhcnQNBAAAAGRpZmYODQAAAGJhc2VfdG9rZW5faWQdAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFEgAAAHRva2VuX21ldGFkYXRhX3VybBQAAgAAAAMAAAB1cmwWAgQAAABoYXNoFQIAAAAEAAAATm9uZQIEAAAAU29tZQEBAAAAFgISAAAAbGlxdWlkaXR5X3Byb3ZpZGVyCxAAAABtYXhfdG9rZW5fYW1vdW50GyUAAAAIAAAAVHJhbnNmZXIBAQAAABQABgAAAAgAAAB0b2tlbl9pZB0AEgAAAGxpcXVpZGl0eV9wcm92aWRlcgsIAAAAYnV5X3JhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUJAAAAc2VsbF9yYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFEAAAAG1heF90b2tlbl9hbW91bnQbJQAAABMAAABtYXhfY3VycmVuY3lfYW1vdW50GyUAAAA=";
+export type BuyError =
 	| { ParseError: Record<string, never> }
 	| { Unauthorized: Record<string, never> }
-	| { Cis2CallError: Record<string, never> }
-	| { InvalidToken: Record<string, never> }
-	| { SellPositionExists: Record<string, never> }
-	| { SellPositionMissing: Record<string, never> }
 	| { InvalidConversion: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { LogError: Record<string, never> };
-export const forceCancelSellErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
-export type ForceCancelSellRequest = { from: string; to: string };
-export const forceCancelSellRequestSchemaBase64 =
-	"FAACAAAABAAAAGZyb20LAgAAAHRvCw==";
-export type GetDepositRequest = { from: string };
-export const getDepositRequestSchemaBase64 = "FAABAAAABAAAAGZyb20L";
-export type GetDepositResponse = {
+	| { LogError: Record<string, never> }
+	| { AgentExists: Record<string, never> }
+	| { InvalidMarket: Record<string, never> }
+	| { TokenTransfer: Record<string, never> }
+	| { CurrencyTransfer: Record<string, never> }
+	| { InvalidRate: Record<string, never> }
+	| { MintMarketNotStarted: Record<string, never> }
+	| { AddToken: Record<string, never> }
+	| { TokenMint: Record<string, never> }
+	| { InvalidMarketType: Record<string, never> }
+	| { MarketTokenLimitExceeded: Record<string, never> };
+export const buyErrorSchemaBase64 =
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
+export type BuyRequest = {
+	contract: { index: number; subindex: number };
 	amount: string;
 	rate: { numerator: bigint; denominator: bigint };
 };
-export const getDepositResponseSchemaBase64 =
-	"FAACAAAABgAAAGFtb3VudBslAAAABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgU=";
+export const buyRequestSchemaBase64 =
+	"FAADAAAACAAAAGNvbnRyYWN0DAYAAABhbW91bnQbJQAAAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IF";
+export type GetMarketRequest = { index: number; subindex: number };
+export const getMarketRequestSchemaBase64 = "DA==";
+export type MintError =
+	| { ParseError: Record<string, never> }
+	| { Unauthorized: Record<string, never> }
+	| { InvalidConversion: Record<string, never> }
+	| { LogError: Record<string, never> }
+	| { AgentExists: Record<string, never> }
+	| { InvalidMarket: Record<string, never> }
+	| { TokenTransfer: Record<string, never> }
+	| { CurrencyTransfer: Record<string, never> }
+	| { InvalidRate: Record<string, never> }
+	| { MintMarketNotStarted: Record<string, never> }
+	| { AddToken: Record<string, never> }
+	| { TokenMint: Record<string, never> }
+	| { InvalidMarketType: Record<string, never> }
+	| { MarketTokenLimitExceeded: Record<string, never> };
+export const mintErrorSchemaBase64 =
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
+export type MintRequest = {
+	token_contract: { index: number; subindex: number };
+	amount: string;
+	rate: { numerator: bigint; denominator: bigint };
+};
+export const mintRequestSchemaBase64 =
+	"FAADAAAADgAAAHRva2VuX2NvbnRyYWN0DAYAAABhbW91bnQbJQAAAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IF";
+export type RemoveAgentRequest =
+	| { Account: [string] }
+	| { Contract: [{ index: number; subindex: number }] };
+export const removeAgentRequestSchemaBase64 =
+	"FQIAAAAHAAAAQWNjb3VudAEBAAAACwgAAABDb250cmFjdAEBAAAADA==";
+export type RemoveMarketRequest = { index: number; subindex: number };
+export const removeMarketRequestSchemaBase64 = "DA==";
 export type SellError =
 	| { ParseError: Record<string, never> }
 	| { Unauthorized: Record<string, never> }
-	| { Cis2CallError: Record<string, never> }
-	| { InvalidToken: Record<string, never> }
-	| { SellPositionExists: Record<string, never> }
-	| { SellPositionMissing: Record<string, never> }
 	| { InvalidConversion: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { LogError: Record<string, never> };
+	| { LogError: Record<string, never> }
+	| { AgentExists: Record<string, never> }
+	| { InvalidMarket: Record<string, never> }
+	| { TokenTransfer: Record<string, never> }
+	| { CurrencyTransfer: Record<string, never> }
+	| { InvalidRate: Record<string, never> }
+	| { MintMarketNotStarted: Record<string, never> }
+	| { AddToken: Record<string, never> }
+	| { TokenMint: Record<string, never> }
+	| { InvalidMarketType: Record<string, never> }
+	| { MarketTokenLimitExceeded: Record<string, never> };
 export const sellErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
+	"FQ4AAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAhEAAABJbnZhbGlkQ29udmVyc2lvbgIIAAAATG9nRXJyb3ICCwAAAEFnZW50RXhpc3RzAg0AAABJbnZhbGlkTWFya2V0Ag0AAABUb2tlblRyYW5zZmVyAhAAAABDdXJyZW5jeVRyYW5zZmVyAgsAAABJbnZhbGlkUmF0ZQIUAAAATWludE1hcmtldE5vdFN0YXJ0ZWQCCAAAAEFkZFRva2VuAgkAAABUb2tlbk1pbnQCEQAAAEludmFsaWRNYXJrZXRUeXBlAhgAAABNYXJrZXRUb2tlbkxpbWl0RXhjZWVkZWQC";
 export type SellRequest = {
-	token_id: string;
-	amount: string;
-	from:
-		| { Account: [string] }
-		| { Contract: [{ index: number; subindex: number }] };
-	data: { numerator: bigint; denominator: bigint };
-};
-export const sellRequestSchemaBase64 =
-	"FAAEAAAACAAAAHRva2VuX2lkHQAGAAAAYW1vdW50GyUAAAAEAAAAZnJvbRUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwEAAAAZGF0YRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQ==";
-export type TransferExchangeError =
-	| { ParseError: Record<string, never> }
-	| { Unauthorized: Record<string, never> }
-	| { Cis2CallError: Record<string, never> }
-	| { InvalidToken: Record<string, never> }
-	| { SellPositionExists: Record<string, never> }
-	| { SellPositionMissing: Record<string, never> }
-	| { InvalidConversion: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { LogError: Record<string, never> };
-export const transferExchangeErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
-export type TransferExchangeRequest = {
-	pay: string;
-	get: { from: string; rate: { numerator: bigint; denominator: bigint } };
-};
-export const transferExchangeRequestSchemaBase64 =
-	"FAACAAAAAwAAAHBheRslAAAAAwAAAGdldBQAAgAAAAQAAABmcm9tCwQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IF";
-export type TransferSellError =
-	| { ParseError: Record<string, never> }
-	| { Unauthorized: Record<string, never> }
-	| { Cis2CallError: Record<string, never> }
-	| { InvalidToken: Record<string, never> }
-	| { SellPositionExists: Record<string, never> }
-	| { SellPositionMissing: Record<string, never> }
-	| { InvalidConversion: Record<string, never> }
-	| { InvalidAmount: Record<string, never> }
-	| { LogError: Record<string, never> };
-export const transferSellErrorSchemaBase64 =
-	"FQkAAAAKAAAAUGFyc2VFcnJvcgIMAAAAVW5hdXRob3JpemVkAg0AAABDaXMyQ2FsbEVycm9yAgwAAABJbnZhbGlkVG9rZW4CEgAAAFNlbGxQb3NpdGlvbkV4aXN0cwITAAAAU2VsbFBvc2l0aW9uTWlzc2luZwIRAAAASW52YWxpZENvbnZlcnNpb24CDQAAAEludmFsaWRBbW91bnQCCAAAAExvZ0Vycm9yAg==";
-export type TransferSellRequest = {
+	contract: { index: number; subindex: number };
 	amount: string;
 	rate: { numerator: bigint; denominator: bigint };
 };
-export const transferSellRequestSchemaBase64 =
-	"FAACAAAABgAAAGFtb3VudBslAAAABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgU=";
+export const sellRequestSchemaBase64 =
+	"FAADAAAACAAAAGNvbnRyYWN0DAYAAABhbW91bnQbJQAAAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IF";
 export type event =
 	| {
 			Initialized: [
+				{ contract: { index: number; subindex: number }; id: string },
+			];
+	  }
+	| {
+			AgentAdded: [
 				{
-					token: { contract: { index: number; subindex: number }; id: string };
-					currency: {
-						contract: { index: number; subindex: number };
-						id: string;
-					};
+					address:
+						| { Account: [string] }
+						| { Contract: [{ index: number; subindex: number }] };
+					roles: Array<
+						| { AddMarket: Record<string, never> }
+						| { RemoveMarket: Record<string, never> }
+						| { Operator: Record<string, never> }
+					>;
 				},
 			];
 	  }
 	| {
-			Sell: [
+			AgentRemoved: [
+				| { Account: [string] }
+				| { Contract: [{ index: number; subindex: number }] },
+			];
+	  }
+	| {
+			MarketAdded: [
 				{
-					from: string;
-					amount: string;
-					rate: { numerator: bigint; denominator: bigint };
+					token_contract: { index: number; subindex: number };
+					market:
+						| {
+								Mint: [
+									{
+										token_id: {
+											start: string;
+											diff: string;
+											base_token_id: string;
+										};
+										rate: { numerator: bigint; denominator: bigint };
+										token_metadata_url: {
+											url: string;
+											hash:
+												| { None: Record<string, never> }
+												| { Some: [string] };
+										};
+										liquidity_provider: string;
+										max_token_amount: string;
+									},
+								];
+						  }
+						| {
+								Transfer: [
+									{
+										token_id: string;
+										liquidity_provider: string;
+										buy_rate: { numerator: bigint; denominator: bigint };
+										sell_rate: { numerator: bigint; denominator: bigint };
+										max_token_amount: string;
+										max_currency_amount: string;
+									},
+								];
+						  };
 				},
 			];
 	  }
-	| { SellCancelled: [{ from: string; amount: string }] }
 	| {
-			Exchange: [
+			Exchanged: [
 				{
-					payer: string;
-					pay_amount: string;
-					sell_amount: string;
+					token_contract: { index: number; subindex: number };
+					token_id: string;
 					seller: string;
+					buyer: string;
+					token_amount: string;
+					rate: { numerator: bigint; denominator: bigint };
+					currency_amount: string;
+					exchange_type:
+						| { Buy: Record<string, never> }
+						| { Sell: Record<string, never> }
+						| { Mint: Record<string, never> };
 				},
 			];
-	  };
+	  }
+	| { MarketRemoved: [{ index: number; subindex: number }] };
 export const eventSchemaBase64 =
-	"FQQAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQAAgAAAAUAAAB0b2tlbhQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAgAAABjdXJyZW5jeRQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAQAAABTZWxsAQEAAAAUAAMAAAAEAAAAZnJvbQsGAAAAYW1vdW50GyUAAAAEAAAAcmF0ZRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQ0AAABTZWxsQ2FuY2VsbGVkAQEAAAAUAAIAAAAEAAAAZnJvbQsGAAAAYW1vdW50GyUAAAAIAAAARXhjaGFuZ2UBAQAAABQABAAAAAUAAABwYXllcgsKAAAAcGF5X2Ftb3VudBslAAAACwAAAHNlbGxfYW1vdW50GyUAAAAGAAAAc2VsbGVyCw==";
+	"FQYAAAALAAAASW5pdGlhbGl6ZWQBAQAAABQAAgAAAAgAAABjb250cmFjdAwCAAAAaWQdAAoAAABBZ2VudEFkZGVkAQEAAAAUAAIAAAAHAAAAYWRkcmVzcxUCAAAABwAAAEFjY291bnQBAQAAAAsIAAAAQ29udHJhY3QBAQAAAAwFAAAAcm9sZXMQAhUDAAAACQAAAEFkZE1hcmtldAIMAAAAUmVtb3ZlTWFya2V0AggAAABPcGVyYXRvcgIMAAAAQWdlbnRSZW1vdmVkAQEAAAAVAgAAAAcAAABBY2NvdW50AQEAAAALCAAAAENvbnRyYWN0AQEAAAAMCwAAAE1hcmtldEFkZGVkAQEAAAAUAAIAAAAOAAAAdG9rZW5fY29udHJhY3QMBgAAAG1hcmtldBUCAAAABAAAAE1pbnQBAQAAABQABQAAAAgAAAB0b2tlbl9pZBQAAwAAAAUAAABzdGFydA0EAAAAZGlmZg4NAAAAYmFzZV90b2tlbl9pZB0ABAAAAHJhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUSAAAAdG9rZW5fbWV0YWRhdGFfdXJsFAACAAAAAwAAAHVybBYCBAAAAGhhc2gVAgAAAAQAAABOb25lAgQAAABTb21lAQEAAAAWAhIAAABsaXF1aWRpdHlfcHJvdmlkZXILEAAAAG1heF90b2tlbl9hbW91bnQbJQAAAAgAAABUcmFuc2ZlcgEBAAAAFAAGAAAACAAAAHRva2VuX2lkHQASAAAAbGlxdWlkaXR5X3Byb3ZpZGVyCwgAAABidXlfcmF0ZRQAAgAAAAkAAABudW1lcmF0b3IFCwAAAGRlbm9taW5hdG9yBQkAAABzZWxsX3JhdGUUAAIAAAAJAAAAbnVtZXJhdG9yBQsAAABkZW5vbWluYXRvcgUQAAAAbWF4X3Rva2VuX2Ftb3VudBslAAAAEwAAAG1heF9jdXJyZW5jeV9hbW91bnQbJQAAAAkAAABFeGNoYW5nZWQBAQAAABQACAAAAA4AAAB0b2tlbl9jb250cmFjdAwIAAAAdG9rZW5faWQdAAYAAABzZWxsZXILBQAAAGJ1eWVyCwwAAAB0b2tlbl9hbW91bnQbJQAAAAQAAAByYXRlFAACAAAACQAAAG51bWVyYXRvcgULAAAAZGVub21pbmF0b3IFDwAAAGN1cnJlbmN5X2Ftb3VudBslAAAADQAAAGV4Y2hhbmdlX3R5cGUVAwAAAAMAAABCdXkCBAAAAFNlbGwCBAAAAE1pbnQCDQAAAE1hcmtldFJlbW92ZWQBAQAAAAw=";
 export const ENTRYPOINTS: Record<string, EntrypointName.Type> = {
-	cancelSell: EntrypointName.fromString("cancelSell"),
-	exchange: EntrypointName.fromString("exchange"),
-	forceCancelSell: EntrypointName.fromString("forceCancelSell"),
-	getDeposit: EntrypointName.fromString("getDeposit"),
+	addAgent: EntrypointName.fromString("addAgent"),
+	addMarket: EntrypointName.fromString("addMarket"),
+	buy: EntrypointName.fromString("buy"),
+	getMarket: EntrypointName.fromString("getMarket"),
+	mint: EntrypointName.fromString("mint"),
+	removeAgent: EntrypointName.fromString("removeAgent"),
+	removeMarket: EntrypointName.fromString("removeMarket"),
 	sell: EntrypointName.fromString("sell"),
-	transferExchange: EntrypointName.fromString("transferExchange"),
-	transferSell: EntrypointName.fromString("transferSell"),
 };
 export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
-	cancelSell: "Cancel Sell",
-	exchange: "Exchange",
-	forceCancelSell: "Force Cancel Sell",
-	getDeposit: "Get Deposit",
+	addAgent: "Add Agent",
+	addMarket: "Add Market",
+	buy: "Buy",
+	getMarket: "Get Market",
+	mint: "Mint",
+	removeAgent: "Remove Agent",
+	removeMarket: "Remove Market",
 	sell: "Sell",
-	transferExchange: "Transfer Exchange",
-	transferSell: "Transfer Sell",
 };
 export const securityP2PTrading = {
 	init: new InitMethod<initRequest>(
 		ModuleReference.fromHexString(
-			"880eb7f7268e366d8683d9cc70a8a0d8d673e88c9d9edce7af37b90f184546a1",
+			"9efbc2838e63d709887abd6055c5317e76006f23e4fe94302f86d8871d121674",
 		),
 		ContractName.fromString("security_p2p_trading"),
 		initRequestSchemaBase64,
 	),
-	cancelSell: new ReceiveMethod<never, never, CancelSellError>(
+	addAgent: new ReceiveMethod<AddAgentRequest>(
 		ContractName.fromString("security_p2p_trading"),
-		EntrypointName.fromString("cancelSell"),
-		undefined,
-		undefined,
-		cancelSellErrorSchemaBase64,
+		EntrypointName.fromString("addAgent"),
+		addAgentRequestSchemaBase64,
 	),
-	exchange: new ReceiveMethod<ExchangeRequest, never, ExchangeError>(
+	addMarket: new ReceiveMethod<AddMarketRequest>(
 		ContractName.fromString("security_p2p_trading"),
-		EntrypointName.fromString("exchange"),
-		exchangeRequestSchemaBase64,
-		undefined,
-		exchangeErrorSchemaBase64,
+		EntrypointName.fromString("addMarket"),
+		addMarketRequestSchemaBase64,
 	),
-	forceCancelSell: new ReceiveMethod<
-		ForceCancelSellRequest,
-		never,
-		ForceCancelSellError
-	>(
+	buy: new ReceiveMethod<BuyRequest, never, BuyError>(
 		ContractName.fromString("security_p2p_trading"),
-		EntrypointName.fromString("forceCancelSell"),
-		forceCancelSellRequestSchemaBase64,
+		EntrypointName.fromString("buy"),
+		buyRequestSchemaBase64,
 		undefined,
-		forceCancelSellErrorSchemaBase64,
+		buyErrorSchemaBase64,
 	),
-	getDeposit: new ReceiveMethod<GetDepositRequest, GetDepositResponse>(
+	getMarket: new ReceiveMethod<GetMarketRequest>(
 		ContractName.fromString("security_p2p_trading"),
-		EntrypointName.fromString("getDeposit"),
-		getDepositRequestSchemaBase64,
-		getDepositResponseSchemaBase64,
+		EntrypointName.fromString("getMarket"),
+		getMarketRequestSchemaBase64,
+	),
+	mint: new ReceiveMethod<MintRequest, never, MintError>(
+		ContractName.fromString("security_p2p_trading"),
+		EntrypointName.fromString("mint"),
+		mintRequestSchemaBase64,
+		undefined,
+		mintErrorSchemaBase64,
+	),
+	removeAgent: new ReceiveMethod<RemoveAgentRequest>(
+		ContractName.fromString("security_p2p_trading"),
+		EntrypointName.fromString("removeAgent"),
+		removeAgentRequestSchemaBase64,
+	),
+	removeMarket: new ReceiveMethod<RemoveMarketRequest>(
+		ContractName.fromString("security_p2p_trading"),
+		EntrypointName.fromString("removeMarket"),
+		removeMarketRequestSchemaBase64,
 	),
 	sell: new ReceiveMethod<SellRequest, never, SellError>(
 		ContractName.fromString("security_p2p_trading"),
@@ -232,28 +313,6 @@ export const securityP2PTrading = {
 		sellRequestSchemaBase64,
 		undefined,
 		sellErrorSchemaBase64,
-	),
-	transferExchange: new ReceiveMethod<
-		TransferExchangeRequest,
-		never,
-		TransferExchangeError
-	>(
-		ContractName.fromString("security_p2p_trading"),
-		EntrypointName.fromString("transferExchange"),
-		transferExchangeRequestSchemaBase64,
-		undefined,
-		transferExchangeErrorSchemaBase64,
-	),
-	transferSell: new ReceiveMethod<
-		TransferSellRequest,
-		never,
-		TransferSellError
-	>(
-		ContractName.fromString("security_p2p_trading"),
-		EntrypointName.fromString("transferSell"),
-		transferSellRequestSchemaBase64,
-		undefined,
-		transferSellErrorSchemaBase64,
 	),
 	deserializeEvent: (event: ContractEvent.Type): event => {
 		return ContractEvent.parseWithSchemaTypeBase64(

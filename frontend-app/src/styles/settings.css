@@ -1,0 +1,228 @@
+.settings {
+	padding: 0 15px;
+}
+.settings .outerboxshadow {
+	padding: 20px 20px 0 20px;
+	box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
+}
+.settings .guides {
+	display: inline-block;
+	padding-top: 10px;
+	font-weight: 500;
+	color: rgba(15, 180, 4, 1);
+	text-transform: uppercase;
+	text-decoration: none;
+}
+.settings a.guides {
+	cursor: pointer;
+}
+.settings a.guides.disabled {
+	cursor: not-allowed;
+	color: rgba(15, 180, 4, 0.5);
+}
+.settings .guides.margin {
+	margin-left: 60px;
+}
+.settings .heading {
+	font-size: 24px;
+	font-weight: 600;
+	margin-bottom: 20px;
+}
+.setting-block {
+	padding: 30px;
+}
+.setting-block .heading {
+	font-size: 20px;
+}
+.setting-block .name {
+	font-size: 16px;
+	font-weight: 600;
+	color: rgba(51, 51, 51, 0.8);
+	margin-bottom: 10px;
+}
+.setting-block .email {
+	color: rgba(51, 51, 51, 0.8);
+	margin-bottom: 10px;
+}
+.setting-block .email.mr {
+	margin-bottom: 47px;
+}
+.setting-block .reg {
+	color: rgba(51, 51, 51, 0.8);
+	margin-bottom: 20px;
+	font-weight: 600;
+}
+.setting-block .action {
+	padding: 0 20%;
+}
+.setting-block .action.pdtop {
+	padding-top: 80px;
+}
+.setting-block .st {
+	padding-top: 20px;
+}
+.setting-block .st span {
+	padding-top: 10px;
+	display: inline-block;
+}
+.setting-block .st span img {
+	position: relative;
+	margin-right: 10px;
+	top: 2px;
+}
+.setting-block .letter {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	background: rgba(172, 221, 180, 1);
+	font-weight: 500;
+	text-align: center;
+	font-size: 22px;
+	line-height: 60px;
+	color: rgba(107, 107, 107, 0.7);
+	margin: auto;
+	margin-bottom: 20px;
+}
+.settings .linkbox {
+	border: 1px solid rgba(15, 180, 4, 1);
+	text-align: center;
+	margin-bottom: 20px;
+	padding: 25px;
+}
+.settings .linkbox .title {
+	text-transform: uppercase;
+	color: initial;
+	margin-bottom: 15px;
+	font-weight: 500;
+}
+.settings .linkbox .description {
+	color: initial;
+}
+.settings .linkbox a {
+	text-decoration: none;
+}
+
+.edo .head {
+	font-weight: 500;
+	margin-bottom: 10px;
+}
+.edo .headlink {
+	color: rgba(15, 180, 4, 1);
+	cursor: pointer;
+}
+.edo .headlink.danger {
+	color: red;
+}
+.edo .boxl {
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+.edo .boxl img {
+	cursor: pointer;
+}
+.edo .boxt {
+	width: 100%;
+	height: 36px;
+	padding: 0 15px;
+	border: 1px solid rgba(215, 219, 208, 1);
+	border-radius: 4px;
+	font-family: Arial, Helvetica, sans-serif;
+	background-color: transparent;
+}
+.edo textarea.boxt {
+	height: 100px;
+	padding: 10px 15px;
+}
+.edo .boxt:focus {
+	outline: none;
+}
+.edo .boxt.withedit {
+	width: 80%;
+}
+.edo .boxt.error {
+	border: 1px solid red;
+}
+.edo .twofactor {
+	color: rgba(153, 153, 153, 1);
+}
+.edo .twofactor.enabled {
+	color: rgba(15, 180, 4, 1);
+}
+.edo .twofactor img {
+	position: relative;
+	margin-right: 10px;
+	top: 2px;
+}
+.edo .saverow {
+	margin-top: 8px;
+	cursor: pointer;
+	border: 0;
+	background: none;
+}
+.edo .letter {
+	width: 88px;
+	height: 88px;
+	border-radius: 50%;
+	background: rgba(172, 221, 180, 1);
+	font-weight: 500;
+	text-align: center;
+	font-size: 22px;
+	line-height: 80px;
+	color: rgba(107, 107, 107, 0.7);
+	margin: auto;
+	margin-bottom: 10px;
+}
+.edo .Avatar {
+	width: 88px;
+	height: 88px;
+}
+.edo .links {
+	text-align: center;
+}
+.edo .links .link-button {
+	text-transform: uppercase;
+	text-align: center;
+	color: rgba(15, 180, 4, 1);
+	cursor: pointer;
+	padding: 0 10px;
+	font-weight: 500;
+}
+.edo .links .link-button[disabled] {
+	color: rgba(15, 180, 4, 0.5);
+	cursor: not-allowed;
+}
+.edo .links .link-button.danger {
+	color: red;
+}
+.edo .links .link-button.danger[disabled] {
+	color: rgb(255, 139, 139);
+	cursor: not-allowed;
+}
+.edo .inputotp {
+	border: 1px solid #ccc; /* Light gray border */
+	border-radius: 8px; /* Rounded borders */
+	padding: 10px;
+	margin: 5px;
+	font-size: 26px;
+	width: 48px; /* Fixed width */
+	text-align: center;
+}
+.edo .inputotp.error {
+	border: 1px solid red;
+}
+.edo .inputotp:focus {
+	outline: none;
+	border-color: #666; /* Darker border when focused */
+}
+.edo .sty.Sent {
+	color: rgba(255, 138, 0, 1);
+}
+.edo .sty.Accepted {
+	color: rgba(15, 180, 4, 1);
+}
+.edo .styremove {
+	cursor: pointer;
+}
+.edo .styremove[disabled] {
+	cursor: not-allowed;
+}

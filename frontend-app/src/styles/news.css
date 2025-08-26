@@ -1,0 +1,46 @@
+.news {
+	padding: 0 15px;
+}
+.news .outerboxshadow {
+	padding: 20px 20px 0 20px;
+	box-shadow: 0px 0px 20px -4px rgba(71, 102, 68, 0.15);
+}
+.news .seeall {
+	display: inline-block;
+	width: 100%;
+	padding-top: 10px;
+	font-weight: 500;
+	color: rgba(15, 180, 4, 1);
+}
+.news .seeall.disabled {
+	color: rgba(15, 180, 4, 0.5);
+	cursor: not-allowed;
+}
+.news .linkbox {
+	border: 1px solid rgba(235, 235, 235, 1);
+	margin-bottom: 20px;
+	padding: 25px;
+}
+.news .linkbox .title {
+	text-transform: uppercase;
+	color: initial;
+	margin-bottom: 15px;
+	font-weight: 500;
+}
+.news .linkbox .description {
+	color: initial;
+	line-height: 24px;
+}
+.news .linkbox a {
+	text-decoration: none;
+}
+.news .heading {
+	font-size: 24px;
+	font-weight: 600;
+	margin-bottom: 20px;
+}
+.news .content {
+	color: initial;
+	line-height: 24px;
+	padding-bottom: 20px;
+}

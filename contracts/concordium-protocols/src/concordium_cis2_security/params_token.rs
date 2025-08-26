@@ -1,10 +1,115 @@
-use concordium_cis2::{IsTokenAmount, IsTokenId, Receiver};
-use concordium_std::{AccountAddress, Address, ContractAddress, SchemaType, Serialize};
+use concordium_cis2::{IsTokenId, Receiver};
+use concordium_std::{ensure, Address, ContractAddress, MetadataUrl, SchemaType, Serialize};
+
+use crate::concordium_cis2_ext::IsTokenAmount;
+
+#[derive(Serialize, SchemaType)]
+pub struct AddTokenParams<T, M: Into<MetadataUrl>> {
+    pub token_id:       T,
+    pub token_metadata: M,
+}
+
+#[derive(Serialize, Clone, Copy, SchemaType)]
+pub struct SecurityParams {
+    pub identity_registry: ContractAddress,
+    pub compliance:        ContractAddress,
+}
+
+#[derive(Serialize, Clone, Copy, SchemaType)]
+pub struct TokenAmountSecurity<A: IsTokenAmount> {
+    pub frozen:    A,
+    pub un_frozen: A,
+}
+
+pub enum TokenAmountSecurityError {
+    InsufficientFunds,
+}
+
+impl<A: IsTokenAmount> TokenAmountSecurity<A> {
+    pub fn new_frozen(frozen: A) -> Self {
+        Self {
+            frozen,
+            un_frozen: A::zero(),
+        }
+    }
+
+    pub fn new_un_frozen(un_frozen: A) -> Self {
+        Self {
+            frozen: A::zero(),
+            un_frozen,
+        }
+    }
+
+    pub fn total(&self) -> A { self.frozen + self.un_frozen }
+
+    pub fn gt(&self, other: &A) -> bool { self.total().gt(other) }
+
+    pub fn sub_assign_unfrozen(
+        &mut self,
+        amount: A,
+        forced: bool,
+    ) -> Result<A, TokenAmountSecurityError> {
+        match (self.un_frozen.ge(&amount), forced) {
+            (true, _) => {
+                self.un_frozen -= amount;
+                Ok(A::zero())
+            }
+            (false, false) => Err(TokenAmountSecurityError::InsufficientFunds),
+            (false, true) => {
+                let to_un_freeze = amount - self.un_frozen;
+                if self.frozen.lt(&to_un_freeze) {
+                    return Err(TokenAmountSecurityError::InsufficientFunds);
+                }
+                self.un_frozen = A::zero();
+                self.frozen -= to_un_freeze;
+                Ok(to_un_freeze)
+            }
+        }
+    }
+
+    pub fn add_assign_unfrozen(&mut self, amount: A) { self.un_frozen += amount; }
+
+    pub fn add_assign(&mut self, other: Self) {
+        self.frozen += other.frozen;
+        self.un_frozen += other.un_frozen;
+    }
+
+    pub fn freeze(&mut self, amount: A) -> Result<(), TokenAmountSecurityError> {
+        ensure!(
+            self.un_frozen.ge(&amount),
+            TokenAmountSecurityError::InsufficientFunds
+        );
+        self.frozen += amount;
+        self.un_frozen -= amount;
+
+        Ok(())
+    }
+
+    pub fn un_freeze(&mut self, amount: A) -> Result<(), TokenAmountSecurityError> {
+        ensure!(
+            self.frozen.ge(&amount),
+            TokenAmountSecurityError::InsufficientFunds
+        );
+        self.frozen -= amount;
+        self.un_frozen += amount;
+
+        Ok(())
+    }
+}
+
+impl<A: IsTokenAmount> Default for TokenAmountSecurity<A> {
+    fn default() -> Self {
+        Self {
+            frozen:    A::zero(),
+            un_frozen: A::zero(),
+        }
+    }
+}
 
 #[derive(Serialize, SchemaType)]
 pub struct MintParam<A: IsTokenAmount> {
-    pub address: AccountAddress,
-    pub amount:  A,
+    pub address: concordium_cis2::Receiver,
+    pub amount:  TokenAmountSecurity<A>,
 }
 
 #[derive(Serialize, SchemaType)]
@@ -64,7 +169,7 @@ pub struct Agent {
     pub address: Address,
 }
 
-#[derive(Serialize, SchemaType, Clone)]
+#[derive(Serialize, SchemaType, Clone, Debug)]
 pub struct AgentWithRoles<TAgentRole> {
     pub address: Address,
     pub roles:   Vec<TAgentRole>,
@@ -98,4 +203,15 @@ impl<T: IsTokenId> TokenOwnerUId<T> {
 
 impl<T: Eq+IsTokenId> TokenOwnerUId<T> {
     pub fn matches_token(&self, token_id: &TokenUId<T>) -> bool { self.token_id.eq(token_id) }
+}
+
+#[derive(Serialize, SchemaType)]
+pub struct SetTokenMetadataParam<T, M: Into<MetadataUrl>> {
+    pub token_id:       T,
+    pub token_metadata: M,
+}
+
+#[derive(Serialize, SchemaType)]
+pub struct SetTokenMetadataParams<T, M: Into<MetadataUrl>> {
+    pub params: Vec<SetTokenMetadataParam<T, M>>,
 }

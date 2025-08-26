@@ -1,0 +1,2 @@
+DROP VIEW IF EXISTS holder_yields CASCADE;
+DROP VIEW IF EXISTS affiliate_claims CASCADE;

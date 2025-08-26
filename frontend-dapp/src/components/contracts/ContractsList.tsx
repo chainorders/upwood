@@ -89,7 +89,10 @@ const ContractGroup = (props: {
 			})}
 			{props.onInit && (
 				<InitListItem onClick={() => props.onInit!(props.contractType)}>
-					Initialize new {props.contractType}
+					Add{" "}
+					<Typography component="span" variant="body1" fontStyle="italic">
+						{props.contractType}
+					</Typography>
 				</InitListItem>
 			)}
 		</>

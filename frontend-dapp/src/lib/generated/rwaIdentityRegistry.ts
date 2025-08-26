@@ -354,7 +354,7 @@ export const ENTRYPOINT_DISPLAY_NAMES: Record<string, string> = {
 export const rwaIdentityRegistry = {
 	init: new InitMethod<void>(
 		ModuleReference.fromHexString(
-			"5def22626aa03db5f093a7f0c82270a19f8b5b34b3711892a530ba804bbb8b2a",
+			"98a7667b11f3a86871b6c519f3218133c505a469365b149407eee4911ee5bb2b",
 		),
 		ContractName.fromString("rwa_identity_registry"),
 	),

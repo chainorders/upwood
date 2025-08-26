@@ -3,11 +3,12 @@ mod state;
 pub mod types;
 
 use concordium_cis2::*;
-use concordium_protocols::concordium_cis2_ext::PlusSubOne;
-use concordium_protocols::concordium_cis2_security::TokenUId;
+use concordium_protocols::concordium_cis2_security::cis2_security_client::Cis2SecurityClient;
+use concordium_protocols::concordium_cis2_security::Burn;
 use concordium_std::*;
+pub use concordium_std::{MetadataUrl, Timestamp};
 use error::Error;
-use state::{AddressState, State};
+use state::{HolderState, State};
 use types::*;
 
 const SUPPORTS_STANDARDS: [StandardIdentifier<'static>; 2] =
@@ -26,11 +27,12 @@ pub fn init(
     logger: &mut Logger,
 ) -> InitResult<State> {
     let params: InitParam = ctx.parameter_cursor().get()?;
+    let reward_token = params.reward_token;
     let state = State {
-        reward_token:  params.reward_token.clone(),
+        reward_token,
         curr_token_id: 0.into(),
-        tokens:        state_builder.new_map(),
-        addresses:     state_builder.new_map(),
+        tokens: state_builder.new_map(),
+        addresses: state_builder.new_map(),
     };
     logger.log(&Event::RewardTokenUpdated(params))?;
 
@@ -46,7 +48,11 @@ pub fn init(
 )]
 pub fn is_agent(ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<bool> {
     let agent: Agent = ctx.parameter_cursor().get()?;
-    let is_agent = host.state().address(&agent.address).is_some();
+    let is_agent = host
+        .state()
+        .addresses
+        .get(&agent.address)
+        .is_some_and(|a| a.is_agent);
     Ok(is_agent)
 }
 
@@ -68,8 +74,12 @@ pub fn add_agent(
         ctx.sender().matches_account(&ctx.owner()),
         Error::Unauthorized
     );
-    host.state_mut()
-        .add_address(params.address, AddressState::Agent)?;
+    let (state, state_builder) = host.state_and_builder();
+    state
+        .addresses
+        .entry(params.address)
+        .or_insert_with(|| HolderState::new(state_builder))
+        .modify(|a| a.is_agent = true);
     logger.log(&Event::AgentAdded(params.address))?;
 
     Ok(())
@@ -93,8 +103,13 @@ pub fn remove_agent(
         Error::Unauthorized
     );
     let address: Address = ctx.parameter_cursor().get()?;
-    let state = host.state_mut().remove_and_get_address(&address)?;
-    state.agent().ok_or(Error::InvalidAddress)?;
+    host.state_mut()
+        .addresses
+        .get_mut(&address)
+        .map_or(Err(Error::InvalidAddress), |mut a| {
+            a.is_agent = false;
+            Ok(())
+        })?;
     logger.log(&&Event::AgentRemoved(address))?;
 
     Ok(())
@@ -118,13 +133,15 @@ pub fn update_operator(
     let (state, state_builder) = host.state_and_builder();
 
     for UpdateOperator { operator, update } in updates {
-        let mut holder = state.address_or_insert_holder(&sender, state_builder);
-        let holder = holder.holder_mut().ok_or(Error::InvalidAddress)?;
+        state
+            .addresses
+            .entry(sender)
+            .or_insert_with(|| HolderState::new(state_builder))
+            .modify(|a| match update {
+                OperatorUpdate::Add => a.operators.insert(operator),
+                OperatorUpdate::Remove => a.operators.remove(&operator),
+            });
 
-        match update {
-            OperatorUpdate::Add => holder.add_operator(operator),
-            OperatorUpdate::Remove => holder.remove_operator(&operator),
-        }
         logger.log(&Event::Cis2(Cis2Event::UpdateOperator(
             UpdateOperatorEvent {
                 operator,
@@ -152,9 +169,10 @@ pub fn operator_of(
     let mut res = Vec::with_capacity(queries.len());
 
     for query in queries {
-        let is_operator = state.address(&query.owner).map_or(false, |h| {
-            h.holder().map_or(false, |h| h.has_operator(&query.address))
-        });
+        let is_operator = state
+            .addresses
+            .get(&query.owner)
+            .map_or(false, |a| a.operators.contains(&query.address));
         res.push(is_operator);
     }
 
@@ -176,13 +194,18 @@ pub fn balance_of(
     let mut res: Vec<TokenAmount> = Vec::with_capacity(queries.len());
     let state = host.state();
     for query in queries {
-        state.token(&query.token_id).ok_or(Error::InvalidTokenId)?;
-        let balance: TokenAmount = state
-            .address(&query.address)
-            .and_then(|a| a.holder().map(|h| h.balance(&query.token_id)))
-            .map(|v| if v { 1.into() } else { 0.into() })
-            .unwrap_or(0.into());
+        let balance = state.addresses.get(&query.address).map_or(0.into(), |a| {
+            if a.balances.contains(&query.token_id) {
+                1.into()
+            } else {
+                0.into()
+            }
+        });
         res.push(balance);
+        ensure!(
+            state.tokens.get(&query.token_id).is_some(),
+            Error::InvalidTokenId
+        );
     }
     Ok(concordium_cis2::BalanceOfQueryResponse(res))
 }
@@ -224,11 +247,54 @@ pub fn token_metadata(
     let state = host.state();
     let mut res = Vec::with_capacity(queries.len());
     for query in queries {
-        let metadata_url = state.token(&query).ok_or(Error::InvalidTokenId)?.clone();
+        let metadata_url = state
+            .tokens
+            .get(&query)
+            .ok_or(Error::InvalidTokenId)?
+            .clone();
         res.push(metadata_url);
     }
 
     Ok(TokenMetadataQueryResponse(res))
+}
+
+#[receive(
+    contract = "nft_multi_rewarded",
+    name = "setTokenMetadata",
+    parameter = "SetTokenMetadataParams",
+    enable_logger,
+    mutable,
+    error = "Error"
+)]
+pub fn set_token_metadata(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let SetTokenMetadataParams { params }: SetTokenMetadataParams = ctx.parameter_cursor().get()?;
+    let state = host.state_mut();
+    let is_authorized = state
+        .addresses
+        .get(&ctx.sender())
+        .map_or(false, |a| a.is_agent);
+    ensure!(is_authorized, Error::Unauthorized);
+
+    for SetTokenMetadataParam {
+        token_id,
+        token_metadata,
+    } in params
+    {
+        state
+            .tokens
+            .entry(token_id)
+            .occupied_or(Error::InvalidTokenId)?
+            .modify(|metadata| *metadata = token_metadata.clone().into());
+        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+            metadata_url: token_metadata.into(),
+            token_id,
+        })))?;
+    }
+    Ok(())
 }
 
 #[receive(
@@ -261,20 +327,25 @@ pub fn transfer(
         // Transfer token
         let (state, state_builder) = host.state_and_builder();
         {
-            let mut from_holder = state.address_mut(&from).ok_or(Error::InvalidAddress)?;
-            let from_holder = from_holder.holder_mut().ok_or(Error::InvalidAddress)?;
+            let mut from_holder = state
+                .addresses
+                .get_mut(&from)
+                .ok_or(Error::InvalidAddress)?;
             ensure!(
-                from.eq(&sender) || from_holder.has_operator(&sender),
+                from.eq(&sender) || from_holder.operators.contains(&sender),
                 Error::Unauthorized
             );
-            from_holder.remove_balance(&token_id);
+            ensure!(
+                from_holder.balances.remove(&token_id),
+                Error::InsufficientFunds
+            );
         };
 
         state
-            .address_or_insert_holder(&to.address(), state_builder)
-            .holder_mut()
-            .ok_or(Error::InvalidAddress)?
-            .add_balance(token_id);
+            .addresses
+            .entry(to.address())
+            .or_insert_with(|| HolderState::new(state_builder))
+            .modify(|a| a.balances.insert(token_id));
 
         logger.log(&Event::Cis2(Cis2Event::Transfer(TransferEvent {
             amount,
@@ -305,12 +376,36 @@ pub fn transfer(
 }
 
 #[derive(Serialize, SchemaType)]
-pub struct SignedMetadataUrls {
-    pub metadata_urls: Vec<MetadataUrl>,
-    pub agent_account: AccountAddress,
-    pub signature:     AccountSignatures,
+pub struct MintParams {
+    pub signed_metadata: SignedMetadata,
+    pub signer:          AccountAddress,
+    pub signature:       AccountSignatures,
 }
-pub type MintParams = OnReceivingCis2DataParams<RewardTokenId, TokenAmountU64, SignedMetadataUrls>;
+
+#[derive(Serialize, SchemaType)]
+pub struct SignedMetadata {
+    pub contract_address: ContractAddress,
+    pub metadata_url:     MetadataUrl,
+    pub account:          AccountAddress,
+    pub account_nonce:    u64,
+}
+
+impl From<&SignedMetadata> for Vec<u8> {
+    fn from(val: &SignedMetadata) -> Self {
+        let mut data = Vec::new();
+        val.serial(&mut data).unwrap();
+        data
+    }
+}
+
+impl SignedMetadata {
+    pub fn hash<T>(&self, hasher: T) -> ContractResult<[u8; 32]>
+    where T: FnOnce(Vec<u8>) -> [u8; 32] {
+        let hash: Vec<u8> = self.into();
+        let hash = hasher(hash);
+        Ok(hash)
+    }
+}
 
 #[receive(
     contract = "nft_multi_rewarded",
@@ -328,80 +423,133 @@ pub fn mint(
     crypto_primitives: &CryptoPrimitives,
 ) -> ContractResult<()> {
     let MintParams {
-        token_id,
-        amount,
-        from,
-        data: signed_metadata_urls,
-    }: MintParams = ctx.parameter_cursor().get()?;
+        signed_metadata,
+        signer: agent,
+        signature,
+    } = ctx.parameter_cursor().get()?;
     ensure!(
-        amount
-            .0
-            .eq(&(signed_metadata_urls.metadata_urls.len() as u64)),
-        Error::InvalidAmount
+        signed_metadata.contract_address.eq(&ctx.self_address()),
+        Error::InvalidContractAddress
     );
-    let data_to_hash = to_data(&signed_metadata_urls.metadata_urls)?;
-    let hash: HashSha3256 = crypto_primitives.hash_sha3_256(&data_to_hash);
+    let hash = signed_metadata.hash(|data| crypto_primitives.hash_sha2_256(&data).0)?;
     ensure!(
-        host.check_account_signature(
-            signed_metadata_urls.agent_account,
-            &signed_metadata_urls.signature,
-            &hash.0
-        )
-        .map_err(|_| { Error::UnauthorizedCheckSignature })?,
-        Error::UnauthorizedInvalidSignature
-    );
-
-    let reward_token = TokenUId {
-        id:       token_id,
-        contract: match ctx.sender() {
-            Address::Account(_) => bail!(Error::Unauthorized),
-            Address::Contract(contract) => contract,
-        },
-    };
-    let state: &State = host.state();
-    ensure!(
-        state.reward_token.eq(&reward_token),
-        Error::InvalidRewardToken
-    );
-    ensure!(
-        state
-            .address(&signed_metadata_urls.agent_account.into())
-            .map(|a| a.agent().is_some())
-            .is_some_and(|v| v),
-        Error::UnauthorizedInvalidAgent
+        host.check_account_signature(agent, &signature, &hash)
+            .map_err(|_| Error::CheckSignature)?,
+        Error::InvalidSignature
     );
 
     let (state, builder) = host.state_and_builder();
-    for metadata_url in signed_metadata_urls.metadata_urls {
-        let curr_token_id = state.curr_token_id;
-        state.curr_token_id = curr_token_id.plus_one();
-
-        state.add_token(curr_token_id, metadata_url.clone())?;
-        let mut holder = state.address_or_insert_holder(&from, builder);
-        holder
-            .holder_mut()
-            .ok_or(Error::InvalidAddress)?
-            .add_balance(curr_token_id);
-
-        logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
-            token_id: curr_token_id,
-            metadata_url,
-        })))?;
-        logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
-            token_id: curr_token_id,
-            amount:   1.into(),
-            owner:    from,
-        })))?;
-    }
+    ensure!(
+        state
+            .addresses
+            .get(&agent.into())
+            .is_some_and(|a| a.is_agent),
+        Error::UnauthorizedInvalidAgent
+    );
+    let (..) = mint_token(
+        state,
+        builder,
+        signed_metadata.account.into(),
+        signed_metadata.metadata_url,
+        Some(signed_metadata.account_nonce),
+        logger,
+    )?;
+    let reward_token = state.reward_token;
+    host.invoke_burn_single(&reward_token.contract, Burn {
+        amount:   TokenAmountU64(1),
+        token_id: reward_token.id,
+        owner:    signed_metadata.account.into(),
+    })
+    .map_err(|_| Error::BurnError)?;
 
     Ok(())
 }
 
-fn to_data(metadata_urls: &[MetadataUrl]) -> ContractResult<Vec<u8>> {
-    let mut data = Vec::new();
-    for url in metadata_urls {
-        url.serial(&mut data)
-            .map_err(|_| Error::MetadataUrlSerialization)?;
-    }
-    Ok(data)
+#[derive(Serialize, SchemaType)]
+pub struct MintAgentParams {
+    pub metadata_url: ContractMetadataUrl,
+    pub account:      AccountAddress,
+}
+
+#[receive(
+    contract = "nft_multi_rewarded",
+    name = "mintAgent",
+    mutable,
+    parameter = "MintAgentParams",
+    error = "Error",
+    enable_logger
+)]
+pub fn mint_agent(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut Logger,
+) -> ContractResult<()> {
+    let MintAgentParams {
+        account: owner,
+        metadata_url,
+    }: MintAgentParams = ctx.parameter_cursor().get()?;
+    let owner: Address = owner.into();
+    let (state, builder) = host.state_and_builder();
+    let is_agent = state
+        .addresses
+        .get(&ctx.sender())
+        .map(|a| a.is_agent)
+        .unwrap_or(false);
+    ensure!(is_agent, Error::UnauthorizedInvalidAgent);
+
+    mint_token(state, builder, owner, metadata_url.into(), None, logger)?;
+    let reward_token = state.reward_token;
+    host.invoke_burn_single(&reward_token.contract, Burn {
+        amount: TokenAmountU64(1),
+        token_id: reward_token.id,
+        owner,
+    })
+    .map_err(|_| Error::BurnError)?;
+    Ok(())
+}
+
+/// Mints a new token and assigns it to the given owner.
+/// Returns the minted token ID and the new nonce.
+fn mint_token(
+    state: &mut State,
+    builder: &mut StateBuilder,
+    owner: Address,
+    metadata_url: MetadataUrl,
+    account_nonce: Option<u64>,
+    logger: &mut Logger,
+) -> ContractResult<(TokenIdU64, u64)> {
+    let curr_token_id = state.curr_token_id;
+    state
+        .tokens
+        .entry(curr_token_id)
+        .vacant_or(Error::InvalidTokenId)?
+        .insert(metadata_url.clone());
+
+    let nonce = state
+        .addresses
+        .entry(owner)
+        .or_insert_with(|| HolderState::new(builder))
+        .try_modify(|holder| {
+            if let Some(account_nonce) = account_nonce {
+                ensure!(holder.nonce.eq(&account_nonce), Error::InvalidNonce);
+            }
+            holder.balances.insert(curr_token_id);
+            holder.nonce += 1;
+            Ok(holder.nonce)
+        })?;
+    state.curr_token_id = TokenIdU64(curr_token_id.0 + 1);
+
+    // logs
+    logger.log(&Event::Cis2(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        token_id: curr_token_id,
+        metadata_url,
+    })))?;
+    logger.log(&Event::Cis2(Cis2Event::Mint(MintEvent {
+        token_id: curr_token_id,
+        amount: 1.into(),
+        owner,
+    })))?;
+    logger.log(&Event::NonceUpdated(owner, nonce))?;
+
+    Ok((curr_token_id, nonce))
 }

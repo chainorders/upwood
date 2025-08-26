@@ -1,14 +1,19 @@
-use concordium_cis2::{Cis2Event, TokenIdU32, TokenIdU64};
+use concordium_cis2::{Cis2Event, TokenIdU64, TokenIdUnit};
 use concordium_protocols::concordium_cis2_ext;
 use concordium_protocols::concordium_cis2_security::{self, TokenUId};
-use concordium_std::{Address, SchemaType, Serialize};
+use concordium_std::{Address, Cursor, SchemaType, Serialize};
 
 use super::error::Error;
 
 pub type ContractResult<R> = Result<R, Error>;
 pub type TokenAmount = concordium_cis2::TokenAmountU8;
 pub type TokenId = TokenIdU64;
-pub type RewardTokenId = TokenIdU32;
+
+/// The reward token id is a unit type, as it is not used in the contract. This also means that only fungible tokens can be used as reward tokens.
+/// This should match the token id type used in `security-sft-single` contract.
+pub type RewardTokenId = TokenIdUnit;
+/// The reward token is a u64, as it is used in the contract.
+/// This should match the token type used in `security-sft-single` contract.
 pub type RewardTokenAmount = concordium_cis2::TokenAmountU64;
 
 pub type Agent = concordium_cis2_security::Agent;
@@ -20,6 +25,11 @@ pub type BalanceOfQueryResponse = concordium_cis2::BalanceOfQueryResponse<TokenA
 pub type MintParams = concordium_cis2_security::MintParams<TokenId, TokenAmount>;
 pub type MintParam = concordium_cis2_security::MintParam<TokenAmount>;
 pub use concordium_cis2_ext::ContractMetadataUrl;
+pub use concordium_std::ContractAddress;
+pub type SetTokenMetadataParams =
+    concordium_cis2_security::SetTokenMetadataParams<TokenId, ContractMetadataUrl>;
+pub type SetTokenMetadataParam =
+    concordium_cis2_security::SetTokenMetadataParam<TokenId, ContractMetadataUrl>;
 
 #[derive(Serialize, SchemaType, Debug)]
 pub struct InitParam {
@@ -30,9 +40,12 @@ pub struct InitParam {
 }
 
 #[derive(Serialize, SchemaType, Debug)]
+#[concordium(repr(u8))]
 pub enum Event {
     RewardTokenUpdated(InitParam),
     AgentAdded(Address),
     AgentRemoved(Address),
+    NonceUpdated(Address, u64),
+    #[concordium(forward = cis2_events)]
     Cis2(Cis2Event<TokenId, TokenAmount>),
 }

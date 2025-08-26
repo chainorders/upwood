@@ -1,9 +1,11 @@
+use concordium_rust_sdk::base::contracts_common::ContractAddressParseError;
 use concordium_rust_sdk::cis2;
 use concordium_rust_sdk::smart_contracts::common::{AccountAddressParseError, AddressParseError};
 use concordium_rust_sdk::types::{Address, ContractAddress};
 use poem_openapi::payload::Json;
 use poem_openapi::types::{ParseFromJSON, ToJSON, Type};
 use poem_openapi::{ApiResponse, Object};
+use serde::Deserialize;
 
 pub const PAGE_SIZE: i64 = 20;
 
@@ -14,6 +16,8 @@ pub enum Error {
     ParseError,
     #[oai(status = 500)]
     InternalServerError,
+    #[oai(status = 404)]
+    NotFound,
 }
 impl From<diesel::result::Error> for Error {
     fn from(_: diesel::result::Error) -> Self { Self::InternalServerError }
@@ -30,7 +34,9 @@ impl From<AccountAddressParseError> for Error {
 impl From<AddressParseError> for Error {
     fn from(_: AddressParseError) -> Self { Self::ParseError }
 }
-
+impl From<ContractAddressParseError> for Error {
+    fn from(_: ContractAddressParseError) -> Self { Self::ParseError }
+}
 /// A wrapper around the `ContractAddress` type that can be used in the API.
 #[derive(Object, Debug, Clone, Copy, PartialEq)]
 pub struct ApiContractAddress {
@@ -84,11 +90,29 @@ impl From<Address> for ApiAddress {
 
 /// Pages Response. This is a generic response that can be used to return a list
 /// of items with pagination.
-#[derive(Object)]
+#[derive(Object, Deserialize, PartialEq, Debug)]
 pub struct PagedResponse<T: Sync+Send+Type+ToJSON+ParseFromJSON> {
     pub page_count: i64,
     pub page:       i64,
     pub data:       Vec<T>,
+}
+
+impl<T: ToJSON+ParseFromJSON+Sync+Send+Type> PagedResponse<T> {
+    pub fn new(data: Vec<T>, page: i64, page_count: i64) -> Self {
+        Self {
+            page_count,
+            page,
+            data,
+        }
+    }
+
+    pub fn into_new(data: Vec<impl Into<T>>, page: i64, page_count: i64) -> Self {
+        Self {
+            page_count,
+            page,
+            data: data.into_iter().map(|x| x.into()).collect(),
+        }
+    }
 }
 
 /// A wrapper around the `AccountAddress` type that can be used in the API.
