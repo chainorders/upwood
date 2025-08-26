@@ -14,7 +14,7 @@ RUN apt-get update \
    && apt-get -y install clang lld \
    && apt-get autoremove -y && apt-get clean -y
 RUN apt install build-essential libpq-dev
-RUN rustup default 1.81 \
+RUN rustup default 1.85 \
    && rustup target add wasm32-unknown-unknown \
    && rustup component add rustfmt clippy rust-analyzer \
    && rustup toolchain install nightly-2023-04-01 \

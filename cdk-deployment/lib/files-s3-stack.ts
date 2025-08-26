@@ -27,7 +27,7 @@ export class FilesS3Stack extends Stack {
 			removalPolicy:
 				props.organization_env === OrganizationEnv.PROD
 					? RemovalPolicy.RETAIN
-					: RemovalPolicy.DESTROY,
+					: RemovalPolicy.RETAIN,
 			publicReadAccess: true,
 			blockPublicAccess: new s3.BlockPublicAccess({
 				blockPublicAcls: false,
