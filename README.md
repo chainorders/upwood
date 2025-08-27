@@ -59,135 +59,43 @@ git submodule update --init --recursive
 
 ### 🔗 Smart Contracts (`contracts/`)
 
-**Purpose**: Concordium blockchain smart contracts written in Rust
+Concordium blockchain smart contracts written in Rust that enable forest project tokenization, carbon credit management, P2P trading, investment fund management, and comprehensive identity & compliance systems.
 
-**Container**: `.devcontainer/contracts/`
+📖 **[Full Documentation](./contracts/README.md)**
 
-**Key Components**:
-
-- 🌳 `security-sft-multi` - Forest project representation contract
-- 🍃 `security-sft-single` - Carbon credit tokenization
-- 🔄 `security-p2p-trading` - P2P trading marketplace
-- 💰 `security-mint-fund` - Investment fund management with bond support
-- 🔐 `rwa-identity-registry` - Identity & access control
-- 📝 `rwa-compliance` - Regulatory compliance (deprecated)
-- 🎁 `nft-multi-rewarded` - Authentication NFTs
-- 💎 `offchain-rewards` - Off-chain reward claims (deprecated)
-- 🏆 `security-sft-multi-yielder` - Yield distribution (deprecated)
-
-**Setup Requirements**:
-
-```bash
-# Copy your testnet wallet to:
-cp your-wallet.export .devcontainer/contracts/default_account.export
-```
-
-**Key Scripts**:
-
-- `yarn build` - Compile all contracts
-- `yarn test` - Run contract tests
-- `yarn deploy` - Deploy contracts to testnet
+🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **contracts** → Container files: [`.devcontainer/contracts/`](./.devcontainer/contracts/)
 
 ### 🔧 Backend Services (`backend/`)
 
-**Purpose**: Rust-based backend services for blockchain event processing and API management
+Rust-based backend services that process Concordium blockchain events, provide REST APIs for frontend applications, and manage data persistence using the Poem web framework and PostgreSQL databases.
 
-**Container**: `.devcontainer/backend/`
+📖 **[Full Documentation](./backend/README.md)**
 
-**Key Components**:
-
-- 📡 **Events Listener** (`events_listener/`) - Concordium blockchain event processor
-- 🔗 **API Services** (`upwood/`) - RESTful API using Poem framework
-- 📚 **Shared Library** (`shared/`) - Common database models and utilities
-- 🧪 **Shared Tests** (`shared_tests/`) - Integration test utilities
-
-**Services**:
-
-- **Listener**: Processes blockchain events and updates database
-- **API**: Provides REST endpoints for frontend applications
-- **Verifier**: Identity verification service
-- **Sponsor**: Transaction sponsorship service (deprecated)
-
-**Key Scripts**:
-
-- `yarn debug:listener` - Start blockchain event listener
-- `yarn debug:contracts-api` - Start REST API server
-- `yarn debug:verifier-api` - Start identity verification service
-- `yarn generate:client` - Generate API client code
-
-**Environment Setup**:
-
-```bash
-# Required environment variables:
-CONCORDIUM_NODE_URI=https://grpc.testnet.concordium.com:20000
-MONGODB_URI=mongodb://localhost:27017/concordium_rwa
-WEB_SERVER_ADDR=0.0.0.0:3000
-```
+🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **backend** → Container files: [`.devcontainer/backend/`](./.devcontainer/backend/)
 
 ### 🎨 Frontend Application (`frontend-app/`)
 
-**Purpose**: Modern React-based user interface built with Vite
+Modern React-based user interface built with Vite and TypeScript that provides an intuitive interface for investors to browse forest projects, manage portfolios, trade carbon credits, and interact with Concordium blockchain wallets.
 
-**Container**: `.devcontainer/frontend-app/`
+📖 **[Full Documentation](./frontend-app/README.md)**
 
-**Technology Stack**:
-
-- ⚛️ React 18 with TypeScript
-- ⚡ Vite for development and building
-- 🎨 Modern UI components
-- 🔗 Concordium wallet integration
-
-**Key Features**:
-
-- Forest project browsing and investment
-- Carbon credit marketplace
-- Portfolio management
-- Transaction history
-- Wallet integration
-
-**Key Scripts**:
-
-- `yarn dev` - Start development server (port 5173)
-- `yarn build` - Build production assets
-- `yarn preview` - Preview production build
-- `yarn lint` - Code linting
+🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **frontend-app** → Container files: [`.devcontainer/frontend-app/`](./.devcontainer/frontend-app/)
 
 ### ☁️ AWS Infrastructure (`cdk-deployment/`)
 
-**Purpose**: AWS infrastructure deployment using TypeScript and CDK
+AWS Cloud Development Kit (CDK) infrastructure as code using TypeScript that manages the complete cloud infrastructure including ECS services, databases, CDN, monitoring, and security configurations for production and staging environments.
 
-**Container**: `.devcontainer/cdk-deployment/`
+📖 **[Full Documentation](./cdk-deployment/README.md)**
 
-**Infrastructure Components**:
-
-- 🖥️ ECS services for backend applications
-- 🗄️ RDS PostgreSQL databases
-- 🌐 CloudFront CDN for frontend
-- 🔒 IAM roles and security policies
-- 📊 CloudWatch monitoring
-
-**Setup Requirements**:
-
-```bash
-# Create AWS credentials file:
-cp aws_credentials.csv.example .devcontainer/cdk-deployment/aws_accessKeys.csv
-# Edit with your AWS credentials
-```
-
-**Key Scripts**:
-
-- `yarn deploy` - Deploy infrastructure to AWS
-- `yarn diff` - Show infrastructure changes
-- `yarn destroy` - Remove deployed infrastructure
-- `yarn synth` - Generate CloudFormation templates
+🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **cdk-deployment** → Container files: [`.devcontainer/cdk-deployment/`](./.devcontainer/cdk-deployment/)
 
 ### 📱 Legacy DApp (`frontend-dapp/`)
 
-**Purpose**: Legacy React-based decentralized application interface
+Legacy React-based decentralized application interface primarily used for contract administration, testing, and debugging. This interface serves as an administrative tool for developers and administrators for direct smart contract interaction and system testing.
 
-**Container**: `.devcontainer/frontend-dapp/`
+📖 **[Full Documentation](./frontend-dapp/README.md)**
 
-**Note**: This is a legacy interface primarily used for contract administration and testing. New development should focus on `frontend-app/`.
+🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **frontend-dapp** → Container files: [`.devcontainer/frontend-dapp/`](./.devcontainer/frontend-dapp/)
 
 ## 🛠️ Development Workflow
 
@@ -254,32 +162,6 @@ If developing on Apple Silicon (M1/M2), update the following files:
 }
 ```
 
-### Database Setup
-
-The backend workspace includes PostgreSQL database setup:
-
-```bash
-# Database runs automatically in backend container
-# Connection: postgresql://postgres:password@localhost:5432/concordium_rwa
-
-# Run migrations
-diesel migration run
-
-# Reset database
-diesel database reset
-```
-
-### Blockchain Configuration
-
-```bash
-# Testnet configuration
-CONCORDIUM_NODE_URI=https://grpc.testnet.concordium.com:20000
-NETWORK=testnet
-
-# Mainnet configuration (production)
-CONCORDIUM_NODE_URI=https://grpc.mainnet.concordium.software:20000
-NETWORK=mainnet
-```
 
 ## 📚 Additional Resources
 
@@ -316,9 +198,12 @@ docker system prune -a
 **Database connection issues**:
 
 ```bash
-# Reset database in backend container
-docker-compose down -v
-docker-compose up -d
+# Rebuild backend container to reset database
+Dev Containers: Rebuild Container
+
+# Or use backend workspace database commands
+# (Open backend container first)
+diesel database reset
 ```
 
 **Wallet connection problems**:

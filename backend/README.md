@@ -144,14 +144,45 @@ The backend uses PostgreSQL with Diesel ORM:
 
 ```bash
 # Database runs automatically in dev container on localhost:5432
-# Default credentials: postgres/password
-# Database: concordium_rwa
+# DATABASE_URL is pre-configured in .devcontainer/backend/.env
 
-# Run migrations (if needed)
-diesel migration run --database-url postgresql://postgres:password@localhost:5432/concordium_rwa
+# Run migrations (DATABASE_URL already set)
+diesel migration run
 
-# Reset database
-diesel database reset --database-url postgresql://postgres:password@localhost:5432/concordium_rwa
+# Reset database (DATABASE_URL already set)
+diesel database reset
+```
+
+### Database Connection Details
+
+```bash
+# Database runs automatically in backend dev container
+# Configuration from .devcontainer/backend/.env:
+# Host: localhost
+# Port: 5432
+# Database: concordium_rwa_dev
+# Username: concordium_rwa_dev_user
+# Password: concordium_rwa_dev_pswd
+# Full Connection String: postgres://concordium_rwa_dev_user:concordium_rwa_dev_pswd@localhost:5432/concordium_rwa_dev
+
+# DATABASE_URL environment variable is automatically set by the dev container
+# No need to specify --database-url parameter for diesel commands
+```
+
+## ⚙️ Configuration
+
+### Blockchain Configuration
+
+Configure the backend services to connect to different Concordium networks:
+
+```bash
+# Testnet configuration (development)
+CONCORDIUM_NODE_URI=https://grpc.testnet.concordium.com:20000
+NETWORK=testnet
+
+# Mainnet configuration (production)
+CONCORDIUM_NODE_URI=https://grpc.mainnet.concordium.software:20000
+NETWORK=mainnet
 ```
 
 ## Environment Variables
