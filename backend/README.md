@@ -1,67 +1,158 @@
-# Concordium RWA Backend
+# 🔧 Backend Services Workspace
 
-Backend Consists of multiple components bundled together an a executor inside the [`main.rs`](./src/main.rs) file.
-The Components are
+**Rust-based backend services for Upwood's Concordium RWA platform, providing blockchain event processing, REST APIs, and database management.**
 
-- [Listener](./src/txn_listener/mod.rs): With following contract event processors.
-  - [Identity Registry Processor](./src/txn_processor/rwa_identity_registry/processor.rs)
-  - [Market Processor](./src/txn_processor/rwa_market/processor.rs)
-  - [Security CIS2 Processor](./src/txn_processor/rwa_security_cis2/processor.rs)
-- Contract API's
-  - [Market](./src/txn_processor/rwa_security_cis2/api.rs)
-  - [Security CIS2](./src/txn_processor/rwa_security_cis2/api.rs)
-- [Sponsor Backend](./src/sponsor/mod.rs) : Uses an input wallet and exposes an API which can be accessed with a [Sponsor Contract](../contracts/sponsor/src/lib.rs)
-  - Wallet file can be provided by using the default location file [`./sponsor_wallet.export`](./sponsor_wallet.export)
-- [Verifier Backend](./src/verifier/mod.rs): Exposes an API with a Identity Registry Agent Account Wallet to add an input Identity (Account Address / Contract Address) to the [Identity Registry Contract](../contracts/identity-registry/src/lib.rs)
-  - Wallet file can be provided by copy pasting to the default location [`./agent_wallet.export`](./agent_wallet.export)
+## 🌟 Overview
 
-## Notable Available Yarn Scripts
+This workspace contains backend services written in Rust that process Concordium blockchain events, provide REST APIs for frontend applications, and manage data persistence. The services are built using the Poem web framework and integrate with PostgreSQL databases.
 
-All the yarn scripts can be listed using the command `yarn run`
+## 🏗️ Directory Structure
 
-- `yarn build`
-- `yarn generate:client`: Used to generate frontend API clients.
-- `yarn debug:listener`: Runs the Concordium Listener and starts to process the events for the available contracts.
-- `yarn debug:contracts-api`: Runs the API's for the available contracts
-- `yarn debug:verifier-api`: Runs the verifier API
-- `yarn debug:debug:sponsor-api`: Runs the Sponsor API
+```
+backend/
+├── events_listener/               # Concordium blockchain event processor
+│   ├── src/
+│   │   ├── bin/                # Event listener executables
+│   │   └── processors/         # Contract-specific event processors
+│   └── Cargo.toml
+├── shared/                       # Shared database models and utilities
+│   ├── migrations/            # Database migration files
+│   ├── src/
+│   │   ├── db/                 # Database connection and models
+│   │   └── db_app/             # Application-specific database logic
+│   └── Cargo.toml
+├── shared_tests/                # Integration test utilities
+│   └── src/
+├── upwood/                      # Main API service
+│   ├── src/
+│   │   ├── api/                # REST API endpoints
+│   │   ├── bin/                # API server executables
+│   │   └── utils/              # Utility functions
+│   ├── tests/                 # API integration tests
+│   └── Cargo.toml
+└── Cargo.toml                   # Workspace configuration
+```
 
-All Available commands exposed by the executable can be listed using `cargo run --help`. This will also show the default values being used.
+## 🚀 Development Environment Setup
 
-## API's
+### Using VS Code Dev Containers
 
-### Listener
+1. **Open VS Code in repository root**
 
-- `debug:listener` : Runs the listener with debug logging enabled.
-- `watch:listener` : Watches for changes in the listener code and reruns it with debug logging enabled whenever a change is detected.
+   ```bash
+   cd /path/to/concordium-rwa
+   code .
+   ```
 
-### Contracts API
+2. **Open in Dev Container**
+   - Press `F1` or `Ctrl+Shift+P`
+   - Type: `Dev Containers: Reopen in Container`
+   - Select: **backend**
 
-- `debug:contracts-api`: Runs the contracts API with debug logging enabled.
-- `watch:contracts-api`: Watches for changes in the contracts API code and reruns it with debug logging enabled whenever a change is detected.
-- `generate:contracts-api-specs`: Generates an API specification for the contracts API and saves it to `contracts-api-specs.json`.
-- `generate:contracts-api-client`: Generates client code for the contracts API using the API specification in `contracts-api-specs.json`.
+3. **Container Setup**
+   - The container automatically installs Rust, PostgreSQL, and Node.js
+   - Database starts automatically on port 5432
+   - Terminal shows available yarn scripts upon completion
 
-### Verifier API
+## 🛠️ Available Scripts
 
-- `debug:verifier-api`: Runs the verifier API with debug logging enabled.
-- `watch:verifier-api`: Watches for changes in the verifier API code and reruns it with debug logging enabled whenever a change is detected.
-- `generate:verifier-api-specs`: Generates an API specification for the verifier API and saves it to `verifier-api-specs.json`.
-- `generate:verifier-api-client`: Generates client code for the verifier API using the API specification in `verifier-api-specs.json`.
+All scripts are defined in `package.json` and can be run with `yarn <script>`:
 
-### Sponsor API
+### Development & Building
 
-- `debug:sponsor-api`: Runs the sponsor API with debug logging enabled.
-- `watch:sponsor-api`: Watches for changes in the sponsor API code and reruns it with debug logging enabled whenever a change is detected.
-- `generate:sponsor-api-specs`: Generates an API specification for the sponsor API and saves it to `sponsor-api-specs.json`.
-- `generate:sponsor-api-client`: Generates client code for the sponsor API using the API specification in `sponsor-api-specs.json`.
+```bash
+yarn build              # Clean build release version
+yarn test               # Run all tests
+yarn format             # Format Rust code with nightly formatter
+```
 
-### General
+### Event Listener Service
 
-- `format`: Runs the Rust formatter on the codebase using a specific nightly version of Rust.
-- `build`: Builds the Rust project.
-- `generate:spec`: Runs all the `generate:*-api-specs` scripts.
-- `generate:client`: Runs all the `generate:*-api-client` scripts.
+```bash
+yarn debug:listener     # Run blockchain event listener (cargo run --bin listener_server)
+yarn watch:listener     # Watch and auto-restart listener on code changes
+```
+
+### API Service
+
+```bash
+yarn debug:app-api      # Run REST API server (cargo run --bin upwood_api_server)
+yarn watch:app-api      # Watch and auto-restart API server on code changes
+```
+
+### API Client Generation
+
+```bash
+yarn generate:spec         # Generate OpenAPI specification (app-api-specs.json)
+yarn generate:client       # Generate TypeScript client for frontend-app
+yarn generate:app-api-spec # Generate API specs from upwood_api_specs binary
+yarn generate:app-api-client # Generate and output client to ../frontend-app/src/apiClient
+```
+
+## 📊 Services Overview
+
+### 📡 Events Listener (`events_listener/`)
+
+**Purpose**: Processes Concordium blockchain events and updates the database
+
+**Key Features**:
+
+- Monitors smart contract events in real-time
+- Processes identity registry, trading, and fund events
+- Maintains database state synchronization with blockchain
+- Handles blockchain reorganizations and recovery
+
+**Executables**:
+
+- `listener_server` - Main event processing daemon
+
+### 🔗 API Service (`upwood/`)
+
+**Purpose**: Provides REST API endpoints for frontend applications
+
+**Key Features**:
+
+- RESTful API using Poem web framework
+- Authentication and authorization
+- Forest project management endpoints
+- Portfolio and transaction history APIs
+- OpenAPI specification generation
+
+**Executables**:
+
+- `upwood_api_server` - Main REST API server
+- `upwood_api_specs` - OpenAPI specification generator
+
+### 📚 Shared Library (`shared/`)
+
+**Purpose**: Common database models, migrations, and utilities
+
+**Key Features**:
+
+- Database connection management
+- Diesel ORM models and schemas
+- Database migrations for all services
+- Common data structures and utilities
+
+### 🧪 Integration Tests (`shared_tests/`)
+
+**Purpose**: Shared testing utilities and integration test framework
+
+## 📦 Database Setup
+
+The backend uses PostgreSQL with Diesel ORM:
+
+```bash
+# Database runs automatically in dev container on localhost:5432
+# Default credentials: postgres/password
+# Database: concordium_rwa
+
+# Run migrations (if needed)
+diesel migration run --database-url postgresql://postgres:password@localhost:5432/concordium_rwa
+
+# Reset database
+diesel database reset --database-url postgresql://postgres:password@localhost:5432/concordium_rwa
+```
 
 ## Environment Variables
 

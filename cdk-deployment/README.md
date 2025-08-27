@@ -1,16 +1,86 @@
-# Deployment
+# ☁️ AWS Infrastructure Workspace
 
-This project contains AWS CDK scripts to deploy all the AWS components.
-The deployment of Blockchain components is a prerequisite for the deployment of the backend.
+**AWS Cloud Development Kit (CDK) infrastructure as code for Upwood's Concordium RWA platform, managing production and staging environments.**
 
-## Useful commands
+## 🌟 Overview
 
-- `npm run build` compile typescript to js
-- `npm run watch` watch for changes and compile
-- `npm run test` perform the jest unit tests
-- `npx cdk deploy` deploy this stack to your default AWS account/region
-- `npx cdk diff` compare deployed stack with current state
-- `npx cdk synth` emits the synthesized CloudFormation template
+This workspace contains AWS infrastructure definitions using TypeScript and AWS CDK v2. It manages the complete cloud infrastructure including ECS services, databases, CDN, monitoring, and security configurations for the Concordium RWA platform.
+
+## 🏗️ Directory Structure
+
+```
+cdk-deployment/
+├── bin/                         # CDK application entry points
+│   └── cdk-deployment.js       # Main CDK application
+├── lib/                         # CDK stack definitions
+│   ├── stacks/                 # Individual stack implementations
+│   ├── constructs/             # Reusable CDK constructs
+│   └── config/                 # Environment configurations
+├── cdk.out/                     # CDK generated CloudFormation templates
+├── test/                        # Infrastructure tests
+├── cdk.json                     # CDK configuration
+├── tsconfig.json               # TypeScript configuration
+└── package.json                # Dependencies and scripts
+```
+
+## 🚀 Development Environment Setup
+
+### Using VS Code Dev Containers
+
+1. **Open VS Code in repository root**
+
+   ```bash
+   cd /path/to/concordium-rwa
+   code .
+   ```
+
+2. **Open in Dev Container**
+   - Press `F1` or `Ctrl+Shift+P`
+   - Type: `Dev Containers: Reopen in Container`
+   - Select: **cdk-deployment**
+
+3. **Container Setup**
+   - The container automatically installs Node.js, TypeScript, and AWS CDK
+   - AWS CLI is pre-installed for credential management
+   - Terminal shows available yarn scripts upon completion
+
+### AWS Credentials Setup
+
+```bash
+# Place your AWS credentials CSV file at:
+.devcontainer/cdk-deployment/aws_accessKeys.csv
+
+# Format:
+# User Name,Access key ID,Secret access key
+# default,AKIA...,wJalr...
+
+# The container automatically configures AWS CLI with these credentials
+```
+
+## 🛠️ Available Scripts
+
+All scripts are defined in `package.json` and can be run with `yarn <script>`:
+
+### Development
+
+```bash
+yarn build      # Compile TypeScript to JavaScript (tsc)
+yarn watch      # Watch mode compilation (tsc -w)
+yarn test       # Run infrastructure tests (jest)
+yarn format     # Format code with Prettier
+```
+
+### CDK Commands
+
+```bash
+yarn cdk deploy           # Deploy infrastructure to AWS
+yarn cdk deploy --all     # Deploy all stacks
+yarn cdk diff             # Show differences between local and deployed
+yarn cdk synth            # Synthesize CloudFormation templates
+yarn cdk bootstrap        # Bootstrap CDK in AWS account
+yarn cdk destroy          # Destroy deployed infrastructure
+yarn cdk ls               # List all stacks
+```
 
 ## Deployment Topology
 

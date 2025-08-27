@@ -1,21 +1,95 @@
-# Concordium Real World Asset Contracts
+# 📦 Smart Contracts Workspace
 
-This repository contains smart contracts designed to represent **Real World Assets (RWAs)** on the Concordium blockchain, specifically focused on **Forest Projects**. The ecosystem enables:
+**Concordium blockchain smart contracts for Upwood's Real World Asset (RWA) platform, specializing in forest project tokenization and environmental asset management.**
 
-- **Fundraising for Forest Projects**: Through forest project bonds and investment funds
-- **Direct Forest Project Trading**: Via peer-to-peer markets
-- **Forest Project Yield Sales**: Including carbon credits and other environmental benefits
-- **Investor Rewards**: Providing returns and incentives to forest project investors
+## 🌟 Overview
 
-## Smart Contract Architecture
+This workspace contains all smart contracts written in Rust for the Concordium blockchain. The contracts enable forest project tokenization, carbon credit management, P2P trading, investment fund management, and comprehensive identity & compliance systems.
 
-The contracts work together to create a comprehensive forest project investment platform:
+## 🏗️ Directory Structure
 
-- **Compliance & Identity**: Ensuring regulatory compliance and investor verification
-- **Security Tokens**: Representing forest project ownership and bonds
-- **Trading & Investment**: Facilitating project sales and fund raising
-- **Yield Distribution**: Managing carbon credits and investor rewards
-- **Currency Support**: EUROe stablecoin for transactions (will be changed to PLT in next version)
+```
+contracts/
+├── compliance/                    # Regulatory compliance (deprecated)
+├── concordium-protocols/          # Shared protocol library
+├── euroe/                         # EUROe stablecoin integration
+├── identity-registry/             # Identity & access control
+├── integration-tests/             # Cross-contract integration tests
+├── nft-multi-rewarded/           # Authentication NFTs
+├── offchain-rewards/             # Off-chain rewards (deprecated)
+├── security-mint-fund/           # Investment fund & bonds
+├── security-p2p-trading/         # P2P marketplace
+├── security-sft-multi/           # Core forest project representation
+├── security-sft-multi-yielder/   # Yield distribution (deprecated)
+├── security-sft-single/          # Carbon credit tokenization
+└── sponsor/                      # Transaction sponsorship (legacy)
+```
+
+## 🚀 Development Environment Setup
+
+### Using VS Code Dev Containers
+
+1. **Open VS Code in repository root**
+
+   ```bash
+   cd /path/to/concordium-rwa
+   code .
+   ```
+
+2. **Open in Dev Container**
+   - Press `F1` or `Ctrl+Shift+P`
+   - Type: `Dev Containers: Reopen in Container`
+   - Select: **contracts**
+
+3. **Container Setup**
+   - The container will automatically install Rust, Concordium toolchain, and Node.js
+   - Wait for the setup to complete
+   - Terminal will show available yarn scripts upon completion
+
+### Wallet Setup
+
+```bash
+# Export your Concordium testnet wallet and place it in:
+.devcontainer/contracts/default_account.export
+
+# The container automatically uses this wallet for deployments
+```
+
+## 🛠️ Available Scripts
+
+All scripts are defined in `package.json` and can be run with `yarn <script>`:
+
+### Building
+
+```bash
+yarn build    # Build all contracts in workspace
+yarn clean    # Clean all build artifacts
+yarn format   # Format all Rust code
+```
+
+### Testing
+
+```bash
+yarn test     # Run all contract tests
+```
+
+### Deployment
+
+```bash
+yarn deploy   # Deploy all contracts to testnet
+```
+
+### Individual Contract Operations
+
+Each contract subdirectory has its own `package.json` with specific scripts:
+
+```bash
+# Navigate to specific contract
+cd security-sft-multi/
+yarn build    # Build this contract only
+yarn test     # Test this contract only
+yarn deploy   # Deploy this contract only
+```
 
 ## Contracts
 
@@ -271,6 +345,7 @@ The contracts work together to create a comprehensive forest project investment 
 **Contract is initiated with** currency token address and initial agents
 
 **Current Functions:**
+
 - `addAgent` - Adds a new agent with specific roles (owner only)
 - `removeAgent` - Removes an agent from the contract (owner only)
 - `addFund` - Creates a new investment fund with conversion rate
