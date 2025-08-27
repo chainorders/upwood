@@ -15,7 +15,7 @@ The contracts work together to create a comprehensive forest project investment 
 - **Security Tokens**: Representing forest project ownership and bonds
 - **Trading & Investment**: Facilitating project sales and fund raising
 - **Yield Distribution**: Managing carbon credits and investor rewards
-- **Currency Support**: EUROe stablecoin for transactions
+- **Currency Support**: EUROe stablecoin for transactions (will be changed to PLT in next version)
 
 ## Contracts
 
