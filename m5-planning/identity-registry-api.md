@@ -10,12 +10,14 @@ This document defines the API endpoints needed for the identity-registry address
 ## Background
 
 FR-BT-3 & FR-BT-5 require: "Address state management for transfer restrictions and maturity payments"
+
 - Admin agents can set address states (whitelist/blacklist) via blockchain transactions
 - API provides read-only access to address status and lists
 - All address state modifications happen on-chain via smart contract calls
 - API serves as query interface for address state data
 
 **Three Address States:**
+
 - **Registered** (default): Address exists but no special status
 - **Whitelisted**: Address can receive maturity payments (FR-BT-5)
 - **Blacklisted**: Address cannot receive any payments (overrides whitelist)
@@ -27,9 +29,11 @@ FR-BT-3 & FR-BT-5 require: "Address state management for transfer restrictions a
 **NEW** - Primary endpoint for checking address status in the three-state system
 
 **Path Parameters:**
+
 - `address` (string, required) - Wallet address to check
 
 **Response:**
+
 ```json
 {
   "address": "4UC8o4m8AgTxt5VBFMdLwMJwHhVmr5CqzXMTfUP8PU5t3oN6vT",
@@ -44,10 +48,12 @@ FR-BT-3 & FR-BT-5 require: "Address state management for transfer restrictions a
 List all whitelisted addresses from the identity-registry contract
 
 **Query Parameters:**
+
 - `limit` (number, optional, default: 50, max: 1000)
 - `offset` (number, optional, default: 0)
 
 **Response:**
+
 ```json
 {
   "whitelisted_addresses": [
@@ -70,10 +76,12 @@ List all whitelisted addresses from the identity-registry contract
 List all blacklisted addresses from the identity-registry contract
 
 **Query Parameters:**
+
 - `limit` (number, optional, default: 50, max: 1000) - Number of records to return
 - `offset` (number, optional, default: 0) - Number of records to skip
 
 **Response:**
+
 ```json
 {
   "blacklisted_addresses": [
@@ -98,10 +106,11 @@ List all blacklisted addresses from the identity-registry contract
 Check if a specific address is blacklisted
 
 **Path Parameters:**
+
 - `address` (string, required) - Wallet address to check
 
-
 **Response:**
+
 ```json
 {
   "address": "4UC8o4m8AgTxt5VBFMdLwMJwHhVmr5CqzXMTfUP8PU5t3oN6vT",
@@ -117,6 +126,7 @@ Check if a specific address is blacklisted
 ```
 
 **Response (Not Blacklisted):**
+
 ```json
 {
   "address": "4UC8o4m8AgTxt5VBFMdLwMJwHhVmr5CqzXMTfUP8PU5t3oN6vT",
@@ -130,7 +140,6 @@ Check if a specific address is blacklisted
   }
 }
 ```
-
 
 ## Implementation Details
 
@@ -229,16 +238,19 @@ pub fn validate_pagination(limit: u32, offset: u32) -> Result<(), ValidationErro
 ## Security Considerations
 
 ### Data Privacy
+
 - Blacklist information is considered public for compliance transparency
 - No sensitive personal information exposed through API
 - Only wallet addresses and timestamps are returned
 
 ### Access Control
+
 - Admin endpoints require proper authentication
 - Public endpoints have rate limiting
 - Audit logging for all admin access
 
 ### Input Validation
+
 - Strict validation of wallet addresses
 - Sanitization of all input parameters
 - Prevention of SQL injection through ORM usage
@@ -246,11 +258,13 @@ pub fn validate_pagination(limit: u32, offset: u32) -> Result<(), ValidationErro
 ## Performance Optimization
 
 ### Database Indexes
+
 - Ensure proper indexing on blacklisted_addresses table
 - Optimize queries for large datasets
 - Consider caching for frequently accessed data
 
 ### Response Caching
+
 ```rust path=null start=null
 // Cache blacklist status for short periods
 pub async fn get_cached_blacklist_status(
@@ -263,6 +277,7 @@ pub async fn get_cached_blacklist_status(
 ```
 
 ### Rate Limiting
+
 - Apply rate limits to public endpoints
 - Different limits for authenticated vs anonymous users
 - Implement proper error responses for rate limit exceeded
@@ -270,6 +285,7 @@ pub async fn get_cached_blacklist_status(
 ## Testing Strategy
 
 ### Unit Tests
+
 ```rust path=null start=null
 #[tokio::test]
 async fn test_get_blacklisted_addresses() {
@@ -287,6 +303,7 @@ async fn test_address_blacklist_check() {
 ```
 
 ### Integration Tests
+
 - Test with real database
 - Test authentication flows
 - Test error handling scenarios
@@ -295,11 +312,13 @@ async fn test_address_blacklist_check() {
 ## API Documentation
 
 ### OpenAPI Specification
+
 - Complete OpenAPI 3.0 specification
 - Generated TypeScript client for frontend
 - Interactive documentation via Swagger UI
 
 ### Response Examples
+
 - Comprehensive examples for all endpoints
 - Error response examples
 - Different scenario coverage
@@ -307,12 +326,14 @@ async fn test_address_blacklist_check() {
 ## Monitoring and Metrics
 
 ### Key Metrics
+
 - API response times per endpoint
 - Request volume and patterns
 - Error rates by endpoint type
 - Database query performance
 
 ### Alerting
+
 - High error rates on blacklist endpoints
 - Slow database queries
 - Authentication failures
@@ -321,11 +342,13 @@ async fn test_address_blacklist_check() {
 ## Integration with Frontend
 
 ### Generated Client
+
 - TypeScript client auto-generated from OpenAPI spec
 - Strongly typed interfaces for all responses
 - Built-in error handling and retry logic
 
 ### Frontend Usage
+
 ```typescript path=null start=null
 // Example frontend usage
 const blacklistedAddresses = await apiClient.identityRegistry.getBlacklistedAddresses({
