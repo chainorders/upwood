@@ -73,6 +73,7 @@ The planning files are now organized into two main categories:
 **General Rules:**
 - Use postsale_token_contract_address as bond identifier (immutable, unique, idempotent)
 - Keep blockchain and API concerns clearly separated
+- **Blockchain State Optimization**: Avoid including timestamp fields (created_at, updated_at) in smart contract structs unless specifically required for business logic. These fields increase blockchain state size and storage costs. Use blockchain transaction timestamps or block information when temporal data is needed.
 
 **EDIT CONSISTENCY RULE**
 

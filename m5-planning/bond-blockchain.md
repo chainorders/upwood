@@ -1,5 +1,18 @@
 # Bond Blockchain Component
 
+## Warp Rules
+
+**BLOCKCHAIN EVENT OPTIMIZATION:**
+- Every event depending on its size adds to the blockchain transaction charges so they should be kept to a minimum size
+- Events should only contain essential fields needed for database updates and audit trails
+- Avoid redundant fields like previous/new balance pairs - use direct values instead
+- Prefer single fields over multiple related fields where possible
+
+**PLANNING DOCUMENT STRUCTURE:**
+- Diesel struct implementations should be removed from planning documents to reduce file size
+- Detailed implementations will be handled during the actual coding phase
+- Focus on data structures, schemas, and high-level logic in planning documents
+
 ## File Locations
 
 ### Smart Contract
@@ -54,6 +67,10 @@ struct Bond {
     postsale_token_contract_address: ContractAddress,
     current_supply: Amount,
     status: BondStatus,
+    // Carbon Credits Pool Integration (FR-CC-1, FR-CC-2, FR-CC-3)
+    carbon_credit_balance: Amount,
+    carbon_credits_burned: Amount,
+    carbon_credit_metadata: Option<TokenMetadata>, // CIS-2 TokenMetadata
 }
 ```
 
@@ -144,7 +161,79 @@ struct UpdateBondStatusParams {
 }
 ```
 
-## Events
+## Carbon Credit Functions
+
+### receive_carbon_credits
+
+**Agent Role:** Public (CIS-2 compliant receiver function)
+
+**Function Signature:** Uses CIS-2 standard `onReceivingCIS2` callback
+
+**Input Parameters:**
+
+```rust path=null start=null
+// CIS-2 compliant function signature
+pub fn on_receiving_cis2(
+    ctx: &ReceiveContext,
+    host: &Host<State>,
+) -> ContractResult<()> {
+    let params: OnReceivingCis2DataParams<TokenIdUnit, Amount, ContractAddress> = 
+        ctx.parameter_cursor().get()?;
+    
+    // params.token_id - Carbon credit token ID
+    // params.amount - Amount of carbon credits received
+    // params.from - Address sending the carbon credits
+    // params.data - Bond contract address to credit
+}
+```
+
+### set_carbon_credit_metadata
+
+**Agent Role:** UpdateFundState
+
+**Input Parameters:**
+
+```rust path=null start=null
+struct SetCarbonCreditMetadataParams {
+    postsale_token_contract_address: ContractAddress,
+    metadata: TokenMetadata, // CIS-2 TokenMetadata
+}
+```
+
+### burn_carbon_credits
+
+**Agent Role:** UpdateFundState
+
+**Input Parameters:**
+
+```rust path=null start=null
+struct BurnCarbonCreditsParams {
+    postsale_token_contract_address: ContractAddress,
+    amount: Amount,
+}
+```
+
+## Carbon Credit Events
+
+```rust path=null start=null
+// Minimized event sizes to reduce blockchain transaction costs
+struct CarbonCreditsReceivedEvent {
+    bond_address: ContractAddress,
+    balance: Amount, // Total final balance after receiving
+}
+
+struct CarbonCreditMetadataUpdatedEvent {
+    bond_address: ContractAddress,
+    metadata: TokenMetadata,
+}
+
+struct CarbonCreditsBurnedEvent {
+    bond_address: ContractAddress,
+    burned_amount: Amount, // Amount burned in this transaction
+}
+```
+
+## Bond Events
 
 ```rust path=null start=null
 struct BondAddedEvent {
@@ -293,6 +382,38 @@ pub fn process_events(
                     conn
                 )?;
             }
+            // Carbon Credit Event Processing (FR-CC-1, FR-CC-2, FR-CC-3)
+            Event::CarbonCreditsReceived(e) => {
+                Bond::update_carbon_credit_balance(
+                    e.bond_address.to_decimal(),
+                    e.balance.to_decimal(), // Direct balance update
+                    block_time,
+                    conn
+                )?;
+            }
+            Event::CarbonCreditsBurned(e) => {
+                // Increment burned amount and calculate new balance
+                let current_bond = Bond::find_by_address(e.bond_address.to_decimal(), conn)?;
+                let new_burned_total = current_bond.carbon_credits_burned + e.burned_amount.to_decimal();
+                let new_balance = current_bond.carbon_credit_balance - e.burned_amount.to_decimal();
+                
+                Bond::update_carbon_credits_burned(
+                    e.bond_address.to_decimal(),
+                    new_burned_total,
+                    new_balance,
+                    block_time,
+                    conn
+                )?;
+            }
+            Event::CarbonCreditMetadataUpdated(e) => {
+                let metadata_url = e.metadata.url.to_string(); // Extract URL from TokenMetadata
+                Bond::update_carbon_credit_metadata(
+                    e.bond_address.to_decimal(),
+                    metadata_url,
+                    block_time,
+                    conn
+                )?;
+            }
         }
     }
 
@@ -319,12 +440,17 @@ CREATE TABLE bonds (
     presale_token_contract_address TEXT NOT NULL,
     current_supply DECIMAL(78, 0) NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Paused', 'Matured', 'Success', 'Failed', 'Archived')),
+    -- Carbon Credit Pool Integration (FR-CC-1, FR-CC-2, FR-CC-3)
+    carbon_credit_balance DECIMAL(78, 0) NOT NULL DEFAULT 0,
+    carbon_credits_burned DECIMAL(78, 0) NOT NULL DEFAULT 0,
+    carbon_credit_metadata TEXT, -- URL string for CIS-2 TokenMetadata
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_bonds_status ON bonds(status);
 CREATE INDEX idx_bonds_subscription_period_end ON bonds(subscription_period_end);
+CREATE INDEX idx_bonds_carbon_credit_balance ON bonds(carbon_credit_balance) WHERE carbon_credit_balance > 0;
 ```
 
 ### bond_investors
@@ -385,40 +511,15 @@ pub struct Bond {
     pub presale_token_contract_address: String,
     pub current_supply: Decimal,
     pub status: String,
+    // Carbon Credit Pool Integration (FR-CC-1, FR-CC-2, FR-CC-3)
+    pub carbon_credit_balance: Decimal,
+    pub carbon_credits_burned: Decimal,
+    pub carbon_credit_metadata: Option<String>, // URL string for CIS-2 TokenMetadata
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl Bond {
-    pub fn new(
-        bond_address: ContractAddress,
-        maturity_date: Timestamp,
-        subscription_period_end: Timestamp,
-        processed_at: NaiveDateTime,
-    ) -> NewBond {
-        // Implementation details for creating new bond
-    }
-
-    pub fn insert(new_bond: NewBond, conn: &mut DbConn) -> QueryResult<Self> {
-        diesel::insert_into(bonds::table)
-            .values(&new_bond)
-            .get_result(conn)
-    }
-
-    pub fn update_status(
-        bond_address: Decimal,
-        new_status: String,
-        updated_at: NaiveDateTime,
-        conn: &mut DbConn,
-    ) -> QueryResult<Self> {
-        diesel::update(bonds::table.filter(bonds::postsale_token_contract_address.eq(bond_address.to_string())))
-            .set((
-                bonds::status.eq(new_status),
-                bonds::updated_at.eq(DateTime::from_utc(updated_at, Utc)),
-            ))
-            .get_result(conn)
-    }
-}
+// Diesel implementations removed to reduce file size - will be implemented during coding phase
 ```
 
 ### BondInvestor Model
@@ -541,12 +642,13 @@ impl BondInvestmentRecord {
 
 # PART IV: FR-BT-5 MATURITY HANDLING
 
-## API Layer
+## API Layer - Integrated with Main Bonds API
 
 ### File Structure
-- New file: backend/upwood/src/api/bond_maturity.rs
+- Integrated into existing: `backend/upwood/src/api/bonds.rs`
+- Database models in: `backend/shared/src/db/bonds.rs`
 
-### Endpoints
+### Additional Endpoints for Maturity Handling
 
 #### POST /admin/bonds/{bond_contract_address}/maturity/trigger (Admin)
 
