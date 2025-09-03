@@ -3,12 +3,14 @@
 ## Warp Rules
 
 **BLOCKCHAIN EVENT OPTIMIZATION:**
+
 - Every event depending on its size adds to the blockchain transaction charges so they should be kept to a minimum size
 - Events should only contain essential fields needed for database updates and audit trails
 - Avoid redundant fields like previous/new balance pairs - use direct values instead
 - Prefer single fields over multiple related fields where possible
 
 **PLANNING DOCUMENT STRUCTURE:**
+
 - Diesel struct implementations should be removed from planning documents to reduce file size
 - Detailed implementations will be handled during the actual coding phase
 - Focus on data structures, schemas, and high-level logic in planning documents
@@ -429,7 +431,7 @@ pub fn process_events(
 
 ```sql path=null start=null
 CREATE TABLE bonds (
-    postsale_token_contract_address TEXT PRIMARY KEY,
+    postsale_token_contract BIGINT PRIMARY KEY,
     maturity_date TIMESTAMP WITH TIME ZONE NOT NULL,
     interest_rate_type TEXT NOT NULL,
     maximum_supply DECIMAL(78, 0) NOT NULL,
@@ -437,7 +439,7 @@ CREATE TABLE bonds (
     lockup_period_duration INTERVAL NOT NULL,
     subscription_period_end TIMESTAMP WITH TIME ZONE NOT NULL,
     bond_price DECIMAL(78, 0) NOT NULL,
-    presale_token_contract_address TEXT NOT NULL,
+    presale_token_contract BIGINT NOT NULL,
     current_supply DECIMAL(78, 0) NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Paused', 'Matured', 'Success', 'Failed', 'Archived')),
     -- Carbon Credit Pool Integration (FR-CC-1, FR-CC-2, FR-CC-3)
@@ -458,7 +460,7 @@ CREATE INDEX idx_bonds_carbon_credit_balance ON bonds(carbon_credit_balance) WHE
 ```sql path=null start=null
 CREATE TABLE bond_investors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bond_id TEXT NOT NULL REFERENCES bonds(postsale_token_contract_address),
+    bond_id BIGINT NOT NULL REFERENCES bonds(postsale_token_contract),
     account_address TEXT NOT NULL,
     total_invested DECIMAL(78, 0) NOT NULL DEFAULT 0,
     presale_balance DECIMAL(78, 0) NOT NULL DEFAULT 0,
@@ -476,7 +478,7 @@ CREATE INDEX idx_bond_investors_account ON bond_investors(account_address);
 ```sql path=null start=null
 CREATE TABLE bond_investment_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bond_id TEXT NOT NULL REFERENCES bonds(postsale_token_contract_address),
+    bond_id BIGINT NOT NULL REFERENCES bonds(postsale_token_contract),
     investor_address TEXT NOT NULL,
     reward_id TEXT,
     record_type TEXT NOT NULL CHECK (record_type IN ('invest', 'divest', 'claim', 'refund')),
@@ -650,12 +652,15 @@ impl BondInvestmentRecord {
 
 ### Additional Endpoints for Maturity Handling
 
-#### POST /admin/bonds/{bond_contract_address}/maturity/trigger (Admin)
+#### POST /admin/bonds/{bond_contract}/maturity/trigger (Admin)
 
 **NEW** - Trigger maturity payments for a bond (two-phase transaction process)
 
+Path parameters:
+- `bond_contract` (Decimal, required) - Bond contract index
+
 Input:
-- `plt_token_address` (string, required) - PLT token contract address for payments
+- `plt_token_id` (string, required) - PLT token ID for payments (native CCD token)
 - `face_value_per_token` (decimal, required) - Amount to pay per bond token
 
 Output:
@@ -672,7 +677,7 @@ Get maturity payment job status
 
 Output:
 - `job_id` (string)
-- `bond_contract_address` (string)
+- `bond_contract` (Decimal)
 - `status` (string) - "initiated", "processing", "completed", "failed", "insufficient_liquidity"
 - `total_recipients` (integer)
 - `processed_recipients` (integer)
@@ -684,7 +689,7 @@ Output:
 - `error_message` (string, nullable)
 - `transaction_details` (object with burn/transfer transaction info)
 
-#### GET /admin/bonds/{bond_contract_address}/maturity/history (Admin)
+#### GET /admin/bonds/{bond_contract}/maturity/history (Admin)
 
 Get maturity payment history for a bond
 
@@ -708,8 +713,8 @@ Output:
 ```sql path=null start=null
 CREATE TABLE maturity_jobs (
     id TEXT PRIMARY KEY,
-    bond_contract_address TEXT NOT NULL REFERENCES bonds(postsale_token_contract_address),
-    plt_token_address TEXT NOT NULL,
+    bond_contract BIGINT NOT NULL REFERENCES bonds(postsale_token_contract),
+    plt_token_id TEXT NOT NULL,
     face_value_per_token DECIMAL(78, 0) NOT NULL,
     total_recipients INTEGER NOT NULL,
     total_bond_tokens DECIMAL(78, 0) NOT NULL,
@@ -725,7 +730,7 @@ CREATE TABLE maturity_jobs (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_maturity_jobs_bond_contract ON maturity_jobs(bond_contract_address);
+CREATE INDEX idx_maturity_jobs_bond_contract ON maturity_jobs(bond_contract);
 CREATE INDEX idx_maturity_jobs_status ON maturity_jobs(status);
 CREATE INDEX idx_maturity_jobs_started_at ON maturity_jobs(started_at);
 ```
@@ -763,8 +768,8 @@ CREATE INDEX idx_maturity_payments_whitelist_status ON maturity_payments(whiteli
 #[diesel(table_name = maturity_jobs)]
 pub struct MaturityJob {
     pub id: String,
-    pub bond_contract_address: String,
-    pub plt_token_address: String,
+    pub bond_contract: u64,
+    pub plt_token_id: String,
     pub face_value_per_token: Decimal,
     pub total_recipients: i32,
     pub total_bond_tokens: Decimal,

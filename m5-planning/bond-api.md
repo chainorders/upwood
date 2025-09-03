@@ -32,8 +32,8 @@ Output:
 {
   "bonds": [
     {
-      "postsale_token_contract_address": "string",
-      "presale_token_contract_address": "string",
+      "postsale_token_contract": "1234",
+      "presale_token_contract": "1233",
       "status": "Active",
       "maturity_date": "2025-12-31T23:59:59Z",
       "subscription_period_end": "2024-06-30T23:59:59Z",
@@ -84,13 +84,13 @@ Output:
 }
 ```
 
-### GET /bonds/{postsale_token_contract_address} (Investor)
+### GET /bonds/{bond_contract} (Investor)
 
 Get detailed information for a single bond including forest project and user ownership data
 
 Path parameters:
 
-- `postsale_token_contract_address` (string, required) - Bond contract address
+- `bond_contract` (Decimal, required) - Bond contract index
 
 Headers:
 
@@ -101,8 +101,8 @@ Output:
 ```json
 {
   "bond": {
-    "postsale_token_contract_address": "string",
-    "presale_token_contract_address": "string",
+    "postsale_token_contract": "1234",
+    "presale_token_contract": "1233",
     "status": "Active",
     "maturity_date": "2025-12-31T23:59:59Z",
     "subscription_period_end": "2024-06-30T23:59:59Z",
@@ -171,7 +171,7 @@ Output:
 - bonds (array of bond summaries with investor data)
 - total (number)
 
-### GET /admin/bonds/{postsale_token_contract_address} (Admin)
+### GET /admin/bonds/{bond_contract} (Admin)
 
 Get detailed bond information for admin dashboard
 
@@ -180,7 +180,7 @@ Output:
 - bond (bond details object)
 - investors (array of investor summaries)
 
-### POST /bonds/{postsale_token_contract_address}/claim (Operator)
+### POST /bonds/{bond_contract}/claim (Operator)
 
 Start batch claim job
 
@@ -193,7 +193,7 @@ Output:
 - job_id (string)
 - status (string: pending, processing, completed, failed)
 
-### POST /bonds/{postsale_token_contract_address}/refund (Operator)
+### POST /bonds/{bond_contract}/refund (Operator)
 
 Start batch refund job
 
@@ -215,12 +215,28 @@ Notes:
 
 ## Implementation Notes
 
+### Type Mapping and Conversion
+
+**API Layer (Poem Framework):**
+- Contract indices: `Decimal` type for path parameters and JSON responses
+- Addresses and amounts: `String` representations for JSON compatibility
+- All numeric values serialized as strings to avoid JavaScript precision issues
+
+**Database Layer:**
+- Contract indices: `BIGINT` storage type for efficient indexing
+- All amounts: `DECIMAL(78, 0)` for high-precision arithmetic
+
+**Internal Rust Types:**
+- Contract indices: `u64` for internal processing and blockchain operations
+- Conversion: `Decimal::from(u64_value)` and `decimal_value.to_u64()` as needed
+- Database operations use Diesel's automatic type conversion
+
 ### Data Sources and Integration
 
 #### Bond Data
 
 - Source: `bonds` table (managed by bond-blockchain.md events processor)
-- Primary key: `postsale_token_contract_address`
+- Primary key: `postsale_token_contract` (BIGINT)
 - Includes: basic bond information, status, dates, supply limits
 
 #### Forest Project Data  
@@ -257,9 +273,9 @@ SELECT
   COALESCE(bi.presale_balance, 0) as presale_balance,
   COALESCE(bi.postsale_balance, 0) as postsale_balance
 FROM bonds b
-LEFT JOIN forest_project_bonds fpb ON b.postsale_token_contract_address = fpb.bond_address
+LEFT JOIN forest_project_bonds fpb ON b.postsale_token_contract = fpb.bond_contract
 LEFT JOIN forest_projects fp ON fpb.forest_project_id = fp.id
-LEFT JOIN bond_investors bi ON (b.postsale_token_contract_address = bi.bond_id AND bi.account_address = ?)
+LEFT JOIN bond_investors bi ON (b.postsale_token_contract = bi.bond_id AND bi.account_address = ?)
 ```
 
 #### Token Details Subquery

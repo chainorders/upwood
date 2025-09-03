@@ -71,9 +71,29 @@ The planning files are now organized into two main categories:
 - No code implementations, only process descriptions
 
 **General Rules:**
-- Use postsale_token_contract_address as bond identifier (immutable, unique, idempotent)
+- Use postsale_token_contract as bond identifier (BIGINT database, Decimal API responses)
 - Keep blockchain and API concerns clearly separated
 - **Blockchain State Optimization**: Avoid including timestamp fields (created_at, updated_at) in smart contract structs unless specifically required for business logic. These fields increase blockchain state size and storage costs. Use blockchain transaction timestamps or block information when temporal data is needed.
+
+**RUST POEM FRAMEWORK API TYPE RULES:**
+
+**API Layer Type Mapping:**
+- **Contract Indices**: Use `Decimal` type for path parameters and request/response bodies in Rust Poem framework
+  - Avoids JavaScript precision issues with large integers
+  - Prevents framework compatibility problems with u64 types
+  - JSON serialization: Contract indices as strings (e.g., `"1234"` not `1234`)
+- **Native Token IDs**: Use `String` type for PLT tokens and other native CCD token identifiers
+- **All Numeric Values**: Serialize as strings in JSON responses to avoid client-side precision issues
+
+**Database Layer:**
+- **Contract Indices**: Store as `BIGINT` for efficient indexing and foreign key relationships
+- **All Amounts**: Use `DECIMAL(78, 0)` for high-precision arithmetic
+- **Conversion**: Diesel handles automatic type conversion between Rust types and database types
+
+**Internal Rust Types:**
+- **Contract Indices**: Use `u64` for internal processing and blockchain operations
+- **Type Conversion**: `Decimal::from(u64_value)` and `decimal_value.to_u64()` between layers
+- **Smart Contract Layer**: Continue using `ContractAddress` for on-chain operations
 
 **EDIT CONSISTENCY RULE**
 
