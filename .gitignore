@@ -11,3 +11,6 @@ backend/upwood/.secure.env
 
 # Environment files
 # Note: backend/.env is tracked as it contains no secrets, just dev configs
+
+# Generated API client (auto-generated from backend)
+frontend/src/apiClient

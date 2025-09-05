@@ -6,10 +6,9 @@
 	"private": true,
 	"workspaces": [
 		"contracts",
-		"frontend-dapp",
 		"backend",
-		"cdk-deployment",
-		"frontend-app"
+		"frontend",
+		"cdk-deployment"
 	],
 	"packageManager": "yarn@4.9.2"
 }

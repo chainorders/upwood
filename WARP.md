@@ -12,9 +12,10 @@ Upwood's Concordium RWA (Real World Asset) platform for forest project tokenizat
 
 - **contracts/** - Concordium smart contracts (Rust) - forest project tokenization, carbon credits, P2P trading, compliance
 - **backend/** - Event processing & REST APIs (Rust + Poem framework + PostgreSQL)
-- **frontend-app/** - Main user interface (React 18 + Vite + TypeScript + Tailwind)
+- **frontend/** - New unified user interface (React 18 + Vite + TypeScript + NextUI + Tailwind)
 - **cdk-deployment/** - AWS infrastructure (TypeScript + CDK v2)
-- **frontend-dapp/** - Legacy admin interface (React)
+- **~~frontend-app/~~** - DEPRECATED: Old main user interface (use frontend/ instead)
+- **~~frontend-dapp/~~** - DEPRECATED: Old admin interface (use frontend/ instead)
 
 Local development uses Docker Compose (see `docker-compose.yml`) to run Postgres, backend services, and the frontend together.
 
@@ -28,17 +29,36 @@ Local development uses Docker Compose (see `docker-compose.yml`) to run Postgres
 
 ## Development Commands
 
+### Yarn Workspace Commands
+
+```bash
+# Install all workspace dependencies
+yarn install
+
+# Run commands in specific workspaces
+yarn workspace frontend dev         # Frontend development server
+yarn workspace backend build       # Backend build
+yarn workspace contracts build     # Smart contracts build
+yarn workspace cdk-deployment build # CDK build
+
+# Run commands across all workspaces
+yarn workspaces foreach run build  # Build all workspaces
+yarn workspaces foreach run test   # Test all workspaces
+```
+
 ### Repository Setup
 
 ```bash
 git submodule update --init --recursive
+# Install all workspace dependencies
+yarn install
 # Local run (compose)
 cp .env.example .env
 cp backend/upwood/.secure.env.sample backend/upwood/.secure.env
 # then
 docker compose up -d postgres
 # in separate terminals
-docker compose up --build backend-api backend-listener frontend-app
+docker compose up --build backend-api backend-listener frontend
 ```
 
 ### Smart Contracts (contracts/)
@@ -73,7 +93,7 @@ yarn debug:app-api              # Run REST API server (port 3000)
 yarn watch:app-api              # Auto-restart on changes
 
 # API Client Generation
-yarn generate:client            # Generate TypeScript client → ../frontend-app/src/apiClient
+yarn generate:client            # Generate TypeScript client → ../frontend/src/apiClient
 yarn generate:spec              # Generate OpenAPI spec only
 
 # Database Management (Diesel ORM)
@@ -81,15 +101,13 @@ diesel database reset          # Reset and migrate database
 diesel migration run           # Run pending migrations
 ```
 
-### Frontend Application (frontend-app/)
+### Frontend Application (frontend/)
 
 ```bash
 yarn dev                        # Development server with HMR (port 5173)
 yarn build                      # Production build (TypeScript + Vite)
 yarn preview                    # Preview production build
 yarn lint                       # ESLint checks
-yarn lint:fix                   # Auto-fix ESLint issues
-yarn format                     # Prettier formatting
 ```
 
 ### Infrastructure (cdk-deployment/)
@@ -204,6 +222,47 @@ yarn cdk destroy               # Destroy infrastructure
 3. Carbon credit creation using security-sft-single
 4. P2P trading through security-p2p-trading
 5. Investment fund participation via security-mint-fund
+
+## M5 Milestone Planning Documentation
+
+The `m5-planning/` directory contains comprehensive planning documents for the M5 milestone implementation. These documents provide detailed specifications for implementing the core platform features.
+
+### Planning Documents Structure
+
+- **`business-requirements-v1.3.md`** - Core business requirements and functional specifications
+- **`admin-workflow.md`** - Administrator workflow processes and UI requirements
+- **`investor-workflow.md`** - Investor user journey and interface specifications
+- **`user-auth-backend.md`** - Authentication and authorization backend specifications
+- **`system-configuration-backend.md`** - System configuration management requirements
+
+### Backend Implementation Plans
+
+- **`announcements-backend.md`** - Announcement system backend specifications
+- **`investors-backend.md`** - Investor management backend APIs
+- **`bond-backend.md`** - Bond token management backend specifications
+- **`yields-backend.md`** - Yield calculation and distribution backend
+- **`processor-backend.md`** - Event processing system specifications
+- **`background-jobs-system.md`** - Asynchronous job processing requirements
+
+### Blockchain Implementation Plans
+
+- **`bond-blockchain.md`** - Bond token smart contract specifications
+- **`security-sft-multi-blockchain.md`** - Multi-token security contract specifications
+- **`identity-registry-blockchain.md`** - Identity management smart contract specifications
+
+### Implementation Guidelines
+
+1. **Start with Business Requirements**: Review `business-requirements-v1.3.md` for functional requirements (FR-*) and non-functional requirements (NFR-*)
+2. **Follow Workflow Documents**: Use `admin-workflow.md` and `investor-workflow.md` for UI/UX implementation guidance
+3. **Backend Implementation Order**: 
+   - User authentication and system configuration first
+   - Core investor and bond management APIs
+   - Event processing and background jobs
+   - Announcements and yield systems
+4. **Blockchain Implementation**: Implement smart contracts based on blockchain-specific planning documents
+5. **Refer to Individual Planning Files**: Each planning document contains detailed implementation specifications, API definitions, and architectural decisions
+
+**Note**: Always refer to individual planning files in `m5-planning/` for detailed implementation guidance and specifications. These documents provide the authoritative source for M5 milestone requirements.
 
 ## Environment Variables
 
