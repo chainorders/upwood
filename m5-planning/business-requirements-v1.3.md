@@ -1,12 +1,15 @@
 # Business Requirement Document - Upwood Forest Tokenization Platform
+
 **Version: 1.3**
 
 ## 1. Introduction
 
 ### 1.1. Purpose
+
 This document outlines the business requirements for the development of Upwood forest tokenization platform. It aims to provide a comprehensive overview of the project's objectives, scope, key deliverables, technical specification and systems architecture to ensure alignment between stakeholders and the development team.
 
 ### 1.2. Project Overview
+
 Upwood's platform aims to facilitate the tokenization of forest assets and carbon credits and facilitate a broader tokenization ecosystem of staking, voting, lending and trading. The project involves developing a comprehensive platform for the issuance of security tokens, utility tokens (ecosystem token & carbon credit tokens), asset reference token and Non-Fungible Tokens (NFTs). The platform will enable investors to complete legal compliance processes (KYC/AML onboarding), purchase and manage token portfolios, trade assets, and engage with the Upwood ecosystem and DeFi markets. On the administrative side, the platform will provide functionalities for managing token issuance and overall platform administration.
 
 ## 2. Functional Requirements
@@ -27,18 +30,18 @@ This section will outline current development in scope functional requirements.
 | FR-CC-3 | Carbon credit freeze | Admin to be able to freeze carbon credits manually when marked as sold<br/>Permanent freeze of tokens to prevent double accounting/greenwashing |
 | FR-ID-1 | User Registration and Authentication | Allow users to create accounts via an invite link and authenticate securely using two-factor authentication.<br/><br/>• User registration via invite link<br/>• User registration with email verification.<br/>• Secure login with two-factor authentication (2FA).<br/>• Password recovery and reset functionality |
 | FR-ID-2 | Wallet whitelisting | Integration with Digital Trust Solutions IDV provider for KYC&KYB<br/>Integration with IDV providers reusable KYC<br/>On-chain identity mapping for whitelisted wallets<br/>Admin controls for adding/removing whitelisted address |
-| FR-ID-3 | Compliance Officer functions | Designated compliance officer role from admin which can:<br/>Emergency freeze/unfreeze capabilities for specific wallets<br/>Block transactions<br/>Blacklist/whitelisted<br/>Pause/unpause onboarding |
+| FR-ID-3 | Compliance Officer functions | Designated compliance officer role from admin which can:<br/>Emergency freeze/unfreeze capabilities for specific wallets<br/>~~Block transactions~~ (Not possible at blockchain level)<br/>Blacklist/whitelisted<br/>~~Pause/unpause onboarding~~ (Not possible to control globally) |
 | FR-ID-4 | Transfer restrictions | Bond tokens can be freely traded peer-to-peer on secondary markets<br/>Yield and maturity payments can be done only to whitelisted wallets |
-| FR-ID-5 | Identity register | Platforms user - Name, Surname, address, nationality, nominal bank account, email, phone - passed from IDV provider should be stored in an ultra secure container for system to be able to associate wallets with identity and prevent any identity data leaks. |
-| FR-ID-6 | NFT user authentication | Users that hold Upwood special NFTs can access bond pre-sale event before public launch with discounted token price. |
-| FR-AD-1 | Multi-Signature security | The system must ensure that for critical operations a multi-signature wallet is required.<br/>Role-based access control (Admin, Compliance Officer, Developer)<br/>Signature threshold is configurable by Admin |
-| FR-AD-2 | Emergency controls | Admin can use emergency pause functionality for all contract operations<br/>Emergency wallet, token freezing capabilities<br/>Circuit breakers for abnormal trading volumes or price movements |
+| FR-ID-5 | Identity register | **TO BE PLANNED LATER** - Platforms user - Name, Surname, address, nationality, nominal bank account, email, phone - passed from IDV provider should be stored in an ultra secure container for system to be able to associate wallets with identity and prevent any identity data leaks. |
+| FR-ID-6 | NFT user authentication | **TO BE PLANNED LATER** - Users that hold Upwood special NFTs can access bond pre-sale event before public launch with discounted token price. |
+| FR-AD-1 | Multi-Signature security | **HANDLED OUTSIDE CURRENT SYSTEM** - The system must ensure that for critical operations a multi-signature wallet is required. Since the web interface only supports Concordium Browser Wallet (not Desktop Wallet with multi-sig), multi-signature operations must be coordinated externally using Concordium Desktop Wallet for critical administrative functions.<br/>Role-based access control (Admin, Compliance Officer, Developer)<br/>Signature threshold is configurable by Admin |
+| FR-AD-2 | Emergency controls | **PARTIALLY IMPLEMENTED** - Admin can use emergency pause functionality for all contract operations *(implemented via pause function in token contracts)*<br/>Emergency wallet, token freezing capabilities *(implemented via freeze/unfreeze functions in token contracts)*<br/>~~Circuit breakers for abnormal trading volumes or price movements~~ *(Not technically feasible - see Technical Clarifications section)* |
 | FR-AD-5 | Admin Panel | Allow administrators to manage the platform.<br/>Manage token issuance and distribution.<br/>Manage user accounts and compliance data.<br/>Monitor platform activity, user logs<br/>System configuration<br/>Post announcements<br/>Export data on users and transactions |
 | FR-AD-6 | User portfolio dashboard | Allow users to manage their token holdings.<br/>View and manage token portfolios.<br/>Transaction confirmation .pdf<br/>Generated transaction statement including ISIN number |
 | FR-AD-7 | On chain & Off chain API | The system must be able to integrate with external systems to facilitate connection between distribution channels/DeFi protocols and Upwood platform. |
 | FR-DS-1 | Document signing | Investor should be able to view and sign subscription agreement before bond purchase |
 | FR-PM-1 | Integration of PLTs | Investor should be able to buy bonds by using protocol level tokens and receive yield payments in admin defined PLT. |
-| FR-PM-2 | Integration of payment gateways | Investor should be able purchase bonds by using various payment methods through integrated payment gateways:<br/>Credit/Debit card payment gateway (Stripe)<br/>Payment gateway supported stablecoins (Stripe)<br/>Crypto payment gateways. (Coinspad) |
+|FR-PM-2 | Integration of payment gateways | **OUT OF SCOPE FOR CURRENT PLANNING** - ~~Investor should be able purchase bonds by using various payment methods through integrated payment gateways:<br/>Credit/Debit card payment gateway (Stripe)<br/>Payment gateway supported stablecoins (Stripe)<br/>Crypto payment gateways. (Coinspad)~~ *(When implemented, will use the same payment proof mechanism as FR-PM-1 PLT integration)* |
 
 ### 2.2. Non-functional Requirements
 
@@ -50,3 +53,28 @@ This section will outline current development in scope functional requirements.
 | NFR-4 | Usability | User Interface: The platform should have an intuitive and user-friendly interface designed according to best UX/UI practices.<br/>Accessibility: Ensure the platform is accessible to users in specified geographies.<br/>Documentation: Provide comprehensive user documentations and tutorials to help users understand and utilize platform features effectively.<br/>Internal communication channel: The platform has a customer service module to communicate directly between administrator/moderator and user, the communication flow is explained in this document section 5. |
 | NFR-5 | Compatibility | Web Browsers: The platform should be compatible with the latest versions of major web browsers, including Chrome, Firefox, Safari, Brave and Edge.<br/>Devices: Ensure functionality and optimised design across various devices, including desktops, tablets, and smartphones. |
 | NFR-6 | Reliability | Uptime: The platform should maintain an uptime of 99.9% to ensure high availability.<br/>Error Rates: The system should have an error rate of less than 0.1% for all transactions and processes (except transactions failed on customer side).<br/>Failover Mechanisms: Implement failover mechanisms to ensure continuous operation in case of hardware, software failures and transaction errors. |
+
+## 3. Technical Clarifications
+
+### 3.1. Implementation Constraints and Limitations
+
+#### Circuit Breakers for Trading Activity (FR-AD-2)
+
+**Requirement**: "Circuit breakers for abnormal trading volumes or price movements"
+
+**Technical Limitation**: This functionality cannot be implemented in the current blockchain-based architecture for the following reasons:
+
+1. **Event-Based Architecture**: The system processes blockchain events after transactions have already been committed to the blockchain. By the time abnormal trading activity is detected through events, the trades have already been executed and cannot be prevented.
+
+2. **Direct Blockchain Access**: Users can interact directly with smart contracts using any Concordium wallet or client, bypassing the web interface entirely. Circuit breakers implemented in the web application cannot prevent direct blockchain interactions.
+
+3. **Decentralized Nature**: Blockchain transactions are immutable once confirmed. The system cannot retroactively cancel or reverse completed trades based on volume or price movement analysis.
+
+**Alternative Approaches**:
+
+- **Monitoring and Alerting**: Implement real-time monitoring to detect unusual trading patterns and alert administrators
+- **Manual Intervention**: Use existing pause functionality to temporarily halt contract operations when suspicious activity is detected
+- **Rate Limiting**: Apply rate limiting to web interface interactions (though this doesn't affect direct blockchain access)
+- **Post-Trade Analysis**: Generate reports on trading patterns for compliance and investigation purposes
+
+**Recommendation**: Remove circuit breaker functionality from requirements or specify it as monitoring/alerting only, acknowledging the technical constraints of blockchain-based trading systems.

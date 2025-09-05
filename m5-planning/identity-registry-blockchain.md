@@ -39,9 +39,9 @@ pub struct State<S=StateApi> {
 }
 
 // Address status logic:
-// - If address not in map: Registered (default state)
-// - If address in map with Whitelisted: Can receive maturity payments
-// - If address in map with Blacklisted: Cannot receive any payments
+// - If address not in map: No trading restrictions, no payments
+// - If address in map with Whitelisted: Can trade freely and receive maturity/yield payments
+// - If address in map with Blacklisted: Cannot receive any tokens (transfers blocked)
 ```
 
 ## Contract Functions
@@ -157,12 +157,8 @@ pub type Address = concordium_std::Address;
 **Return Value:**
 
 ```rust path=null start=null
-#[derive(Serialize, SchemaType)]
-pub enum AddressStatus {
-    Registered,    // Not in map (default state)
-    Whitelisted,   // In map with Whitelisted state
-    Blacklisted,   // In map with Blacklisted state
-}
+// Returns Option<AddressState> - None if not in registry
+type AddressStateResult = Option<AddressState>;
 ```
 
 **Implementation:**
@@ -172,19 +168,14 @@ pub enum AddressStatus {
     contract = "rwa_identity_registry",
     name = "getAddressState",
     parameter = "Address",
-    return_value = "AddressStatus"
+    return_value = "Option<AddressState>"
 )]
 pub fn get_address_state(
     ctx: &ReceiveContext,
     host: &Host<State>,
-) -> ContractResult<AddressStatus> {
+) -> ContractResult<Option<AddressState>> {
     let address: Address = ctx.parameter_cursor().get()?;
-    
-    match host.state().address_states.get(&address) {
-        Some(AddressState::Whitelisted) => Ok(AddressStatus::Whitelisted),
-        Some(AddressState::Blacklisted) => Ok(AddressStatus::Blacklisted),
-        None => Ok(AddressStatus::Registered),
-    }
+    Ok(host.state().address_states.get(&address).cloned())
 }
 ```
 

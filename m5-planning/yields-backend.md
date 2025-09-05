@@ -38,7 +38,7 @@ Configure yield parameters for a bond (after subscription period ends with >= mi
 
 Input:
 
-- `bond_contract_address` (string, required) - Bond post-sale token contract address
+- `bond_metadata_id` (UUID, required) - Bond metadata ID
 - `yield_type` (string, required) - "fixed" or "variable"
 - `plt_token_address` (string, required) - PLT token contract address for payments
 - `yield_time` (ISO timestamp, required) - When yield becomes eligible for triggering
@@ -73,14 +73,14 @@ Output:
 - `estimated_total_amount` (decimal)
 - `status` (string) - "initiated"
 
-#### GET /admin/yields/bond/{bond_contract_address} (Admin)
+#### GET /admin/yields/bond/{bond_metadata_id} (Admin)
 
 Get yield configurations for a bond
 
 Output:
 
 - `yield_configs` (array of yield configuration objects)
-- `bond_contract_address` (string)
+- `bond_metadata_id` (string)
 
 #### GET /admin/yields/distribution/{distribution_job_id} (Admin)
 
@@ -97,7 +97,7 @@ Output:
 - `completed_at` (ISO timestamp, nullable)
 - `error_message` (string, nullable)
 
-#### GET /admin/yields/history/{bond_contract_address} (Admin)
+#### GET /admin/yields/history/{bond_metadata_id} (Admin)
 
 Get yield payment history for a bond
 
@@ -124,7 +124,7 @@ Output:
 #### yield_configs
 
 - id (string, PK)
-- bond_contract_address (string) # Bond post-sale token contract
+- bond_metadata_id (string) # Bond metadata ID
 - yield_type (string) # "fixed" or "variable"
 - plt_token_address (string) # PLT token for payments
 - yield_time (timestamp) # When yield becomes eligible

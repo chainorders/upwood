@@ -1,20 +1,5 @@
 # Bond Blockchain Component
 
-## Warp Rules
-
-**BLOCKCHAIN EVENT OPTIMIZATION:**
-
-- Every event depending on its size adds to the blockchain transaction charges so they should be kept to a minimum size
-- Events should only contain essential fields needed for database updates and audit trails
-- Avoid redundant fields like previous/new balance pairs - use direct values instead
-- Prefer single fields over multiple related fields where possible
-
-**PLANNING DOCUMENT STRUCTURE:**
-
-- Diesel struct implementations should be removed from planning documents to reduce file size
-- Detailed implementations will be handled during the actual coding phase
-- Focus on data structures, schemas, and high-level logic in planning documents
-
 ## File Locations
 
 ### Smart Contract
@@ -59,7 +44,6 @@ struct State {
 
 struct Bond {
     maturity_date: Timestamp,
-    interest_rate_type: InterestRateType,
     maximum_supply: Amount,
     minimum_raise_amount: Amount,
     lockup_period_duration: Duration,
@@ -87,7 +71,6 @@ struct Bond {
 ```rust path=null start=null
 struct AddBondParams {
     maturity_date: Timestamp,
-    interest_rate_type: InterestRateType,
     maximum_supply: Amount,
     minimum_raise_amount: Amount,
     lockup_period_duration: Duration,
@@ -252,7 +235,8 @@ struct BondInvestmentEvent {
     bond_address: ContractAddress,
     investor: AccountAddress,
     amount: Amount,
-    reward_id: Vec<u8>,
+    reward_id: Vec<u8>, // PLT transaction hash used as proof correlation
+    nonce: u64, // Investor nonce that was used (for backend sync)
     token_type: String, // "presale" or "postsale"
 }
 
@@ -275,19 +259,28 @@ struct BondStatusUpdatedEvent {
 }
 ```
 
-## Payment Proof Verification
+## Payment Proof Verification (FR-PM-1)
+
+**PLT Integration**: Payment proofs enable PLT token payments to be converted to smart contract investments
 
 ```rust path=null start=null
 struct PaymentProof {
-    reward_id: Vec<u8>,
-    nonce: u64,
-    signer: AccountAddress,
-    signature: Signature,
+    reward_id: Vec<u8>, // PLT transaction hash from off-chain payment
+    nonce: u64, // Current investor nonce for replay protection
+    signer: AccountAddress, // Platform signer account
+    signature: Signature, // Signature over canonical message
 }
 
 fn expected_message(investor, bond, amount, reward_id, nonce) -> Vec<u8>
 fn verify_proof(proof: &PaymentProof, message: &[u8]) -> ContractResult<bool>
 ```
+
+**Nonce Mechanism (Replay Protection)**:
+1. Contract maintains `investor_nonces: StateMap<AccountAddress, u64>` in state
+2. Each investment must provide `nonce == current_investor_nonce + 1`
+3. After successful investment, contract increments investor's nonce in state
+4. Contract rejects any proof with `nonce <= current_investor_nonce`
+5. Backend syncs nonce state via `BondInvestmentEvent` processing
 
 ---
 
@@ -339,6 +332,22 @@ pub fn process_events(
                     e.investor,
                     e.amount,
                     &e.token_type,
+                    hex::encode(&e.reward_id),
+                    block_time,
+                    conn
+                )?;
+                
+                // FR-PM-1: Update investor nonce for payment proof sync
+                InvestorNonce::update_nonce(
+                    e.investor.to_string(),
+                    e.bond_address.to_string(),
+                    e.nonce,
+                    block_height,
+                    conn
+                )?;
+                
+                // FR-PM-1: Mark corresponding payment proof as used
+                PltPaymentProof::mark_as_used(
                     hex::encode(&e.reward_id),
                     block_time,
                     conn
@@ -433,7 +442,6 @@ pub fn process_events(
 CREATE TABLE bonds (
     postsale_token_contract BIGINT PRIMARY KEY,
     maturity_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    interest_rate_type TEXT NOT NULL,
     maximum_supply DECIMAL(78, 0) NOT NULL,
     minimum_raise_amount DECIMAL(78, 0) NOT NULL,
     lockup_period_duration INTERVAL NOT NULL,
@@ -504,7 +512,6 @@ CREATE INDEX idx_bond_investment_records_bond ON bond_investment_records(bond_id
 pub struct Bond {
     pub postsale_token_contract_address: String,
     pub maturity_date: DateTime<Utc>,
-    pub interest_rate_type: String,
     pub maximum_supply: Decimal,
     pub minimum_raise_amount: Decimal,
     pub lockup_period_duration: String, // Interval as string
@@ -639,72 +646,9 @@ impl BondInvestmentRecord {
             .load::<(String, Decimal)>(conn)
     }
 }
+```
 
----
-
-# PART IV: FR-BT-5 MATURITY HANDLING
-
-## API Layer - Integrated with Main Bonds API
-
-### File Structure
-- Integrated into existing: `backend/upwood/src/api/bonds.rs`
-- Database models in: `backend/shared/src/db/bonds.rs`
-
-### Additional Endpoints for Maturity Handling
-
-#### POST /admin/bonds/{bond_contract}/maturity/trigger (Admin)
-
-**NEW** - Trigger maturity payments for a bond (two-phase transaction process)
-
-Path parameters:
-- `bond_contract` (Decimal, required) - Bond contract index
-
-Input:
-- `plt_token_id` (string, required) - PLT token ID for payments (native CCD token)
-- `face_value_per_token` (decimal, required) - Amount to pay per bond token
-
-Output:
-- `maturity_job_id` (string)
-- `total_recipients` (integer) - Number of whitelisted bond token holders
-- `total_plt_required` (decimal) - Total PLT needed for all payments
-- `cloud_wallet_balance` (decimal) - Current PLT balance in cloud wallet
-- `sufficient_liquidity` (boolean)
-- `status` (string) - "initiated" | "insufficient_liquidity"
-
-#### GET /admin/bonds/maturity/{maturity_job_id}/status (Admin)
-
-Get maturity payment job status
-
-Output:
-- `job_id` (string)
-- `bond_contract` (Decimal)
-- `status` (string) - "initiated", "processing", "completed", "failed", "insufficient_liquidity"
-- `total_recipients` (integer)
-- `processed_recipients` (integer)
-- `failed_recipients` (integer)
-- `total_tokens_burned` (decimal)
-- `total_plt_transferred` (decimal)
-- `started_at` (ISO timestamp)
-- `completed_at` (ISO timestamp, nullable)
-- `error_message` (string, nullable)
-- `transaction_details` (object with burn/transfer transaction info)
-
-#### GET /admin/bonds/{bond_contract}/maturity/history (Admin)
-
-Get maturity payment history for a bond
-
-Query parameters:
-- `limit` (number, optional)
-- `offset` (number, optional)
-
-Output:
-- `maturity_payments` (array of payment records)
-- `total_count` (number)
-
-### Security
-- Admin auth via Cognito
-- Integration with identity registry for whitelist/blacklist checks
-- Cloud wallet operator permissions for token burning
+# PART IV: FR-BT-5 MATURITY HANDLING DATABASE SCHEMA
 
 ## Database Schema
 
@@ -747,18 +691,14 @@ CREATE TABLE maturity_payments (
     plt_payment_amount DECIMAL(78, 0) NOT NULL,
     burn_transaction_hash TEXT,
     plt_transaction_hash TEXT,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'burning', 'burned', 'transferring', 'completed', 'failed')),
-    whitelist_status TEXT NOT NULL CHECK (whitelist_status IN ('whitelisted', 'not_whitelisted', 'blacklisted')),
-    burn_completed_at TIMESTAMP WITH TIME ZONE,
-    plt_completed_at TIMESTAMP WITH TIME ZONE,
+    error_status TEXT, -- NULL if successful, 'non_whitelisted' if not whitelisted, other error messages
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_maturity_payments_job ON maturity_payments(maturity_job_id);
 CREATE INDEX idx_maturity_payments_investor ON maturity_payments(investor_address);
-CREATE INDEX idx_maturity_payments_status ON maturity_payments(status);
-CREATE INDEX idx_maturity_payments_whitelist_status ON maturity_payments(whitelist_status);
+CREATE INDEX idx_maturity_payments_error_status ON maturity_payments(error_status);
 ```
 
 ## Diesel Models
@@ -796,10 +736,7 @@ pub struct MaturityPayment {
     pub plt_payment_amount: Decimal,
     pub burn_transaction_hash: Option<String>,
     pub plt_transaction_hash: Option<String>,
-    pub status: String, // pending, burning, burned, transferring, completed, failed
-    pub whitelist_status: String, // whitelisted, not_whitelisted, blacklisted
-    pub burn_completed_at: Option<DateTime<Utc>>,
-    pub plt_completed_at: Option<DateTime<Utc>>,
+    pub error_status: Option<String>, // NULL if successful, 'non_whitelisted' if not whitelisted, other error messages
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -831,8 +768,8 @@ pub struct MaturityPayment {
 
 - Query identity-registry API for address states before processing
 - Only whitelisted addresses eligible for maturity payments
-- Blacklisted addresses excluded from both phases
-- Not-whitelisted addresses excluded but tracked for audit purposes
+- Non-whitelisted addresses excluded with error_status 'non_whitelisted'
+- Blacklisted addresses excluded with error_status 'blacklisted'
 
 ### Error Handling
 
