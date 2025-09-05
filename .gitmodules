@@ -1,3 +1,0 @@
-[submodule "contracts/euroe"]
-	path = contracts/euroe
-	url = git@github.com:membranefi/euroe-stablecoin-concordium.git
