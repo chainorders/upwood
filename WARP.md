@@ -4,11 +4,12 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-Upwood's Concordium RWA (Real World Asset) platform for forest project tokenization and environmental asset management. This is a comprehensive blockchain-based system with 5 specialized development workspaces using VS Code dev containers.
+Upwood's Concordium RWA (Real World Asset) platform for forest project tokenization and environmental asset management. This is a comprehensive blockchain-based system with 5 specialized development workspaces.
 
 ## Architecture
 
 ### Multi-Workspace Structure
+
 - **contracts/** - Concordium smart contracts (Rust) - forest project tokenization, carbon credits, P2P trading, compliance
 - **backend/** - Event processing & REST APIs (Rust + Poem framework + PostgreSQL)
 - **frontend-app/** - Main user interface (React 18 + Vite + TypeScript + Tailwind)
@@ -18,8 +19,9 @@ Upwood's Concordium RWA (Real World Asset) platform for forest project tokenizat
 Local development uses Docker Compose (see `docker-compose.yml`) to run Postgres, backend services, and the frontend together.
 
 ### Key Architectural Patterns
+
 - **Event-Driven**: Backend listens to Concordium blockchain events and processes them via specialized processors
-- **Workspace Isolation**: Each service runs in dedicated dev containers with specific toolchains
+- **Workspace Isolation**: Each service runs with its own specific toolchains and dependencies
 - **Code Generation**: Backend auto-generates TypeScript API clients for frontend consumption
 - **Multi-Chain**: Supports both Concordium testnet and mainnet environments
 - **Compliance-First**: Built-in identity registry and access control systems
@@ -27,6 +29,7 @@ Local development uses Docker Compose (see `docker-compose.yml`) to run Postgres
 ## Development Commands
 
 ### Repository Setup
+
 ```bash
 git submodule update --init --recursive
 # Local run (compose)
@@ -39,6 +42,7 @@ docker compose up --build backend-api backend-listener frontend-app
 ```
 
 ### Smart Contracts (contracts/)
+
 ```bash
 yarn build          # Build all contract modules in workspace
 yarn test           # Run all contract tests
@@ -54,6 +58,7 @@ yarn deploy         # Deploy specific contract
 ```
 
 ### Backend Services (backend/)
+
 ```bash
 yarn build                      # Clean release build
 yarn test                       # Run all tests
@@ -77,6 +82,7 @@ diesel migration run           # Run pending migrations
 ```
 
 ### Frontend Application (frontend-app/)
+
 ```bash
 yarn dev                        # Development server with HMR (port 5173)
 yarn build                      # Production build (TypeScript + Vite)
@@ -87,6 +93,7 @@ yarn format                     # Prettier formatting
 ```
 
 ### Infrastructure (cdk-deployment/)
+
 ```bash
 yarn build                      # Compile TypeScript
 yarn watch                      # Watch mode compilation
@@ -104,44 +111,52 @@ yarn cdk destroy               # Destroy infrastructure
 ## Testing Strategy
 
 ### Contract Testing
+
 - Each contract has comprehensive unit tests
 - Integration tests in `contracts/integration-tests/`
 - Contracts use Concordium smart contract testing framework
 
 ### Backend Testing
+
 - Unit tests for individual processors and API endpoints
 - Integration tests using shared test utilities in `shared_tests/`
 - Database testing with Diesel migrations
 
 ### Frontend Testing
+
 - Component testing planned with React Testing Library
 - API integration tests against generated client
 
 ## Key Development Patterns
 
 ### Blockchain Event Processing
+
 - Backend `events_listener` monitors smart contract events
 - Contract-specific processors in `backend/events_listener/src/processors/`
 - Events update PostgreSQL database to maintain blockchain state synchronization
 
 ### API Client Generation Workflow
+
 1. Backend generates OpenAPI spec from Rust API definitions
 2. TypeScript client auto-generated using `openapi-typescript-codegen`
 3. Frontend imports generated client from `src/apiClient/`
 
 ### Multi-Environment Support
+
 - Testnet: `CONCORDIUM_NODE_URI=https://grpc.testnet.concordium.com:20000`
 - Mainnet: `CONCORDIUM_NODE_URI=https://grpc.mainnet.concordium.software:20000`
 - Environment-specific configurations in each workspace
 
 ### Wallet Integration
+
 - Contracts workspace uses `default_account.export` for deployments
 - Frontend uses `@concordium/browser-wallet-api-helpers` for user wallets
 
 ## Database Architecture
 
 ### Backend Database (PostgreSQL)
-- Runs automatically in backend dev container (localhost:5432)
+
+- Runs via Docker Compose (localhost:5432)
 - Managed via Diesel ORM with migrations in `backend/shared/migrations/`
 - Shared models in `backend/shared/src/db/` used across services
 - Connection configured via `DATABASE_URL` environment variable
@@ -149,6 +164,7 @@ yarn cdk destroy               # Destroy infrastructure
 ## Deployment & Infrastructure
 
 ### AWS CDK Stack Organization
+
 - **Cognito**: User authentication and management
 - **ECS**: Containerized backend services (API + Event Listener)
 - **RDS**: PostgreSQL database
@@ -157,25 +173,24 @@ yarn cdk destroy               # Destroy infrastructure
 - **VPC**: Private networking with service discovery
 
 ### Container Architecture
+
 - Each workspace builds its own Docker image
 - Production containers optimized for specific service requirements
 - Development containers include full toolchain and debugging capabilities
 
 ## Configuration Requirements
 
-### Apple Silicon Compatibility
-For M1/M2 Macs, update `VARIANT` to `"bullseye"` in:
-- `.devcontainer/contracts/devcontainer.json`
-- `.devcontainer/backend/docker-compose.yml` 
-- `.devcontainer/frontend-dapp/devcontainer.json`
-
 ### Required Files
-- `.devcontainer/contracts/default_account.export` - Concordium wallet for contract deployments
-- `.devcontainer/cdk-deployment/aws_accessKeys.csv` - AWS credentials for infrastructure deployment
+
+- `contracts/default_account.export` - Concordium wallet for contract deployments
+- `cdk-deployment/aws_accessKeys.csv` - AWS credentials for infrastructure deployment
+- `.env` - Environment configuration (copy from `.env.example`)
+- `backend/upwood/.secure.env` - Backend secure environment variables (copy from `.secure.env.sample`)
 
 ## Smart Contract Ecosystem
 
 ### Core Contracts
+
 - **identity-registry**: Access control and user verification (whitelist/blacklist)
 - **security-sft-multi**: Forest project token representation (main asset contract)
 - **security-sft-single**: Carbon credit tokenization
@@ -183,6 +198,7 @@ For M1/M2 Macs, update `VARIANT` to `"bullseye"` in:
 - **security-mint-fund**: Investment fund and bond management
 
 ### Contract Interaction Flow
+
 1. Identity verification through identity-registry
 2. Forest project tokenization via security-sft-multi
 3. Carbon credit creation using security-sft-single
@@ -192,12 +208,14 @@ For M1/M2 Macs, update `VARIANT` to `"bullseye"` in:
 ## Environment Variables
 
 ### Backend Services
+
 - `CONCORDIUM_NODE_URI`: Blockchain node endpoint
 - `DATABASE_URL`: PostgreSQL connection string
 - `WEB_SERVER_ADDR`: API server bind address
 - `NETWORK`: blockchain network (testnet/mainnet)
 
 ### Frontend Application  
+
 - `VITE_API_BASE_URL`: Backend API endpoint
 - `VITE_CONCORDIUM_NODE_URL`: Blockchain node endpoint
 - `VITE_NETWORK`: Network identifier

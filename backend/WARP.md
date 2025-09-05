@@ -75,7 +75,7 @@ diesel migration generate      # Create new migration
 
 ### Database Connection
 
-- **Host**: localhost:5432 (automatic in dev container)
+- **Host**: localhost:5432 (via Docker Compose)
 - **Database**: concordium_rwa_dev
 - **User**: concordium_rwa_dev_user
 - **Connection**: Pre-configured via `DATABASE_URL` environment variable
@@ -192,7 +192,7 @@ diesel migration redo
 ### Blockchain Configuration
 
 ```bash
-# Testnet (default in dev container)
+# Testnet (default for development)
 CONCORDIUM_NODE_URI=https://grpc.testnet.concordium.com:20000
 NETWORK=testnet
 
