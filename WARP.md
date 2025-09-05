@@ -113,7 +113,7 @@ yarn cdk destroy               # Destroy infrastructure
 ### Contract Testing
 
 - Each contract has comprehensive unit tests
-- Integration tests in `contracts/integration-tests/`
+- Integration tests (to be re-added after refactoring)
 - Contracts use Concordium smart contract testing framework
 
 ### Backend Testing

@@ -72,7 +72,6 @@ yarn format         # Format this contract's Rust code
 ### Contract Dependencies
 
 - **concordium-protocols/** - Shared protocol library used across contracts
-- **integration-tests/** - Cross-contract testing framework
 - **euroe/** - EUROe stablecoin integration
 
 ### Deprecated Contracts
@@ -120,9 +119,9 @@ concordium-smart-contract-testing = { version = "4.4.0" }
 
 ### Integration Testing
 
-- Cross-contract interactions tested in `integration-tests/`
-- Simulates real-world contract interaction flows
-- Tests identity verification → tokenization → trading workflows
+- Cross-contract interactions will be tested when integration tests are refactored and re-added
+- Will simulate real-world contract interaction flows
+- Will test identity verification → tokenization → trading workflows
 
 ## Development Patterns
 
@@ -265,7 +264,7 @@ cargo test test_function_name
 # Test with output
 cargo test test_function_name -- --nocapture
 
-# Run integration tests
-cd integration-tests/  
-cargo test
+# Integration tests (to be re-added after refactoring)
+# cd integration-tests/  
+# cargo test
 ```

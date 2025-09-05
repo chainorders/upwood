@@ -2985,26 +2985,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration-tests"
-version = "0.1.0"
-dependencies = [
- "concordium-cis2",
- "concordium-protocols",
- "concordium-rwa-compliance",
- "concordium-rwa-identity-registry",
- "concordium-smart-contract-testing",
- "concordium-std",
- "concordium_base 7.0.0",
- "nft-multi-rewarded",
- "offchain-rewards",
- "security-mint-fund",
- "security-p2p-trading",
- "security-sft-multi",
- "security-sft-multi-yielder",
- "security-sft-single",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5871,7 +5851,6 @@ dependencies = [
  "dotenvy",
  "events_listener",
  "hex",
- "integration-tests",
  "itertools 0.14.0",
  "jsonwebtokens",
  "jsonwebtokens-cognito",

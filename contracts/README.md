@@ -14,7 +14,6 @@ contracts/
 ├── concordium-protocols/          # Shared protocol library
 ├── euroe/                         # EUROe stablecoin integration
 ├── identity-registry/             # Identity & access control
-├── integration-tests/             # Cross-contract integration tests
 ├── nft-multi-rewarded/           # Authentication NFTs
 ├── offchain-rewards/             # Off-chain rewards (deprecated)
 ├── security-mint-fund/           # Investment fund & bonds
