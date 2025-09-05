@@ -9,16 +9,20 @@ Modern React-based user interface for forest project investment and carbon credi
 ## Development Environment
 
 ### Prerequisites
-- Uses VS Code dev container (`.devcontainer/frontend-app/`)
-- Node.js with Vite development server
+- Docker Compose for local development or Node.js on host
 - Auto-generated API client from backend workspace
 - Concordium wallet integration for blockchain interactions
 
-### Container Setup
+### Local Setup
 ```bash
-# Open in VS Code dev container
-# Dev Containers: Reopen in Container → Select "frontend-app"
-# Container auto-installs dependencies and shows available scripts
+# Option A: Run via Docker Compose
+# from repo root
+docker compose up --build frontend-app
+
+# Option B: Run on host
+cd frontend-app
+corepack enable && yarn install
+yarn dev --host  # http://localhost:5173
 ```
 
 ## Core Development Commands

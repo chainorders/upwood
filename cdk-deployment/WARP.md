@@ -9,16 +9,17 @@ AWS Cloud Development Kit (CDK) infrastructure as code for managing production a
 ## Development Environment
 
 ### Prerequisites
-- Uses VS Code dev container (`.devcontainer/cdk-deployment/`)
-- Node.js with TypeScript and AWS CDK
-- AWS CLI pre-installed for credential management
-- AWS credentials file: `.devcontainer/cdk-deployment/aws_accessKeys.csv`
+- Node.js with TypeScript and AWS CDK on host
+- AWS CLI installed and configured on host (`~/.aws`)
 
-### Container Setup
+### Local Setup
 ```bash
-# Open in VS Code dev container
-# Dev Containers: Reopen in Container → Select "cdk-deployment"
-# Container auto-configures AWS CLI and shows available scripts
+cd cdk-deployment
+corepack enable && yarn install
+# Example commands
+yarn cdk synth
+yarn cdk diff
+yarn cdk deploy
 ```
 
 ### AWS Credentials Setup

@@ -35,24 +35,18 @@ frontend-app/
 
 ## 🚀 Development Environment Setup
 
-### Using VS Code Dev Containers
+### Run with Docker Compose or on host
 
-1. **Open VS Code in repository root**
-
-   ```bash
-   cd /path/to/concordium-rwa
-   code .
-   ```
-
-2. **Open in Dev Container**
-   - Press `F1` or `Ctrl+Shift+P`
-   - Type: `Dev Containers: Reopen in Container`
-   - Select: **frontend-app**
-
-3. **Container Setup**
-   - The container automatically installs Node.js and dependencies
-   - Vite development server will be available on port 5173
-   - Terminal shows available yarn scripts upon completion
+- Compose (from repo root):
+  ```bash
+  docker compose up --build frontend-app
+  # App at http://localhost:5173
+  ```
+- Host (in frontend-app/):
+  ```bash
+  corepack enable && yarn install
+  yarn dev --host # http://localhost:5173
+  ```
 
 ## 🛠️ Available Scripts
 

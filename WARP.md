@@ -15,7 +15,7 @@ Upwood's Concordium RWA (Real World Asset) platform for forest project tokenizat
 - **cdk-deployment/** - AWS infrastructure (TypeScript + CDK v2)
 - **frontend-dapp/** - Legacy admin interface (React)
 
-Each workspace has its own dev container configuration in `.devcontainer/<workspace>/`
+Local development uses Docker Compose (see `docker-compose.yml`) to run Postgres, backend services, and the frontend together.
 
 ### Key Architectural Patterns
 - **Event-Driven**: Backend listens to Concordium blockchain events and processes them via specialized processors
@@ -29,7 +29,13 @@ Each workspace has its own dev container configuration in `.devcontainer/<worksp
 ### Repository Setup
 ```bash
 git submodule update --init --recursive
-# Open specific workspace: Dev Containers: Reopen in Container → Select workspace
+# Local run (compose)
+cp .env.example .env
+cp backend/upwood/.secure.env.sample backend/upwood/.secure.env
+# then
+docker compose up -d postgres
+# in separate terminals
+docker compose up --build backend-api backend-listener frontend-app
 ```
 
 ### Smart Contracts (contracts/)

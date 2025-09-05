@@ -39,21 +39,37 @@ cd concordium-rwa
 git submodule update --init --recursive
 ```
 
-### Development Environment Setup
+### Development Environment Setup (Docker Compose)
 
-1. **Install Prerequisites**
-   - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-   - [VS Code](https://code.visualstudio.com/)
-   - [Dev Containers Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+1. **Install prerequisites**
+   - Docker Engine / Docker Desktop
+   - Node.js (optional if you want to run frontend on host)
 
-2. **Choose Your Workspace**
-   - Open VS Code in the repository root
-   - Run `Dev Containers: Reopen in a Container`
-   - Select your target workspace from the list
+2. **AWS Setup** (required for full functionality)
+   - Install AWS CLI: `curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install`
+   - Configure credentials: `aws configure` (use your AWS access key, secret key, and region `eu-west-2`)
+   - Or use AWS SSO: `aws configure sso`
+   - Verify: `aws sts get-caller-identity`
 
-3. **Start Development**
-   - Each container automatically runs `yarn run` to show available scripts
-   - Follow workspace-specific instructions below
+3. **One-time setup**
+   - `cp .env.example .env`
+   - `cp backend/upwood/.secure.env.sample backend/upwood/.secure.env` and populate with real wallet JSON strings
+   - Ensure your `backend/upwood/.secure.env` contains valid Concordium wallet JSONs for the agents
+
+4. **Start services**
+   - `docker compose up -d postgres`
+   - `docker compose up --build backend-api backend-listener frontend-app`
+
+5. **Access**
+   - Postgres: `localhost:5432`
+   - Backend API: `http://localhost:3001` (once AWS credentials are configured)
+   - Frontend: `http://localhost:5173`
+
+**Notes:**
+- AWS services (S3, SES, Cognito) are accessed directly (no mocks). Containers mount `~/.aws` and use `AWS_PROFILE=default`.
+- Database migrations run automatically on backend startup.
+- Frontend can also be run on host with `yarn dev`.
+- If you don't have AWS credentials configured, the backend services will fail to start.
 
 ## 📦 Workspaces
 
@@ -63,15 +79,11 @@ Concordium blockchain smart contracts written in Rust that enable forest project
 
 📖 **[Full Documentation](./contracts/README.md)**
 
-🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **contracts** → Container files: [`.devcontainer/contracts/`](./.devcontainer/contracts/)
-
 ### 🔧 Backend Services (`backend/`)
 
 Rust-based backend services that process Concordium blockchain events, provide REST APIs for frontend applications, and manage data persistence using the Poem web framework and PostgreSQL databases.
 
 📖 **[Full Documentation](./backend/README.md)**
-
-🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **backend** → Container files: [`.devcontainer/backend/`](./.devcontainer/backend/)
 
 ### 🎨 Frontend Application (`frontend-app/`)
 
@@ -79,23 +91,17 @@ Modern React-based user interface built with Vite and TypeScript that provides a
 
 📖 **[Full Documentation](./frontend-app/README.md)**
 
-🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **frontend-app** → Container files: [`.devcontainer/frontend-app/`](./.devcontainer/frontend-app/)
-
 ### ☁️ AWS Infrastructure (`cdk-deployment/`)
 
 AWS Cloud Development Kit (CDK) infrastructure as code using TypeScript that manages the complete cloud infrastructure including ECS services, databases, CDN, monitoring, and security configurations for production and staging environments.
 
 📖 **[Full Documentation](./cdk-deployment/README.md)**
 
-🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **cdk-deployment** → Container files: [`.devcontainer/cdk-deployment/`](./.devcontainer/cdk-deployment/)
-
 ### 📱 Legacy DApp (`frontend-dapp/`)
 
 Legacy React-based decentralized application interface primarily used for contract administration, testing, and debugging. This interface serves as an administrative tool for developers and administrators for direct smart contract interaction and system testing.
 
 📖 **[Full Documentation](./frontend-dapp/README.md)**
-
-🐳 **Dev Container**: Open with `Dev Containers: Reopen in Container` → Select **frontend-dapp** → Container files: [`.devcontainer/frontend-dapp/`](./.devcontainer/frontend-dapp/)
 
 ## 🛠️ Development Workflow
 
@@ -114,32 +120,39 @@ yarn deploy
 ### 2. Backend Development
 
 ```bash
-# Open backend workspace
-code . && Dev Containers: Reopen in Container → backend
+# Start backend services with Docker Compose
+# In repository root
+cp .env.example .env
+cp backend/upwood/.secure.env.sample backend/upwood/.secure.env # then populate secrets
 
-# Start services
-yarn debug:listener    # Terminal 1: Blockchain listener
-yarn debug:contracts-api  # Terminal 2: API server
+docker compose up -d postgres
+# Terminal 1
+docker compose up --build backend-listener
+# Terminal 2
+docker compose up --build backend-api
 ```
 
 ### 3. Frontend Development
 
 ```bash
-# Open frontend workspace
-code . && Dev Containers: Reopen in Container → frontend-app
+# Option A: Run via Docker Compose
+docker compose up --build frontend-app
 
-# Start development server
-yarn dev  # Runs on http://localhost:5173
+# Option B: Run on host
+cd frontend-app
+corepack enable && yarn install
+VITE_API_BASE_URL=http://localhost:3001 yarn dev --host
 ```
 
 ### 4. Infrastructure Management
 
 ```bash
-# Open CDK workspace
-code . && Dev Containers: Reopen in Container → cdk-deployment
-
-# Deploy to AWS
-yarn deploy
+# Run CDK commands on host (no dev containers)
+cd cdk-deployment
+corepack enable && yarn install
+# Example:
+yarn cdk synth
+# or deploy with appropriate AWS profile/region configured on host
 ```
 
 ## 🔧 Advanced Configuration

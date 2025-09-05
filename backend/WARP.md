@@ -9,21 +9,29 @@ Rust-based backend services for blockchain event processing, REST APIs, and data
 ## Development Environment
 
 ### Prerequisites
-- Uses VS Code dev container (`.devcontainer/backend/`)
-- Rust toolchain with Concordium SDK
-- PostgreSQL database (runs automatically in container)
-- Node.js for OpenAPI client generation
 
-### Container Setup
+- Docker Compose for local development
+- AWS credentials configured on host under `~/.aws` (default profile)
+- Node.js for OpenAPI client generation (optional, for running scripts on host)
+
+### Local Setup
+
 ```bash
-# Open in VS Code dev container
-# Dev Containers: Reopen in Container → Select "backend"
-# Container auto-starts PostgreSQL and shows available scripts
+# One-time
+cp .env.example .env
+cp backend/upwood/.secure.env.sample backend/upwood/.secure.env  # add secrets
+
+# Run services
+docker compose up -d postgres
+# In separate terminals
+docker compose up --build backend-listener
+docker compose up --build backend-api
 ```
 
 ## Core Development Commands
 
 ### Building & Testing
+
 ```bash
 yarn build                      # Clean release build
 yarn test                       # Run all tests
@@ -33,18 +41,21 @@ yarn format                     # Format with cargo +nightly fmt
 ### Services Management
 
 #### Event Listener Service
+
 ```bash
 yarn debug:listener             # Run blockchain event processor
 yarn watch:listener             # Auto-restart on changes (cargo watch)
 ```
 
 #### API Service
+
 ```bash
 yarn debug:app-api              # Run REST API server (port 3000)
 yarn watch:app-api              # Auto-restart on changes (cargo watch)
 ```
 
 ### API Client Generation
+
 ```bash
 yarn generate:client            # Generate TypeScript client → ../frontend-app/src/apiClient
 yarn generate:spec              # Generate OpenAPI spec only
@@ -55,6 +66,7 @@ yarn generate:app-api-client    # Generate and output client to frontend-app
 ## Database Management
 
 ### Database Operations (Diesel ORM)
+
 ```bash
 diesel database reset          # Reset and migrate database
 diesel migration run           # Run pending migrations
@@ -62,6 +74,7 @@ diesel migration generate      # Create new migration
 ```
 
 ### Database Connection
+
 - **Host**: localhost:5432 (automatic in dev container)
 - **Database**: concordium_rwa_dev
 - **User**: concordium_rwa_dev_user
@@ -72,32 +85,37 @@ diesel migration generate      # Create new migration
 ### Core Services
 
 #### events_listener/
+
 - **Purpose**: Processes Concordium blockchain events in real-time
 - **Executables**: `listener_server` - main event processing daemon
 - **Processors**: Contract-specific event handlers in `src/processors/`
 - **Key Features**: Blockchain state sync, reorganization handling, event recovery
 
 #### upwood/
+
 - **Purpose**: REST API service for frontend applications
-- **Executables**: 
+- **Executables**:
   - `upwood_api_server` - main REST API server
   - `upwood_api_specs` - OpenAPI specification generator
 - **API Endpoints**: Forest projects, portfolios, transactions, user management
 - **Framework**: Poem web framework with OpenAPI support
 
 #### shared/
+
 - **Purpose**: Common database models, migrations, and utilities
 - **Database**: Diesel ORM models and schemas in `src/db/`
 - **Migrations**: Database schema evolution in `migrations/`
 - **Utilities**: Shared business logic and data structures
 
 #### shared_tests/
+
 - **Purpose**: Integration test utilities and framework
 - **Usage**: Shared testing infrastructure for cross-service testing
 
 ## Development Patterns
 
 ### Event Processing Architecture
+
 ```rust
 // Event processor pattern
 pub struct ContractProcessor {
@@ -115,6 +133,7 @@ impl EventProcessor for ContractProcessor {
 ```
 
 ### API Endpoint Pattern
+
 ```rust
 // Poem API endpoint pattern
 #[OpenApi]
@@ -129,6 +148,7 @@ impl ApiEndpoints {
 ```
 
 ### Database Model Pattern
+
 ```rust
 // Diesel model pattern
 #[derive(Queryable, Insertable, Serialize, Deserialize)]
@@ -142,6 +162,7 @@ pub struct Model {
 ## Testing Strategy
 
 ### Unit Testing
+
 ```bash
 # Test specific module
 cd events_listener/
@@ -156,6 +177,7 @@ cargo test api_tests
 ```
 
 ### Integration Testing
+
 ```bash
 # Run shared integration tests
 cd shared_tests/
@@ -168,6 +190,7 @@ diesel migration redo
 ## Environment Configuration
 
 ### Blockchain Configuration
+
 ```bash
 # Testnet (default in dev container)
 CONCORDIUM_NODE_URI=https://grpc.testnet.concordium.com:20000
@@ -179,6 +202,7 @@ NETWORK=mainnet
 ```
 
 ### Service Configuration
+
 ```bash
 WEB_SERVER_ADDR=0.0.0.0:3000    # API server bind address
 DATABASE_URL=postgres://...      # PostgreSQL connection (auto-configured)
@@ -188,6 +212,7 @@ DEFAULT_BLOCK_HEIGHT=0           # Starting block height for listener
 ## Common Development Tasks
 
 ### Adding New Event Processor
+
 1. Create processor in `events_listener/src/processors/`
 2. Implement `EventProcessor` trait
 3. Register processor in listener server
@@ -195,6 +220,7 @@ DEFAULT_BLOCK_HEIGHT=0           # Starting block height for listener
 5. Create migration for new database tables
 
 ### Adding New API Endpoint
+
 1. Define endpoint in `upwood/src/api/`
 2. Add OpenAPI documentation
 3. Implement request/response types
@@ -202,6 +228,7 @@ DEFAULT_BLOCK_HEIGHT=0           # Starting block height for listener
 5. Regenerate TypeScript client for frontend
 
 ### Database Schema Changes
+
 ```bash
 # Create new migration
 diesel migration generate migration_name
@@ -215,6 +242,7 @@ diesel migration redo
 ```
 
 ### Running Individual Services
+
 ```bash
 # Run event listener only
 cargo run --bin listener_server
@@ -229,6 +257,7 @@ cargo run --bin upwood_api_specs
 ## Debugging & Monitoring
 
 ### Logging
+
 ```bash
 # Run with debug logging
 RUST_LOG=debug yarn debug:listener
@@ -239,6 +268,7 @@ RUST_LOG=events_listener=debug,upwood=info yarn debug:listener
 ```
 
 ### Database Debugging
+
 ```bash
 # Connect to database directly
 psql $DATABASE_URL
@@ -253,12 +283,14 @@ diesel migration pending
 ## API Development
 
 ### OpenAPI Workflow
+
 1. Define endpoints with Poem OpenAPI macros
 2. Run `yarn generate:spec` to create specification
 3. Run `yarn generate:client` to update frontend TypeScript client
 4. Frontend imports generated client from `src/apiClient/`
 
 ### Testing API Endpoints
+
 ```bash
 # Start API server
 yarn debug:app-api

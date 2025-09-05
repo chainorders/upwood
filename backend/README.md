@@ -35,24 +35,34 @@ backend/
 
 ## 🚀 Development Environment Setup
 
-### Using VS Code Dev Containers
+### Run with Docker Compose
 
-1. **Open VS Code in repository root**
+1. Prerequisites
+   - Docker Engine / Docker Desktop
+   - AWS credentials configured on host under `~/.aws` (default profile)
+
+2. One-time setup
 
    ```bash
-   cd /path/to/concordium-rwa
-   code .
+   cp .env.example .env
+   cp backend/upwood/.secure.env.sample backend/upwood/.secure.env # populate secrets (wallet JSONs)
    ```
 
-2. **Open in Dev Container**
-   - Press `F1` or `Ctrl+Shift+P`
-   - Type: `Dev Containers: Reopen in Container`
-   - Select: **backend**
+3. Start services
 
-3. **Container Setup**
-   - The container automatically installs Rust, PostgreSQL, and Node.js
-   - Database starts automatically on port 5432
-   - Terminal shows available yarn scripts upon completion
+   ```bash
+   docker compose up -d postgres
+   docker compose up --build backend-api backend-listener
+   ```
+
+4. Access
+   - API: <http://localhost:3001>
+   - Postgres: localhost:5432 (use POSTGRES_* from .env)
+
+Notes:
+
+- DB migrations run automatically at service startup.
+- Containers mount `~/.aws` and use `AWS_PROFILE=default`.
 
 ## 🛠️ Available Scripts
 
@@ -138,18 +148,14 @@ yarn generate:app-api-client # Generate and output client to ../frontend-app/src
 
 **Purpose**: Shared testing utilities and integration test framework
 
-## 📦 Database Setup
+### Database Setup
 
-The backend uses PostgreSQL with Diesel ORM:
+The backend uses PostgreSQL with Diesel ORM. Migrations are applied automatically by the services on startup.
 
 ```bash
-# Database runs automatically in dev container on localhost:5432
-# DATABASE_URL is pre-configured in .devcontainer/backend/.env
-
-# Run migrations (DATABASE_URL already set)
+# Optional: run Diesel manually if needed
 diesel migration run
-
-# Reset database (DATABASE_URL already set)
+# or
 diesel database reset
 ```
 

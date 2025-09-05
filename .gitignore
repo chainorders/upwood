@@ -6,3 +6,8 @@ out
 data
 .devcontainer/**/*.export
 .devcontainer/aws_accessKeys.csv
+# Local secrets (not committed)
+backend/upwood/.secure.env
+
+# Environment files
+# Note: backend/.env is tracked as it contains no secrets, just dev configs

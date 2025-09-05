@@ -18,39 +18,39 @@ use tracing_subscriber::util::TryInitError;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Config {
-    #[clap(env, long)]
+    #[clap(env = "POSTGRES_USER", long, default_value = "concordium_rwa_dev_user")]
     pub postgres_user: String,
-    #[clap(env, long)]
+    #[clap(env = "POSTGRES_PASSWORD", long, default_value = "concordium_rwa_dev_pswd")]
     pub postgres_password: String,
-    #[clap(env, long)]
+    #[clap(env = "POSTGRES_HOST", long, default_value = "localhost")]
     pub postgres_host: String,
-    #[clap(env, long)]
+    #[clap(env = "POSTGRES_PORT", long, default_value = "5432")]
     pub postgres_port: u16,
-    #[clap(env, long)]
+    #[clap(env = "POSTGRES_DB", long, default_value = "concordium_rwa_dev")]
     pub postgres_db: String,
-    #[clap(env, long)]
+    #[clap(env = "DB_POOL_MAX_SIZE", long, default_value = "10")]
     pub db_pool_max_size: u32,
     /// The Concordium node URI.
-    #[clap(env, long)]
+    #[clap(env = "CONCORDIUM_NODE_URI", long, default_value = "https://grpc.testnet.concordium.com:20000")]
     pub concordium_node_uri: String,
     /// The starting block hash.
-    #[clap(env, long)]
+    #[clap(env = "DEFAULT_BLOCK_HEIGHT", long)]
     pub default_block_height: Option<u64>,
-    #[clap(env, long)]
+    #[clap(env = "NODE_RATE_LIMIT", long, default_value = "1000")]
     pub node_rate_limit: u64,
-    #[clap(env, long)]
+    #[clap(env = "NODE_RATE_LIMIT_DURATION_MILLIS", long, default_value = "2000")]
     pub node_rate_limit_duration_millis: u64,
-    #[clap(env, long)]
+    #[clap(env = "ACCOUNT", long, default_value = "4fWTMJSAymJoFeTbohJzwejT6Wzh1dAa2BtnbDicgjQrc94TgW")]
     pub account: String,
-    #[clap(env, long)]
+    #[clap(env = "NODE_CONNECT_TIMEOUT_MILLIS", long, default_value = "10000")]
     pub node_connect_timeout_millis: u64,
-    #[clap(env, long)]
+    #[clap(env = "NODE_REQUEST_TIMEOUT_MILLIS", long, default_value = "10000")]
     pub node_request_timeout_millis: u64,
-    #[clap(env, long)]
+    #[clap(env = "LISTENER_RETRY_TIMES", long, default_value = "10")]
     pub listener_retry_times: usize,
-    #[clap(env, long)]
+    #[clap(env = "LISTENER_RETRY_MIN_DELAY_MILLIS", long, default_value = "500")]
     pub listener_retry_min_delay_millis: u64,
-    #[clap(env, long)]
+    #[clap(env = "LISTENER_RETRY_MAX_DELAY_MILLIS", long, default_value = "10000")]
     pub listener_retry_max_delay_millis: u64,
 }
 
@@ -68,6 +68,7 @@ pub enum Error {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    // Load local .env file if it exists (for local development)
     dotenvy::from_filename(Path::new(env!("CARGO_MANIFEST_DIR")).join(".env")).ok();
     let subscriber = tracing_subscriber::fmt::layer()
         .json()

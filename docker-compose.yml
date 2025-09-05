@@ -1,0 +1,123 @@
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: concordium-rwa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend-api:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    image: concordium-rwa/backend:local
+    container_name: concordium-rwa-backend-api
+    command: ["/upwood_api_server"]
+    env_file:
+      - backend/upwood/.env
+      - backend/upwood/.secure.env
+    environment:
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-10}
+      # API socket
+      API_SOCKET_ADDRESS: ${API_SOCKET_ADDRESS:-0.0.0.0}
+      API_SOCKET_PORT: ${API_SOCKET_PORT:-3001}
+      # AWS credential resolution from host profile
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+      AWS_SDK_LOAD_CONFIG: ${AWS_SDK_LOAD_CONFIG:-1}
+      # Optional logging
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - ${HOME}/.aws:/root/.aws:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+
+  backend-listener:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    image: concordium-rwa/backend:local
+    container_name: concordium-rwa-backend-listener
+    command: ["/listener_server"]
+    env_file:
+      - backend/events_listener/.env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-10}
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+      AWS_SDK_LOAD_CONFIG: ${AWS_SDK_LOAD_CONFIG:-1}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - ${HOME}/.aws:/root/.aws:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend-app:
+    image: node:20-alpine
+    container_name: concordium-rwa-frontend-app
+    working_dir: /app
+    volumes:
+      - ./frontend-app:/app
+    command: sh -lc "corepack enable && yarn install && yarn dev --host"
+    env_file:
+      - frontend-app/.env
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend-api
+
+  # backend-jobs:
+  #   build:
+  #     context: .
+  #     dockerfile: backend.Dockerfile
+  #   image: concordium-rwa/backend:local
+  #   container_name: concordium-rwa-backend-jobs
+  #   command: ["/path/to/jobs_binary"]
+  #   env_file:
+  #     - backend/upwood/.env
+  #     - backend/upwood/.secure.env
+  #   environment:
+  #     POSTGRES_HOST: postgres
+  #     POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #     DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-10}
+  #     AWS_PROFILE: ${AWS_PROFILE:-default}
+  #     AWS_SDK_LOAD_CONFIG: ${AWS_SDK_LOAD_CONFIG:-1}
+  #     RUST_LOG: ${RUST_LOG:-info}
+  #   volumes:
+  #     - ${HOME}/.aws:/root/.aws:ro
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  postgres-data: {}
+

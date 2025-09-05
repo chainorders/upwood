@@ -9,16 +9,18 @@ Legacy React-based decentralized application interface primarily used for contra
 ## Development Environment
 
 ### Prerequisites
-- Uses VS Code dev container (`.devcontainer/frontend-dapp/`)
-- Node.js with Vite development server
+- Node.js or Docker Compose (optional) for local development
 - Material-UI (MUI) for UI components
 - React JSON Schema Form for dynamic contract interaction
 
-### Container Setup
+### Local Setup
 ```bash
-# Open in VS Code dev container
-# Dev Containers: Reopen in Container → Select "frontend-dapp"
-# Container auto-installs dependencies and shows available scripts
+# Run on host
+cd frontend-dapp
+corepack enable && yarn install
+yarn dev --host
+
+# (Optional) Add to Docker Compose in the future if needed
 ```
 
 ## Core Development Commands
