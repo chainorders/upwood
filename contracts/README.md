@@ -27,6 +27,39 @@ contracts/
 
 ## 🚀 Development Environment Setup
 
+### Prerequisites
+
+**IMPORTANT**: Due to Rust version compatibility requirements, you **must** use Rust v1.73.0 for building Concordium contracts.
+
+#### Install Required Toolchain
+
+```bash
+# Install Rust 1.73.0 (required for cargo-concordium compatibility)
+rustup toolchain install 1.73.0
+rustup target add wasm32-unknown-unknown --toolchain 1.73.0
+
+# Install cargo-concordium v4.2.0
+cargo install cargo-concordium --version "4.2.0"
+```
+
+#### Build Configuration Issue Resolution
+
+The "Unknown section id 12" error was a **Rust version compatibility issue**:
+- ❌ **Problem**: Modern Rust versions (1.74+) generate WebAssembly that cargo-concordium cannot process
+- ✅ **Solution**: Use Rust v1.73.0 (MSRV for cargo-concordium) with the latest stable Concordium dependencies
+
+#### Automatic Toolchain Selection
+
+**🔧 Rust Toolchain Files Included**: Each contract directory contains a `rust-toolchain.toml` file that automatically selects Rust v1.73.0 when you run cargo commands. This means:
+
+```bash
+# These commands now automatically use Rust 1.73.0 (no +1.73.0 needed)
+cd security-sft-multi/
+cargo concordium build --out contract.wasm.v1  # ✅ Uses Rust 1.73.0 automatically
+cargo build --release --target=wasm32-unknown-unknown  # ✅ Uses Rust 1.73.0 automatically
+yarn build  # ✅ Uses Rust 1.73.0 automatically
+```
+
 ### Using VS Code Dev Containers
 
 1. **Open VS Code in repository root**
@@ -62,9 +95,32 @@ All scripts are defined in `package.json` and can be run with `yarn <script>`:
 ### Building
 
 ```bash
-yarn build    # Build all contracts in workspace
+yarn build    # Build all contracts in workspace (uses Rust 1.73.0)
 yarn clean    # Clean all build artifacts
 yarn format   # Format all Rust code
+```
+
+#### Manual Build Commands
+
+```bash
+# Build individual contract (recommended method)
+cd [contract-directory]
+rm -f Cargo.lock  # Remove if upgrading from older Cargo versions
+cargo concordium build --out contract.wasm.v1  # ✅ Auto-uses Rust 1.73.0
+
+# Build with schema generation (full cargo-concordium functionality)
+cargo concordium build --out contract.wasm.v1
+# ✅ Generates complete contract schema (10k+ bytes)
+# ✅ Embeds schema into WebAssembly module
+# ✅ Full deployment-ready contract
+# ✅ Automatically uses Rust 1.73.0 via rust-toolchain.toml
+
+# Alternative: Standard Rust build (if cargo-concordium issues)
+cargo build --release --target=wasm32-unknown-unknown  # ✅ Auto-uses Rust 1.73.0
+cp target/wasm32-unknown-unknown/release/[contract_name].wasm contract.wasm.v1
+
+# Explicit version (only needed if rust-toolchain.toml is missing)
+cargo +1.73.0 concordium build --out contract.wasm.v1
 ```
 
 ### Testing

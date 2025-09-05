@@ -1,0 +1,8 @@
+[toolchain]
+channel = "1.73.0"
+targets = ["wasm32-unknown-unknown"]
+components = ["rustfmt", "clippy"]
+
+# This ensures that cargo commands in this directory automatically use Rust 1.73.0
+# which is required for cargo-concordium compatibility and resolves the 
+# "Unknown section id 12" build error.
