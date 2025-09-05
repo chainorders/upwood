@@ -774,40 +774,12 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.6.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
-dependencies = [
- "async-trait",
- "axum-core 0.3.4",
- "bitflags 1.3.2",
- "bytes 1.8.0",
- "futures-util",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.31",
- "itoa",
- "matchit",
- "memchr",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "rustversion",
- "serde",
- "sync_wrapper 0.1.2",
- "tower 0.4.13",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "axum"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edca88bc138befd0323b20752846e6587272d3b03b0343c8ea28a6f819e6e71f"
 dependencies = [
  "async-trait",
- "axum-core 0.4.5",
+ "axum-core",
  "bytes 1.8.0",
  "futures-util",
  "http 1.3.1",
@@ -823,23 +795,6 @@ dependencies = [
  "serde",
  "sync_wrapper 1.0.1",
  "tower 0.5.2",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "axum-core"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "759fa577a247914fd3f7f76d62972792636412fbfd634cd452f6a385a74d2d2c"
-dependencies = [
- "async-trait",
- "bytes 1.8.0",
- "futures-util",
- "http 0.2.12",
- "http-body 0.4.6",
- "mime",
- "rustversion",
  "tower-layer",
  "tower-service",
 ]
@@ -1319,39 +1274,6 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "636daca1ac2bff1bf3dfd61200163606dca548612a1d33c5c95596ceddfcc475"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "chrono",
- "concordium-smart-contract-engine",
- "concordium_base 7.0.0",
- "derive_more 0.99.18",
- "ed25519-dalek",
- "futures",
- "hex",
- "http 0.2.12",
- "num",
- "num-bigint",
- "num-traits",
- "prost 0.12.6",
- "rand",
- "rust_decimal",
- "semver",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 1.0.66",
- "tokio",
- "tokio-stream",
- "tonic 0.10.2",
- "tracing",
-]
-
-[[package]]
-name = "concordium-rust-sdk"
 version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8c0493a93572a41c62c68b1c8d4ebe6ccb33781fb8fcd27fe0ea250f2d446ad"
@@ -1360,7 +1282,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "concordium-smart-contract-engine",
- "concordium_base 8.0.0",
+ "concordium_base",
  "derive_more 0.99.18",
  "ed25519-dalek",
  "futures",
@@ -1369,7 +1291,7 @@ dependencies = [
  "num",
  "num-bigint",
  "num-traits",
- "prost 0.13.5",
+ "prost",
  "rand",
  "rust_decimal",
  "semver",
@@ -1379,7 +1301,7 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "tokio-stream",
- "tonic 0.12.3",
+ "tonic",
  "tracing",
 ]
 
@@ -1427,21 +1349,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "concordium-smart-contract-testing"
-version = "4.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e651a53f95277cfd8954e0081299968331283cf108726fe3066633947d74daa4"
-dependencies = [
- "anyhow",
- "concordium-rust-sdk 6.0.0",
- "num-bigint",
- "num-integer",
- "sha2",
- "thiserror 1.0.66",
- "tokio",
-]
-
-[[package]]
 name = "concordium-std"
 version = "10.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1461,54 +1368,6 @@ dependencies = [
  "derive_more 0.99.18",
  "leb128",
  "num_enum",
-]
-
-[[package]]
-name = "concordium_base"
-version = "7.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6100afd4f5bebf3ab1dc9fa7f09e6156dd064c3f849def660867083e0cae9e69"
-dependencies = [
- "aes",
- "anyhow",
- "ark-bls12-381",
- "ark-ec",
- "ark-ff",
- "ark-serialize",
- "ark-std",
- "base64 0.21.7",
- "bs58",
- "byteorder",
- "cbc",
- "chrono",
- "concordium-contracts-common",
- "concordium_base_derive",
- "curve25519-dalek",
- "derive_more 0.99.18",
- "ed25519-dalek",
- "either",
- "ff 0.13.0",
- "hex",
- "hmac",
- "itertools 0.10.5",
- "leb128",
- "libc",
- "nom",
- "num",
- "num-bigint",
- "num-traits",
- "pbkdf2",
- "rand",
- "rayon",
- "rust_decimal",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "sha3",
- "subtle",
- "thiserror 1.0.66",
- "zeroize",
 ]
 
 [[package]]
@@ -2183,7 +2042,7 @@ dependencies = [
  "clap",
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rust-sdk 7.0.0",
+ "concordium-rust-sdk",
  "concordium-rwa-identity-registry",
  "diesel",
  "diesel-derive-enum",
@@ -2816,18 +2675,6 @@ dependencies = [
 
 [[package]]
 name = "hyper-timeout"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbb958482e8c7be4bc3cf272a766a2b0bf1a6755e7a6ae777f017a31d11b13b1"
-dependencies = [
- "hyper 0.14.31",
- "pin-project-lite",
- "tokio",
- "tokio-io-timeout",
-]
-
-[[package]]
-name = "hyper-timeout"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b90d566bffbce6a75bd8b09a05aa8c2cb1fabb6cb348f8840c9e4c90a0d83b0"
@@ -3001,15 +2848,6 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
  "either",
 ]
@@ -3972,35 +3810,12 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deb1435c188b76130da55f17a466d252ff7b1418b2ad3e037d127b94e3411f29"
-dependencies = [
- "bytes 1.8.0",
- "prost-derive 0.12.6",
-]
-
-[[package]]
-name = "prost"
 version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
 dependencies = [
  "bytes 1.8.0",
- "prost-derive 0.13.5",
-]
-
-[[package]]
-name = "prost-derive"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
-dependencies = [
- "anyhow",
- "itertools 0.12.1",
- "proc-macro2",
- "quote",
- "syn 2.0.87",
+ "prost-derive",
 ]
 
 [[package]]
@@ -4879,7 +4694,7 @@ version = "0.0.0"
 dependencies = [
  "chrono",
  "concordium-cis2",
- "concordium-rust-sdk 7.0.0",
+ "concordium-rust-sdk",
  "diesel",
  "diesel-derive-enum",
  "diesel_migrations",
@@ -4902,7 +4717,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "concordium-cis2",
- "concordium-rust-sdk 7.0.0",
+ "concordium-rust-sdk",
  "diesel",
  "diesel_migrations",
  "num-bigint",
@@ -5381,16 +5196,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-io-timeout"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b74022ada614a1b4834de765f9bb43877f910cc8ce4be40e89042c9223a8bf"
-dependencies = [
- "pin-project-lite",
- "tokio",
-]
-
-[[package]]
 name = "tokio-macros"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5530,40 +5335,13 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d560933a0de61cf715926b9cac824d4c883c2c43142f787595e48280c40a1d0e"
-dependencies = [
- "async-stream",
- "async-trait",
- "axum 0.6.20",
- "base64 0.21.7",
- "bytes 1.8.0",
- "h2 0.3.26",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.31",
- "hyper-timeout 0.4.1",
- "percent-encoding",
- "pin-project 1.1.7",
- "prost 0.12.6",
- "tokio",
- "tokio-stream",
- "tower 0.4.13",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "tonic"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
 dependencies = [
  "async-stream",
  "async-trait",
- "axum 0.7.9",
+ "axum",
  "base64 0.22.1",
  "bytes 1.8.0",
  "h2 0.4.6",
@@ -5571,11 +5349,11 @@ dependencies = [
  "http-body 1.0.1",
  "http-body-util",
  "hyper 1.7.0",
- "hyper-timeout 0.5.2",
+ "hyper-timeout",
  "hyper-util",
  "percent-encoding",
  "pin-project 1.1.7",
- "prost 0.13.5",
+ "prost",
  "socket2 0.5.7",
  "tokio",
  "tokio-stream",
@@ -5840,10 +5618,9 @@ dependencies = [
  "clap",
  "concordium-cis2",
  "concordium-protocols",
- "concordium-rust-sdk 7.0.0",
+ "concordium-rust-sdk",
  "concordium-rwa-compliance",
  "concordium-rwa-identity-registry",
- "concordium-smart-contract-testing",
  "config",
  "csv",
  "diesel",

@@ -68,7 +68,7 @@ nft-multi-rewarded = { path = "../../contracts/nft-multi-rewarded" }
 security-mint-fund = { path = "../../contracts/security-mint-fund" }
 security-p2p-trading = { path = "../../contracts/security-p2p-trading" }
 concordium-rwa-compliance = { path = "../../contracts/compliance" }
-concordium-smart-contract-testing = { workspace = true }
+# concordium-smart-contract-testing = { workspace = true }  # Temporarily disabled
 concordium-protocols = { path = "../../contracts/concordium-protocols" }
 concordium-cis2 = { workspace = true }
 rand = { version = "*" }
